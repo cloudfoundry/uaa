@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -58,12 +59,22 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
 
     protected AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
 
+    protected CommonLoginPolicy loginPolicy;
+
     public AuthenticationManager getClientAuthenticationManager() {
         return clientAuthenticationManager;
     }
 
     public void setClientAuthenticationManager(AuthenticationManager clientAuthenticationManager) {
         this.clientAuthenticationManager = clientAuthenticationManager;
+    }
+
+    public CommonLoginPolicy getLoginPolicy() {
+        return loginPolicy;
+    }
+
+    public void setLoginPolicy(CommonLoginPolicy loginPolicy) {
+        this.loginPolicy = loginPolicy;
     }
 
     /**

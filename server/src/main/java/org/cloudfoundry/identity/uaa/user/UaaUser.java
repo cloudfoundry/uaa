@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UaaUser {
-    static final String DEFAULT_EMAIL_DOMAIN = "this-default-was-not-configured.invalid";
+    public static final String DEFAULT_EMAIL_DOMAIN = "this-default-was-not-configured.invalid";
     static final String DEFAULT_USER_NAME = "unknown";
 
     public static String emailFrom(String name) {
@@ -45,16 +45,6 @@ public class UaaUser {
 
         if (prototype.getEmail() == null) {
             prototype.withEmail(emailFrom(prototype.getUsername()));
-        }
-
-        if (prototype.getGivenName() == null) {
-            prototype.withGivenName(prototype.getEmail().split("@")[0]);
-        }
-
-        if (prototype.getFamilyName() == null) {
-            String email = prototype.getEmail();
-            String familyName = (email.split("@").length > 1 ? email.split("@")[1] : email);
-            prototype.withFamilyName(familyName);
         }
 
         if (prototype.getCreated() == null) {

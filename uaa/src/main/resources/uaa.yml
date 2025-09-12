@@ -2,6 +2,11 @@
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
 
+device:
+  assertion:
+    proxy-public-key: |
+      not-used
+#spring_profiles: mysql,default,ldap
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
 #spring_profiles: saml

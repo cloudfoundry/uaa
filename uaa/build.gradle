@@ -166,6 +166,9 @@ generateDocs {
 }
 
 integrationTest {
+    exclude '**/*AT.class'
+    exclude 'org/cloudfoundry/identity/uaa/degraded/*.class'
+    exclude 'org/cloudfoundry/identity/uaa/jwt/degraded/*.class'
     filter {
         exclude '**/*AT.class'
         exclude 'org/cloudfoundry/identity/uaa/degraded/*.class'
@@ -175,9 +178,9 @@ integrationTest {
 }
 
 task acceptanceTest(type: Test) {
-  // Don't let tests be 'UP-TO-DATE' and not run
-  outputs.upToDateWhen { false }
-  include "org/cloudfoundry/identity/uaa/acceptance/*.class"
+    // Don't let tests be 'UP-TO-DATE' and not run
+    outputs.upToDateWhen { false }
+    include "org/cloudfoundry/identity/uaa/acceptance/*.class"
     // Exclude Selenium chromedriver based SAML login test if UAA is being run locally
     if (System.getenv('DEPLOYMENT_TYPE') == 'local') {
         exclude "org/cloudfoundry/identity/uaa/acceptance/SamlLoginAT.class"
@@ -194,6 +197,18 @@ task degradedTestLocal(type: Test) {
   dependsOn rootProject.cargoStartLocal
   finalizedBy rootProject.cargoStopLocal
   include "org/cloudfoundry/identity/uaa/degraded/*.class"
+}
+
+task degradedJwtTestCloud(type: Test) {
+    systemProperty "RUN_AGAINST_CLOUD", true
+    include "org/cloudfoundry/identity/uaa/jwt/degraded/*.class"
+}
+
+task degradedJwtTestLocal(type: Test) {
+    systemProperty "RUN_AGAINST_CLOUD", false
+    dependsOn rootProject.setupDegradedTestsForJwtBearerLocal
+    include "org/cloudfoundry/identity/uaa/jwt/degraded/*.class"
+    finalizedBy rootProject.cargoStopLocal
 }
 
 task orchestratorIntegrationTest(type: Test) {

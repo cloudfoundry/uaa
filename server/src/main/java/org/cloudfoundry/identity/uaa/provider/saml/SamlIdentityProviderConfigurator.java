@@ -4,7 +4,6 @@ import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -29,14 +28,18 @@ public class SamlIdentityProviderConfigurator {
     private final BasicParserPool parserPool;
     private final IdentityProviderProvisioning providerProvisioning;
     private final FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
+    private final RequestScopedIdpDefinitionsCache requestScopedIdpDefinitionsCache;
 
     public SamlIdentityProviderConfigurator(
             final BasicParserPool parserPool,
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
-            final FixedHttpMetaDataProvider fixedHttpMetaDataProvider) {
+            final FixedHttpMetaDataProvider fixedHttpMetaDataProvider,
+            final @Qualifier(
+                "requestScopedIdpDefinitionsCache") RequestScopedIdpDefinitionsCache requestScopedIdpDefinitionsCache) {
         this.parserPool = parserPool;
         this.providerProvisioning = providerProvisioning;
         this.fixedHttpMetaDataProvider = fixedHttpMetaDataProvider;
+        this.requestScopedIdpDefinitionsCache = requestScopedIdpDefinitionsCache;
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
@@ -45,7 +48,13 @@ public class SamlIdentityProviderConfigurator {
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {
         List<SamlIdentityProviderDefinition> result = new LinkedList<>();
-        for (IdentityProvider provider : providerProvisioning.retrieveActive(zone.getId())) {
+        String zoneId = zone.getId();
+        List<IdentityProvider> idpsForZone = requestScopedIdpDefinitionsCache.getIdps(zoneId);
+        if (idpsForZone == null) {
+            idpsForZone = providerProvisioning.retrieveActive(zoneId);
+            requestScopedIdpDefinitionsCache.setIdps(zoneId, idpsForZone);
+        }
+        for (IdentityProvider provider : idpsForZone) {
             if (OriginKeys.SAML.equals(provider.getType())) {
                 result.add((SamlIdentityProviderDefinition) provider.getConfig());
             }
@@ -53,8 +62,18 @@ public class SamlIdentityProviderConfigurator {
         return result;
     }
 
-    public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone) {
-        List<SamlIdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(zone);
+    private List<SamlIdentityProviderDefinition> getIdentityProviderDefinitionsForZone(List<IdentityProvider> activeIdpsInZone) {
+        List<SamlIdentityProviderDefinition> result = new LinkedList<>();
+        for (IdentityProvider provider : activeIdpsInZone) {
+            if (OriginKeys.SAML.equals(provider.getType())) {
+                result.add((SamlIdentityProviderDefinition) provider.getConfig());
+            }
+        }
+        return result;
+    }
+
+    public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, List<IdentityProvider> activeIdpsInZone) {
+        List<SamlIdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(activeIdpsInZone);
         if (allowedIdps != null) {
             List<SamlIdentityProviderDefinition> result = new LinkedList<>();
             for (SamlIdentityProviderDefinition def : idpsInTheZone) {

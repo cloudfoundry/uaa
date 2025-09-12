@@ -80,35 +80,18 @@ class UaaUserTests {
         @Nested
         class WhenMissingGivenName {
             @Test
-            void defaultsGivenNameByExtractingTheUsernameFromAValidEmailAddress() {
+            void defaultsGivenNameAsNull() {
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user").withEmail("name@example.com"));
-                assertThat(user, is(aUaaUser().withGivenName("name")));
-            }
-
-            @Test
-            void defaultsGivenNameByExtractingTheUsernameFromAnInvalidEmailAddress() {
-                UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user").withEmail("invalid-email"));
-                assertThat(user, is(aUaaUser().withGivenName("invalid-email")));
+                assertThat(user, is(aUaaUser().withGivenName(null)));
             }
         }
 
         @Nested
         class WhenMissingFamilyName {
             @Test
-            void defaultsFamilyNameByExtractingTheUsernameFromTheEmailAddress() {
+            void defaultsFamilyNameAsNull() {
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user").withEmail("name@example.com"));
-                assertThat(user, is(aUaaUser().withFamilyName("example.com")));
-            }
-
-            @Test
-            void defaultsGivenNameByExtractingTheUsernameFromTheEmailAddress() {
-                UaaUserPrototype prototype =
-                        new UaaUserPrototype()
-                                .withUsername("user")
-                                .withEmail("not-an-email");
-
-                UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user").withEmail("invalid-email"));
-                assertThat(user, is(aUaaUser().withGivenName("invalid-email")));
+                assertThat(user, is(aUaaUser().withFamilyName(null)));
             }
         }
 

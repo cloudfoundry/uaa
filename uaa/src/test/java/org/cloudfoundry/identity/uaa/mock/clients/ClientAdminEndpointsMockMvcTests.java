@@ -42,6 +42,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -209,6 +210,7 @@ public class ClientAdminEndpointsMockMvcTests {
         verify(mockApplicationEventPublisher, times(1)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
+    @Disabled("GE Fork has its own JWT-bearer implementation")
     @Test
     void testCreateClientWithJwtBearerGrantInvalid() throws Exception {
         String id = new RandomValueStringGenerator().generate();

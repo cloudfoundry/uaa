@@ -716,7 +716,7 @@ class LoginSamlAuthenticationProviderTests {
     }
 
     @Test
-    void shadowUser_GetsCreatedWithDefaultValues_IfAttributeNotMapped() {
+    public void shadowUser_GetsCreatedWithDefaultValues_IfAttributeNotMapped() throws Exception {
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("surname", "lastName");
         attributeMappings.put("email", "emailAddress");
@@ -726,8 +726,59 @@ class LoginSamlAuthenticationProviderTests {
 
         UaaAuthentication authentication = getAuthentication(authprovider);
         UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
-        assertEquals("marissa.bloggs", user.getGivenName());
-        assertEquals("test.com", user.getFamilyName());
+        assertEquals(null, user.getGivenName());
+        assertEquals(null, user.getFamilyName());
+        assertEquals("marissa.bloggs@test.com", user.getEmail());
+        assertEquals(0, authentication.getUserAttributes().size(), "No custom attributes have been mapped");
+    }
+
+    @Test
+    public void shadowUser_GetsCreatedWithAppropriateValues_IfAttributeNotMapped() throws Exception {
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
+
+        UaaAuthentication authentication = getAuthentication(authprovider);
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        assertEquals(null, user.getGivenName());
+        assertEquals(null, user.getFamilyName());
+        assertEquals("marissa-saml@" + UaaUser.DEFAULT_EMAIL_DOMAIN, user.getEmail());
+        assertEquals(0, authentication.getUserAttributes().size(), "No custom attributes have been mapped");
+    }
+
+    @Test
+    public void shadowUser_IsWhitelistedWithUsernameSameAsEmailOverwritten_IfAttributeMappedInCorrectly() throws Exception {
+        createSamlUser("marissa.bloggs@test.com", identityZoneManager.getCurrentIdentityZone().getId(), userProvisioning);
+        SAMLCredential credential = getUserCredential("marissa.bloggs@test.com", "Marissa", "Bloggs", "marissa.bloggs@test.com", "1234567890");
+        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("surname", "lastName");
+        attributeMappings.put("email", "incorrect_email");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
+
+        UaaAuthentication authentication = getAuthentication(authprovider);
+        UaaUser user = userDatabase.retrieveUserByName("marissa.bloggs@test.com", OriginKeys.SAML);
+        assertEquals(null, user.getGivenName());
+        assertEquals(null, user.getFamilyName());
+        assertEquals("marissa.bloggs@test.com", user.getEmail());
+        assertEquals(0, authentication.getUserAttributes().size(), "No custom attributes have been mapped");
+    }
+
+    @Test
+    public void shadowUser_IsWhitelistedOverwritten_IfAttributeMappedInCorrectly() throws Exception {
+        createSamlUser("marissa-saml", identityZoneManager.getCurrentIdentityZone().getId(), userProvisioning);
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("surname", "lastName");
+        attributeMappings.put("email", "incorrect_email");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
+
+        UaaAuthentication authentication = getAuthentication(authprovider);
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+        assertEquals(null, user.getGivenName());
+        assertEquals(null, user.getFamilyName());
         assertEquals("marissa.bloggs@test.com", user.getEmail());
         assertEquals(0, authentication.getUserAttributes().size(), "No custom attributes have been mapped");
     }

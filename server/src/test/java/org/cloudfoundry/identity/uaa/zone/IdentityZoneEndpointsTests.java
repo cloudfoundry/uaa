@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.KeyProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.KeyProviderValidator;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -40,6 +42,13 @@ class IdentityZoneEndpointsTests {
 
     @Mock
     private ScimGroupProvisioning mockScimGroupProvisioning;
+
+    @Mock
+    private KeyProviderProvisioning keyProviderProvisioning;
+
+    @Mock
+    private KeyProviderValidator keyProviderValidator;
+
 
     @Mock
     private IdentityZoneValidator mockIdentityZoneValidator;

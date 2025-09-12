@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
+import org.cloudfoundry.identity.uaa.provider.KeyProviderConfig;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
@@ -19,8 +20,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class IdentityZoneEndpointDocs extends EndpointDocs {
+    private static final String X_IDENTITY_ZONE_ID_DESC = "May include this header to administer another zone if using `zones.<zone id>.admin`";
     private static final String ID_DESC = "Unique ID of the identity zone";
     private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. May only contain legal characters for a subdomain name.";
     private static final String NAME_DESC = "Human-readable zone name";
@@ -169,6 +175,10 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");
+    private static final String KEY_PROVIDER_CONFIG_CLIENT_ID_DESC = "The client id used to authenticate with DCS for the jwt bearer flow.";
+    private static final String KEY_PROVIDER_CONFIG_DCS_TENANT_ID_DESC="The DCS tenant id for the jwt bearer flow.";
+    private static final Object KEY_PROVIDER_CONFIG_ID_DESC = "The unique id of the key provider config.";
+    private static final Object KEY_PROVIDER_CONFIG_IDENTITY_ZONE_DESC = "The identity zone to which the key provider config belongs. It will always be the same as the current zone.";
 
     @BeforeEach
     void setUp() {
@@ -679,6 +689,230 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 ));
     }
 
+    @Test
+    public void createKeyProviderConfig() throws Exception {
+        String identityZoneId = "keyproviderzone";
+        createIdentityZoneHelper(identityZoneId);
+        updateAdminWithZoneAdminPrivileges(identityZoneId);
+        createClientHelper(identityZoneId, "dcs-client-id", "dcs-client-secret", Collections.singleton(new SimpleGrantedAuthority("dcs.read")));
+
+        KeyProviderConfig keyProviderConfig = new KeyProviderConfig();
+        keyProviderConfig.setClientId("dcs-client-id");
+        keyProviderConfig.setDcsTenantId("dcs-tenant-id");
+
+        FieldDescriptor[] fieldDescriptors = {
+                fieldWithPath("id").optional().ignored(),
+                fieldWithPath("identityZoneId").optional().ignored(),
+                fieldWithPath("clientId").description(KEY_PROVIDER_CONFIG_CLIENT_ID_DESC).type(STRING).attributes(key("constraints").value("Optional")),
+                fieldWithPath("dcsTenantId").description(KEY_PROVIDER_CONFIG_DCS_TENANT_ID_DESC).type(STRING).attributes(key("constraints").value("Optional"))
+        };
+
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "zones." + identityZoneId + ".admin");
+
+        mockMvc.perform(
+                post("/identity-zones/{identityZoneId}/key-provider-config", identityZoneId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(keyProviderConfig)))
+                .andExpect(status().is(HttpStatus.CREATED.value()))
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(
+                                parameterWithName("identityZoneId").description("Unique ID of the identity zone where the key provider config is being added.")
+                            ),
+                        requestHeaders(
+                                headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`"),
+                                headerWithName("X-Identity-Zone-Id").description(X_IDENTITY_ZONE_ID_DESC).optional()
+                                ),
+                        requestFields(fieldDescriptors),
+                        getKeyProviderResponseFields()
+                ));
+
+    }
+
+    @Test
+    public void retrieveKeyProviderConfig() throws Exception {
+        String identityZoneId = "retrievekeyproviderzone";
+        createIdentityZoneHelper(identityZoneId);
+        updateAdminWithZoneAdminPrivileges(identityZoneId);
+        createClientHelper(identityZoneId, "dcs-client-id", "dcs-client-secret", Collections.singleton(new SimpleGrantedAuthority("dcs.read")));
+
+        KeyProviderConfig keyProviderConfig = new KeyProviderConfig();
+        keyProviderConfig.setClientId("dcs-client-id");
+        keyProviderConfig.setDcsTenantId("dcs-tenant-id");
+
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "zones." + identityZoneId + ".admin");
+        KeyProviderConfig createdKeyProviderConfig = createKeyProviderConfig(identityZoneId, adminToken, keyProviderConfig);
+
+        mockMvc.perform(
+                get("/identity-zones/{identityZoneId}/key-provider-config/{keyProviderId}", identityZoneId, createdKeyProviderConfig.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().is(HttpStatus.OK.value()))
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(
+                                parameterWithName("identityZoneId").description("Unique ID of the identity zone where the key provider config is being added."),
+                                parameterWithName("keyProviderId").description("Unique ID of the key provider config.")
+                            ),
+                        requestHeaders(
+                                headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`"),
+                                headerWithName("X-Identity-Zone-Id").description(X_IDENTITY_ZONE_ID_DESC).optional()
+                                ),
+                        getKeyProviderResponseFields()
+                ));
+
+    }
+
+    @Test
+    public void findAllKeyProviderConfigs() throws Exception {
+        String identityZoneId = "findallkeyproviderszone";
+        createIdentityZoneHelper(identityZoneId);
+        updateAdminWithZoneAdminPrivileges(identityZoneId);
+        createClientHelper(identityZoneId, "dcs-client-id", "dcs-client-secret", Collections.singleton(new SimpleGrantedAuthority("dcs.read")));
+
+        KeyProviderConfig keyProviderConfig = new KeyProviderConfig();
+        keyProviderConfig.setClientId("dcs-client-id");
+        keyProviderConfig.setDcsTenantId("dcs-tenant-id");
+
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "zones." + identityZoneId + ".admin");
+        createKeyProviderConfig(identityZoneId, adminToken, keyProviderConfig);
+
+        mockMvc.perform(
+                get("/identity-zones/{identityZoneId}/key-provider-config", identityZoneId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().is(HttpStatus.OK.value()))
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(
+                                parameterWithName("identityZoneId").description("Unique ID of the identity zone where the key provider config is being added.")
+                            ),
+                        requestHeaders(
+                                headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`"),
+                                headerWithName("X-Identity-Zone-Id").description(X_IDENTITY_ZONE_ID_DESC).optional()
+                                ),
+                        getKeyProviderResponseFields()
+                ));
+    }
+
+    @Test
+    public void deleteKeyProviderConfig() throws Exception {
+        String identityZoneId = "deletekeyproviderzone";
+        createIdentityZoneHelper(identityZoneId);
+        updateAdminWithZoneAdminPrivileges(identityZoneId);
+        createClientHelper(identityZoneId, "dcs-client-id", "dcs-client-secret", Collections.singleton(new SimpleGrantedAuthority("dcs.read")));
+
+        KeyProviderConfig keyProviderConfig = new KeyProviderConfig();
+        keyProviderConfig.setClientId("dcs-client-id");
+        keyProviderConfig.setDcsTenantId("dcs-tenant-id");
+
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "zones." + identityZoneId + ".admin");
+        KeyProviderConfig createdKeyProviderConfig = createKeyProviderConfig(identityZoneId, adminToken, keyProviderConfig);
+
+        mockMvc.perform(
+                delete("/identity-zones/{identityZoneId}/key-provider-config/{keyProviderId}", identityZoneId, createdKeyProviderConfig.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().is(HttpStatus.NO_CONTENT.value()))
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        pathParameters(
+                                parameterWithName("identityZoneId").description("Unique ID of the identity zone where the key provider config is being added."),
+                                parameterWithName("keyProviderId").description("Unique ID of the key provider config.")
+                            ),
+                        requestHeaders(
+                                headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`"),
+                                headerWithName("X-Identity-Zone-Id").description(X_IDENTITY_ZONE_ID_DESC).optional()
+                                )
+                ));
+
+    }
+
+    private void updateAdminWithZoneAdminPrivileges(String identityZone) throws Exception{
+        String adminClientToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "uaa.admin");
+        String response = mockMvc.perform(
+                get("/oauth/clients/admin")
+                        .header("Authorization", "Bearer " + adminClientToken)
+                        .contentType(APPLICATION_JSON))
+                .andExpect(status().is(HttpStatus.OK.value()))
+                .andReturn().getResponse().getContentAsString();
+        BaseClientDetails adminClient = JsonUtils.readValue(response, BaseClientDetails.class);
+        Collection<GrantedAuthority> authorities = adminClient.getAuthorities();
+        String zoneScope = "zones." + identityZone + ".admin";
+        authorities.add(new SimpleGrantedAuthority(zoneScope));
+        adminClient.setAuthorities(authorities);
+        mockMvc.perform(
+                put("/oauth/clients/admin")
+                        .header("Authorization", "Bearer " + adminClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(adminClient)))
+                .andExpect(status().is(HttpStatus.OK.value()));
+
+
+    }
+
+    private void createClientHelper(String identityZoneId, String clientId, String clientSecret,
+                                             Collection<? extends GrantedAuthority> authorities) throws Exception {
+        String adminClientToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "uaa.admin");
+
+        BaseClientDetails client = new BaseClientDetails();
+        client.setClientId(clientId);
+        client.setClientSecret(clientSecret);
+        client.setAuthorizedGrantTypes(Collections.singleton("client_credentials"));
+        client.setAuthorities(authorities);
+        mockMvc.perform(
+                post("/oauth/clients")
+                        .header("Authorization", "Bearer " + adminClientToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(client)))
+                .andExpect(status().is(HttpStatus.CREATED.value()));
+    }
+
+    private KeyProviderConfig createKeyProviderConfig(String identityZoneId, String adminToken,
+            KeyProviderConfig keyProviderConfig) throws Exception {
+        String response = mockMvc.perform(
+                post("/identity-zones/{identityZoneId}/key-provider-config", identityZoneId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(keyProviderConfig)))
+                .andExpect(status().is(HttpStatus.CREATED.value())).andReturn().getResponse().getContentAsString();
+        return JsonUtils.readValue(response, KeyProviderConfig.class);
+    }
+
     private void createIdentityZoneHelper(String id) throws Exception {
         String identityClientWriteToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
@@ -713,6 +947,14 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().is(HttpStatus.CREATED.value()));
+    }
+
+    private Snippet getKeyProviderResponseFields() {
+        return responseFields(fieldWithPath("id").description(KEY_PROVIDER_CONFIG_ID_DESC),
+            fieldWithPath("identityZoneId").description(KEY_PROVIDER_CONFIG_IDENTITY_ZONE_DESC),
+            fieldWithPath("clientId").description(KEY_PROVIDER_CONFIG_CLIENT_ID_DESC),
+            fieldWithPath("dcsTenantId").description(KEY_PROVIDER_CONFIG_DCS_TENANT_ID_DESC)
+        );
     }
 
     private Snippet getResponseFields() {

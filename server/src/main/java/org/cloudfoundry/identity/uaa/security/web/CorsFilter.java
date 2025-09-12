@@ -16,6 +16,8 @@ package org.cloudfoundry.identity.uaa.security.web;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -100,29 +102,9 @@ public class CorsFilter extends OncePerRequestFilter {
     @PostConstruct
     public void initialize() {
         for (CorsConfiguration configuration : Arrays.asList(xhrConfiguration, defaultConfiguration)) {
-            String type = (configuration == xhrConfiguration ? "xhr" : "default");
             configuration.getAllowedUriPatterns().clear();
             configuration.getAllowedOriginPatterns().clear();
-            if (configuration.getAllowedUris() != null) {
-                for (String allowedUri : configuration.getAllowedUris()) {
-                    try {
-                        configuration.getAllowedUriPatterns().add(Pattern.compile(allowedUri));
-                        logger.debug(String.format("URI '%s' is allowed for a %s CORS requests.", allowedUri, type));
-                    } catch (PatternSyntaxException patternSyntaxException) {
-                        logger.error("Invalid regular expression pattern in cors."+type+".allowed.uris: " + allowedUri, patternSyntaxException);
-                    }
-                }
-            }
-            if (configuration.getAllowedOrigins() != null) {
-                for (String allowedOrigin : configuration.getAllowedOrigins()) {
-                    try {
-                        configuration.getAllowedOriginPatterns().add(Pattern.compile(allowedOrigin));
-                        logger.debug(String.format("Origin '%s' is allowed for a %s CORS requests.", allowedOrigin, type));
-                    } catch (PatternSyntaxException patternSyntaxException) {
-                        logger.error("Invalid regular expression pattern in cors."+type+".allowed.origins: " + allowedOrigin, patternSyntaxException);
-                    }
-                }
-            }
+            compileCorsAllowedPatterns(configuration);
         }
     }
 
@@ -142,12 +124,63 @@ public class CorsFilter extends OncePerRequestFilter {
             logger.debug("CORS Processing request: "+getRequestInfo(request));
         }
         if (isXhrRequest(request)) {
-            handleRequest(request, response, filterChain, getXhrConfiguration());
+            handleRequest(request, response, filterChain, resolveXhrCorsConfiguration());
         } else {
-            handleRequest(request, response, filterChain, getDefaultConfiguration());
+            handleRequest(request, response, filterChain, resolveDefaultCorsConfiguration());
         }
         if (logger.isDebugEnabled()) {
             logger.debug("CORS processing completed for: "+getRequestInfo(request)+" Status:"+response.getStatus());
+        }
+    }
+
+    protected CorsConfiguration resolveXhrCorsConfiguration() {
+        CorsPolicy corsPolicy = IdentityZoneHolder.get().getConfig().getCorsPolicy();
+        if(corsPolicy != null) {
+            CorsConfiguration zoneXhrConfiguration = corsPolicy.getXhrConfiguration();
+            if (zoneXhrConfiguration != null && !zoneXhrConfiguration.equals(new CorsConfiguration())) {
+                zoneXhrConfiguration.getAllowedUriPatterns().clear();
+                zoneXhrConfiguration.getAllowedOriginPatterns().clear();
+                compileCorsAllowedPatterns(zoneXhrConfiguration);
+                zoneXhrConfiguration.setAllowedCredentials(true);
+                return zoneXhrConfiguration;
+            }
+        }
+        return getXhrConfiguration();
+    }
+
+    protected CorsConfiguration resolveDefaultCorsConfiguration() {
+        CorsPolicy corsPolicy = IdentityZoneHolder.get().getConfig().getCorsPolicy();
+        if(corsPolicy != null) {
+            CorsConfiguration zoneCorsConfiguration = corsPolicy.getDefaultConfiguration();
+            if (zoneCorsConfiguration != null && !zoneCorsConfiguration.equals(new CorsConfiguration())) {
+                zoneCorsConfiguration.getAllowedUriPatterns().clear();
+                zoneCorsConfiguration.getAllowedOriginPatterns().clear();
+                compileCorsAllowedPatterns(zoneCorsConfiguration);
+                return zoneCorsConfiguration;
+            }
+        }
+        return getDefaultConfiguration();
+    }
+
+    protected void compileCorsAllowedPatterns(CorsConfiguration configuration) {
+        String type = (configuration == xhrConfiguration ? "xhr" : "default");
+        for (String allowedUri : configuration.getAllowedUris()) {
+            try {
+                configuration.getAllowedUriPatterns().add(Pattern.compile(allowedUri));
+                logger.debug(String.format("URI '%s' is allowed for a %s CORS requests.", allowedUri, type));
+            } catch (PatternSyntaxException patternSyntaxException) {
+                logger.error("Invalid regular expression pattern in cors."+type+".allowed.uris: " + allowedUri, patternSyntaxException);
+            }
+        }
+        if (configuration.getAllowedOrigins() != null) {
+            for (String allowedOrigin : configuration.getAllowedOrigins()) {
+                try {
+                    configuration.getAllowedOriginPatterns().add(Pattern.compile(allowedOrigin));
+                    logger.debug(String.format("Origin '%s' is allowed for a %s CORS requests.", allowedOrigin, type));
+                } catch (PatternSyntaxException patternSyntaxException) {
+                    logger.error("Invalid regular expression pattern in cors."+type+".allowed.origins: " + allowedOrigin, patternSyntaxException);
+                }
+            }
         }
     }
 

@@ -13,6 +13,11 @@ issuer:
 #The secret that an external login server will use to authenticate to the uaa using the id `login`
 LOGIN_SECRET: loginsecret
 
+device:
+  assertion:
+    proxy-public-key: |
+      not-used
+
 jwt:
   token:
     policy:

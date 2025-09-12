@@ -29,9 +29,11 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -56,6 +58,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -70,6 +74,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.ZONE_NAME_TEMPLATE;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate1;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate2;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key1;
@@ -322,10 +327,7 @@ import static org.junit.Assert.assertTrue;
         RestTemplate adminClient = getAdminClient();
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
-        IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
-        IdentityZone zone1 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
-
-        IdentityZone zone2 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId2, zoneId2, null);
+        initializeSamlCrossZones(zoneId1, zoneId2, identityClient);
 
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpUser = new ScimUser(null, email, "IDPFirst", "IDPLast");
@@ -367,13 +369,278 @@ import static org.junit.Assert.assertTrue;
         for (String logout : Arrays.asList(baseUrl, testZone1Url, testZone2Url)) {
             webDriver.get(logout + "/logout.do");
         }
-
     }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSamlLoginIncorrectAttributeMappingResultsNullValuesForShadowUser() throws Exception {
+
+        String idpZoneId = "testzone1";
+        String spZoneId = "testzone2";
+
+        RestTemplate identityClient = getIdentityClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        initializeSamlCrossZones(idpZoneId, spZoneId, identityClient);
+
+        String emailAndUserName = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser idpUserWithNameSameAsEmail = new ScimUser(null, emailAndUserName, "IDPFirst", "IDPLast");
+        idpUserWithNameSameAsEmail.setPrimaryEmail(emailAndUserName);
+        idpUserWithNameSameAsEmail.setPassword("secr3T");
+        idpUserWithNameSameAsEmail.setPhoneNumbers(Arrays.asList(new PhoneNumber("123-456-7490")));
+
+        ScimUser userWithNameSameAsEmail = IntegrationTestUtils.createUser(adminToken, baseUrl, idpUserWithNameSameAsEmail, idpZoneId);
+        userWithNameSameAsEmail.setOrigin("testzone1.cloudfoundry-saml-login");
+        ScimUser shadowUserWithNameSameAsEmail = IntegrationTestUtils.createUser(adminToken, baseUrl, userWithNameSameAsEmail, spZoneId);
+
+        String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
+        String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
+
+        Map<String, Object> attributeMappings = createValidAttributeMappingsMap();
+
+        createSamlServiceProvider(idpZoneId, adminToken, attributeMappings);
+
+        //switch Up the mappings
+        attributeMappings.put("email", "diff_mapping");
+        attributeMappings.put("given_name", "diff_mapping");
+        attributeMappings.put("family_name", "diff_mapping");
+        attributeMappings.put("phone_number", "diff_number");
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition =
+                createIDPAndReturnSamlIdentityProviderDefinition(spZoneId, adminToken, attributeMappings);
+
+        //create client as zone2 admin
+        BaseClientDetails zone2AdminClient = new BaseClientDetails();
+        zone2AdminClient.setClientId("admin");
+        zone2AdminClient.setClientSecret("adminsecret");
+        GrantedAuthority authority = new SimpleGrantedAuthority("uaa.admin");
+        zone2AdminClient.setAuthorities(Arrays.asList(authority));
+        zone2AdminClient.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+
+        IntegrationTestUtils.createOrUpdateClient(adminToken, baseUrl, spZoneId, zone2AdminClient);
+        String zone2AdminToken = IntegrationTestUtils.getClientCredentialsToken(spZoneUrl, "admin", "adminsecret");
+
+        performLogin(idpZoneId, emailAndUserName, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
+
+        ScimUser changedUserWithNameSameAsEmail = IntegrationTestUtils.getUser(zone2AdminToken, spZoneUrl, shadowUserWithNameSameAsEmail.getOrigin(), shadowUserWithNameSameAsEmail.getUserName());
+        assertEquals(shadowUserWithNameSameAsEmail.getPrimaryEmail(), changedUserWithNameSameAsEmail.getPrimaryEmail());
+        assertEquals(null, changedUserWithNameSameAsEmail.getFamilyName());
+        assertEquals(null, changedUserWithNameSameAsEmail.getGivenName());
+        //cleanup
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSamlLoginMissingAttributeMappingResultsInRemovalForShadowUser() throws Exception {
+
+        String idpZoneId = "testzone1";
+        String spZoneId = "testzone2";
+
+        RestTemplate identityClient = getIdentityClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        initializeSamlCrossZones(idpZoneId, spZoneId, identityClient);
+
+        String randomUserName = new RandomValueStringGenerator().generate();
+        String email = randomUserName + "@samltesting.org";
+        ScimUser idpUser = new ScimUser(null, randomUserName, "IDPFirst", "IDPLast");
+        idpUser.setPrimaryEmail(email);
+        idpUser.setPassword("secr3T");
+        idpUser.setPhoneNumbers(Arrays.asList(new PhoneNumber("123-456-7890")));
+
+        ScimUser user = IntegrationTestUtils.createUser(adminToken, baseUrl, idpUser, idpZoneId);
+        user.setOrigin("testzone1.cloudfoundry-saml-login");
+        ScimUser shadowUser = IntegrationTestUtils.createUser(adminToken, baseUrl, user, spZoneId);
+
+        String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
+        String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
+
+        createSamlServiceProvider(idpZoneId, adminToken, null);
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createIDPAndReturnSamlIdentityProviderDefinition(spZoneId, adminToken, null);
+
+        //create client as zone2 admin
+        BaseClientDetails zone2AdminClient = new BaseClientDetails();
+        zone2AdminClient.setClientId("admin");
+        zone2AdminClient.setClientSecret("adminsecret");
+        GrantedAuthority authority = new SimpleGrantedAuthority("uaa.admin");
+        zone2AdminClient.setAuthorities(Arrays.asList(authority));
+        zone2AdminClient.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+
+        IntegrationTestUtils.createOrUpdateClient(adminToken, baseUrl, spZoneId, zone2AdminClient);
+        String zone2AdminToken = IntegrationTestUtils.getClientCredentialsToken(spZoneUrl, "admin", "adminsecret");
+
+        performLogin(idpZoneId, idpUser.getUserName(), idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
+
+        ScimUser changedUser = IntegrationTestUtils.getUser(zone2AdminToken, spZoneUrl, user.getOrigin(), idpUser.getUserName());
+        assertEquals(idpUser.getPrimaryEmail(), changedUser.getPrimaryEmail());
+        assertEquals(null, changedUser.getFamilyName());
+        assertEquals(null, changedUser.getGivenName());
+
+        //cleanup
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSamlLoginAttributesChanged() throws Exception {
+
+        String idpZoneId = "testzone1";
+        String spZoneId = "testzone2";
+
+        RestTemplate identityClient = getIdentityClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        initializeSamlCrossZones(idpZoneId, spZoneId, identityClient);
+
+        String emailAndUserName = new RandomValueStringGenerator().generate() + "@samltesting.org";
+        ScimUser idpUserWithNameSameAsEmail = new ScimUser(null, emailAndUserName, "IDPFirst", "DifferentFamilyName");
+        idpUserWithNameSameAsEmail.setPrimaryEmail(emailAndUserName);
+        idpUserWithNameSameAsEmail.setPassword("secr3T");
+        idpUserWithNameSameAsEmail.setPhoneNumbers(Arrays.asList(new PhoneNumber("123-456-7490")));
+
+        ScimUser userWithNameSameAsEmail = IntegrationTestUtils.createUser(adminToken, baseUrl, idpUserWithNameSameAsEmail, idpZoneId);
+        userWithNameSameAsEmail.setOrigin("testzone1.cloudfoundry-saml-login");
+        userWithNameSameAsEmail.setName(new Name("IDPFirst","Last_Name"));
+        ScimUser shadowUserWithNameSameAsEmail = IntegrationTestUtils.createUser(adminToken, baseUrl, userWithNameSameAsEmail, spZoneId);
+
+        String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
+        String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
+
+        Map<String, Object> attributeMappings = createValidAttributeMappingsMap();
+
+        createSamlServiceProvider(idpZoneId, adminToken, attributeMappings);
+
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createIDPAndReturnSamlIdentityProviderDefinition(spZoneId, adminToken, attributeMappings);
+
+        //create client as zone2 admin
+        BaseClientDetails zone2AdminClient = new BaseClientDetails();
+        zone2AdminClient.setClientId("admin");
+        zone2AdminClient.setClientSecret("adminsecret");
+        GrantedAuthority authority = new SimpleGrantedAuthority("uaa.admin");
+        zone2AdminClient.setAuthorities(Arrays.asList(authority));
+        zone2AdminClient.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+
+        IntegrationTestUtils.createOrUpdateClient(adminToken, baseUrl, spZoneId, zone2AdminClient);
+        String zone2AdminToken = IntegrationTestUtils.getClientCredentialsToken(spZoneUrl, "admin", "adminsecret");
+
+        performLogin(idpZoneId, emailAndUserName, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
+
+        ScimUser changedUserWithNameSameAsEmail = IntegrationTestUtils.getUser(zone2AdminToken, spZoneUrl, userWithNameSameAsEmail.getOrigin(), idpUserWithNameSameAsEmail.getUserName());
+        assertEquals(idpUserWithNameSameAsEmail.getPrimaryEmail(), changedUserWithNameSameAsEmail.getPrimaryEmail());
+        assertEquals(idpUserWithNameSameAsEmail.getFamilyName(), changedUserWithNameSameAsEmail.getFamilyName());
+        assertEquals(idpUserWithNameSameAsEmail.getGivenName(), changedUserWithNameSameAsEmail.getGivenName());
+        assertEquals(idpUserWithNameSameAsEmail.getPhoneNumbers().get(0).getValue(), changedUserWithNameSameAsEmail.getPhoneNumbers().get(0).getValue());
+
+        //cleanup
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
+    }
+
+    private SamlIdentityProviderDefinition createIDPAndReturnSamlIdentityProviderDefinition(String zoneId2, String adminToken, Map<String, Object> attributeMappings) {
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition("cloudfoundry-saml-login");
+        samlIdentityProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_IDP_METADATA_REDIRECT_ONLY);
+        samlIdentityProviderDefinition.setAttributeMappings(attributeMappings);
+        IdentityProvider provider = getSamlIdentityProvider(zoneId2,
+                adminToken,
+                samlIdentityProviderDefinition);
+        return samlIdentityProviderDefinition;
+    }
+
+    private void createSamlServiceProvider(String zoneId1, String adminToken, Map<String, Object> attributeMappings) {
+        SamlServiceProviderDefinition samlServiceProviderDefinition = createZone2SamlSpDefinition("cloudfoundry-saml-login");
+        samlServiceProviderDefinition.setMetaDataLocation(SamlTestUtils.SAML_SP_METADATA_TESTZONE2_FOR_REDIRECT);
+        SamlServiceProvider sp = new SamlServiceProvider();
+        sp.setIdentityZoneId(zoneId1);
+        sp.setActive(true);
+        sp.setConfig(samlServiceProviderDefinition);
+        sp.setEntityId("testzone2.cloudfoundry-saml-login");
+        sp.setName("Local SAML SP for testzone2");
+        sp.getConfig().setAttributeMappings(attributeMappings);
+        createOrUpdateSamlServiceProvider(adminToken, baseUrl, sp);
+    }
+
+
+    @Test
+    public void testNullValuedAttributesInAssertionOverwritesShadowUser() throws Exception{
+
+        String idpZoneId = "testzone1";
+        String spZoneId = "testzone2";
+
+        RestTemplate identityClient = getIdentityClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+
+        initializeSamlCrossZones(idpZoneId, spZoneId, identityClient);
+
+        String randomUserName = new RandomValueStringGenerator().generate();
+        String email = randomUserName + "@samltesting.org";
+
+        ScimUser idpUser = new ScimUser(null, randomUserName, "IDPFirst", null);
+        idpUser.setPrimaryEmail(email);
+        idpUser.setPassword("secr3T");
+
+        ScimUser user = IntegrationTestUtils.createUser(adminToken, baseUrl, idpUser, idpZoneId);
+        user.setOrigin("testzone1.cloudfoundry-saml-login");
+        user.setName(new Name("First_Name","Last_Name"));
+        ScimUser shadowUser = IntegrationTestUtils.createUser(adminToken, baseUrl, user, spZoneId);
+
+        String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
+        String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
+
+        Map<String, Object> attributeMappings = createValidAttributeMappingsMap();
+
+        createSamlServiceProvider(idpZoneId, adminToken, attributeMappings);
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createIDPAndReturnSamlIdentityProviderDefinition(spZoneId, adminToken, attributeMappings);
+
+        performLogin(idpZoneId, idpUser.getUserName(), idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
+
+        //create client as zone2 admin
+        BaseClientDetails zone2AdminClient = new BaseClientDetails();
+        zone2AdminClient.setClientId("admin");
+        zone2AdminClient.setClientSecret("adminsecret");
+        GrantedAuthority authority = new SimpleGrantedAuthority("uaa.admin");
+        zone2AdminClient.setAuthorities(Arrays.asList(authority));
+        zone2AdminClient.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+
+        IntegrationTestUtils.createOrUpdateClient(adminToken, baseUrl, spZoneId, zone2AdminClient);
+        String zone2AdminToken = IntegrationTestUtils.getClientCredentialsToken(spZoneUrl, "admin", "adminsecret");
+        ScimUser changedUser = IntegrationTestUtils.getUser(zone2AdminToken, spZoneUrl, user.getOrigin(), user.getUserName());
+        assertEquals(idpUser.getPrimaryEmail(), changedUser.getPrimaryEmail());
+        assertEquals(idpUser.getFamilyName(), changedUser.getFamilyName());
+        assertEquals(idpUser.getGivenName(), changedUser.getGivenName());
+
+        //cleanup
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
+    }
+
+    private void initializeSamlCrossZones(String zoneId1, String zoneId2, RestTemplate identityClient) {
+        IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId2, zoneId2, null);
+    }
+
+    private Map<String, Object> createValidAttributeMappingsMap() {
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("email", "email");
+        attributeMappings.put("given_name", "first_name");
+        attributeMappings.put("family_name", "last_name");
+        attributeMappings.put("phone_number", "cell_phone");
+        return attributeMappings;
+    }
+
 
     @SuppressWarnings("unchecked")
     @Test
     public void testLocalSamlIdpLoginInTestZone1Works() throws Exception {
         String zoneId = "testzone1";
+
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         RestTemplate identityClient = getIdentityClient();
         RestTemplate adminClient = getAdminClient();
@@ -452,6 +719,9 @@ import static org.junit.Assert.assertTrue;
                 .findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         assertNotNull(elements);
         assertEquals(1, elements.size());
+
+        //CleanUp
+        IntegrationTestUtils.deleteZone(this.baseUrl, zoneId, adminToken);
     }
 
     /**
@@ -469,6 +739,8 @@ import static org.junit.Assert.assertTrue;
 
         RestTemplate adminClient = getAdminClient();
         RestTemplate identityClient = getIdentityClient();
+
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, null);
         String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
@@ -509,7 +781,7 @@ import static org.junit.Assert.assertTrue;
         sp.setName("Local SAML SP for testzone2");
         sp = createOrUpdateSamlServiceProvider(idpZoneAdminToken, baseUrl, sp);
 
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(spZoneUrl + "/logout.do");
@@ -534,6 +806,10 @@ import static org.junit.Assert.assertTrue;
         assertNotNull(elements);
         assertEquals(1, elements.size());
         assertNotNull(elements.get(0));
+
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
+
     }
 
     /**
@@ -550,6 +826,7 @@ import static org.junit.Assert.assertTrue;
         String spZoneId = "testzone2";
 
         RestTemplate adminClient = getAdminClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         RestTemplate identityClient = getIdentityClient();
 
@@ -594,7 +871,7 @@ import static org.junit.Assert.assertTrue;
         sp.setName("Local SAML SP for testzone2");
         createOrUpdateSamlServiceProvider(idpZoneAdminToken, baseUrl, sp);
 
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(spZoneUrl + "/logout.do");
@@ -606,7 +883,9 @@ import static org.junit.Assert.assertTrue;
         idp.setName("Local SAML IdP for testzone1");
         idp = IntegrationTestUtils.createOrUpdateProvider(spZoneAdminToken, baseUrl, idp);
         assertNotNull(idp.getId());
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
     }
 
     @Test
@@ -615,7 +894,7 @@ import static org.junit.Assert.assertTrue;
         String spZoneId = "testzone2";
 
         RestTemplate adminClient = getAdminClient();
-
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         RestTemplate identityClient = getIdentityClient();
 
         IdentityZone idpIdentityZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, null);
@@ -663,7 +942,7 @@ import static org.junit.Assert.assertTrue;
         sp.setName("Local SAML SP for testzone2");
         createOrUpdateSamlServiceProvider(idpZoneAdminToken, baseUrl, sp);
 
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(spZoneUrl + "/logout.do");
@@ -672,18 +951,19 @@ import static org.junit.Assert.assertTrue;
         idpIdentityZone.getConfig().getSamlConfig().setEntityID(null);
         IdentityZone updatedIdpZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, idpIdentityZone.getConfig());
         assertNull(updatedIdpZone.getConfig().getSamlConfig().getEntityID());
+
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
     }
 
     @Test
     public void testSamlServiceProviderAttributeMappings() throws Exception {
         String idpZoneId = "testzone1";
         String spZoneId = "testzone2";
-        Map<String, Object> attributeMappings = new HashMap<>();
-        attributeMappings.put("given_name", "first_name");
-        attributeMappings.put("family_name", "last_name");
-        attributeMappings.put("phone_number", "cell_phone");
+        Map<String, Object> attributeMappings = createValidAttributeMappingsMap();
 
         RestTemplate adminClient = getAdminClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         RestTemplate identityClient = getIdentityClient();
 
@@ -728,12 +1008,16 @@ import static org.junit.Assert.assertTrue;
         sp.getConfig().setAttributeMappings(attributeMappings);
         createOrUpdateSamlServiceProvider(idpZoneAdminToken, baseUrl, sp);
 
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
 
         ScimUser user = getZoneUser(spZoneId, spZoneAdminToken, idpZoneUserEmail, spZoneUrl, idpZoneId + "." + IDP_ENTITY_ID);
+        assertEquals(user.getPrimaryEmail(), zoneUser.getPrimaryEmail());
         assertEquals(user.getGivenName(), zoneUser.getGivenName());
         assertEquals(user.getFamilyName(), zoneUser.getFamilyName());
         assertEquals(user.getPhoneNumbers().get(0).getValue(), zoneUser.getPhoneNumbers().get(0).getValue());
+
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
     }
 
     /**
@@ -749,6 +1033,7 @@ import static org.junit.Assert.assertTrue;
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
         RestTemplate adminClient = getAdminClient();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         RestTemplate identityClient = getIdentityClient();
 
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, null);
@@ -773,21 +1058,21 @@ import static org.junit.Assert.assertTrue;
         getSamlServiceProvider(idpZoneId, idpZoneAdminToken, samlServiceProviderDefinition, "testzone2.cloudfoundry-saml-login", "Local SAML SP for testzone2", baseUrl);
 
 
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
 
         //change the active key
         spZone.getConfig().getSamlConfig().setActiveKeyId("key-2");
         spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, spZone.getConfig());
         assertEquals(2, spZone.getConfig().getSamlConfig().getKeys().size());
         assertEquals("key-2", spZone.getConfig().getSamlConfig().getActiveKeyId());
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
 
         //remove the inactive key
         spZone.getConfig().getSamlConfig().removeKey("key-1");
         spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, spZone.getConfig());
         assertEquals(1, spZone.getConfig().getSamlConfig().getKeys().size());
         assertEquals("key-2", spZone.getConfig().getSamlConfig().getActiveKeyId());
-        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, spZone, spZoneUrl, samlIdentityProviderDefinition);
+        performLogin(idpZoneId, idpZoneUserEmail, idpZoneUrl, String.format(ZONE_NAME_TEMPLATE, spZoneId), spZoneUrl, samlIdentityProviderDefinition);
 
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(spZoneUrl + "/logout.do");
@@ -812,6 +1097,9 @@ import static org.junit.Assert.assertTrue;
             .findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         assertNotNull(elements);
         assertEquals(1, elements.size());
+
+        IntegrationTestUtils.deleteZone(this.baseUrl, idpZoneId, adminToken);
+        IntegrationTestUtils.deleteZone(this.baseUrl, spZoneId, adminToken);
     }
 
     public static SamlServiceProviderDefinition createZone2SamlSpDefinition(String alias) {
@@ -915,12 +1203,12 @@ import static org.junit.Assert.assertTrue;
         );
     }
 
-    public void performLogin(String idpZoneId, String idpZoneUserEmail, String idpZoneUrl, IdentityZone spZone, String spZoneUrl, SamlIdentityProviderDefinition samlIdentityProviderDefinition) {
+    public void performLogin(String idpZoneId, String idpZoneUserEmail, String idpZoneUrl, String spZoneId, String spZoneUrl, SamlIdentityProviderDefinition samlIdentityProviderDefinition) {
             webDriver.get(baseUrl + "/logout.do");
             webDriver.get(spZoneUrl + "/logout.do");
             webDriver.get(idpZoneUrl+ "/logout.do");
             webDriver.get(spZoneUrl + "/");
-            assertEquals(spZone.getName(), webDriver.getTitle());
+            assertEquals(spZoneId, webDriver.getTitle());
             Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
             assertNotNull(beforeLogin);
             assertNotNull(beforeLogin.getValue());

@@ -35,8 +35,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.GrantedAuthority;
@@ -79,6 +81,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -112,6 +116,7 @@ class SamlAuthenticationMockMvcTests {
 
     @Autowired
     private JdbcScimUserProvisioning jdbcScimUserProvisioning;
+    @SpyBean
     private JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
 
     @Autowired
@@ -122,11 +127,9 @@ class SamlAuthenticationMockMvcTests {
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @BeforeEach
     void createSamlRelationship(
-            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
             @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning,
             @Autowired JdbcScimUserProvisioning jdbcScimUserProvisioning
     ) throws Exception {
-        this.jdbcIdentityProviderProvisioning = jdbcIdentityProviderProvisioning;
         generator = new RandomValueStringGenerator();
         BaseClientDetails adminClient = new BaseClientDetails("admin", "", "", "client_credentials", "uaa.admin");
         adminClient.setClientSecret("adminsecret");
@@ -153,6 +156,8 @@ class SamlAuthenticationMockMvcTests {
     void sendAuthnRequestToIdp() throws Exception {
         createIdp();
 
+        Mockito.verify(jdbcIdentityProviderProvisioning, times(1)).retrieveActive(spZone.getId());
+
         String idpEntityId = idpZone.getSubdomain() + ".cloudfoundry-saml-login";
         MvcResult mvcResult = mockMvc.perform(
                 get("/uaa/saml/discovery")
@@ -166,6 +171,8 @@ class SamlAuthenticationMockMvcTests {
                 .andExpect(status().isFound())
                 .andReturn();
 
+        Mockito.verify(jdbcIdentityProviderProvisioning, times(2)).retrieveActive(spZone.getId());
+
         mvcResult = mockMvc.perform(
                 get(mvcResult.getResponse().getRedirectedUrl())
                         .contextPath("/uaa")
@@ -176,6 +183,8 @@ class SamlAuthenticationMockMvcTests {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andReturn();
+
+        Mockito.verify(jdbcIdentityProviderProvisioning, times(3)).retrieveActive(spZone.getId());
 
         String body = mvcResult.getResponse().getContentAsString();
         String relayState = extractRelayState(body);

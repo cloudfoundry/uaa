@@ -89,6 +89,7 @@ public class IntegrationTestUtils {
     private static final Pattern CSRF_FORM_ELEMENT = Pattern.compile(
             "\\<input type=\\\"hidden\\\" name=\\\"" + CSRF_PARAMETER_NAME + "\\\" value=\\\"(.*?)\\\""
     );
+    public static final String ZONE_NAME_TEMPLATE = "The Twiglet Zone[%s]";
 
     public static final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
     public static final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR = "//h1[contains(text(), 'Enter your username and password')]";
@@ -252,6 +253,7 @@ public class IntegrationTestUtils {
                 "testzone4.localhost",
                 "testzonedoesnotexist.localhost",
                 "testzoneinactive.localhost",
+                "zone-with-cors-policy.localhost",
                 "orchestrator-int-test-zone.localhost"
         ).forEach(IntegrationTestUtils::assertLoopback);
     }
@@ -752,6 +754,12 @@ public class IntegrationTestUtils {
         );
 
         return response.getBody();
+    }
+    
+    public static void deleteClient(RestTemplate template,
+            String url,
+            String clientId) throws Exception {
+            template.delete(url+"/oauth/clients/{clientId}", clientId);
     }
 
     public static BaseClientDetails createClientAsZoneAdmin(String zoneAdminToken,

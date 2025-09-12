@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpHeaders.ACCEPT;
@@ -109,5 +110,24 @@ public class CorsConfiguration {
 
     public void setMaxAge(int maxAge) {
         this.maxAge = maxAge;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CorsConfiguration that = (CorsConfiguration) o;
+        return allowedCredentials == that.allowedCredentials &&
+                maxAge == that.maxAge &&
+                Objects.equals(allowedOrigins, that.allowedOrigins) &&
+                Objects.equals(allowedUris, that.allowedUris) &&
+                Objects.equals(allowedHeaders, that.allowedHeaders) &&
+                Objects.equals(allowedMethods, that.allowedMethods);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(allowedOrigins, allowedUris, allowedHeaders, allowedMethods, allowedCredentials, maxAge);
     }
 }

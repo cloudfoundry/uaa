@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
@@ -49,7 +50,8 @@ public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
     }
 
     public void validateScope(TokenRequest tokenRequest, ClientDetails client) throws InvalidScopeException {
-        if (GRANT_TYPE_CLIENT_CREDENTIALS.equalsIgnoreCase(tokenRequest.getGrantType())) {
+        if (    GRANT_TYPE_CLIENT_CREDENTIALS.equalsIgnoreCase(tokenRequest.getGrantType()) ||
+                GRANT_TYPE_JWT_BEARER.equalsIgnoreCase(tokenRequest.getGrantType())) {
             validateScope(tokenRequest.getScope(), getAuthorities(client.getAuthorities()), false);
         } else if (GRANT_TYPE_USER_TOKEN.equalsIgnoreCase(tokenRequest.getGrantType())) {
             client = clientDetailsService.loadClientByClientId(tokenRequest.getRequestParameters().get(CLIENT_ID), IdentityZoneHolder.get().getId());

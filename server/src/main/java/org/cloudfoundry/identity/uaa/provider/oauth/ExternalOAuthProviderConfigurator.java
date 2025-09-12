@@ -156,8 +156,12 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
 
     @Override
     public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId) {
-        final List<String> types = Arrays.asList(OAUTH20, OIDC10);
         List<IdentityProvider> providers = providerProvisioning.retrieveAll(activeOnly, zoneId);
+        return retrieveAll(providers);
+    }
+
+    public List<IdentityProvider> retrieveAll(List<IdentityProvider> providers) {
+        final List<String> types = Arrays.asList(OAUTH20, OIDC10);
         List<IdentityProvider> overlayedProviders = new ArrayList<>();
         ofNullable(providers).orElse(emptyList()).stream()
                 .filter(p -> types.contains(p.getType()))
