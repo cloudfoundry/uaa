@@ -180,12 +180,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     @Override
     public Authentication authenticate(final Authentication request) throws AuthenticationException {
-        final Authentication authentication = super.authenticate(request);
-
-        // clear ThreadLocal holding the origin key
-        origin.remove();
-
-        return authentication;
+        try {
+            return super.authenticate(request);
+        } finally {
+            // clear ThreadLocal holding the origin key
+            origin.remove();
+        }
     }
 
     public IdentityProvider resolveOriginProvider(String idToken) throws AuthenticationException {
