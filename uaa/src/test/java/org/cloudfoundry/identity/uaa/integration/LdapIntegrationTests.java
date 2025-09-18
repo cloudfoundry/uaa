@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -42,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 
+@EnabledIfProfile("ldap")
 class LdapIntegrationTests {
     @RegisterExtension
     private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
