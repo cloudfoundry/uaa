@@ -63,7 +63,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     @Override
     public void setOrigin(String origin) {
-        // only used in LdapAuthenticationManagerTests
+        // only used in LdapLoginAuthenticationManagerTests
         this.origin = origin;
     }
 
