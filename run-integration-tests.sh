@@ -20,9 +20,9 @@ case "${DB}" in
         PROFILE_NAME=mysql
         ;;
 
-    postgresql)
+    postgresql|postgresql-17|postgresql-16|postgresql-15)
         DB_IMAGE_NAME="$DB"
-        PROFILE_NAME="$DB"
+        PROFILE_NAME=postgresql
         ;;
 
     mysql|mysql-8)
