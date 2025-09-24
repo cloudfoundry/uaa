@@ -132,8 +132,7 @@ pipeline {
                 '''
 
                 sh '''#!/bin/bash -ex
-                    echo 10.229.23.137 signin.aws.amazon.com >> /etc/hosts
-                    echo 10.229.23.151 signin.aws.amazon.com >> /etc/hosts
+                    
                     export ARTIFACTORY_READER=$FUNCTIONAL_USER_USR
                     export ARTIFACTORY_READER_PW=$FUNCTIONAL_USER_PSW
                     pushd uaa-k8s-deploy
