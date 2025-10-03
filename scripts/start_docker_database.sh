@@ -19,11 +19,17 @@ main() {
   echo "Using docker image: ${DOCKER_IMAGE}, DB=${DB}, PROFILE_NAME=${PROFILE_NAME}"
   echo
 
-  echo "To test against this ${PROFILE_NAME} database run with profile:"
-  echo "  docker exec -it $(docker ps | grep ${DOCKER_IMAGE} | tail -n 1 | awk '{print $1}') bash"
-  echo "  ./gradlew -Dspring.profiles.active=${PROFILE_NAME} test"
-  echo "  ./gradlew -Dspring.profiles.active=${PROFILE_NAME} integrationTest"
-  echo
+  echo "
+  To test against this ${PROFILE_NAME} database run with profile:
+    docker exec -it \$(docker ps | grep ${DOCKER_IMAGE} | tail -n 1 | awk '{print \$1}') bash
+        cd ${container_script_dir}
+        rm /root/.gradle/gradle.properties
+        ./gradlew bootRun --debug-jvm -Dspring.profiles.active=${PROFILE_NAME} -Djava.security.egd=file:/dev/./urandom --stacktrace --console=plain
+    ./gradlew -Dspring.profiles.active=${PROFILE_NAME} test
+    ./gradlew -Dspring.profiles.active=${PROFILE_NAME} integrationTest
+  To stop:
+    docker stop \$(docker ps | grep 8.4 | tail -n 1 | awk '{print \$1}')
+  "
 
   docker pull "${DOCKER_IMAGE}"
   docker run \
@@ -36,6 +42,8 @@ main() {
     --volume "${gradle_lock_dir}" \
     --env DB="${DB}" \
     --publish "${db_port}:${db_port}" \
+    #--publish "5005:5005" \
+    #--publish "8080:8080" \
     "${DOCKER_IMAGE}"
 }
 
