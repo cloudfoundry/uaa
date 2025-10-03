@@ -60,7 +60,7 @@ public class NetworkTestUtils {
             long validityDays) throws Exception {
         return getKeystore(directory,
                 filename,
-                1024,
+                4096,
                 commonName,
                 organizationalUnit,
                 organization,
