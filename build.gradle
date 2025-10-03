@@ -54,6 +54,16 @@ allprojects {
     ext.runCargoTests = Boolean.valueOf(System.getProperty("cargo.tests.run", "true"))
 }
 
+configurations {
+    mockitoAgent
+}
+dependencies {
+    testImplementation(libraries.mockito)
+    mockitoAgent(libraries.mockito) {
+        transitive = false
+    }
+}
+
 subprojects {
     apply(plugin: "java")
     java {
@@ -115,7 +125,12 @@ subprojects {
         // gradle might stop the test run due to the failFast but still concludes with BUILD SUCCESSFUL (if the retry is successful)
         failFast = false
         useJUnitPlatform()
-        jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
+        jvmArgs += ["-Xmx1024m",
+                    "-XX:+StartAttachListener",
+                    "-XX:+HeapDumpOnOutOfMemoryError",
+                    "-XX:HeapDumpPath=/var/log/uaa-tests.hprof",
+                    "-javaagent:${parent.configurations.mockitoAgent.asPath}"
+        ]
 
         testLogging {
             events("failed")
