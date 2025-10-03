@@ -1,60 +1,34 @@
 #!/bin/bash
+set -eu -o pipefail
 
-set -xeu
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+#######################################
+# main function to run the unit tests
+#######################################
+main() {
+  local script_dir;  script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+  source "${script_dir}/scripts/lib_timer.sh"
+  start_timer
 
-CONTAINER_SCRIPT_DIR='/root/uaa'
-GRADLE_LOCK_DIR='/root/uaa/.gradle/'
+  local container_script_dir="/root/uaa"
+  local gradle_lock_dir="/root/uaa/.gradle/"
+  source "${script_dir}/scripts/lib_database_variants.sh"
+  parse_db_name "${1:-}"
 
-DB="${1:-hsqldb}"
+  echo "Using docker image: ${DOCKER_IMAGE}, DB=${DB}, PROFILE_NAME=${PROFILE_NAME}"
+  echo
 
-case "${DB}" in
-    hsqldb)
-        DB_IMAGE_NAME=postgresql # we don't have a container image for hsqldb, and can use any image
-        DB=hsqldb
-        PROFILE_NAME=hsqldb
-        ;;
+  docker pull "${DOCKER_IMAGE}"
+  docker run \
+    --privileged \
+    --tty \
+    --interactive \
+    --platform linux/amd64 \
+    --shm-size=1G \
+    --volume "${script_dir}":"${container_script_dir}" \
+    --volume "${gradle_lock_dir}" \
+    --env DB="${DB}" \
+    "${DOCKER_IMAGE}" \
+    /root/uaa/scripts/unit_tests.sh "${PROFILE_NAME}"
+}
 
-    percona)
-        DB_IMAGE_NAME=percona
-        DB=percona
-        PROFILE_NAME=mysql
-        ;;
-
-    postgresql|postgresql-17|postgresql-16|postgresql-15)
-        DB_IMAGE_NAME=$1
-        DB=postgresql
-        PROFILE_NAME=postgresql
-        ;;
-
-    mysql|mysql-8)
-        DB_IMAGE_NAME=mysql-8
-        DB=mysql
-        PROFILE_NAME=mysql
-        ;;
-
-    mysql-5)
-        DB_IMAGE_NAME=mysql
-        DB=mysql
-        PROFILE_NAME=mysql
-        ;;
-
-    *)
-        echo $"ERROR: $1 is not a known database type. Supported types are: hsqldb, percona, postgresql, mysql"
-        exit 1
-esac
-
-if [[ -z "${DOCKER_IMAGE+x}" ]]; then
-    DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
-fi
-
-docker run \
-  --privileged \
-  --tty \
-  --interactive \
-  --shm-size=1G \
-  --volume "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
-  --volume "${GRADLE_LOCK_DIR}" \
-  --env DB="${DB}" \
-  "${DOCKER_IMAGE}" \
-  /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}" "${CONTAINER_SCRIPT_DIR}"
+main "$@"

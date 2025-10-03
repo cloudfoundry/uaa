@@ -1,55 +1,37 @@
 #!/bin/bash
+set -eu -o pipefail
 
-set -xeu -o pipefail
-DB="${1:-hsqldb}"
-BOOT="${2:-false}"
+#######################################
+# main function to run the integration tests
+#######################################
+main() {
+  local script_dir;  script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+  source "${script_dir}/scripts/lib_timer.sh"
+  start_timer
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+  local container_script_dir="/root/uaa"
+  local gradle_lock_dir="/root/uaa/.gradle/"
+  local run_as_boot="${2:-false}"
+  source "${script_dir}/scripts/lib_database_variants.sh"
+  parse_db_name "${1:-}"
 
-CONTAINER_SCRIPT_DIR='/root/uaa'
-GRADLE_LOCK_DIR='/root/uaa/.gradle/'
+  echo "Using docker image: ${DOCKER_IMAGE}, DB=${DB}, PROFILE_NAME=${PROFILE_NAME}"
+  echo
 
-case "${DB}" in
-    hsqldb)
-        DB_IMAGE_NAME=postgresql # we don't have a container image for hsqldb, and can use any image
-        PROFILE_NAME="$DB"
-        ;;
+  docker pull "${DOCKER_IMAGE}"
+  docker run \
+    --privileged \
+    --tty \
+    --interactive \
+    --platform linux/amd64 \
+    --shm-size=1G \
+    --volume "${script_dir}":"${container_script_dir}" \
+    --volume "${gradle_lock_dir}" \
+    --env DB="${DB}" \
+    --env RUN_TESTS="${RUN_TESTS:-true}" \
+    --publish 8081:8080 \
+    "${DOCKER_IMAGE}" \
+    /root/uaa/scripts/integration_tests.sh "${PROFILE_NAME}" "${run_as_boot}"
+}
 
-    percona)
-        DB_IMAGE_NAME="$DB"
-        PROFILE_NAME=mysql
-        ;;
-
-    postgresql|postgresql-17|postgresql-16|postgresql-15)
-        DB_IMAGE_NAME="$DB"
-        PROFILE_NAME=postgresql
-        ;;
-
-    mysql|mysql-8)
-        DB_IMAGE_NAME=mysql-8
-        PROFILE_NAME=mysql
-        ;;
-
-    mysql-5)
-        DB_IMAGE_NAME=mysql
-        PROFILE_NAME=mysql
-        ;;
-
-    *)
-        echo "ERROR: '$DB' is not a known database type. Supported types are: hsqldb, percona, postgresql, mysql"
-        exit 1
-esac
-
-if [[ -z "${DOCKER_IMAGE+x}" ]]; then
-    DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
-fi
-echo "Using docker image: ${DOCKER_IMAGE}"
-docker pull ${DOCKER_IMAGE}
-docker run --privileged -t -i --shm-size=1G \
-  -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
-  -v "${GRADLE_LOCK_DIR}" \
-  --env DB="${DB}" \
-  --env RUN_TESTS="${RUN_TESTS:-true}" \
-  --publish 8081:8080 \
-  "${DOCKER_IMAGE}" \
-  /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}" "${CONTAINER_SCRIPT_DIR}" ${BOOT}
+main "$@"

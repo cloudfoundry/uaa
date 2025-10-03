@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+
+UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+if [ "$#" -eq 0 ]; then
+    "${UAA_DIR}/scripts/gradle" integrationTest
+else
+    "${UAA_DIR}/scripts/gradle" integrationTest "${@}"
+fi
