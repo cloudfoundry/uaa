@@ -585,4 +585,30 @@ class ExternalOAuthProviderConfiguratorTests {
         when(mockIdentityProviderProvisioning.idpWithAliasExistsInZone(zoneId)).thenReturn(resultFromDelegate);
         assertThat(configurator.idpWithAliasExistsInZone(zoneId)).isEqualTo(resultFromDelegate);
     }
+
+    @Test
+    void getIdpAuthenticationUrl_verifyNonceAndStateLength() {
+        // Mock state generation (22 characters)
+        String stateValue = "a".repeat(22); // exactly 22 characters
+        when(mockUaaRandomStringUtil.getSecureRandom(22)).thenReturn(stateValue);
+        
+        // Mock code verifier generation (128 characters) - needed for PKCE
+        String codeVerifierValue = "b".repeat(128);
+        when(mockUaaRandomStringUtil.getSecureRandom(128)).thenReturn(codeVerifierValue);
+        
+        String authzUri = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+        
+        // Verify state is at least 22 characters
+        assertThat(queryParams.get("state"))
+                .as("State parameter should be at least 22 characters")
+                .hasSizeGreaterThanOrEqualTo(22);
+        
+        // Verify nonce exists and has expected length (RandomValueStringGenerator(22) generates 22 chars)
+        assertThat(queryParams.get("nonce"))
+                .as("Nonce parameter should be at least 22 characters")
+                .isNotNull()
+                .hasSizeGreaterThanOrEqualTo(22);
+    }
 }
