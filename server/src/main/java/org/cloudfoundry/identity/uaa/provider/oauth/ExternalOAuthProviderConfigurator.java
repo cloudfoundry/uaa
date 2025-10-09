@@ -108,7 +108,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         }
 
         if (OIDCIdentityProviderDefinition.class.equals(definition.getParameterizedClass())) {
-            var nonceGenerator = new RandomValueStringGenerator(12);
+            var nonceGenerator = new RandomValueStringGenerator(22);
             uriBuilder.queryParam("nonce", nonceGenerator.generate());
 
             Map<String, String> additionalParameters = ofNullable(((OIDCIdentityProviderDefinition) definition).getAdditionalAuthzParameters()).orElse(emptyMap());
@@ -123,7 +123,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     }
 
     private String generateStateParam() {
-        return uaaRandomStringUtil.getSecureRandom(10);
+        return uaaRandomStringUtil.getSecureRandom(22);
     }
 
     private String generateCodeVerifier() {
