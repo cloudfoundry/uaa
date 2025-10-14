@@ -5,6 +5,10 @@ set -eu -o pipefail
 # main function to start a docker container with the specified database
 # usage: start_docker_database.sh [db_name]
 #   db_name: one of "mysql(-*)", "postgres(-*)", etc. (default: "mysql")
+# Global env vars:
+#   DEBUG_MODE: if set to any value, enables remote debugging on port 5005
+#   WEB_MODE: if set to any value, enables web access on port 8080
+#   UAA_DOCKER_ARGS: Additional args to pass to docker run
 #######################################
 main() {
   local uaa_dir;  uaa_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
@@ -43,6 +47,7 @@ main() {
     --publish "${db_port}:${db_port}" \
     ${DEBUG_MODE:+--publish "5005:5005"} \
     ${WEB_MODE:+--publish "8080:8080"} \
+    ${UAA_DOCKER_ARGS:-} \
     "${DOCKER_IMAGE}"
 }
 

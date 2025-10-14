@@ -3,6 +3,9 @@ set -eu
 
 #######################################
 # The main function to run the unit tests within a container
+# Global env vars:
+#   UAA_GRADLE_UNIT_TEST_COMMAND: Gradle command to run unit tests (default: test)
+#       this could include :cloudfoundry-identity-server:test --tests to run specific tests
 #######################################
 function main() {
   local script_dir; script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -23,7 +26,7 @@ function main() {
     export GRADLE_OPTS="-Xmx2048m"
     ./gradlew "-Dspring.profiles.active=${test_profile}" \
             "-Djava.security.egd=file:/dev/./urandom" \
-            test \
+            ${UAA_GRADLE_UNIT_TEST_COMMAND:-test} \
             --stacktrace  \
             --console=plain
   popd

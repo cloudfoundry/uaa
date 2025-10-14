@@ -3,6 +3,9 @@ set -eu
 
 #######################################
 # The main function to run the integration tests within a container
+# Global env vars:
+#   UAA_GRADLE_INT_TEST_COMMAND: Gradle command to run integration tests (default: integrationTest)
+#       this could include :cloudfoundry-identity-server:integrationTest --tests to run specific tests
 #######################################
 function main() {
   local script_dir; script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -50,7 +53,7 @@ function main() {
 
     readonly integration_test_code="./gradlew '-Dspring.profiles.active=${test_profile}' '${skip_boot_run}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
-                integrationTest \
+                ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --stacktrace \
                 --console=plain"
 
