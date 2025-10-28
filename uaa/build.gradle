@@ -230,18 +230,12 @@ integrationTest {
         project.logger.warn("UAA - Overriding SAML Url:"+samlUrl)
     }
     
-    testLogging {
-        events("started", "passed", "skipped", "failed")
-        showStandardStreams = false
-        exceptionFormat = "full"
-    }
-    
     doFirst {
         if (System.getProperty("skipUaaAutoStart", "false").toBoolean()) {
             logger.lifecycle("Skipping UAA auto-start (skipUaaAutoStart=true)")
             return
         }
-        
+        logger.lifecycle("Killing UAA before auto-start")
         rootProject.tasks.named('killUaa').get().exec()
         
         def bootPidFile = rootProject.file('build/boot.pid')
@@ -278,7 +272,8 @@ integrationTest {
             }
             Thread.sleep(1000)
         }
-        
+
+        logger.lifecycle("Killing UAA after failed auto-start")
         rootProject.tasks.named('killUaa').get().exec()
         throw new GradleException("UAA failed to start within ${maxWaitSeconds} seconds. Check ${bootLogFile.absolutePath}")
     }

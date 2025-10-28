@@ -1,8 +1,5 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
-import java.nio.file.Files
-import java.nio.file.Path
-
 buildscript {
     apply(from: "dependencies.gradle")
 

@@ -120,13 +120,17 @@ function boot_db() {
     boot_log_location="/var/log/postgres-boot.log"
     launch_db="(POSTGRES_HOST_AUTH_METHOD=trust docker-entrypoint.sh postgres -c 'max_connections=250' &> ${boot_log_location}) &"
     test_connection="psql -h localhost -U postgres -c '\conninfo' &>/dev/null"
-    init_db="psql -c 'drop database if exists uaa;' -U postgres; psql -c 'create database uaa;' -U postgres; psql -c 'drop user if exists root;' --dbname=uaa -U postgres; psql -c \"create user root with superuser password '${db_password}';\" --dbname=uaa -U postgres; psql -c 'show max_connections;' --dbname=uaa -U postgres;"
+    init_db="psql -c 'drop database if exists uaa;' -h localhost -U postgres
+      psql -c 'create database uaa;' -h localhost -U postgres;
+      psql -c 'drop user if exists root;' -h localhost --dbname=uaa -U postgres;
+      psql -c \"create user root with superuser password '${db_password}';\" -h localhost --dbname=uaa -U postgres;
+      psql -c 'show max_connections;' -h localhost --dbname=uaa -U postgres;"
 
     # Override create_db function for PostgreSQL
     function create_db() {
       local database_name="uaa_${1}"
       echo "Creating PostgreSQL database: ${database_name}"
-      psql -c "create database ${database_name};" -U postgres
+      psql -c "create database ${database_name};" -h localhost -U postgres
     }
 
   elif [[ "${db}" = "mysql" ]]; then

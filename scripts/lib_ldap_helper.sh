@@ -56,8 +56,8 @@ function start_ldap() {
     start_ldap_oracle
     update_ldif_paths_oracle
   else
-    echo "LDAP setup could not be detected"
-    exit 1
+    echo "LDAP setup could not be detected, skipping"
+    return
   fi
   initialize_ldap
 }

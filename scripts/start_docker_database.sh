@@ -35,6 +35,7 @@ main() {
   "
 
   docker pull "${DOCKER_IMAGE}"
+  set -x
   docker run \
     --privileged \
     --tty \

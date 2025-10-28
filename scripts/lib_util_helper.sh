@@ -13,7 +13,7 @@ function is_boot_running() {
   start_time=$(date +%s)
 
   while true; do
-    if grep -q "$target_line" "$log_file"; then
+    if grep "$target_line" "$log_file"; then
       echo "Boot Start was found in the log file."
       return 0
     fi
@@ -37,7 +37,8 @@ function is_boot_running() {
 ##########################################
 function setup_hosts_file() {
 
-  cat <<EOF >>/etc/hosts
+  if [[ -w "/etc/hosts" ]]; then
+    cat <<EOF >>/etc/hosts || true
 127.0.0.1 testzone1.localhost
 127.0.0.1 testzone2.localhost
 127.0.0.1 testzone3.localhost
@@ -47,12 +48,15 @@ function setup_hosts_file() {
 127.0.0.1 testzoneinactive.localhost
 127.0.0.1 ldap01.example.com
 EOF
+  fi
 }
 
 ########################################
 # Display memory of container
 ##########################################
 function display_memory() {
-  grep MemTotal /proc/meminfo || true
+  if [[ -f "/proc/meminfo" ]]; then
+    grep MemTotal /proc/meminfo || true
+  fi
 }
 
