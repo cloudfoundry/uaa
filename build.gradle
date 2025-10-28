@@ -202,40 +202,6 @@ tasks.register('integrationTest', Test) {
     dependsOn subprojects.integrationTest
 }
 
-// Jacoco coverage reports:
-//
-// For unit test coverage (recommended):
-//   ./gradlew test jacocoTestReport
-//   Reports in each module: <module>/build/reports/jacoco/test/html/index.html
-//
-// For aggregated coverage across all modules:
-//   ./gradlew test jacocoAggregatedReport
-//   Report: build/reports/jacoco/jacocoAggregatedReport/html/index.html
-//
-// Note: Integration test coverage (jacocoIntegrationReport) requires running
-// integration tests which need special setup (UAA server, database, LDAP).
-// Use ./run-integration-tests.sh for that purpose.
-tasks.register('jacocoCargoReport', JacocoReport) {
-    def javaProjects = subprojects.findAll {
-        it.pluginManager.hasPlugin('java')
-    }
-
-    // Collect execution data from all subprojects' integration tests
-    executionData(fileTree(layout.buildDirectory).include("jacoco/*.exec"))
-    javaProjects.each { subproject ->
-        executionData.from(fileTree(subproject.layout.buildDirectory).include("jacoco/integrationTest.exec"))
-    }
-
-    FileTree sourceTree = files().asFileTree
-    FileTree classTree = files().asFileTree
-    javaProjects.each {
-        sourceTree += it.sourceSets.main.allJava
-        classTree += it.sourceSets.main.output.asFileTree
-    }
-    additionalSourceDirs = sourceTree
-    additionalClassDirs = classTree
-}
-
 tasks.register('cleanBootTomcatDir') {
     String tomcatBase = file("scripts/boot/tomcat/").getAbsolutePath()
     delete(java.nio.file.Path.of(tomcatBase))
