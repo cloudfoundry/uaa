@@ -24,7 +24,15 @@ function main() {
 
     local wd launch_boot assemble_code integration_test_code
     wd=$(pwd)
+    echo "Setting heap to ${jvm_heap:=1024m}"
+    echo "Setting metaspace to ${jvm_metaspace:=256m}"
+
     readonly launch_boot="nohup java \
+               -XX:+UseParallelGC \
+               -Xms${jvm_heap} -Xmx${jvm_heap} \
+               -XX:MaxMetaspaceSize=${jvm_metaspace} \
+               -XX:+HeapDumpOnOutOfMemoryError \
+               -XX:HeapDumpPath=${wd} \
                -DCLOUDFOUNDRY_CONFIG_PATH=${wd}/scripts/boot \
                -DSECRETS_DIR=${wd}/scripts/boot \
                -Djava.security.egd=file:/dev/./urandom \
@@ -50,7 +58,8 @@ function main() {
                 --stacktrace \
                 --console=plain"
 
-    readonly integration_test_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
+    readonly integration_test_code="./gradlew \
+                '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
