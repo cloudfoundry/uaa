@@ -22,12 +22,11 @@ function main() {
     start_ldap
 
     set -x
-    # The default max heap size for Gradle is 512MB, increase to avoid DaemonDisappearedException
-    export GRADLE_OPTS="-Xmx2048m"
     ./gradlew "-Dspring.profiles.active=${test_profile}" \
             "-Djava.security.egd=file:/dev/./urandom" \
             ${UAA_GRADLE_UNIT_TEST_COMMAND:-test} \
             --stacktrace  \
+            --no-daemon \
             --console=plain
   popd
 }

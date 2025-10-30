@@ -24,7 +24,8 @@ function main() {
 
     local wd launch_boot assemble_code integration_test_code
     wd=$(pwd)
-    readonly launch_boot="nohup java -DCLOUDFOUNDRY_CONFIG_PATH=${wd}/scripts/boot \
+    readonly launch_boot="nohup java \
+                               -DCLOUDFOUNDRY_CONFIG_PATH=${wd}/scripts/boot \
                                -DSECRETS_DIR=${wd}/scripts/boot \
                                -Djava.security.egd=file:/dev/./urandom \
                                -Dmetrics.perRequestMetrics=true \
@@ -42,6 +43,7 @@ function main() {
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 assemble \
+                --no-daemon \
                 --max-workers=4 \
                 --stacktrace \
                 --console=plain"
@@ -51,11 +53,10 @@ function main() {
                 '-DskipUaaAutoStart=true' \
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --stacktrace \
+                --no-daemon \
                 --console=plain"
 
     set -x
-    # The default max heap size for Gradle is 512MB, increase to avoid DaemonDisappearedException
-    export GRADLE_OPTS="-Xmx2048m"
     if [[ "${RUN_TESTS:-true}" = 'true' ]]; then
       eval "$assemble_code"
 

@@ -27,6 +27,7 @@ function is_boot_running() {
       return 1
     fi
 
+    tail -n 1 "$log_file"
     sleep 1 # Check every second
   done
 }
