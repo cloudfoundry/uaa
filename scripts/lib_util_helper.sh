@@ -7,7 +7,7 @@ set -eu
 function is_boot_running() {
   local log_file="boot.log"
   local target_line="Started UaaBootApplication"
-  local timeout=300 # Timeout in seconds
+  local timeout=600 # Timeout in seconds
 
   local start_time
   start_time=$(date +%s)

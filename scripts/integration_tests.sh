@@ -25,20 +25,22 @@ function main() {
     local wd launch_boot assemble_code integration_test_code
     wd=$(pwd)
     readonly launch_boot="nohup java \
-                               -DCLOUDFOUNDRY_CONFIG_PATH=${wd}/scripts/boot \
-                               -DSECRETS_DIR=${wd}/scripts/boot \
-                               -Djava.security.egd=file:/dev/./urandom \
-                               -Dmetrics.perRequestMetrics=true \
-                               -Dserver.servlet.context-path=/uaa \
-                               -Dserver.tomcat.basedir=${wd}/scripts/boot/tomcat \
-                               -Dsmtp.host=localhost \
-                               -Dsmtp.port=2525 \
-                               -Dspring.profiles.active=${test_profile} \
-                               -Dstatsd.enabled=true \
-                               -Dfile.encoding=UTF-8 \
-                               -Duser.country=US \
-                               -Duser.language=en \
-                               -Duser.variant -jar ${wd}/uaa/build/libs/cloudfoundry-identity-uaa-0.0.0.war > boot.log 2>&1 &"
+               -DCLOUDFOUNDRY_CONFIG_PATH=${wd}/scripts/boot \
+               -DSECRETS_DIR=${wd}/scripts/boot \
+               -Djava.security.egd=file:/dev/./urandom \
+               -Dmetrics.perRequestMetrics=true \
+               -Dserver.servlet.context-path=/uaa \
+               -Dserver.tomcat.basedir=${wd}/scripts/boot/tomcat \
+               -Dsmtp.host=localhost \
+               -Dsmtp.port=2525 \
+               -Dspring.profiles.active=${test_profile} \
+               -Dstatsd.enabled=true \
+               -Dfile.encoding=UTF-8 \
+               -Duser.country=US \
+               -Duser.language=en \
+               -Duser.variant \
+               -jar ${wd}/uaa/build/libs/cloudfoundry-identity-uaa-0.0.0.war \
+               > boot.log 2>&1 &"
 
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
