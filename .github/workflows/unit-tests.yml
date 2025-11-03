@@ -28,7 +28,7 @@ jobs:
         run: /root/uaa/scripts/unit_tests.sh ${PROFILE},default
         continue-on-error: true
       - name: Test result upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: steps.testrun.outcome == 'failure'
         with:
           name: Server test
