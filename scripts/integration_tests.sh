@@ -24,6 +24,8 @@ function main() {
 
     local wd launch_boot assemble_code integration_test_code
     wd=$(pwd)
+    temp_dir=${script_dir}/tmp
+    mkdir "${temp_dir}"
     echo "Setting heap to ${jvm_heap:=768m}"
     echo "Setting metaspace to ${jvm_metaspace:=256m}"
 
@@ -36,6 +38,8 @@ function main() {
                -DCLOUDFOUNDRY_CONFIG_PATH=${wd}/scripts/boot \
                -DSECRETS_DIR=${wd}/scripts/boot \
                -Djava.security.egd=file:/dev/./urandom \
+               -Djava.io.tmpdir=${temp_dir} \
+               -Dorg.bouncycastle.native.loader.install_dir=${temp_dir} \
                -Dmetrics.perRequestMetrics=true \
                -Dserver.servlet.context-path=/uaa \
                -Dserver.tomcat.basedir=${wd}/scripts/boot/tomcat \
