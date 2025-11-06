@@ -24,12 +24,12 @@ function main() {
 
     local wd launch_boot assemble_code integration_test_code
     wd=$(pwd)
-    echo "Setting heap to ${jvm_heap:=1024m}"
+    echo "Setting heap to ${jvm_heap:=768m}"
     echo "Setting metaspace to ${jvm_metaspace:=256m}"
 
     readonly launch_boot="nohup java \
                -XX:+UseParallelGC \
-               -Xms${jvm_heap} -Xmx${jvm_heap} \
+               -Xmx${jvm_heap} \
                -XX:MaxMetaspaceSize=${jvm_metaspace} \
                -XX:+HeapDumpOnOutOfMemoryError \
                -XX:HeapDumpPath=${wd} \
@@ -81,9 +81,9 @@ function main() {
         cat boot.log
         exit 1
       fi
-      
+
       eval "$integration_test_code"
-      
+
       # Clean up: kill the boot server
       if [[ -f boot.pid ]]; then
         kill -9 "$(cat boot.pid)" || true
