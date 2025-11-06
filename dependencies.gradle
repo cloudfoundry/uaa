@@ -10,7 +10,7 @@ versions.bouncyCastlePkixFipsVersion = "2.1.9"
 versions.bouncyCastleTlsFipsVersion = "2.1.20"
 versions.springBootVersion = "3.5.7"
 versions.guavaVersion = "33.4.8-jre"
-versions.seleniumVersion = "4.35.0"
+versions.seleniumVersion = "4.38.0"
 versions.braveVersion = "6.3.0"
 versions.opensaml = "4.0.1"
 
