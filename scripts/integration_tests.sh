@@ -25,7 +25,7 @@ function main() {
     local wd launch_boot assemble_code integration_test_code
     wd=$(pwd)
     temp_dir=${script_dir}/tmp
-    mkdir "${temp_dir}"
+    mkdir -p "${temp_dir}"
     echo "Setting heap to ${jvm_heap:=768m}"
     echo "Setting metaspace to ${jvm_metaspace:=256m}"
 
