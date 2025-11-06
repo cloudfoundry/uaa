@@ -36,6 +36,9 @@ function main() {
                -XX:+HeapDumpOnOutOfMemoryError \
                -XX:HeapDumpPath=${wd} \
                -DCLOUDFOUNDRY_CONFIG_PATH=${wd}/scripts/boot \
+               -Dlogging.config=${wd}/scripts/boot/log4j2.properties \
+               -Dlog4j.configurationFile=${wd}/scripts/boot/log4j2.properties \
+               -Dlog4j2.formatMsgNoLookups=true \
                -DSECRETS_DIR=${wd}/scripts/boot \
                -Djava.security.egd=file:/dev/./urandom \
                -Djava.io.tmpdir=${temp_dir} \
@@ -67,21 +70,22 @@ function main() {
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
-                --stacktrace \
                 --no-daemon \
+                --max-workers=4 \
+                --stacktrace \
                 --console=plain"
 
     set -x
     if [[ "${RUN_TESTS:-true}" = 'true' ]]; then
       eval "$assemble_code"
 
-      # Always start the boot server before running integration tests
+      # Start and ensure the boot server is running before integration tests
       eval "$launch_boot"
       echo $! > boot.pid
       if is_boot_running ; then
         echo "Boot started. Can continue to run tests."
       else
-        echo "Boot did not start - failing"
+        echo "Boot did not start, failing"
         cat boot.log
         exit 1
       fi
@@ -90,7 +94,9 @@ function main() {
 
       # Clean up: kill the boot server
       if [[ -f boot.pid ]]; then
-        kill -9 "$(cat boot.pid)" || true
+        local pid; pid=$(cat boot.pid)
+        echo "Sending SIGKILL (kill -9) to UAA process (pid=${pid})"
+        kill -9 "${pid}" || true
         rm boot.pid
       fi
     else
