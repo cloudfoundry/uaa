@@ -74,14 +74,20 @@ public class DefaultIntegrationTestConfig {
         options.addArguments(
                 "--verbose",
                 // Comment the following line to run selenium test browser in Headed Mode
-                "--headless",
+                "--headless=new", // Use new headless mode (more stable)
                 "--guest", //attempt to disable password checkups that disrupt the flow
                 "--disable-web-security",
                 "--ignore-certificate-errors",
                 "--allow-running-insecure-content",
                 "--allow-insecure-localhost",
-                "--no-sandbox",
+                "--no-sandbox", // Required for Docker/CI environments
+                "--disable-dev-shm-usage", // Overcome limited resource problems in Docker
                 "--disable-gpu",
+                "--disable-extensions",
+                "--disable-software-rasterizer",
+                "--disable-background-timer-throttling",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-renderer-backgrounding",
                 "--remote-allow-origins=*"
         );
         options.setAcceptInsecureCerts(true);
