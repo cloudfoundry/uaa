@@ -122,6 +122,9 @@ subprojects {
     tasks.register('integrationTest', Test) {
         useJUnitPlatform()
 
+        // This prevents integrationTests from hanging indefinitely
+        timeout = Duration.ofMinutes(180)
+
         // Enable JaCoCo for integration tests
         jacoco {
             enabled = true
