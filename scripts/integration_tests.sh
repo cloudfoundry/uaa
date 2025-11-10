@@ -30,7 +30,7 @@ function main() {
     echo "Setting metaspace to ${jvm_metaspace:=256m}"
 
     readonly launch_boot="nohup java \
-               -XX:+UseParallelGC \
+               -XX:+UseG1GC -XX:G1HeapRegionSize=1m \
                -Xmx${jvm_heap} \
                -XX:MaxMetaspaceSize=${jvm_metaspace} \
                -XX:+HeapDumpOnOutOfMemoryError \
@@ -60,6 +60,7 @@ function main() {
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 assemble \
+                --no-watch-fs \
                 --no-daemon \
                 --max-workers=4 \
                 --stacktrace \
@@ -70,6 +71,7 @@ function main() {
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
+                --no-watch-fs \
                 --no-daemon \
                 --max-workers=4 \
                 --stacktrace \
