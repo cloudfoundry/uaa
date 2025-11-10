@@ -92,6 +92,9 @@ function main() {
         exit 1
       fi
 
+      if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+        export DBUS_SESSION_BUS_ADDRESS=/dev/null
+      fi
       eval "$integration_test_code"
 
       # Clean up: kill the boot server
