@@ -8,7 +8,7 @@ set -eu
 #       this could include :cloudfoundry-identity-server:integrationTest --tests to run specific tests
 #   jvm_heap: JVM heap size for UAA boot server (default: 640m)
 #   jvm_metaspace: JVM metaspace size for UAA boot server (default: 192m)
-#   gradle_heap: JVM heap size for Gradle daemon (default: 512m)
+#   gradle_heap: JVM heap size for Gradle daemon (default: 768m)
 #   gradle_test_heap: JVM heap size for Gradle test workers (default: 640m)
 #######################################
 function main() {
@@ -33,9 +33,10 @@ function main() {
     
     # Memory settings optimized for Gradle 9.0 with Kotlin 2.2
     # Boot server needs enough memory to handle test requests without crashing
+    # Increased Gradle daemon heap to prevent hanging during test execution
     echo "Setting boot heap to ${jvm_heap:=640m}"
     echo "Setting boot metaspace to ${jvm_metaspace:=192m}"
-    echo "Setting Gradle daemon heap to ${gradle_heap:=512m}"
+    echo "Setting Gradle daemon heap to ${gradle_heap:=768m}"
     echo "Setting test worker heap to ${gradle_test_heap:=640m}"
 
     readonly launch_boot="nohup java \
@@ -78,11 +79,12 @@ function main() {
                 assemble \
                 --no-watch-fs \
                 --no-daemon \
-                --max-workers=2 \
+                --max-workers=1 \
                 --stacktrace \
                 --console=plain"
 
     # Explicit memory limits for test JVMs to account for Kotlin 2.2 overhead
+    # Reduced to 1 worker to prevent hanging and resource contention
     readonly integration_test_code="./gradlew \
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
@@ -92,7 +94,7 @@ function main() {
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --no-watch-fs \
                 --no-daemon \
-                --max-workers=2 \
+                --max-workers=1 \
                 --stacktrace \
                 --console=plain"
 
