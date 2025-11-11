@@ -83,14 +83,15 @@ function main() {
                 --stacktrace \
                 --console=plain"
 
-    # Explicit memory limits for test JVMs with classloader fixes for Gradle 9.0/Kotlin 2.2
-    # CICompilerCount and processReaper flags prevent classloading deadlocks during test init
+    # Explicit memory limits for test JVMs with GC tuning and classloader fixes
+    # All flags required to prevent classloading deadlocks and thread starvation during test init
     readonly integration_test_code="./gradlew \
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
-                '-Dorg.gradle.jvmargs=-Xmx${gradle_heap} -Xms${gradle_heap} -XX:MaxMetaspaceSize=256m -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
+                '-Dorg.gradle.jvmargs=-Xmx${gradle_heap} -Xms${gradle_heap} -XX:MaxMetaspaceSize=256m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
                 '-Dorg.gradle.daemon.idletimeout=300000' \
+                '-Dorg.gradle.parallel=false' \
                 '-Dorg.gradle.workers.max=2' \
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --no-watch-fs \
