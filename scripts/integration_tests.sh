@@ -6,6 +6,10 @@ set -eu
 # Global env vars:
 #   UAA_GRADLE_INT_TEST_COMMAND: Gradle command to run integration tests (default: integrationTest)
 #       this could include :cloudfoundry-identity-server:integrationTest --tests to run specific tests
+#   jvm_heap: JVM heap size for UAA boot server (default: 448m)
+#   jvm_metaspace: JVM metaspace size for UAA boot server (default: 160m)
+#   gradle_heap: JVM heap size for Gradle daemon (default: 640m)
+#   gradle_test_heap: JVM heap size for Gradle test workers (default: 640m)
 #######################################
 function main() {
   local script_dir; script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -26,13 +30,22 @@ function main() {
     wd=$(pwd)
     temp_dir=${script_dir}/tmp
     mkdir -p "${temp_dir}"
-    echo "Setting heap to ${jvm_heap:=768m}"
-    echo "Setting metaspace to ${jvm_metaspace:=256m}"
+    
+    # SIGNIFICANTLY reduced memory for boot server to accommodate Gradle 9.0
+    echo "Setting boot heap to ${jvm_heap:=448m}"
+    echo "Setting boot metaspace to ${jvm_metaspace:=160m}"
+    echo "Setting Gradle daemon heap to ${gradle_heap:=640m}"
+    echo "Setting test worker heap to ${gradle_test_heap:=640m}"
 
     readonly launch_boot="nohup java \
-               -XX:+UseG1GC -XX:G1HeapRegionSize=1m \
+               -XX:+UseG1GC \
+               -XX:G1HeapRegionSize=1m \
                -Xmx${jvm_heap} \
+               -Xms${jvm_heap} \
                -XX:MaxMetaspaceSize=${jvm_metaspace} \
+               -XX:MetaspaceSize=${jvm_metaspace} \
+               -XX:+UseStringDeduplication \
+               -XX:MaxGCPauseMillis=200 \
                -XX:+HeapDumpOnOutOfMemoryError \
                -XX:HeapDumpPath=${wd} \
                -DCLOUDFOUNDRY_CONFIG_PATH=${wd}/scripts/boot \
@@ -57,23 +70,28 @@ function main() {
                -jar ${wd}/uaa/build/libs/cloudfoundry-identity-uaa-0.0.0.war \
                > boot.log 2>&1 &"
 
+    # Reduced workers and explicit Gradle daemon memory
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
+                '-Dorg.gradle.jvmargs=-Xmx${gradle_heap} -Xms${gradle_heap} -XX:MaxMetaspaceSize=192m' \
                 assemble \
                 --no-watch-fs \
                 --no-daemon \
-                --max-workers=4 \
+                --max-workers=2 \
                 --stacktrace \
                 --console=plain"
 
+    # Explicit memory limits for test JVMs to account for Kotlin 2.2 overhead
     readonly integration_test_code="./gradlew \
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
+                '-Dorg.gradle.jvmargs=-Xmx${gradle_heap} -Xms${gradle_heap} -XX:MaxMetaspaceSize=192m' \
+                '-Dorg.gradle.daemon.idletimeout=300000' \
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --no-watch-fs \
                 --no-daemon \
-                --max-workers=4 \
+                --max-workers=2 \
                 --stacktrace \
                 --console=plain"
 
