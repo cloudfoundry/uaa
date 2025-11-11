@@ -79,12 +79,11 @@ function main() {
                 assemble \
                 --no-watch-fs \
                 --no-daemon \
-                --max-workers=1 \
+                --max-workers=2 \
                 --stacktrace \
                 --console=plain"
 
     # Explicit memory limits for test JVMs to account for Kotlin 2.2 overhead
-    # Reduced to 1 worker to prevent hanging and resource contention
     readonly integration_test_code="./gradlew \
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
@@ -94,7 +93,7 @@ function main() {
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --no-watch-fs \
                 --no-daemon \
-                --max-workers=1 \
+                --max-workers=2 \
                 --stacktrace \
                 --console=plain"
 
