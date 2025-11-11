@@ -8,7 +8,7 @@ set -eu
 #       this could include :cloudfoundry-identity-server:integrationTest --tests to run specific tests
 #   jvm_heap: JVM heap size for UAA boot server (default: 640m)
 #   jvm_metaspace: JVM metaspace size for UAA boot server (default: 192m)
-#   gradle_heap: JVM heap size for Gradle daemon (default: 768m)
+#   gradle_heap: JVM heap size for Gradle daemon (default: 1024m)
 #   gradle_test_heap: JVM heap size for Gradle test workers (default: 640m)
 #######################################
 function main() {
@@ -33,10 +33,10 @@ function main() {
     
     # Memory settings optimized for Gradle 9.0 with Kotlin 2.2
     # Boot server needs enough memory to handle test requests without crashing
-    # Increased Gradle daemon heap to prevent hanging during test execution
+    # Increased Gradle daemon heap to 1GB to prevent hanging with 2 workers
     echo "Setting boot heap to ${jvm_heap:=640m}"
     echo "Setting boot metaspace to ${jvm_metaspace:=192m}"
-    echo "Setting Gradle daemon heap to ${gradle_heap:=768m}"
+    echo "Setting Gradle daemon heap to ${gradle_heap:=1024m}"
     echo "Setting test worker heap to ${gradle_test_heap:=640m}"
 
     readonly launch_boot="nohup java \
@@ -72,10 +72,10 @@ function main() {
                -jar ${wd}/uaa/build/libs/cloudfoundry-identity-uaa-0.0.0.war \
                > boot.log 2>&1 &"
 
-    # Reduced workers and explicit Gradle daemon memory for Kotlin 2.2
+    # Explicit Gradle daemon memory for Kotlin 2.2 with additional GC tuning
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
-                '-Dorg.gradle.jvmargs=-Xmx${gradle_heap} -Xms${gradle_heap} -XX:MaxMetaspaceSize=256m' \
+                '-Dorg.gradle.jvmargs=-Xmx${gradle_heap} -Xms${gradle_heap} -XX:MaxMetaspaceSize=256m -XX:+UseG1GC -XX:MaxGCPauseMillis=100' \
                 assemble \
                 --no-watch-fs \
                 --no-daemon \
@@ -83,13 +83,15 @@ function main() {
                 --stacktrace \
                 --console=plain"
 
-    # Explicit memory limits for test JVMs to account for Kotlin 2.2 overhead
+    # Explicit memory limits for test JVMs with GC tuning to prevent hanging
+    # Added timeout and parallel GC settings for better stability
     readonly integration_test_code="./gradlew \
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
-                '-Dorg.gradle.jvmargs=-Xmx${gradle_heap} -Xms${gradle_heap} -XX:MaxMetaspaceSize=256m' \
+                '-Dorg.gradle.jvmargs=-Xmx${gradle_heap} -Xms${gradle_heap} -XX:MaxMetaspaceSize=256m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2' \
                 '-Dorg.gradle.daemon.idletimeout=300000' \
+                '-Dorg.gradle.parallel=false' \
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --no-watch-fs \
                 --no-daemon \
