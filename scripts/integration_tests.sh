@@ -30,7 +30,8 @@ function main() {
     echo "Setting metaspace to ${jvm_metaspace:=256m}"
 
     readonly launch_boot="nohup java \
-               -XX:+UseG1GC -XX:G1HeapRegionSize=1m \
+               -XX:+UseG1GC \
+               -XX:G1HeapRegionSize=1m \
                -Xmx${jvm_heap} \
                -XX:MaxMetaspaceSize=${jvm_metaspace} \
                -XX:+HeapDumpOnOutOfMemoryError \
@@ -95,6 +96,11 @@ function main() {
       if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
         export DBUS_SESSION_BUS_ADDRESS=/dev/null
       fi
+      export GRADLE_OPTS="\
+        -XX:+UseG1GC \
+        -XX:G1HeapRegionSize=1m \
+        -Xmx1024m \
+      "
       eval "$integration_test_code"
 
       # Clean up: kill the boot server
