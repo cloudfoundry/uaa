@@ -42,7 +42,7 @@ function main() {
     readonly launch_boot="nohup java \
                -XX:+UseG1GC \
                -XX:G1HeapRegionSize=1m \
-               -Xmx${jvm_heap} \
+               -Xms64m -Xmx${jvm_heap} \
                -XX:MaxMetaspaceSize=${jvm_metaspace} \
                -XX:MetaspaceSize=${jvm_metaspace} \
                -XX:+UseStringDeduplication \
@@ -74,7 +74,7 @@ function main() {
     # Explicit Gradle daemon memory for Kotlin 2.2 with additional GC tuning
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
-                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xmx${gradle_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100' \
+                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100' \
                 assemble \
                 --no-watch-fs \
                 --no-daemon \
@@ -88,7 +88,7 @@ function main() {
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
-                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
+                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
                 '-Dorg.gradle.daemon.idletimeout=300000' \
                 '-Dorg.gradle.parallel=false' \
                 '-Dorg.gradle.workers.max=2' \
