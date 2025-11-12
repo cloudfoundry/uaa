@@ -64,7 +64,7 @@ function main() {
                 assemble \
                 --no-watch-fs \
                 --no-daemon \
-                --max-workers=4 \
+                --max-workers=2 \
                 --stacktrace \
                 --console=plain"
 
@@ -75,7 +75,7 @@ function main() {
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --no-watch-fs \
                 --no-daemon \
-                --max-workers=4 \
+                --max-workers=2 \
                 --stacktrace \
                 --console=plain"
 
