@@ -22,7 +22,7 @@ function main() {
   pushd "$(dirname ${script_dir})"
     start_ldap
 
-    local wd launch_boot assemble_code integration_test_code
+    local wd launch_boot compile_assemble_code run_integration_tests
     wd=$(pwd)
     temp_dir=${script_dir}/tmp
     mkdir -p "${temp_dir}"
@@ -58,16 +58,16 @@ function main() {
                -jar ${wd}/uaa/build/libs/cloudfoundry-identity-uaa-0.0.0.war \
                > boot.log 2>&1 &"
 
-    readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
+    readonly compile_assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
-                assemble \
+                assemble compileTestJava \
                 --no-watch-fs \
                 --no-daemon \
                 --max-workers=4 \
                 --stacktrace \
                 --console=plain"
 
-    readonly integration_test_code="./gradlew \
+    readonly run_integration_tests="./gradlew \
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
@@ -80,7 +80,7 @@ function main() {
 
     set -x
     if [[ "${RUN_TESTS:-true}" = 'true' ]]; then
-      eval "$assemble_code"
+      eval "$compile_assemble_code"
 
       # Start and ensure the boot server is running before integration tests
       eval "$launch_boot"
@@ -101,7 +101,7 @@ function main() {
         -XX:G1HeapRegionSize=1m \
         -Xmx1024m \
       "
-      eval "$integration_test_code"
+      eval "$run_integration_tests"
 
       # Clean up: kill the boot server
       if [[ -f boot.pid ]]; then
@@ -111,7 +111,7 @@ function main() {
         rm boot.pid
       fi
     else
-      echo "$integration_test_code"
+      echo "$run_integration_tests"
       bash
     fi
   popd
