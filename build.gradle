@@ -203,10 +203,6 @@ tasks.register('manifests', Copy) {
     into("build/sample-manifests")
 }
 
-// tasks.register('integrationTest', Test) {
-//    dependsOn subprojects.integrationTest
-//}
-
 tasks.register('cleanBootTomcatDir') {
     String tomcatBase = file("scripts/boot/tomcat/").getAbsolutePath()
     delete(java.nio.file.Path.of(tomcatBase))
