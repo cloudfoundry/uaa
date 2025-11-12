@@ -83,6 +83,23 @@ function main() {
                 --console=plain"
 
     # Explicit memory limits for test JVMs with GC tuning and classloader fixes
+        # All flags required to prevent classloading deadlocks and thread starvation during test init
+        readonly compile_test_code="./gradlew \
+                    '-Dspring.profiles.active=${test_profile}' \
+                    '-Djava.security.egd=file:/dev/./urandom' \
+                    '-DskipUaaAutoStart=true' \
+                    '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
+                    '-Dorg.gradle.daemon.idletimeout=300000' \
+                    '-Dorg.gradle.parallel=false' \
+                    '-Dorg.gradle.workers.max=2' \
+                    clean assemble compileTestJava \
+                    --no-watch-fs \
+                    --no-daemon \
+                    --max-workers=2 \
+                    --stacktrace \
+                    --console=plain"
+
+    # Explicit memory limits for test JVMs with GC tuning and classloader fixes
     # All flags required to prevent classloading deadlocks and thread starvation during test init
     readonly integration_test_code="./gradlew \
                 '-Dspring.profiles.active=${test_profile}' \
@@ -117,6 +134,7 @@ function main() {
       if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
         export DBUS_SESSION_BUS_ADDRESS=/dev/null
       fi
+      eval "$compile_test_code"
       eval "$integration_test_code"
 
       # Clean up: kill the boot server
