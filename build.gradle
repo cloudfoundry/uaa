@@ -21,8 +21,6 @@ buildscript {
 
 apply(from: "dependencies.gradle")
 
-def applicationPort = project.hasProperty('port') ? project.getProperty('port').toInteger() : 8080
-
 allprojects {
     apply(plugin: "io.spring.dependency-management")
     apply(plugin: "org.barfuin.gradle.jacocolog")
