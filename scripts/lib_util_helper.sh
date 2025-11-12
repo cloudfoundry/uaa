@@ -14,7 +14,7 @@ function is_boot_running() {
   while true; do
     # Use curl to check if the port is responding
     # Any HTTP response (even 4xx/5xx) indicates the server is running
-    if curl -ksS --max-time 5 --connect-timeout 2 "http://127.0.0.1:${port}/uaa/info"; then
+    if curl -ksS --max-time 5 --connect-timeout 2 -u "admin:adminsecret" --data "client_id=admin&grant_type=client_credentials" -X POST "http://localhost:${port}/uaa/oauth/token"; then
       echo "Boot is running on port ${port}."
       return 0
     fi
