@@ -52,7 +52,7 @@ function main() {
 
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
-                assemble \
+                assemble compileTestJava \
                 --no-daemon \
                 --max-workers=4 \
                 --stacktrace \
@@ -65,6 +65,7 @@ function main() {
                 ${UAA_GRADLE_INT_TEST_COMMAND:-integrationTest} \
                 --stacktrace \
                 --no-daemon \
+                --max-workers=2 \
                 --console=plain"
 
     set -x
