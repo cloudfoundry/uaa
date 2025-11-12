@@ -11,11 +11,17 @@ function is_boot_running() {
   local start_time
   start_time=$(date +%s)
 
+  echo
+  echo "Waiting for the UAA server to start, only partial log messages will be shown as it progresses:"
   while true; do
     # Use curl to check if the port is responding
     # Any HTTP response (even 4xx/5xx) indicates the server is running
-    if curl -ksS --max-time 5 --connect-timeout 2 -u "admin:adminsecret" --data "client_id=admin&grant_type=client_credentials" -X POST "http://localhost:${port}/uaa/oauth/token"; then
+    if curl -ks --max-time 5 -o /dev/null --connect-timeout 2 -u "admin:adminsecret" \
+            --data "client_id=admin&grant_type=client_credentials" \
+            -X POST "http://localhost:${port}/uaa/oauth/token" 2>/dev/null; then
+      echo
       echo "Boot is running on port ${port}."
+      grep "Started UaaBootApplication" boot.log
       return 0
     fi
 
@@ -24,7 +30,12 @@ function is_boot_running() {
     elapsed_time=$((current_time - start_time))
 
     if [[ "$elapsed_time" -ge "$timeout" ]]; then
+      echo
       echo "Timeout reached. Boot did not start on port ${port}"
+      curl -ksS --max-time 5 --connect-timeout 2 -u "admin:adminsecret" \
+              --data "client_id=admin&grant_type=client_credentials" \
+              -X POST "http://localhost:${port}/uaa/info" || true
+
       thread_dump_on_boot_pid
       return 1
     fi

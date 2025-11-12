@@ -78,13 +78,15 @@ function main() {
                 --stacktrace \
                 --console=plain"
 
-    set -x
     if [[ "${RUN_TESTS:-true}" = 'true' ]]; then
+      set -x
       eval "$compile_assemble_code"
 
       # Start and ensure the boot server is running before integration tests
       eval "$launch_boot"
       echo $! > boot.pid
+      { set +x; } 2>/dev/null
+
       if is_boot_running ; then
         echo "Boot started. Can continue to run tests."
       else
@@ -96,12 +98,14 @@ function main() {
       if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
         export DBUS_SESSION_BUS_ADDRESS=/dev/null
       fi
+      set -x
       export GRADLE_OPTS="\
         -XX:+UseG1GC \
         -XX:G1HeapRegionSize=1m \
         -Xmx1024m \
       "
       eval "$run_integration_tests"
+      { set +x; } 2>/dev/null
 
       # Clean up: kill the boot server
       if [[ -f boot.pid ]]; then
@@ -111,6 +115,7 @@ function main() {
         rm boot.pid
       fi
     else
+      set -x
       echo "$run_integration_tests"
       bash
     fi
