@@ -38,8 +38,9 @@ function main() {
     # logging.manager is set to org.apache.logging.log4j.jul.LogManager to prevent log4j2 from using java.util.logging
     echo "Setting boot heap to ${jvm_heap:=512m}"
     echo "Setting boot metaspace to ${jvm_metaspace:=128m}"
-    echo "Setting Gradle daemon heap to ${gradle_heap:=5124m}"
-    echo "Setting test worker heap to ${gradle_test_heap:=512m}"
+    echo "Setting Gradle build heap to ${gradle_heap:=512m}"
+    echo "Setting Gradle test heap to ${gradle_test_heap:=512m}"
+    echo "Setting Gradle metaspace to ${gradle_metaspace:=128m}"
 
     readonly launch_boot="nohup java \
                -XX:+UseG1GC \
@@ -77,7 +78,7 @@ function main() {
     # Explicit Gradle daemon memory for Kotlin 2.2 with additional GC tuning
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
-                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100' \
+                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_heap} -XX:MaxMetaspaceSize=${gradle_metaspace} -XX:+UseG1GC -XX:MaxGCPauseMillis=100' \
                 assemble \
                 --no-watch-fs \
                 --no-daemon \
@@ -93,11 +94,11 @@ function main() {
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
-                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
+                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=${gradle_metaspace} -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
                 '-Dorg.gradle.daemon.idletimeout=300000' \
                 '-Dorg.gradle.parallel=false' \
                 '-Dorg.gradle.workers.max=2' \
-                clean assemble compileTestJava \
+                compileTestJava \
                 --no-watch-fs \
                 --no-daemon \
                 --no-configuration-cache \
@@ -111,7 +112,7 @@ function main() {
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
-                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
+                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=${gradle_metaspace} -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
                 '-Dorg.gradle.daemon.idletimeout=300000' \
                 '-Dorg.gradle.parallel=false' \
                 '-Dorg.gradle.workers.max=2' \
@@ -147,7 +148,7 @@ function main() {
       eval "$compile_test_code"
       eval "$integration_test_code"
       { set +x; } 2>/dev/null
-      
+
       # Clean up: kill the boot server
       if [[ -f boot.pid ]]; then
         local pid; pid=$(cat boot.pid)
