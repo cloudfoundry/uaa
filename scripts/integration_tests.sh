@@ -30,16 +30,16 @@ function main() {
     wd=$(pwd)
     temp_dir=${script_dir}/tmp
     mkdir -p "${temp_dir}"
-    
+
     # Memory settings optimized for Gradle 9.0 with Kotlin 2.2
     # Boot server needs enough memory to handle test requests without crashing
     # Increased Gradle daemon heap to 1GB to prevent hanging with 2 workers
     # --no-configuration-cache prevents stale Kotlin compiler state reuse between daemon processes
     # logging.manager is set to org.apache.logging.log4j.jul.LogManager to prevent log4j2 from using java.util.logging
-    echo "Setting boot heap to ${jvm_heap:=640m}"
-    echo "Setting boot metaspace to ${jvm_metaspace:=192m}"
-    echo "Setting Gradle daemon heap to ${gradle_heap:=1024m}"
-    echo "Setting test worker heap to ${gradle_test_heap:=640m}"
+    echo "Setting boot heap to ${jvm_heap:=512m}"
+    echo "Setting boot metaspace to ${jvm_metaspace:=128m}"
+    echo "Setting Gradle daemon heap to ${gradle_heap:=5124m}"
+    echo "Setting test worker heap to ${gradle_test_heap:=512m}"
 
     readonly launch_boot="nohup java \
                -XX:+UseG1GC \
