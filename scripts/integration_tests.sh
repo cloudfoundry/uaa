@@ -37,7 +37,7 @@ function main() {
     # --no-configuration-cache prevents stale Kotlin compiler state reuse between daemon processes
     # logging.manager is set to org.apache.logging.log4j.jul.LogManager to prevent log4j2 from using java.util.logging
     echo "Setting boot heap to ${jvm_heap:=512m}"
-    echo "Setting boot metaspace to ${jvm_metaspace:=128m}"
+    echo "Setting boot metaspace to ${jvm_metaspace:=192m}"
     echo "Setting Gradle build heap to ${gradle_heap:=512m}"
     echo "Setting Gradle test heap to ${gradle_test_heap:=512m}"
     echo "Setting Gradle metaspace to ${gradle_metaspace:=128m}"
