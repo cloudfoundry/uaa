@@ -306,4 +306,16 @@ bootRun {
     systemProperty("CLOUDFOUNDRY_CONFIG_PATH", file("../scripts/boot").getAbsolutePath())
     systemProperty("server.servlet.context-path", "/uaa")
     systemProperty("statsd.enabled", "true")
+
+    // Enable debug mode if -Pdebug or -Pdebugs flag is provided
+    if (project.hasProperty('debug') || project.hasProperty('debugs')) {
+        def debugPort = project.findProperty('debugPort') ?: '5005'
+        // debugs = suspend and wait for debugger, debug = start immediately
+        def suspend = project.hasProperty('debugs') ? 'y' : 'n'
+        jvmArgs += [
+                "-agentlib:jdwp=transport=dt_socket,server=y,suspend=${suspend},address=*:${debugPort}"
+        ]
+        def mode = suspend == 'y' ? 'Suspended debug' : 'Debug'
+        logger.lifecycle("${mode} mode enabled. Listening on port ${debugPort}")
+    }
 }

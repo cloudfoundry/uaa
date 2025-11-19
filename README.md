@@ -142,24 +142,23 @@ Running Spring Boot standalone allows us to run the integration tests against it
 
 To load JDWP agent for UAA jvm debugging, start the server as follows:
 ```sh
-./gradlew run -Dxdebug=true
+./gradlew run -Pdebug
 ```
-or
-```sh
-./gradlew -Dspring.profiles.active=hsqldb,debug run
-```
+
 You can then attach your debugger to port 5005 of the jvm process.
 
 To suspend the server start-up until the debugger is attached (useful for
 debugging start-up code), start the server as follows:
 ```sh
-./gradlew run -Dxdebugs=true
+./gradlew run -Pdebugs
 ```
-or
-```sh
-./gradlew -Dspring.profiles.active=hsqldb,debugs run
-```
+
 Note: You can also use `bootRun` instead of `run` for these commands.
+To change the port that the debug command listens on, set the `debugPort` property, as follows:
+
+```bash
+./gradlew run -Pdebug -PdebugPort=5006
+```
 
 ## Running a local UAA server with different databases
 `./gradlew run` (or `./gradlew bootRun`) runs the UAA server with hsqldb database by default.

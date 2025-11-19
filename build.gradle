@@ -244,6 +244,6 @@ tasks.register('killUaa', Exec) {
 tasks.register('run') {
     dependsOn killUaa
     dependsOn ':cloudfoundry-identity-uaa:bootRun'
-    description = "Kills any running UAA and starts the application"
+    description = "Kills any running UAA and starts the application. Use -Pdebug to enable debug mode (starts immediately) or -Pdebugs to enable debug mode with suspend (waits for debugger). Default port 5005, configurable with -PdebugPort=<port>"
     group = "application"
 }
