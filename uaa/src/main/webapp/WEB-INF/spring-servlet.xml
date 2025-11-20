@@ -225,12 +225,13 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}"/>
                 <entry value-ref="utf8ConversionFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
-                <entry value-ref="corsFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
                 <entry value-ref="limitedModeUaaFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
                 <entry value-ref="identityZoneResolvingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
+                <!-- CorsFilter goes after IdentityZoneResolvingFilter as it requires zone configuration to work -->
+                <entry value-ref="corsFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter))}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}"/>

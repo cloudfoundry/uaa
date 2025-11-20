@@ -138,7 +138,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             requestedGrantTypes.add(GRANT_TYPE_REFRESH_TOKEN);
         }
 
-        if(requestedGrantTypes.contains(GRANT_TYPE_JWT_BEARER)) {
+        /*if(requestedGrantTypes.contains(GRANT_TYPE_JWT_BEARER)) {
             if(client.getScope() == null || client.getScope().isEmpty()) {
                 logger.debug("Invalid client: " + clientId + ". Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
                 throw new InvalidClientDetailsException("Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
@@ -147,7 +147,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 logger.debug("Invalid client: " + clientId + ". Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
                 throw new InvalidClientDetailsException("Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
             }
-        }
+        }*/
 
         if (checkAdmin &&
             !(securityContextAccessor.isAdmin() || securityContextAccessor.getScopes().contains("clients.admin"))
@@ -197,7 +197,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
             else {
                 if (!client.getScope().isEmpty()) {
-                    throw new InvalidClientDetailsException("No scopes alllowed for null caller and client_id=" + clientId + ".");
+                    throw new InvalidClientDetailsException("No scopes allowed for null caller and client_id=" + clientId + ".");
                 }
             }
 

@@ -48,6 +48,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.springframework.util.StringUtils.hasText;
 
 public final class UaaTokenUtils {
@@ -145,7 +146,7 @@ public final class UaaTokenUtils {
 
     public static boolean isUserToken(Map<String, Object> claims) {
         if (claims.get(GRANT_TYPE)!=null) {
-            return !GRANT_TYPE_CLIENT_CREDENTIALS.equals(claims.get(GRANT_TYPE));
+            return !(GRANT_TYPE_CLIENT_CREDENTIALS.equals(claims.get(GRANT_TYPE)) || (GRANT_TYPE_JWT_BEARER.equals(claims.get(GRANT_TYPE))));
         }
         if (claims.get(SUB)!=null) {
             if (claims.get(SUB).equals(claims.get(USER_ID))) {

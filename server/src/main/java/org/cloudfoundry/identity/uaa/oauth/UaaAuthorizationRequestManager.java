@@ -57,6 +57,7 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
 /**
@@ -343,7 +344,10 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     }
 
     protected Set<String> extractScopes(Map<String, String> requestParameters, ClientDetails clientDetails) {
-        boolean clientCredentials = GRANT_TYPE_CLIENT_CREDENTIALS.equals(requestParameters.get(GRANT_TYPE));
+        boolean clientCredentials = 
+                GRANT_TYPE_CLIENT_CREDENTIALS.equals(requestParameters.get(GRANT_TYPE)) ||
+                GRANT_TYPE_JWT_BEARER.equals(requestParameters.get(GRANT_TYPE)) ;
+        
         Set<String> scopes = OAuth2Utils.parseParameterList(requestParameters.get(OAuth2Utils.SCOPE));
         if ((scopes == null || scopes.isEmpty())) {
             // If no scopes are specified in the incoming data, use the default values registered with the client

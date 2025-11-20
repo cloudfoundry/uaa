@@ -22,6 +22,8 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcKeyProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.KeyProviderConfig;
 import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
@@ -85,6 +87,15 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
+
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+
 import static org.springframework.http.MediaType.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -286,7 +297,7 @@ class IdentityZoneEndpointsMockMvcTests {
     void update_zone_as_with_uaa_admin() throws Exception {
         IdentityZone zone = createZoneUsingToken(uaaAdminClientToken);
         for (String token : Arrays.asList(uaaAdminClientToken, uaaAdminUserToken)) {
-            updateZone(zone, HttpStatus.OK, token);
+            updateZone(zone, OK, token);
         }
     }
 
@@ -436,7 +447,7 @@ class IdentityZoneEndpointsMockMvcTests {
     @Test
     void testGetZoneThatDoesntExist() throws Exception {
         String id = generator.generate();
-        getIdentityZone(id, HttpStatus.NOT_FOUND, identityClientToken);
+        getIdentityZone(id, NOT_FOUND, identityClientToken);
     }
 
     @Test
@@ -574,12 +585,12 @@ class IdentityZoneEndpointsMockMvcTests {
         List<String> zoneGroups = new LinkedList(zone.getConfig().getUserConfig().getDefaultGroups());
 
         //test two times with the same groups
-        zone = updateZone(zone, HttpStatus.OK, identityClientToken);
+        zone = updateZone(zone, OK, identityClientToken);
 
         zoneGroups.add("updated.group.1");
         zoneGroups.add("updated.group.2");
         zone.getConfig().getUserConfig().setDefaultGroups(zoneGroups);
-        zone = updateZone(zone, HttpStatus.OK, identityClientToken);
+        zone = updateZone(zone, OK, identityClientToken);
 
         //validate that default groups got created
         ScimGroupProvisioning groupProvisioning = webApplicationContext.getBean(ScimGroupProvisioning.class);
@@ -680,7 +691,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
 
-        updateZone(created, HttpStatus.OK, identityClientToken);
+        updateZone(created, OK, identityClientToken);
         checkZoneAuditEventInUaa(2, AuditEventType.IdentityZoneModifiedEvent);
     }
 
@@ -696,7 +707,7 @@ class IdentityZoneEndpointsMockMvcTests {
         definition.getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
         created.setConfig(definition);
 
-        IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
+        IdentityZone updated = updateZone(created, OK, identityClientToken);
         assertEquals("updated description", updated.getDescription());
         assertEquals(JsonUtils.writeValueAsString(definition), JsonUtils.writeValueAsString(updated.getConfig()));
         checkZoneAuditEventInUaa(2, AuditEventType.IdentityZoneModifiedEvent);
@@ -727,7 +738,7 @@ class IdentityZoneEndpointsMockMvcTests {
         definition.setSamlConfig(samlConfig);
         created.setConfig(definition);
 
-        IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
+        IdentityZone updated = updateZone(created, OK, identityClientToken);
         assertEquals("updated description", updated.getDescription());
         assertEquals(Collections.EMPTY_MAP, updated.getConfig().getTokenPolicy().getKeys());
         assertEquals("key1", updated.getConfig().getTokenPolicy().getActiveKeyId());
@@ -848,7 +859,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         samlConfig.setPrivateKey(null);
         samlConfig.setPrivateKeyPassword(null);
-        updateZone(created, HttpStatus.OK, identityClientToken);
+        updateZone(created, OK, identityClientToken);
 
         IdentityZone updated = provisioning.retrieve(created.getId());
         SamlConfig updatedSamlConfig = updated.getConfig().getSamlConfig();
@@ -2185,6 +2196,204 @@ class IdentityZoneEndpointsMockMvcTests {
         assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKeyPassword());
         assertEquals(Collections.EMPTY_MAP, zoneResult.getConfig().getTokenPolicy().getKeys());
         assertEquals("kid", zoneResult.getConfig().getTokenPolicy().getActiveKeyId());
+    }
+
+    @Test
+    public void testCreateKeyProviderConfigDeniedForSystemZone() throws Exception {
+        KeyProviderConfig keyProviderConfig = new KeyProviderConfig("clientId", "dcsTenantId");
+        mockMvc.perform(
+                post("/identity-zones/" + IdentityZoneHolder.getUaaZone().getId() + "/key-provider-config")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(keyProviderConfig)))
+                .andExpect(status().isForbidden())
+                .andReturn().getResponse();
+    }
+
+    @Test
+    public void testGetKeyProviderConfigDeniedForSystemZone() throws Exception {
+        mockMvc.perform(
+                get("/identity-zones/" + IdentityZoneHolder.getUaaZone().getId() + "/key-provider-config/1")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andReturn().getResponse();
+    }
+
+    @Test
+    public void testFindKeyProviderConfigDeniedForSystemZone() throws Exception {
+        mockMvc.perform(
+                get("/identity-zones/" + IdentityZoneHolder.getUaaZone().getId() + "/key-provider-config")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andReturn().getResponse();
+    }
+
+
+    @Test
+    public void testDeleteKeyProviderConfigDeniedForSystemZone() throws Exception {
+        mockMvc.perform(
+                delete("/identity-zones/" + IdentityZoneHolder.getUaaZone().getId() + "/key-provider-config/1")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andReturn().getResponse();
+    }
+
+    @Test
+    public void testDeleteKeyProviderConfig() throws Exception {
+        String identityZoneId = new RandomValueStringGenerator(5).generate();
+        String keyProviderId = keyProviderSetup(identityZoneId, CREATED, CREATED, adminToken);
+        mockMvc.perform(
+                delete("/identity-zones/" + identityZoneId + "/key-provider-config/" + keyProviderId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isNoContent())
+                .andReturn().getResponse();
+    }
+
+    @Test
+    public void testDeleteKeyProviderConfigWithLowPrivilegeTokenIsForbidden() throws Exception {
+        String identityZoneId = new RandomValueStringGenerator(5).generate();
+        String keyProviderId = keyProviderSetup(identityZoneId, CREATED, CREATED, adminToken);
+        mockMvc.perform(
+                delete("/identity-zones/" + identityZoneId + "/key-provider-config/" + keyProviderId)
+                        .header("Authorization", "Bearer " + lowPriviledgeToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andReturn().getResponse();
+    }
+
+    @Test
+    public void testCreateKeyProviderConfigWithLowPrivilegeIsForbidden() throws Exception {
+        keyProviderSetup(new RandomValueStringGenerator(5).generate(), FORBIDDEN, CREATED, lowPriviledgeToken);
+    }
+
+    @Test
+    public void testCreateKeyProviderConfig() throws Exception {
+        keyProviderSetup(new RandomValueStringGenerator(5).generate(), CREATED, CREATED, adminToken);
+    }
+
+    @Test
+    public void testCreateKeyProviderConfigAlreadyExists() throws Exception{
+        String zoneId = new RandomValueStringGenerator(5).generate();
+        keyProviderSetup(zoneId, CREATED, CREATED, adminToken);
+        keyProviderSetup(zoneId, CONFLICT, CONFLICT, adminToken);
+
+    }
+
+    @Test
+    public void testFindActiveKeyProviderForZone() throws Exception{
+        String identityZoneId = new RandomValueStringGenerator(5).generate();
+        String keyProviderId = keyProviderSetup(identityZoneId, CREATED, CREATED, adminToken);
+        assertNotNull(keyProviderId);
+        MockHttpServletResponse response = mockMvc.perform(
+                get("/identity-zones/" + identityZoneId + "/key-provider-config")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn().getResponse();
+
+        assertEquals(keyProviderId, JsonUtils.readValue(response.getContentAsString(), KeyProviderConfig.class).getId());
+    }
+
+
+    @Test
+    public void testFindActiveKeyProviderForZoneWithLowPrivilegeTokenIsForbidden() throws Exception{
+        String identityZoneId = new RandomValueStringGenerator(5).generate();
+        String keyProviderId = keyProviderSetup(identityZoneId, CREATED, CREATED, adminToken);
+        assertNotNull(keyProviderId);
+        MockHttpServletResponse response = mockMvc.perform(
+                get("/identity-zones/" + identityZoneId + "/key-provider-config")
+                        .header("Authorization", "Bearer " + lowPriviledgeToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isForbidden()).andReturn().getResponse();
+    }
+
+    @Test
+    public void testGetKeyProvider() throws Exception{
+        String identityZoneId = new RandomValueStringGenerator(5).generate();
+        String keyProviderId = keyProviderSetup(identityZoneId, CREATED, CREATED, adminToken);
+        assertNotNull(keyProviderId);
+        MockHttpServletResponse response = mockMvc.perform(
+                get("/identity-zones/" + identityZoneId + "/key-provider-config/" + keyProviderId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn().getResponse();
+
+        assertEquals(keyProviderId, JsonUtils.readValue(response.getContentAsString(), KeyProviderConfig.class).getId());
+    }
+
+    @Test
+    public void testGetKeyProviderWithLowPrivilegeTokenIsForbidden() throws Exception{
+        String identityZoneId = new RandomValueStringGenerator(5).generate();
+        String keyProviderId = keyProviderSetup(identityZoneId, CREATED, CREATED, adminToken);
+        assertNotNull(keyProviderId);
+        MockHttpServletResponse response = mockMvc.perform(
+                get("/identity-zones/" + identityZoneId + "/key-provider-config/" + keyProviderId)
+                        .header("Authorization", "Bearer " + lowPriviledgeToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isForbidden()).andReturn().getResponse();
+    }
+
+    @Test
+    public void testDeleteZoneAlsoDeletesKeyProviders() throws Exception{
+        String identityZoneId = new RandomValueStringGenerator(5).generate();
+        JdbcKeyProviderProvisioning jdbcKeyProviderProvisioning = webApplicationContext.getBean(JdbcKeyProviderProvisioning.class);
+        String currentZoneId = IdentityZoneHolder.get().getId();
+        String keyProviderId = keyProviderSetup(identityZoneId, CREATED, CREATED, adminToken);
+        IdentityZoneHolder.get().setId(identityZoneId);
+        assertEquals(keyProviderId, jdbcKeyProviderProvisioning.findActive().getId());
+        MockMvcUtils.deleteIdentityZone(identityZoneId, mockMvc);
+
+        assertNull(jdbcKeyProviderProvisioning.findActive());
+
+        IdentityZoneHolder.get().setId(currentZoneId);
+    }
+    private String keyProviderSetup(String identityZoneId, HttpStatus createKeyProviderStatus, HttpStatus zoneCreateStatus, String token) throws Exception {
+        createZone(identityZoneId, zoneCreateStatus, adminToken, new IdentityZoneConfiguration());
+        BaseClientDetails client = new BaseClientDetails();
+        client.setClientId("client1");
+        client.setClientSecret("test");
+        client.setAuthorizedGrantTypes(Collections.singleton("client_credentials"));
+        mockMvc.perform(
+                post("/oauth/clients")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(client)))
+                .andReturn().getResponse();
+
+        KeyProviderConfig keyProviderConfig = new KeyProviderConfig(null, IdentityZoneHolder.get().getId(),
+                client.getClientId(), "dcsTenantId");
+        MockHttpServletResponse response = mockMvc.perform(
+                post("/identity-zones/" + identityZoneId + "/key-provider-config")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Identity-Zone-Id", identityZoneId)
+                        .contentType(APPLICATION_JSON)
+                        .accept(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(keyProviderConfig)))
+                .andReturn().getResponse();
+        assertEquals(createKeyProviderStatus.value(), response.getStatus());
+        try {
+            return JsonUtils.readValue(response.getContentAsString(), KeyProviderConfig.class).getId();
+        } catch (Exception e) {
+            //No provider returned for expected http status like CONFLICT
+            return null;
+        }
     }
 
     @Test

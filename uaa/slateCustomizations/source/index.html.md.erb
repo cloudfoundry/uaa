@@ -859,6 +859,104 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope (zone admins can only delete their own zone) |
 | 404        | Not Found - Zone does not exist                                             |
 
+## Creating a Key Provider Config
+
+A key provider config is used during the jwt bearer flow to authenticate devices. It provides DCS client and tenant information so that a public key can be obtained from DCS to validate device jwt signatures. A key provider config is created using a `POST` with a `KeyProviderConfig` object. An identifier will be generated for this object. Currently, only one can be created per zone.
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createKeyProviderConfig/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createKeyProviderConfig/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createKeyProviderConfig/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createKeyProviderConfig/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createKeyProviderConfig/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createKeyProviderConfig/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request                                                                                            |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (KeyProviderConfig can only be created with zones.write or zones.zone_id.admin permissions for a given zone.) |
+| 404        | Not Found - The KeyProviderConfig does not exist                                                                         |
+| 422        | Unprocessable Entity - Invalid KeyProviderConfig |
+
+## Retrieving a Key Provider Config
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/retrieveKeyProviderConfig/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/retrieveKeyProviderConfig/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/retrieveKeyProviderConfig/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/retrieveKeyProviderConfig/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/retrieveKeyProviderConfig/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request                                                                                            |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope                                                                         |
+| 404        | Not Found - The KeyProviderConfig does not exist                                                                         |
+
+## Finding all Key Provider Configs
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/findAllKeyProviderConfigs/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/findAllKeyProviderConfigs/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/findAllKeyProviderConfigs/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/findAllKeyProviderConfigs/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/findAllKeyProviderConfigs/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request                                                                                            |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope                                                                         |
+| 404        | Not Found - The KeyProviderConfig does not exist                                                                         |
+
+## Deleting a Key Provider Config
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteKeyProviderConfig/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteKeyProviderConfig/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteKeyProviderConfig/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteKeyProviderConfig/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteKeyProviderConfig/request-headers.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| 400        | Bad Request                                                                 |
+| 401        | Unauthorized - Invalid token                                                |
+| 403        | Forbidden - Insufficient scope  |
+| 404        | Not Found - The KeyProviderConfig does not exist                                             |
 
 # Identity Providers
 

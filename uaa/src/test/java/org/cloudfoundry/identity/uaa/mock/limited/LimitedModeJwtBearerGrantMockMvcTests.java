@@ -16,7 +16,9 @@
 package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.mock.token.JwtBearerGrantMockMvcTests;
+import org.junit.jupiter.api.Disabled;
 
+@Disabled("GE Fork has its own JWT-bearer implementation")
 @LimitedMode
 class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvcTests {
 }

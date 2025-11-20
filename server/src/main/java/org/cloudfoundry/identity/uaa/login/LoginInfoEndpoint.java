@@ -300,8 +300,9 @@ public class LoginInfoEndpoint {
                 samlIdentityProviders = Collections.emptyMap();
             } else {
                 accountChooserNeeded = false;
-                samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
-                oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
+                List<IdentityProvider> allActiveIdentityProvidersInZone = getActiveIdentityProviderDefinitions();
+                samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys, allActiveIdentityProvidersInZone);
+                oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys, allActiveIdentityProvidersInZone);
                 allIdentityProviders = new HashMap<>();
                 allIdentityProviders.putAll(samlIdentityProviders);
                 allIdentityProviders.putAll(oauthIdentityProviders);
@@ -312,8 +313,9 @@ public class LoginInfoEndpoint {
             oauthIdentityProviders = Collections.emptyMap();
             samlIdentityProviders = Collections.emptyMap();
         } else {
-            samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
-            oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
+            List<IdentityProvider> allActiveIdentityProvidersInZone = getActiveIdentityProviderDefinitions();
+            samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys, allActiveIdentityProvidersInZone);
+            oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys, allActiveIdentityProvidersInZone);
             allIdentityProviders = new HashMap<>() {{putAll(samlIdentityProviders);putAll(oauthIdentityProviders);}};
         }
 
@@ -622,19 +624,23 @@ public class LoginInfoEndpoint {
         return idpAuthenticationUrl;
     }
 
-    private Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
-        List<SamlIdentityProviderDefinition> filteredIdps = idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
+    private Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps, List<IdentityProvider> activeIdpsInZone) {
+        List<SamlIdentityProviderDefinition> filteredIdps = idpDefinitions.getIdentityProviderDefinitions(allowedIdps, activeIdpsInZone);
         return filteredIdps.stream().collect(new MapCollector<>(SamlIdentityProviderDefinition::getIdpEntityAlias, idp -> idp));
     }
 
-    protected Map<String, AbstractExternalOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
+    protected Map<String, AbstractExternalOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps, List<IdentityProvider> activeIdpsInZone) {
 
         List<IdentityProvider> identityProviders =
-                externalOAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
+                externalOAuthProviderConfigurator.retrieveAll(activeIdpsInZone);
 
         return identityProviders.stream()
                 .filter(p -> allowedIdps == null || allowedIdps.contains(p.getOriginKey()))
                 .collect(idpsMapCollector);
+    }
+
+    private List<IdentityProvider> getActiveIdentityProviderDefinitions() {
+        return providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId());
     }
 
     private boolean hasSavedOauthAuthorizeRequest(HttpSession session) {

@@ -101,7 +101,15 @@ task createUaaContainer(type: DockerCreateContainer) {
   containerName = System.getenv('DOCKER_CONTAINER_NAME')
   hostConfig.portBindings = ['8080:8080']
   hostConfig.binds = ["${build_context}/uaa-docker.yml":'/uaa/uaa.yml']
-  envVars.putAll(['CATALINA_OPTS': '-Dspring.profiles.active=default'])
+  envVars.putAll([
+          'CATALINA_OPTS': '-Dspring.profiles.active=default',
+          'ENFORCE_CLIENT_ASSERTION_HEADER': System.getenv('ENFORCE_CLIENT_ASSERTION_HEADER'),
+          'KEY_PROVIDER_SERVICE_URL': System.getenv('KEY_PROVIDER_SERVICE_URL'),
+          'KEY_PROVIDER_TOKEN_URL': System.getenv('KEY_PROVIDER_TOKEN_URL'),
+          'KEY_PROVIDER_CLIENT_ID': System.getenv('KEY_PROVIDER_CLIENT_ID'),
+          'KEY_PROVIDER_CLIENT_SECRET': System.getenv('KEY_PROVIDER_CLIENT_SECRET'),
+          'KEY_PROVIDER_DEFAULT_INSTANCE': System.getenv('KEY_PROVIDER_DEFAULT_INSTANCE')
+  ])
 }
 
 task startUaaContainer(type: DockerStartContainer) {

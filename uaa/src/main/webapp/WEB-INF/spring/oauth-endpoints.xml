@@ -27,6 +27,7 @@
         <oauth:refresh-token />
         <oauth:client-credentials />
         <oauth:password authentication-manager-ref="compositeAuthenticationManager" />
+        <oauth:custom-grant token-granter-ref="jwtBearerTokenGranter"/>
     </oauth:authorization-server>
 
 	<bean id="pkceEnhancedAuthorizationCodeTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.PkceEnhancedAuthorizationCodeTokenGranter">
@@ -192,9 +193,30 @@
         <custom-filter ref="clientParameterAuthenticationFilter" before="BASIC_AUTH_FILTER"/>
         <custom-filter ref="tokenEndpointAuthenticationFilter" after="BASIC_AUTH_FILTER"/>
         <custom-filter ref="statelessMfaAuthenticationFilter" before="EXCEPTION_TRANSLATION_FILTER"/>
+        <custom-filter ref="jwtBearerAuthenticationFilter" before="SERVLET_API_SUPPORT_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
+
+    <bean id="jwtBearerTokenGranter" class="org.cloudfoundry.identity.uaa.provider.token.JwtBearerAssertionTokenGranter">
+       <constructor-arg index="0" ref="tokenServices"/>
+        <constructor-arg index="1" ref="jdbcClientDetailsService"/>
+        <constructor-arg index="2" ref="authorizationRequestManager"/>
+    </bean>
+
+    <bean id="jwtBearerAuthenticationFilter"
+        class="org.cloudfoundry.identity.uaa.provider.token.JwtBearerAssertionAuthenticationFilter">
+        <property name="clientDetailsService" ref="jdbcClientDetailsService" />
+        <property name="publicKeyProvider" ref="publicKeyProvider" />
+        <property name="keyProviderProvisioning" ref="keyProviderProvisioning" />
+        <property name="authenticationEntryPoint" ref="oauthAuthenticationEntryPoint" />
+        <property name="dcsEndpointTokenGranter" ref="oauth2TokenGranter" />
+        <property name="proxyPublicKey" value="${device.assertion.proxy-public-key:override-in-uaa-yml}" />
+    </bean>
+
+     <!-- Public Key Provider -->
+    <bean class="com.ge.predix.pki.device.provider.KeyProviderConfiguration"/>
+    <bean id="publicKeyProvider" class="com.ge.predix.pki.device.provider.PredixDeviceRegistryPublicKeyProvider"/>
 
     <!-- Version of the /authorize endpoint for stateless clients such as cf
          /oauth/authorize response_type=token&source=credentials
@@ -270,7 +292,7 @@
         <constructor-arg name="commonLoginPolicy" ref="mfaGlobalUserLoginPolicy"/>
     </bean>
 
-    <bean id="jwtTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.JwtTokenGranter">
+    <!--<bean id="jwtTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.JwtTokenGranter">
         <constructor-arg name="tokenServices" ref="tokenServices"/>
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
@@ -281,6 +303,7 @@
         <constructor-arg name="userTokenGranter" ref="jwtTokenGranter"/>
         <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
     </bean>
+    -->
 
     <authentication-manager alias="clientAuthenticationManager" id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <authentication-provider ref="clientAuthenticationProvider"/>

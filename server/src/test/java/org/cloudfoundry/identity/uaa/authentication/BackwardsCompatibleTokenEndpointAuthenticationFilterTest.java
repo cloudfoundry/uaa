@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -159,6 +160,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
+    @Ignore("GE Fork has its own JWT-bearer implementation")
     public void attempt_jwt_token_authentication() throws Exception {
         support = new TokenTestSupport(null);
         String idToken = support.getIdTokenAsString(Collections.singletonList(OPENID));
@@ -175,6 +177,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
+    @Ignore("GE Fork has its own JWT-bearer implementation")
     public void jwt_assertion_missing() throws Exception {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         filter.doFilter(request, response, chain);

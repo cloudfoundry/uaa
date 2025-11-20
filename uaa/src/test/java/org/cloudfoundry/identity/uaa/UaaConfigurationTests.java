@@ -64,6 +64,33 @@ public class UaaConfigurationTests {
         assertTrue(validator.getObject().oauth.clients.containsKey("cf"));
     }
 
+    @Test
+    public void validProxyPublicKeyIsOk() throws Exception {
+        createValidator(
+        "device:\n" +
+        "  assertion:\n" +
+        "    proxy-public-key: |\n" +
+        "      Not-Used\n");
+        assertTrue(validator.getObject().device.assertion.proxyPublicKey.contains("Not-Used"));
+    }
+
+    @Test
+    public void validJwtTokenIsOk() throws Exception {
+        createValidator(
+        "jwt:\n" +
+        "  token:\n" +
+        "    verification-key: |\n" +
+        "      Not-Used\n" +
+        "    signing-key: |\n" +
+        "      Not-Used\n" +
+        "    claims:\n" +
+        "      exclude:\n" +
+        "        - authorities\n");
+        assertTrue(validator.getObject().jwt.token.verificationKey.contains("Not-Used"));
+        assertTrue(validator.getObject().jwt.token.signingKey.contains("Not-Used"));
+        assertTrue(validator.getObject().jwt.token.claims.exclusions.contains("authorities"));
+    }
+
     @Test(expected = ConstraintViolationException.class)
     public void invalidIssuerUriCausesException() throws Exception {
         createValidator("name: uaa\nissuer.uri: notauri\n");

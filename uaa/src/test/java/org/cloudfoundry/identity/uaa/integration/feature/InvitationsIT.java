@@ -68,7 +68,7 @@ import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
-@Ignore // Invitations flow is disabled in Predix.
+@Ignore("GE Fork does not use invitations flow")
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 @TestExecutionListeners(value = { ScreenshotOnFail.class }, mergeMode = MERGE_WITH_DEFAULTS)

@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -57,6 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
+@Disabled("GE Fork has its own JWT-bearer implementation")
 public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
     private static RandomValueStringGenerator generator = new RandomValueStringGenerator(12);
@@ -82,7 +84,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    void default_zone_jwt_grant() throws Exception {
+    void default_zone_jwt_grant () throws Exception {
         IdentityZone defaultZone = IdentityZone.getUaa();
         createProvider(defaultZone, getTokenVerificationKey(originZone.getIdentityZone()));
         perform_grant_in_zone(defaultZone,
