@@ -33,8 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-import java.time.Duration;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
@@ -110,12 +108,12 @@ class HomeIT {
                 .sendLoginCredentials(testAccounts.getUserName(), testAccounts.getPassword())
                 .assertThatPageSource().contains("Where to?");
         try {
-            WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(30));
+            WebDriverWait wait = webDriver.createWebDriverWait();
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-dropdown-button"))).click();
             assertThat(wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-dropdown-content-profile"))).isDisplayed()).isTrue();
             assertThat(wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-dropdown-content-logout"))).isDisplayed()).isTrue();
         } catch (TimeoutException e) {
-            // If the dropdown is not visible ignore
+            // If the dropdown is not visible, ignore
             assumeThat(e.getMessage()).contains("waiting for visibility");
         }
 
