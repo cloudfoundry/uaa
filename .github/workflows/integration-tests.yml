@@ -22,7 +22,7 @@ jobs:
       - name: Set env
         run: echo "PROFILE=$(echo ${{ matrix.database }} | sed 's/-[0-9.]*//g')" >> $GITHUB_ENV
       - name: Check out repository code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Integration tests on container
         id: testrun
         run: /root/uaa/scripts/integration_tests.sh ${PROFILE},default boot
