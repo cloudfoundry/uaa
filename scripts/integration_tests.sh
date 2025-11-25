@@ -36,6 +36,7 @@ function main() {
     # Increased Gradle daemon heap to 1GB to prevent hanging with 2 workers
     # --no-configuration-cache prevents stale Kotlin compiler state reuse between daemon processes
     # logging.manager is set to org.apache.logging.log4j.jul.LogManager to prevent log4j2 from using java.util.logging
+    # See https://docs.gradle.org/9.2.0/userguide/config_gradle.html#sec:configuring_jvm_memory
     echo "Setting boot heap to ${jvm_heap:=640m}"
     echo "Setting boot metaspace to ${jvm_metaspace:=192m}"
     echo "Setting Gradle daemon heap to ${gradle_heap:=1024m}"
@@ -77,7 +78,7 @@ function main() {
     # Explicit Gradle daemon memory for Kotlin 2.2 with additional GC tuning
     readonly assemble_code="./gradlew '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
-                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100' \
+                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_heap} -XX:MaxMetaspaceSize=384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100' \
                 assemble \
                 --no-watch-fs \
                 --no-daemon \
@@ -93,7 +94,7 @@ function main() {
                 '-Dspring.profiles.active=${test_profile}' \
                 '-Djava.security.egd=file:/dev/./urandom' \
                 '-DskipUaaAutoStart=true' \
-                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
+                '-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true' \
                 '-Dorg.gradle.daemon.idletimeout=300000' \
                 '-Dorg.gradle.parallel=false' \
                 '-Dorg.gradle.workers.max=2' \
