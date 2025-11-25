@@ -21,21 +21,37 @@ function main() {
   pushd "$(dirname ${script_dir})"
     start_ldap
 
-    set -x
-    
-    ./gradlew "-Dspring.profiles.active=${test_profile}" \
-                "-Djava.security.egd=file:/dev/./urandom" \
-                clean assemble compileTestJava \
-                --stacktrace  \
-                --no-daemon \
-                --console=plain
+  # See https://docs.gradle.org/9.2.0/userguide/config_gradle.html#sec:configuring_jvm_memory
+  echo "Setting Gradle daemon heap to ${gradle_heap:=1024m}"
+  echo "Setting test worker heap to ${gradle_test_heap:=640m}"
+
+  set -x
+  ./gradlew -Dspring.profiles.active=${test_profile} \
+            -Djava.security.egd=file:/dev/./urandom \
+            "-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_heap} -XX:MaxMetaspaceSize=384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100" \
+            clean assemble compileTestJava \
+            --no-watch-fs \
+            --no-daemon \
+            --no-configuration-cache \
+            --max-workers=2 \
+            --stacktrace \
+            --console=plain
 
     ./gradlew "-Dspring.profiles.active=${test_profile}" \
-            "-Djava.security.egd=file:/dev/./urandom" \
+            -Djava.security.egd=file:/dev/./urandom \
+            "-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true" \
+            -Dorg.gradle.daemon.idletimeout=300000 \
+            -Dorg.gradle.parallel=false \
+            -Dorg.gradle.workers.max=2 \
             ${UAA_GRADLE_UNIT_TEST_COMMAND:-test} \
-            --stacktrace  \
+            --no-watch-fs \
             --no-daemon \
+            --no-configuration-cache \
+            --max-workers=2 \
+            --stacktrace \
             --console=plain
+
+    { set +x; } 2>/dev/null
   popd
 }
 
