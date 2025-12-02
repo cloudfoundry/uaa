@@ -1,6 +1,15 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
@@ -65,6 +74,7 @@ import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.ZONE_MANAG
 import static org.springframework.util.StringUtils.hasText;
 
 @Controller
+@Tag(name = "Groups", description = "SCIM Group management for admin roles")
 public class ScimGroupEndpoints {
 
     private static final String E_TAG = "ETag";
@@ -140,12 +150,43 @@ public class ScimGroupEndpoints {
 
     @GetMapping({"/Groups", "/Groups/"})
     @ResponseBody
+    @Operation(
+        summary = "List Groups",
+        description = "Query for groups with optional filtering, sorting, and pagination. Used to find existing admin groups like 'cloud_controller.admin'.",
+        security = @SecurityRequirement(name = "bearerAuth", scopes = {"scim.read"})
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Groups retrieved successfully",
+            content = @Content(mediaType = "application/json", 
+                examples = @ExampleObject(value = """
+                    {
+                        "totalResults": 1,
+                        "startIndex": 1,
+                        "itemsPerPage": 1,
+                        "schemas": ["urn:scim:schemas:core:1.0"],
+                        "resources": [{
+                            "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                            "displayName": "cloud_controller.admin",
+                            "description": "Cloud Controller Administrators"
+                        }]
+                    }
+                    """))),
+        @ApiResponse(responseCode = "400", description = "Bad Request - Invalid filter expression"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing authentication token"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient privileges")
+    })
     public SearchResults<?> listGroups(
+            @Parameter(description = "Comma-separated list of attributes to return", example = "id,displayName,members")
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
+            @Parameter(description = "SCIM filter expression for searching groups", example = "displayName eq \"cloud_controller.admin\"")
             @RequestParam(required = false, defaultValue = "id pr") String filter,
+            @Parameter(description = "Field to sort by", schema = @Schema(allowableValues = {"created", "displayName", "lastModified"}))
             @RequestParam(required = false, defaultValue = "created") String sortBy,
+            @Parameter(description = "Sort order", schema = @Schema(allowableValues = {"ascending", "descending"}))
             @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+            @Parameter(description = "1-based index of first result", schema = @Schema(minimum = "1"))
             @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @Parameter(description = "Maximum number of results to return", schema = @Schema(minimum = "1", maximum = "500"))
             @RequestParam(required = false, defaultValue = "100") int count) {
 
         if (count > groupMaxCount) {
@@ -369,7 +410,41 @@ public class ScimGroupEndpoints {
     @PostMapping({"/Groups", "/Groups/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ScimGroup createGroup(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
+    @Operation(
+        summary = "Create Group",
+        description = "Create a new group (admin scope). Used to create admin groups like 'cloud_controller.admin' if they don't exist.",
+        security = @SecurityRequirement(name = "bearerAuth", scopes = {"scim.write"})
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Group created successfully",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                        "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                        "displayName": "cloud_controller.admin",
+                        "description": "Cloud Controller Administrators",
+                        "schemas": ["urn:scim:schemas:core:1.0"],
+                        "meta": {
+                            "version": 0,
+                            "created": "2023-11-17T10:00:00.000Z",
+                            "lastModified": "2023-11-17T10:00:00.000Z"
+                        }
+                    }
+                    """))),
+        @ApiResponse(responseCode = "400", description = "Bad Request - Invalid request syntax"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing authentication token"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient privileges"),
+        @ApiResponse(responseCode = "409", description = "Conflict - Group already exists")
+    })
+    public ScimGroup createGroup(
+            @Parameter(description = "Group to create", required = true,
+                content = @Content(examples = @ExampleObject(value = """
+                    {
+                        "displayName": "cloud_controller.admin",
+                        "description": "Cloud Controller Administrators"
+                    }
+                    """)))
+            @RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
         group.setZoneId(identityZoneManager.getCurrentIdentityZoneId());
         ScimGroup created = dao.create(group, identityZoneManager.getCurrentIdentityZoneId());
         if (group.getMembers() != null) {
@@ -565,7 +640,39 @@ public class ScimGroupEndpoints {
     @PostMapping({"/Groups/{groupId}/members", "/Groups/{groupId}/members/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ScimGroupMember addMemberToGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
+    @Operation(
+        summary = "Add Member to Group",
+        description = "Add a user to a group, effectively assigning an admin role. This is the key operation for granting admin privileges to users.",
+        security = @SecurityRequirement(name = "bearerAuth", scopes = {"scim.write", "groups.update"})
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Member added successfully",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                        "value": "3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
+                        "type": "USER",
+                        "origin": "uaa"
+                    }
+                    """))),
+        @ApiResponse(responseCode = "400", description = "Bad Request - Invalid request"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing authentication token"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient privileges"),
+        @ApiResponse(responseCode = "404", description = "Not Found - Group or user not found"),
+        @ApiResponse(responseCode = "409", description = "Conflict - Member already exists in group")
+    })
+    public ScimGroupMember addMemberToGroup(
+            @Parameter(description = "UUID of the group", required = true, example = "f47ac10b-58cc-4372-a567-0e02b2c3d479")
+            @PathVariable String groupId,
+            @Parameter(description = "Member to add to the group", required = true,
+                content = @Content(examples = @ExampleObject(value = """
+                    {
+                        "value": "3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
+                        "type": "USER",
+                        "origin": "uaa"
+                    }
+                    """)))
+            @RequestBody ScimGroupMember member) {
 
         return membershipManager.addMember(groupId, member, identityZoneManager.getCurrentIdentityZoneId());
     }
@@ -573,7 +680,30 @@ public class ScimGroupEndpoints {
     @DeleteMapping({"/Groups/{groupId}/members/{memberId}", "/Groups/{groupId}/members/{memberId}/"})
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
-    public ScimGroupMember deleteGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
+    @Operation(
+        summary = "Remove Member from Group",
+        description = "Remove a user from a group, effectively revoking an admin role. This is used to revoke admin privileges from users.",
+        security = @SecurityRequirement(name = "bearerAuth", scopes = {"scim.write", "groups.update"})
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Member removed successfully",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                        "value": "3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
+                        "type": "USER",
+                        "origin": "uaa"
+                    }
+                    """))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing authentication token"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient privileges"),
+        @ApiResponse(responseCode = "404", description = "Not Found - Group or member not found")
+    })
+    public ScimGroupMember deleteGroupMembership(
+            @Parameter(description = "UUID of the group", required = true, example = "f47ac10b-58cc-4372-a567-0e02b2c3d479")
+            @PathVariable String groupId,
+            @Parameter(description = "UUID of the member to remove", required = true, example = "3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f")
+            @PathVariable String memberId) {
         return membershipManager.removeMemberById(groupId, memberId, identityZoneManager.getCurrentIdentityZoneId());
     }
 

@@ -1,6 +1,15 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
@@ -117,6 +126,7 @@ import static org.springframework.util.StringUtils.hasText;
         objectName = "cloudfoundry.identity:name=UserEndpoint",
         description = "UAA User API Metrics"
 )
+@Tag(name = "Users", description = "SCIM User queries for admin role assignment")
 public class ScimUserEndpoints implements InitializingBean, ApplicationEventPublisherAware {
 
     private static final Logger logger = LoggerFactory.getLogger(ScimUserEndpoints.class);
@@ -491,12 +501,54 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @GetMapping({"/Users", "/Users/"})
     @ResponseBody
+    @Operation(
+        summary = "List/Filter Users",
+        description = "Query for users with optional filtering, sorting, and pagination. Used to find users to assign admin roles to.",
+        security = @SecurityRequirement(name = "bearerAuth", scopes = {"scim.read"})
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Users retrieved successfully",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                        "totalResults": 1,
+                        "startIndex": 1,
+                        "itemsPerPage": 1,
+                        "schemas": ["urn:scim:schemas:core:1.0"],
+                        "resources": [{
+                            "id": "3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
+                            "userName": "admin",
+                            "emails": [{"value": "admin@example.com", "primary": true}],
+                            "groups": [{
+                                "value": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                                "display": "cloud_controller.admin",
+                                "type": "DIRECT"
+                            }]
+                        }]
+                    }
+                    """))),
+        @ApiResponse(responseCode = "400", description = "Bad Request - Invalid filter expression"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing authentication token"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient privileges")
+    })
     public SearchResults<?> findUsers(
+            @Parameter(description = "Comma-separated list of attributes to return", example = "id,userName,emails,groups")
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
+            @Parameter(description = "SCIM filter expression for searching users", 
+                examples = {
+                    @ExampleObject(name = "By username", value = "userName eq \"admin\""),
+                    @ExampleObject(name = "By email", value = "emails.value eq \"admin@example.com\""),
+                    @ExampleObject(name = "Active users", value = "active eq true"),
+                    @ExampleObject(name = "Users with admin groups", value = "groups.display co \"admin\"")
+                })
             @RequestParam(required = false, defaultValue = "id pr") String filter,
+            @Parameter(description = "Field to sort by", schema = @Schema(allowableValues = {"created", "userName", "email", "lastModified"}))
             @RequestParam(required = false, defaultValue = "created") String sortBy,
+            @Parameter(description = "Sort order", schema = @Schema(allowableValues = {"ascending", "descending"}))
             @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+            @Parameter(description = "1-based index of first result", schema = @Schema(minimum = "1"))
             @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @Parameter(description = "Maximum number of results to return", schema = @Schema(minimum = "1", maximum = "500"))
             @RequestParam(required = false, defaultValue = "100") int count) {
 
         if (startIndex < 1) {

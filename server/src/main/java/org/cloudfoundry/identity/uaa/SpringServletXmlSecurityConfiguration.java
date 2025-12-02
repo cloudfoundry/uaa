@@ -64,7 +64,13 @@ public class SpringServletXmlSecurityConfiguration {
             "/session",
             "/session_management",
             "/oauth/token/.well-known/openid-configuration",
-            "/.well-known/openid-configuration"
+            "/.well-known/openid-configuration",
+            // OpenAPI documentation endpoints
+            "/v3/api-docs/**",
+            "/v3/api-docs", 
+            "/v3/api-docs.yaml",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
     };
 
     private final String[] secFilterOpenSamlEndPoints = {
