@@ -28,7 +28,7 @@ jobs:
         run: /root/uaa/scripts/integration_tests.sh ${PROFILE},default boot
         continue-on-error: true
       - name: Test result upload
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: steps.testrun.outcome == 'failure'
         with:
           name: Server test
