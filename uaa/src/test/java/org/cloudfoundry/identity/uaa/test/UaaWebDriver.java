@@ -1,9 +1,5 @@
 package org.cloudfoundry.identity.uaa.test;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Set;
-
 import org.jspecify.annotations.Nullable;
 import org.openqa.selenium.By;
 import org.openqa.selenium.ElementNotInteractableException;
@@ -19,6 +15,10 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Set;
+
 /**
  * Thin wrapper around a "regular" webdriver, that allows you to "click-and-wait" until
  * an element has disappeared. This avoids explicit waits in test code.
@@ -28,6 +28,9 @@ import org.openqa.selenium.support.ui.WebDriverWait;
  */
 public class UaaWebDriver implements WebDriver {
 
+    public static final Duration WAIT_TIMEOUT = Duration.ofSeconds(30L);
+    public static final Duration POLLING_TIME = Duration.ofMillis(100);
+
     private final WebDriver delegate;
 
     public UaaWebDriver(WebDriver delegate) {
@@ -35,17 +38,17 @@ public class UaaWebDriver implements WebDriver {
     }
 
     /**
-     * Click on the element, and wait for a page reload. This is accomplished by waiting
-     * for the reference to the clicked element to become "stale", ie not be in the current
-     * DOM anymore, throwing {@link StaleElementReferenceException}. Sometimes, the Chrome driver
-     * throws a 500 error, which body contains code -32000, so we use that as a signal as well.
+     * Click on the element and wait for a page reload.
+     * This is achieved by waiting for the reference to the clicked element to become "stale",
+     * i.e., not be in the current DOM anymore, throwing {@link StaleElementReferenceException}.
+     * Sometimes, the Chrome driver throws a 500 error, which body contains code -32000, so we use that as a signal as well.
      */
     public void clickAndWait(By locator) {
         var clickableElement = this.delegate.findElement(locator);
         clickableElement.click();
 
-        new FluentWait<>(this.delegate).withTimeout(Duration.ofSeconds(5))
-                .pollingEvery(Duration.ofMillis(100))
+        new FluentWait<>(this.delegate).withTimeout(WAIT_TIMEOUT)
+                .pollingEvery(POLLING_TIME)
                 .withMessage(() -> "Waiting for navigation after clicking on [%s]. Current URL [%s].".formatted(locator, delegate.getCurrentUrl()))
                 .until((d) -> {
                     try {
@@ -60,17 +63,24 @@ public class UaaWebDriver implements WebDriver {
     }
 
     /**
-     * Press the UAA navigation element with the given id, and wait for the button with a given id
-     * Example: After Login to UAA there is a menu in the top right corner with. A user can click on it and get
+     * Press the UAA navigation element with the given id and wait for the button with a given id
+     * Example: After Login to UAA, there is a menu in the top right corner that a user can click on and get
      * the profile page or perform a logout.
      */
     public void pressUaaNavigation(String navigationElementId, String idButton) {
-        WebDriverWait wait1 = new WebDriverWait(this.delegate, Duration.ofSeconds(10));
-        WebElement elm1 = wait1.ignoreAll(List.of(StaleElementReferenceException.class, ElementNotInteractableException.class)).until(ExpectedConditions.visibilityOfElementLocated(By.id(navigationElementId)));
+        WebDriverWait wait = createWebDriverWait();
+        WebElement elm1 = wait.ignoreAll(List.of(StaleElementReferenceException.class, ElementNotInteractableException.class)).until(ExpectedConditions.visibilityOfElementLocated(By.id(navigationElementId)));
         elm1.click();
-        WebDriverWait wait2 = new WebDriverWait(this.delegate, Duration.ofSeconds(30));
-        WebElement elm2 = wait2.ignoreAll(List.of(StaleElementReferenceException.class, ElementNotInteractableException.class)).until(ExpectedConditions.visibilityOfElementLocated(By.id(idButton)));
+
+        WebElement elm2 = wait.ignoreAll(List.of(StaleElementReferenceException.class, ElementNotInteractableException.class)).until(ExpectedConditions.visibilityOfElementLocated(By.id(idButton)));
         elm2.click();
+    }
+
+    /**
+     * Provides a {@link WebDriverWait} instance configured with predefined timeout and polling settings.
+     */
+    public WebDriverWait createWebDriverWait() {
+        return new WebDriverWait(this.delegate, WAIT_TIMEOUT, POLLING_TIME);
     }
 
     public JavascriptExecutor getJavascriptExecutor() {
@@ -143,7 +153,16 @@ public class UaaWebDriver implements WebDriver {
     }
 
     public SessionId getSessionId() {
-        return ((RemoteWebDriver) this.delegate).getSessionId();
+        if (!(this.delegate instanceof RemoteWebDriver)) {
+            return null;
+        }
+        try {
+            return ((RemoteWebDriver) this.delegate).getSessionId();
+        } catch (Exception e) {
+            // If the WebDriver has been quit or closed, getSessionId() may throw an exception
+            // Return null to indicate the session is no longer available
+            return null;
+        }
     }
 
     public TakesScreenshot getTakesScreenShot() {

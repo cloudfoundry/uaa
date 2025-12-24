@@ -32,8 +32,8 @@ public class UaaBootApplication {
         //new File(tomcatBase+"/webapps").mkdirs();
         //System.setProperty("server.tomcat.basedir", tomcatBase);
 
-        //read the uaa.yml file out of the scripts/cargo dir
-        //String configPath = base + "/scripts/cargo";
+        //read the uaa.yml file out of the scripts/boot dir
+        //String configPath = base + "/scripts/boot";
         //System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", configPath);
 
         //configure sample properties for testing

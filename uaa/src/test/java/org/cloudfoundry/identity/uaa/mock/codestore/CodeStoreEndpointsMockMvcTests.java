@@ -9,6 +9,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -58,13 +60,14 @@ class CodeStoreEndpointsMockMvcTests {
         jdbcTemplate.update("DELETE FROM expiring_code_store");
     }
 
-    @Test
-    void generateCode() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void generateCode(String url) throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
 
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -78,14 +81,15 @@ class CodeStoreEndpointsMockMvcTests {
 
     }
 
-    @Test
-    void generateCodeWithInvalidScope() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void generateCodeWithInvalidScope(String url) throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.read");
 
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -95,13 +99,14 @@ class CodeStoreEndpointsMockMvcTests {
                 .andExpect(status().isForbidden());
     }
 
-    @Test
-    void generateCodeAnonymous() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void generateCodeAnonymous(String url) throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
 
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .content(requestBody);
@@ -110,12 +115,13 @@ class CodeStoreEndpointsMockMvcTests {
                 .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    void generateCodeWithNullData() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void generateCodeWithNullData(String url) throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, null, null);
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -126,11 +132,12 @@ class CodeStoreEndpointsMockMvcTests {
 
     }
 
-    @Test
-    void generateCodeWithNullExpiresAt() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void generateCodeWithNullExpiresAt(String url) throws Exception {
         ExpiringCode code = new ExpiringCode(null, null, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -141,12 +148,13 @@ class CodeStoreEndpointsMockMvcTests {
 
     }
 
-    @Test
-    void generateCodeWithExpiresAtInThePast() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void generateCodeWithExpiresAtInThePast(String url) throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() - 60000);
         ExpiringCode code = new ExpiringCode(null, ts, null, null);
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -157,12 +165,13 @@ class CodeStoreEndpointsMockMvcTests {
 
     }
 
-    @Test
-    void retrieveCode() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void retrieveCode(String url) throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -187,12 +196,13 @@ class CodeStoreEndpointsMockMvcTests {
         assertThat(rc1).isEqualTo(rc);
     }
 
-    @Test
-    void retrieveCodeThatIsExpired() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void retrieveCodeThatIsExpired(String url) throws Exception {
         Timestamp ts = new Timestamp(Long.MAX_VALUE);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -213,12 +223,13 @@ class CodeStoreEndpointsMockMvcTests {
                 .andReturn();
     }
 
-    @Test
-    void codeThatIsExpiredIsDeletedOnCreateOfNewCode() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void codeThatIsExpiredIsDeletedOnCreateOfNewCode(String url) throws Exception {
         Timestamp ts = new Timestamp(Long.MAX_VALUE);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
-        MockHttpServletRequestBuilder post = post("/Codes")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -235,7 +246,7 @@ class CodeStoreEndpointsMockMvcTests {
         ts = new Timestamp(Long.MAX_VALUE);
         code = new ExpiringCode(null, ts, "{}", null);
         requestBody = JsonUtils.writeValueAsString(code);
-        post = post("/Codes")
+        post = post(url)
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -280,13 +291,14 @@ class CodeStoreEndpointsMockMvcTests {
             jdbcExpiringCodeStore.setExpirationInterval(priorExpirationInterval);
         }
 
-        @Test
-        void verifyExpirationIntervalWorks() throws Exception {
+        @ParameterizedTest
+        @ValueSource(strings = {"/Codes", "/Codes/"})
+        void verifyExpirationIntervalWorks(String url) throws Exception {
             jdbcExpiringCodeStore.setExpirationInterval(10000000);
             Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
             ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
             String requestBody = JsonUtils.writeValueAsString(code);
-            MockHttpServletRequestBuilder post = post("/Codes")
+            MockHttpServletRequestBuilder post = post(url)
                     .header("Authorization", "Bearer " + loginToken)
                     .contentType(APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)

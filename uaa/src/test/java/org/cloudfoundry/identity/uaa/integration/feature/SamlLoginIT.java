@@ -1113,6 +1113,73 @@ public class SamlLoginIT {
         CallEmptyPageAndCheckHttpStatusCode("/saml/SSO/alias/foo", 302);
     }
 
+    @Test
+    public void backportFrom77RelayTest() {
+        final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
+        final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR =
+                "//h1[contains(text(), 'Enter your username and password')]";
+
+        //ensure we are able to resolve DNS for hostname testzone1.localhost
+        String zoneId = "testzone1";
+
+        //identity client token
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        //admin client token - to create users
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+        //create the zone
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+
+        //create a zone admin user
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
+
+        //get the zone admin token
+        String zoneAdminToken =
+                IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
+                        UaaTestAccounts.standard(serverRunning),
+                        "identity",
+                        "identitysecret",
+                        email,
+                        "secr3T");
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
+        provider.setIdentityZoneId(zoneId);
+        provider.setType(OriginKeys.SAML);
+        provider.setActive(true);
+        provider.setConfig(samlIdentityProviderDefinition);
+        provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
+        provider.setName("simplesamlphp for testzone1");
+
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        assertThat(provider.getOriginKey()).isEqualTo(provider.getConfig().getIdpEntityAlias());
+
+        String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
+
+        webDriver.get(zoneUrl + "/logout.do");
+
+        String samlUrl = SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php?"+
+                "spentityid=testzone1.cloudfoundry-saml-login&" +
+                "RelayState=https://www.google.com";
+        webDriver.get(samlUrl);
+        //we should now be in the Simple SAML PHP site
+        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        sendCredentials(testAccounts.getUserName(), "koala");
+
+        Page.assertThatUrlEventuallySatisfies(webDriver,
+                assertUrl -> assertUrl.startsWith("https://www.google.com"));
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(zoneUrl + "/logout.do");
+    }
+
     public SamlIdentityProviderDefinition createTestZone2IDP(String alias) {
         return createSimplePHPSamlIDP(alias, "testzone2", samlServerConfig.getSamlServerUrl());
     }

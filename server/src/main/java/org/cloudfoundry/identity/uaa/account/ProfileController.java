@@ -70,7 +70,7 @@ public class ProfileController {
     /**
      * Handle form post for revoking chosen approvals
      */
-    @PostMapping("/profile")
+    @PostMapping({"/profile", "/profile/"})
     public String post(@RequestParam(required = false) Collection<String> checkedScopes,
             @RequestParam(required = false) String update,
             @RequestParam(required = false) String delete,

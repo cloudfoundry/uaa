@@ -228,7 +228,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return scimUser;
     }
 
-    @PostMapping("/Users")
+    @PostMapping({"/Users", "/Users/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimUser createUser(@RequestBody ScimUser user, HttpServletRequest request, HttpServletResponse response) {
@@ -489,7 +489,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
     }
 
-    @GetMapping("/Users")
+    @GetMapping({"/Users", "/Users/"})
     @ResponseBody
     public SearchResults<?> findUsers(
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,

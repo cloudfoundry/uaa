@@ -72,19 +72,45 @@ public class DefaultIntegrationTestConfig {
     private static ChromeOptions getChromeOptions() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments(
-                "--verbose",
                 // Comment the following line to run selenium test browser in Headed Mode
-                "--headless",
+                "--headless=new", // Use new headless mode (more stable)
                 "--guest", //attempt to disable password checkups that disrupt the flow
                 "--disable-web-security",
                 "--ignore-certificate-errors",
                 "--allow-running-insecure-content",
                 "--allow-insecure-localhost",
-                "--no-sandbox",
+                "--no-sandbox", // Required for Docker/CI environments
                 "--disable-gpu",
-                "--remote-allow-origins=*"
+                "--remote-allow-origins=*",
+                "--disable-dev-shm-usage", // Overcome limited resource problems in Docker
+                // Additional stability flags
+                "--disable-extensions",
+                "--disable-software-rasterizer",
+                "--disable-background-timer-throttling",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-renderer-backgrounding",
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=TranslateUI",
+                // Hang detection and renderer stability flags
+                "--disable-hang-monitor", // Prevents Chrome from killing "hung" renderer processes (useful for slow backend responses)
+                "--disable-background-networking", // Reduces background network activity that could interfere with test requests
+                "--disable-features=RendererScheduling", // Disables aggressive renderer scheduling that might cause timeouts
+                "--run-all-compositor-stages-before-draw", // Ensures all rendering stages complete before drawing (prevents partial renders)
+                "--disable-prompt-on-repost",
+                "--disable-sync",
+                "--disable-component-extensions-with-background-pages",
+                "--force-color-profile=srgb",
+                "--no-first-run",
+                "--no-default-browser-check",
+                "--disable-default-apps",
+                "--disable-popup-blocking",
+                "--test-type",
+                "--disable-infobars"
         );
         options.setAcceptInsecureCerts(true);
+        
+        // Set page load strategy to 'normal' to ensure proper page load detection
+        options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.NORMAL);
 
         return options;
     }

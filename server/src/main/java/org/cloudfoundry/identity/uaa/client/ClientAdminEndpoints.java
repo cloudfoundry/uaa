@@ -206,7 +206,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @PostMapping("/oauth/clients")
+    @PostMapping({"/oauth/clients", "/oauth/clients/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
@@ -234,7 +234,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
 
-    @PostMapping("/oauth/clients/restricted")
+    @PostMapping({"/oauth/clients/restricted", "/oauth/clients/restricted/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ClientDetails createRestrictedClientDetails(@RequestBody UaaClientDetails client) {
@@ -242,7 +242,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return createClientDetailsInternal(client);
     }
 
-    @PostMapping("/oauth/clients/tx")
+    @PostMapping({"/oauth/clients/tx", "/oauth/clients/tx/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
@@ -265,7 +265,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return details;
     }
 
-    @PutMapping("/oauth/clients/tx")
+    @PutMapping({"/oauth/clients/tx", "/oauth/clients/tx/"})
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
@@ -340,7 +340,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return removeSecret(details);
     }
 
-    @PostMapping("/oauth/clients/tx/delete")
+    @PostMapping({"/oauth/clients/tx/delete", "/oauth/clients/tx/delete/"})
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
@@ -352,7 +352,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return doProcessDeletes(result);
     }
 
-    @PostMapping("/oauth/clients/tx/modify")
+    @PostMapping({"/oauth/clients/tx/modify", "/oauth/clients/tx/modify/"})
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
@@ -406,7 +406,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
 
-    @PostMapping("/oauth/clients/tx/secret")
+    @PostMapping({"/oauth/clients/tx/secret", "/oauth/clients/tx/secret/"})
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
@@ -449,7 +449,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         approvalStore.revokeApprovalsForClient(clientId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
-    @GetMapping("/oauth/clients")
+    @GetMapping({"/oauth/clients", "/oauth/clients/"})
     @ResponseBody
     public SearchResults<?> listClientDetails(
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,

@@ -138,7 +138,7 @@ public class ScimGroupEndpoints {
         return response;
     }
 
-    @GetMapping({"/Groups"})
+    @GetMapping({"/Groups", "/Groups/"})
     @ResponseBody
     public SearchResults<?> listGroups(
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
@@ -193,7 +193,7 @@ public class ScimGroupEndpoints {
         return getExternalGroups(startIndex, count, filter, "", "");
     }
 
-    @GetMapping({"/Groups/External"})
+    @GetMapping({"/Groups/External", "/Groups/External/"})
     @ResponseBody
     public SearchResults<?> getExternalGroups(
             @RequestParam(required = false, defaultValue = "1") int startIndex,
@@ -241,7 +241,7 @@ public class ScimGroupEndpoints {
                 Arrays.asList(ScimCore.SCHEMAS));
     }
 
-    @PostMapping({"/Groups/External"})
+    @PostMapping({"/Groups/External", "/Groups/External/"})
     @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
     public ScimGroupExternalMember mapExternalGroup(@RequestBody ScimGroupExternalMember sgm) {
@@ -366,7 +366,7 @@ public class ScimGroupEndpoints {
         return group;
     }
 
-    @PostMapping({"/Groups"})
+    @PostMapping({"/Groups", "/Groups/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimGroup createGroup(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
@@ -472,7 +472,7 @@ public class ScimGroupEndpoints {
         return group;
     }
 
-    @PostMapping({"/Groups/zones"})
+    @PostMapping({"/Groups/zones", "/Groups/zones/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Deprecated

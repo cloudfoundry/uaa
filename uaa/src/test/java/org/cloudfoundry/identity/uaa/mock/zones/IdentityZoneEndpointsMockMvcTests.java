@@ -59,6 +59,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -522,8 +523,9 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(zoneModifiedEventListener.getEventCount()).isZero();
     }
 
-    @Test
-    void createZone_ShouldOnlyCreateGroupsForSystemScopesThatAreInAllowList() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/identity-zones", "/identity-zones/"})
+    void createZone_ShouldOnlyCreateGroupsForSystemScopesThatAreInAllowList(String url) throws Exception {
         final String idzId = generator.generate();
 
         final IdentityZone idz = createSimpleIdentityZone(idzId);
@@ -532,7 +534,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         // create the zone
         mockMvc.perform(
-                post("/identity-zones")
+                post(url)
                         .header("Authorization", "Bearer " + identityClientToken)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(idz))
@@ -1876,15 +1878,16 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(clientDeleteEventListener.getEventCount()).isZero();
     }
 
-    @Test
-    void createAdminClientInNewZoneUsingZoneEndpointReturns400() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/clients", "/clients/"})
+    void createAdminClientInNewZoneUsingZoneEndpointReturns400(String endUrl) throws Exception {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
         UaaClientDetails client =
                 new UaaClientDetails("admin-client", null, null, "client_credentials", "clients.write");
         client.setClientSecret("secret");
         mockMvc.perform(
-                        post("/identity-zones/" + zone.getId() + "/clients")
+                        post("/identity-zones/" + zone.getId() + endUrl)
                                 .header("Authorization", "Bearer " + identityClientToken)
                                 .contentType(APPLICATION_JSON)
                                 .accept(APPLICATION_JSON)

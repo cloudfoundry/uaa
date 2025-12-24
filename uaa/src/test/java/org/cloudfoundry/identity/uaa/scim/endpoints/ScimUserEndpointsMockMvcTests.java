@@ -40,6 +40,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -141,6 +143,21 @@ class ScimUserEndpointsMockMvcTests {
                         put("/Users")
                 )
                 .andExpect(status().isUnauthorized());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/Users", "/Users/"})
+    public void canCreateUsersWithEndpointEndingWithSlash(String url) throws Exception {
+        ScimUser user = getScimUser();
+        String password = hasText(user.getPassword()) ? user.getPassword() : "pas5word";
+        user.setPassword(password);
+        createUserAndReturnResult(url, user, scimCreateToken, null, null)
+                .andExpect(status().isCreated())
+                .andExpect(header().string("ETag", "\"0\""))
+                .andExpect(jsonPath("$.userName").value(user.getUserName()))
+                .andExpect(jsonPath("$.emails[0].value").value(user.getUserName()))
+                .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
+                .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()));
     }
 
     @Test
@@ -373,12 +390,13 @@ class ScimUserEndpointsMockMvcTests {
                                         .put("error", "invalid_scim_resource"))));
     }
 
-    @Test
-    void create_user_without_email() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Users", "/Users/"})
+    void create_user_without_email(String url) throws Exception {
         ScimUser user = new ScimUser(null, "a_user", "Joel", "D'sa");
         user.setPassword("password");
 
-        mockMvc.perform(post("/Users")
+        mockMvc.perform(post(url)
                         .header("Authorization", "Bearer " + scimReadWriteToken)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(user)))
@@ -508,8 +526,9 @@ class ScimUserEndpointsMockMvcTests {
                                         .put("error", "scim_resource_not_found"))));
     }
 
-    @Test
-    void listUsers_in_anotherZone() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Users", "/Users/"})
+    void listUsers_in_anotherZone(String url) throws Exception {
         String subdomain = generator.generate();
         MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zoneAdminToken = result.getZoneAdminToken();
@@ -519,7 +538,7 @@ class ScimUserEndpointsMockMvcTests {
             createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
         }
 
-        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users").param("count", Integer.toString(usersMaxCountWithOffset))
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get(url).param("count", Integer.toString(usersMaxCountWithOffset))
                 .header("X-Identity-Zone-Subdomain", subdomain)
                 .header("Authorization", "Bearer " + zoneAdminToken)
                 .accept(APPLICATION_JSON);
@@ -577,8 +596,9 @@ class ScimUserEndpointsMockMvcTests {
         getAndReturnUser(HttpStatus.OK.value(), updatedUser, selfToken);
     }
 
-    @Test
-    void createUserInOtherZoneIsUnauthorized() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Users", "/Users/"})
+    void createUserInOtherZoneIsUnauthorized(String url) throws Exception {
         String subdomain = generator.generate();
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
@@ -590,7 +610,7 @@ class ScimUserEndpointsMockMvcTests {
         ScimUser user = getScimUser();
 
         byte[] requestBody = JsonUtils.writeValueAsBytes(user);
-        MockHttpServletRequestBuilder post = post("/Users")
+        MockHttpServletRequestBuilder post = post(url)
                 .with(new SetServerNameRequestPostProcessor(otherSubdomain + ".localhost"))
                 .header("Authorization", "Bearer " + zoneAdminToken)
                 .contentType(APPLICATION_JSON)
@@ -740,12 +760,13 @@ class ScimUserEndpointsMockMvcTests {
         getUser(scimReadWriteToken, HttpStatus.OK.value());
     }
 
-    @Test
-    void getUserWithInvalidAttributes() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Users", "/Users/"})
+    void getUserWithInvalidAttributes(String url) throws Exception {
 
         String nonexistentAttribute = "displayBlaBla";
 
-        MockHttpServletRequestBuilder get = get("/Users")
+        MockHttpServletRequestBuilder get = get(url)
                 .header("Authorization", "Bearer " + scimReadWriteToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("attributes", nonexistentAttribute)
@@ -768,11 +789,12 @@ class ScimUserEndpointsMockMvcTests {
         getUser(scimCreateToken, HttpStatus.FORBIDDEN.value());
     }
 
-    @Test
-    void getUsersWithUaaAdminToken() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/Users", "/Users/"})
+    void getUsersWithUaaAdminToken(String url) throws Exception {
         setUpScimUser();
 
-        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users")
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get(url)
                 .header("Authorization", "Bearer " + uaaAdminToken)
                 .accept(APPLICATION_JSON);
 
@@ -1267,8 +1289,12 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     private ResultActions createUserAndReturnResult(ScimUser user, String token, String subdomain, String switchZone) throws Exception {
+        return createUserAndReturnResult("/Users",  user, token, subdomain, switchZone);
+    }
+
+    private ResultActions createUserAndReturnResult(String url, ScimUser user, String token, String subdomain, String switchZone) throws Exception {
         byte[] requestBody = JsonUtils.writeValueAsBytes(user);
-        MockHttpServletRequestBuilder post = post("/Users")
+        MockHttpServletRequestBuilder post = post(url)
                 .header("Authorization", "Bearer " + token)
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);

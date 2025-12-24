@@ -16,7 +16,7 @@ clients, as well as various other management functions.
 
 The authentication service is `uaa`. It's a plain Spring MVC webapp.
 Deploy as normal in Tomcat or your container of choice, or execute
-`./gradlew run` to run it directly from `uaa` directory in the source
+`./gradlew run` (or `./gradlew bootRun`) to run it directly from `uaa` directory in the source
 tree. When running with Gradle, it listens on port 8080 and the URL is
 `http://localhost:8080/uaa`
 
@@ -72,7 +72,7 @@ Security OAuth that can do the heavy lifting if your client is Java.
 ## Quick Start
 
 Requirements:
-* Java 21
+* Java 21 or 25
 
 If this works, you are in business:
 
@@ -90,7 +90,7 @@ UAA will log to a file called `uaa.log` which can be found using the following c
 
 which you should find under something like:-
 
-    $TMPDIR/cargo/conf/logs/
+    scripts/boot/tomcat/logs/
 
 ### Demo of command line usage on a local server
 
@@ -109,16 +109,17 @@ For complex requests it is more convenient to interact with UAA using
 
 ### Running as a Spring Boot Application
 
-Two separate Gradle tasks can be used to run the Spring Boot application
+Three separate Gradle tasks can be used to run the Spring Boot application
 
+- `./gradlew run` — alias that kills any running UAA and starts the application (recommended)
 - `./gradlew bootRun` — the built-in Spring Boot Gradle task
 - `./gradlew bootWarRun` — use a `JavaExec` Gradle task to launch the runnable .war file
 - Manual run, as show below, to be run after `./gradlew assemble`
 - Using ./scripts/boot/boot-with-tls.sh — runs http/8080 and https/8443
 
 ```text
-java -DCLOUDFOUNDRY_CONFIG_PATH=`pwd`/scripts/cargo \
-    -DSECRETS_DIR=`pwd`/scripts/cargo \
+java -DCLOUDFOUNDRY_CONFIG_PATH=`pwd`/scripts/boot \
+    -DSECRETS_DIR=`pwd`/scripts/boot \
     -Djava.security.egd=file:/dev/./urandom \
     -Dmetrics.perRequestMetrics=true \
     -Dserver.servlet.context-path=/uaa \
@@ -135,32 +136,32 @@ java -DCLOUDFOUNDRY_CONFIG_PATH=`pwd`/scripts/cargo \
 ```
 
 Running Spring Boot standalone allows us to run the integration tests against it using the
-`./gradlew -Dcargo.tests.run=false integrationTest` with the system property preventing Gradle from starting up Apache Tomcat.
+`./gradlew integrationTest` with the system property preventing Gradle from starting up Apache Tomcat.
 
 ### Debugging local server
 
 To load JDWP agent for UAA jvm debugging, start the server as follows:
 ```sh
-./gradlew run -Dxdebug=true
+./gradlew run -Pdebug
 ```
-or
-```sh
-./gradlew -Dspring.profiles.active=hsqldb,debug run
-```
+
 You can then attach your debugger to port 5005 of the jvm process.
 
 To suspend the server start-up until the debugger is attached (useful for
 debugging start-up code), start the server as follows:
 ```sh
-./gradlew run -Dxdebugs=true
+./gradlew run -Pdebugs
 ```
-or
-```sh
-./gradlew -Dspring.profiles.active=hsqldb,debugs run
+
+Note: You can also use `bootRun` instead of `run` for these commands.
+To change the port that the debug command listens on, set the `debugPort` property, as follows:
+
+```bash
+./gradlew run -Pdebug -PdebugPort=5006
 ```
 
 ## Running a local UAA server with different databases
-`./gradlew run` runs the UAA server with hsqldb database by default.
+`./gradlew run` (or `./gradlew bootRun`) runs the UAA server with hsqldb database by default.
 
 ### MySql
 1. Start the mysql server (e.g. a mysql docker container)

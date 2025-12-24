@@ -4,23 +4,23 @@ export ORG_GRADLE_PROJECT_port=${PORT:-8080}
 echo "PORT: ${ORG_GRADLE_PROJECT_port}"
 
 if [ "${1:-}" == "-h" ]; then
-  echo USAGE: $0 [-h] [-s] [args]
+  echo "USAGE: $0 [-h] [-s] [-r] [-PdebugPort=<port>] [args]"
   echo "Run UAA in debug mode"
   echo "  -h: help"
   echo "  -s: suspend startup for debugging"
   echo "  -r: run UAA without debug mode"
+  echo "  -PdebugPort=<port>: set debug port, default 5005"
   exit 0
 fi
 
-DEBUG_FLAG="-Dxdebug=true"
+debug_flag="-Pdebug"
 if [ "${1:-}" == "-s" ]; then
-  DEBUG_FLAG="-Dxdebugs=true"
+  debug_flag="-Pdebugs"
   shift
 elif [ "${1:-}" == "-r" ]; then
-  DEBUG_FLAG=""
+  debug_flag=""
   shift
 fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd
-## scripts/kill_uaa.sh && \
-./gradlew run ${DEBUG_FLAG} "${@}"
+./gradlew run ${debug_flag} "${@}"

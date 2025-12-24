@@ -9,6 +9,8 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -55,25 +57,28 @@ class ForcePasswordChangeControllerTest extends TestClassNullifier {
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
     }
 
-    @Test
-    void forcePasswordChange() throws Exception {
-        mockMvc.perform(get("/force_password_change"))
+    @ParameterizedTest
+    @ValueSource(strings = {"/force_password_change", "/force_password_change/"})
+    void forcePasswordChange(String url) throws Exception {
+        mockMvc.perform(get(url))
                 .andExpect(status().isOk())
                 .andExpect(view().name("force_password_change"))
                 .andExpect(model().attribute("email", "mail"));
     }
 
-    @Test
-    void redirectToLogInIfPasswordIsNotExpired() throws Exception {
-        mockMvc.perform(get("/force_password_change"))
+    @ParameterizedTest
+    @ValueSource(strings = {"/force_password_change", "/force_password_change/"})
+    void redirectToLogInIfPasswordIsNotExpired(String url) throws Exception {
+        mockMvc.perform(get(url))
                 .andExpect(status().isOk())
                 .andExpect(view().name("force_password_change"));
     }
 
-    @Test
-    void handleForcePasswordChange() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/uaa/force_password_change", "/uaa/force_password_change/"})
+    void handleForcePasswordChange(String url) throws Exception {
         mockMvc.perform(
-                        post("/uaa/force_password_change")
+                        post(url)
                                 .param("password", "pwd")
                                 .param("password_confirmation", "pwd")
                                 .contextPath("/uaa"))
@@ -82,21 +87,23 @@ class ForcePasswordChangeControllerTest extends TestClassNullifier {
         verify(mockUaaAuthentication, times(1)).setAuthenticatedTime(anyLong());
     }
 
-    @Test
-    void handleForcePasswordChangeWithRedirect() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/force_password_change", "/force_password_change/"})
+    void handleForcePasswordChangeWithRedirect(String url) throws Exception {
         mockMvc.perform(
-                        post("/force_password_change")
+                        post(url)
                                 .param("password", "pwd")
                                 .param("password_confirmation", "pwd"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/force_password_change_completed"));
     }
 
-    @Test
-    void passwordAndConfirmAreDifferent() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/force_password_change", "/force_password_change/"})
+    void passwordAndConfirmAreDifferent(String url) throws Exception {
         when(mockResourcePropertySource.getProperty("force_password_change.form_error")).thenReturn("Passwords must match and not be empty.");
         mockMvc.perform(
-                        post("/force_password_change")
+                        post(url)
                                 .param("password", "pwd")
                                 .param("password_confirmation", "nopwd"))
                 .andExpect(status().isUnprocessableEntity());

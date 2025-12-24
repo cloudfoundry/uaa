@@ -29,7 +29,7 @@ public class CodeStoreEndpoints {
         this.identityZoneManager = identityZoneManager;
     }
 
-    @PostMapping({"/Codes"})
+    @PostMapping({"/Codes", "/Codes/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ExpiringCode generateCode(@RequestBody ExpiringCode expiringCode) {

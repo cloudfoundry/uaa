@@ -27,6 +27,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUrlForPortComparison;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -709,5 +710,55 @@ class UaaUrlUtilsTest {
 
     private static List<String> convertToHttps(List<String> urls) {
         return urls.stream().map(url -> url.replace("http:", "https:")).toList();
+    }
+
+    // Tests for normalizeUrlForPortComparison method
+    @ParameterizedTest(name = "normalizeUrlForPortComparison: \"{0}\" should become \"{1}\"")
+    @CsvSource({
+            // Standard port removal
+            "'http://example.com:80/path', 'http://example.com/path'",
+            "'https://example.com:443/path', 'https://example.com/path'",
+            
+            // Non-standard ports preserved
+            "'http://example.com:8080/path', 'http://example.com:8080/path'",
+            "'https://example.com:8443/path', 'https://example.com:8443/path'",
+            
+            // URLs without explicit ports remain unchanged
+            "'http://example.com/path', 'http://example.com/path'",
+            "'https://example.com/path', 'https://example.com/path'",
+            
+            // Query parameters and fragments preserved
+            "'http://example.com:80/path?param1=value1&param2=value2', 'http://example.com/path?param1=value1&param2=value2'",
+            "'https://example.com:443/path#section1', 'https://example.com/path#section1'",
+            
+            // Complex URLs with user info
+            "'http://user:pass@example.com:80/path/to/resource?query=value#fragment', 'http://user:pass@example.com/path/to/resource?query=value#fragment'",
+            
+            // Subdomains preserved
+            "'https://subdomain.example.com:443/path', 'https://subdomain.example.com/path'",
+            
+            // Different schemes keep non-standard ports
+            "'ftp://example.com:80/path', 'ftp://example.com:80/path'",
+            
+            // SAML-specific URL
+            "'https://uaa.example.com:443/saml/SSO/alias/provider-name?RelayState=https://app.example.com&param=value#section', 'https://uaa.example.com/saml/SSO/alias/provider-name?RelayState=https://app.example.com&param=value#section'",
+            
+            // Malformed URLs return unchanged
+            "'not-a-valid-url', 'not-a-valid-url'",
+            "'http://[invalid:url:with:colons:everywhere', 'http://[invalid:url:with:colons:everywhere'",
+            "'http://example.com:80/path with spaces and special chars!@#$%^&*()', 'http://example.com:80/path with spaces and special chars!@#$%^&*()'",
+            
+            // Empty string
+            "'', ''"
+    })
+    void normalizeUrlForPortComparison_parameterizedTests(String inputUrl, String expectedUrl) {
+        String result = normalizeUrlForPortComparison(inputUrl);
+        assertThat(result).isNotNull().isEqualTo(expectedUrl); // Ensure we never return null for non-null input
+    }
+
+    @Test
+    void normalizeUrlForPortComparison_withNullUrl_returnsNull() {
+        String result = normalizeUrlForPortComparison(null);
+        assertThat(result).isNull();
     }
 }

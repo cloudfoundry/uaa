@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -49,7 +50,8 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         List<KeyWithCert> defaultKeysWithCerts = samlKeyManager.getAvailableCredentials();
 
         List<RelyingPartyRegistration> relyingPartyRegistrations = new ArrayList<>();
-        String uaaWideSamlEntityIDAlias = samlConfigProps.getEntityIDAlias() != null ? samlConfigProps.getEntityIDAlias() : samlEntityID;
+        String uaaWideSamlEntityIDAlias = samlConfigProps.getEntityIDAlias() != null ? samlConfigProps.getEntityIDAlias() :
+                UaaStringUtils.getHostIfArgIsURL(samlEntityID);
 
         @SuppressWarnings("java:S125")
         // Spring Security requires at least one relyingPartyRegistration before SAML SP metadata generation;

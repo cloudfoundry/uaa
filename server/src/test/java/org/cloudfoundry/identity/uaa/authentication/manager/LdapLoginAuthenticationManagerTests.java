@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager.ExternalAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -138,7 +139,8 @@ class LdapLoginAuthenticationManagerTests {
 
     @Test
     void getUserWithExtendedLdapInfo() {
-        UaaUser user = am.getUser(auth, null);
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+        UaaUser user = am.getUser(auth, authenticationData);
         assertThat(user.getExternalId()).isEqualTo(DN);
         assertThat(user.getEmail()).isEqualTo(LDAP_EMAIL);
         assertThat(user.getOrigin()).isEqualTo(origin);
@@ -150,7 +152,8 @@ class LdapLoginAuthenticationManagerTests {
         UserDetails mockNonLdapUserDetails = mockNonLdapUserDetails();
         when(mockNonLdapUserDetails.getUsername()).thenReturn(TEST_EMAIL);
         when(auth.getPrincipal()).thenReturn(mockNonLdapUserDetails);
-        UaaUser user = am.getUser(auth, null);
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+        UaaUser user = am.getUser(auth, authenticationData);
         assertThat(user.getExternalId()).isEqualTo(TEST_EMAIL);
         assertThat(user.getEmail()).isEqualTo(TEST_EMAIL);
         assertThat(user.getOrigin()).isEqualTo(origin);
@@ -159,14 +162,15 @@ class LdapLoginAuthenticationManagerTests {
     @Test
     void userAuthenticated() {
         UaaUser user = getUaaUser();
-        UaaUser userFromRequest = am.getUser(auth, null);
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+        UaaUser userFromRequest = am.getUser(auth, authenticationData);
         definition.setAutoAddGroups(true);
-        UaaUser result = am.userAuthenticated(auth, user, userFromRequest);
+        UaaUser result = am.userAuthenticated(auth, user, userFromRequest, authenticationData);
         assertThat(result).isSameAs(dbUser);
         verify(publisher, times(1)).publishEvent(ArgumentMatchers.any());
 
         definition.setAutoAddGroups(false);
-        result = am.userAuthenticated(auth, userFromRequest, user);
+        result = am.userAuthenticated(auth, userFromRequest, user, authenticationData);
         assertThat(result).isSameAs(dbUser);
         verify(publisher, times(2)).publishEvent(ArgumentMatchers.any());
     }
@@ -174,7 +178,7 @@ class LdapLoginAuthenticationManagerTests {
     @Test
     void shadowUserCreationDisabledWillNotAddShadowUser() {
         definition.setAddShadowUserOnLogin(false);
-        assertThat(am.isAddNewShadowUser()).isFalse();
+        assertThat(am.isAddNewShadowUser(origin)).isFalse();
     }
 
     @Test
@@ -183,8 +187,9 @@ class LdapLoginAuthenticationManagerTests {
         when(auth.getPrincipal()).thenReturn(authDetails);
 
         UaaUser user = getUaaUser();
-        UaaUser userFromRequest = am.getUser(auth, null);
-        am.userAuthenticated(auth, userFromRequest, user);
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+        UaaUser userFromRequest = am.getUser(auth, authenticationData);
+        am.userAuthenticated(auth, userFromRequest, user, authenticationData);
         ArgumentCaptor<ExternalGroupAuthorizationEvent> captor = ArgumentCaptor.forClass(ExternalGroupAuthorizationEvent.class);
         verify(publisher, times(1)).publishEvent(captor.capture());
 
@@ -199,8 +204,9 @@ class LdapLoginAuthenticationManagerTests {
         ExtendedLdapUserImpl authDetails = getAuthDetails(user.getEmail(), user.getGivenName(), user.getFamilyName(), user.getPhoneNumber());
         when(auth.getPrincipal()).thenReturn(authDetails);
 
-        UaaUser userFromRequest = am.getUser(auth, null);
-        am.userAuthenticated(auth, userFromRequest, user);
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+        UaaUser userFromRequest = am.getUser(auth, authenticationData);
+        am.userAuthenticated(auth, userFromRequest, user, authenticationData);
         ArgumentCaptor<ExternalGroupAuthorizationEvent> captor = ArgumentCaptor.forClass(ExternalGroupAuthorizationEvent.class);
         verify(publisher, times(1)).publishEvent(captor.capture());
 
@@ -241,27 +247,29 @@ class LdapLoginAuthenticationManagerTests {
                 )
         );
 
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+
         definition.setExternalGroupsWhitelist(emptyList());
-        assertThat(am.getExternalUserAuthorities(authDetails)).containsExactlyInAnyOrder();
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder();
 
         definition.setExternalGroupsWhitelist(null);
-        assertThat(am.getExternalUserAuthorities(authDetails)).containsExactlyInAnyOrder();
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder();
 
         definition.setExternalGroupsWhitelist(Collections.singletonList("ldap.role.1.a"));
-        assertThat(am.getExternalUserAuthorities(authDetails)).containsExactlyInAnyOrder("ldap.role.1.a");
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a");
 
         definition.setExternalGroupsWhitelist(Arrays.asList("ldap.role.1.a", "ldap.role.2.*"));
-        assertThat(am.getExternalUserAuthorities(authDetails)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.2.a", "ldap.role.2.b");
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.2.a", "ldap.role.2.b");
 
 
         definition.setExternalGroupsWhitelist(Collections.singletonList("ldap.role.*.*"));
-        assertThat(am.getExternalUserAuthorities(authDetails)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.2.a", "ldap.role.2.b");
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.2.a", "ldap.role.2.b");
 
         definition.setExternalGroupsWhitelist(Arrays.asList("ldap.role.*.*", "ldap.role.*"));
-        assertThat(am.getExternalUserAuthorities(authDetails)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2");
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2");
 
         definition.setExternalGroupsWhitelist(Collections.singletonList("ldap*"));
-        assertThat(am.getExternalUserAuthorities(authDetails)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2");
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2");
     }
 
     void test_authentication_attributes(boolean storeUserInfo) {

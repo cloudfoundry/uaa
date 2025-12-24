@@ -58,6 +58,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -266,9 +268,10 @@ class AuditCheckMockMvcTests {
         assertLogMessageWithSession(userEventLogMsg, UserAuthenticationSuccess, testUser.getId(), testUser.getUserName());
     }
 
-    @Test
-    void userLoginAuthenticateEndpointTest() throws Exception {
-        MockHttpServletRequestBuilder loginPost = post("/authenticate")
+    @ParameterizedTest
+    @ValueSource(strings = {"/authenticate", "/authenticate/"})
+    void userLoginAuthenticateEndpointTest(String url) throws Exception {
+        MockHttpServletRequestBuilder loginPost = post(url)
                 .accept(APPLICATION_JSON_VALUE)
                 .session(new MockHttpSession())
                 .param("username", testUser.getUserName())

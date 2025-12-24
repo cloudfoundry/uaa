@@ -28,6 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
@@ -147,8 +149,9 @@ class InvitationsEndpointMockMvcTests {
             this.zoneSeeder = zoneSeeder.withDefaults().withAdminClientWithClientCredentialsGrant();
         }
 
-        @Test
-        void inviteUserInZoneWithDefaultZoneZoneAdmin() throws Exception {
+        @ParameterizedTest
+        @ValueSource(strings = {"/invite_users", "/invite_users/"})
+        void inviteUserInZoneWithDefaultZoneZoneAdmin(String url) throws Exception {
             String zonifiedAdminClientId = generator.generate().toLowerCase();
             String zonifiedAdminClientSecret = generator.generate().toLowerCase();
 
@@ -175,7 +178,7 @@ class InvitationsEndpointMockMvcTests {
 
             String requestBody = writeValueAsString(invitations);
 
-            MockHttpServletRequestBuilder post = post("/invite_users")
+            MockHttpServletRequestBuilder post = post(url)
                     .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                     .header("Authorization", "Bearer " + zonifiedScimInviteToken)
                     .header(SUBDOMAIN_HEADER, zoneSeeder.getIdentityZoneSubdomain())
@@ -190,8 +193,9 @@ class InvitationsEndpointMockMvcTests {
             assertResponseAndCodeCorrect(expiringCodeStore, new String[]{email}, redirectUrl, zoneSeeder.getIdentityZone(), invitationsResponse, zonifiedScimInviteClientDetails);
         }
 
-        @Test
-        void inviteUserInZoneWithDefaultZoneScimInvite() throws Exception {
+        @ParameterizedTest
+        @ValueSource(strings = {"/invite_users", "/invite_users/"})
+        void inviteUserInZoneWithDefaultZoneScimInvite(String url) throws Exception {
             String zonifiedScimInviteClientId = generator.generate().toLowerCase();
             String zonifiedScimInviteClientSecret = generator.generate().toLowerCase();
 
@@ -218,7 +222,7 @@ class InvitationsEndpointMockMvcTests {
 
             String requestBody = writeValueAsString(invitations);
 
-            MockHttpServletRequestBuilder post = post("/invite_users")
+            MockHttpServletRequestBuilder post = post(url)
                     .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                     .header("Authorization", "Bearer " + zonifiedScimInviteToken)
                     .header(HEADER, zoneSeeder.getIdentityZoneId())
@@ -234,8 +238,9 @@ class InvitationsEndpointMockMvcTests {
 
         }
 
-        @Test
-        void inviteUserInZoneWithDefaultZoneUaaAdmin() throws Exception {
+        @ParameterizedTest
+        @ValueSource(strings = {"/invite_users", "/invite_users/"})
+        void inviteUserInZoneWithDefaultZoneUaaAdmin(String url) throws Exception {
             String email = "user1@example.com";
             String redirectUrl = "example.com";
 
@@ -243,7 +248,7 @@ class InvitationsEndpointMockMvcTests {
 
             String requestBody = writeValueAsString(invitations);
 
-            MockHttpServletRequestBuilder post = post("/invite_users")
+            MockHttpServletRequestBuilder post = post(url)
                     .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                     .header("Authorization", "Bearer " + adminToken)
                     .header(SUBDOMAIN_HEADER, zoneSeeder.getIdentityZoneSubdomain())

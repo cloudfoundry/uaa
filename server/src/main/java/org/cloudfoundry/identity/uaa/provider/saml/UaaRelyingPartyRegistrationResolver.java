@@ -95,7 +95,7 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
 
     private String resolveFromRequest(HttpServletRequest request, String resolvedEntityId, String samlResponseParameter) {
         String relyingPartyRegistrationId = null;
-        if (uaaWideSamlEntityIDAlias != null && uaaWideSamlEntityIDAlias.equals(resolvedEntityId) && samlResponseParameter != null) {
+        if (resolvedEntityId != null && resolvedEntityId.endsWith(uaaWideSamlEntityIDAlias) && samlResponseParameter != null) {
             if (log.isTraceEnabled()) {
                 log.trace("Attempting to resolve from SAMLResponse parameter");
             }

@@ -355,7 +355,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @PostMapping("{identityZoneId}/clients")
+    @PostMapping({"{identityZoneId}/clients", "{identityZoneId}/clients/"})
     public ResponseEntity<? extends ClientDetails> createClient(
             @PathVariable String identityZoneId, @RequestBody UaaClientDetails clientDetails) {
         if (identityZoneId == null) {

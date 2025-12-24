@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.dao.DataAccessException;
@@ -816,84 +817,88 @@ class LoginInfoEndpointTests {
     @Test
     void oauth_provider_links_shown() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-
-        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition();
-
-        definition.setAuthUrl(URI.create("http://auth.url").toURL());
-        definition.setTokenUrl(URI.create("http://token.url").toURL());
-        definition.setRelyingPartySecret("client-secret");
-
-        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
-        identityProvider.setConfig(definition);
-
-        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any(), any())).thenReturn(singletonList(identityProvider));
+        mockOauthProvider(true);
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_HTML));
-
         assertThat((Boolean) extendedModelMap.get("showLoginLinks")).isTrue();
     }
 
-    @Test
-    void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+    @Nested
+    class WhenAllowOriginLoopHasDefaultValueOfTrue {
+        LoginInfoEndpoint endpoint = null;
+        @BeforeEach
+        void setup() {
+            endpoint = getEndpoint(IdentityZoneHolder.get());
+        }
 
-        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
-                .setAuthUrl(URI.create("http://auth.url").toURL())
-                .setTokenUrl(URI.create("http://token.url").toURL());
+        @Test
+        void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_AllowOriginLoop() throws Exception {
+            mockOauthProvider(false);
+            endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
+            Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
+            assertThat(mapPrompts).containsKey("passcode");
+        }
 
-        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
-        identityProvider.setConfig(definition);
+        @Test
+        void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithAccountChooser_AllowOriginLoop() throws Exception {
+            IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+            mockOauthProvider(false);
+            endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
+            Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
+            assertThat(mapPrompts).containsKey("passcode");
+        }
 
-        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20)))
-                .thenReturn(singletonList(identityProvider));
-        endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
-
-        Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
-        assertThat(mapPrompts).doesNotContainKey("passcode");
+        @Test
+        void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithDiscovery_AllowOriginLoop() throws Exception {
+            IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+            mockOauthProvider(true);
+            endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
+            Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
+            assertThat(mapPrompts).containsKey("passcode");
+        }
     }
 
-    @Test
-    void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithAccountChooser() throws Exception {
-        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+    @Nested
+    class WhenAllowOriginLoopIsSetToFalse {
 
-        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
-                .setAuthUrl(URI.create("http://auth.url").toURL())
-                .setTokenUrl(URI.create("http://token.url").toURL());
+        LoginInfoEndpoint endpoint = null;
+        @BeforeEach
+        void setup() {
+            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowOriginLoop(false);
+            endpoint = getEndpoint(IdentityZoneHolder.get());
+        }
 
-        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
-        identityProvider.setConfig(definition);
+        @Test
+        void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
+            mockOauthProvider(false);
+            endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
+            Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
+            assertThat(mapPrompts).doesNotContainKey("passcode");
+        }
 
-        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20)))
-                .thenReturn(singletonList(identityProvider));
-        endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
 
-        Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
-        assertThat(mapPrompts).doesNotContainKey("passcode");
-    }
+        @Test
+        void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithAccountChooser() throws Exception {
+            IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+            mockOauthProvider(false);
+            endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
+            Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
+            assertThat(mapPrompts).doesNotContainKey("passcode");
+        }
 
-    @Test
-    void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithDiscovery() throws Exception {
-        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
-        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
-                .setAuthUrl(URI.create("http://auth.url").toURL())
-                .setTokenUrl(URI.create("http://token.url").toURL());
-
-        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
-        identityProvider.setConfig(definition);
-
-        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any())).thenReturn(singletonList(identityProvider));
-        endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
-
-        Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
-        assertThat(mapPrompts).doesNotContainKey("passcode");
+        @Test
+        void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithDiscovery() throws Exception {
+            IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+            mockOauthProvider(true);
+            endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
+            Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
+            assertThat(mapPrompts).doesNotContainKey("passcode");
+        }
     }
 
     @Test
     void we_return_both_oauth_and_oidc_providers() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-
         RawExternalOAuthIdentityProviderDefinition oauthDefinition = new RawExternalOAuthIdentityProviderDefinition()
                 .setAuthUrl(URI.create("http://auth.url").toURL())
                 .setTokenUrl(URI.create("http://token.url").toURL());
@@ -1754,8 +1759,7 @@ class LoginInfoEndpointTests {
         when(mockOidcConfig.getResponseType()).thenReturn("token");
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(mockOidcConfig.isShowLinkText()).thenReturn(true);
-        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any())).thenReturn(singletonList(mockProvider));
-        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any(), any())).thenReturn(singletonList(mockProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any(String[].class))).thenReturn(singletonList(mockProvider));
         when(mockIdentityProviderProvisioning.retrieveByOrigin(eq("my-OIDC-idp1"), any())).thenReturn(mockProvider);
     }
 
@@ -1784,5 +1788,23 @@ class LoginInfoEndpointTests {
         assertThat(returnedPrompts.get("username")[1]).isEqualTo("Email");
         assertThat(returnedPrompts.get("password")[1]).isEqualTo("Password");
         assertThat(returnedPrompts.get("passcode")).isNull();
+    }
+
+    private IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> mockOauthProvider(
+            boolean anyOrigins
+    ) throws MalformedURLException {
+        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition();
+        definition.setAuthUrl(URI.create("http://auth.url").toURL());
+        definition.setTokenUrl(URI.create("http://token.url").toURL());
+        definition.setRelyingPartySecret("client-secret");
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        identityProvider.setConfig(definition);
+        if (anyOrigins) {
+            when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any(String[].class))).thenReturn(singletonList(identityProvider));
+        } else {
+            when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20)))
+                    .thenReturn(singletonList(identityProvider));
+        }
+        return identityProvider;
     }
 }

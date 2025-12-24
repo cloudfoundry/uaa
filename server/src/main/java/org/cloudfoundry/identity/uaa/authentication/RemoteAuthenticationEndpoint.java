@@ -44,7 +44,7 @@ public class RemoteAuthenticationEndpoint {
         this.loginAuthenticationManager = loginAuthenticationManager;
     }
 
-    @PostMapping({"/authenticate"})
+    @PostMapping({"/authenticate", "/authenticate/"})
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
             @RequestParam String username,
@@ -77,7 +77,7 @@ public class RemoteAuthenticationEndpoint {
         return new ResponseEntity<>(response, status);
     }
 
-    @PostMapping(value = {"/authenticate"}, params = {"source", "origin", UaaAuthenticationDetails.ADD_NEW})
+    @PostMapping(value = {"/authenticate", "/authenticate/"}, params = {"source", "origin", UaaAuthenticationDetails.ADD_NEW})
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
             @RequestParam String username,

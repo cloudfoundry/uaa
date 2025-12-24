@@ -64,7 +64,7 @@ public class TokenExchangeOverrideAuthManagerMockMvcTests extends TokenExchangeM
                 @Override
                 public AuthenticationData getExternalAuthenticationDetails(Authentication authentication) {
                     AuthenticationData result = super.getExternalAuthenticationDetails(authentication);
-                    this.setOrigin("override-origin");
+                    result.setOrigin("override-origin");
                     return result;
                 }
 

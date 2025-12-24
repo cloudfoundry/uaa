@@ -32,14 +32,14 @@ public class ForcePasswordChangeController {
     private final ResetPasswordService resetPasswordService;
     private final IdentityZoneManager identityZoneManager;
 
-    @GetMapping("/force_password_change")
+    @GetMapping({"/force_password_change", "/force_password_change/"})
     public String forcePasswordChangePage(Model model) {
         String email = ((UaaAuthentication) SecurityContextHolder.getContext().getAuthentication()).getPrincipal().getEmail();
         model.addAttribute("email", email);
         return "force_password_change";
     }
 
-    @PostMapping("/force_password_change")
+    @PostMapping({"/force_password_change", "/force_password_change/"})
     public String handleForcePasswordChange(Model model,
             @RequestParam String password,
             @RequestParam("password_confirmation") String passwordConfirmation,

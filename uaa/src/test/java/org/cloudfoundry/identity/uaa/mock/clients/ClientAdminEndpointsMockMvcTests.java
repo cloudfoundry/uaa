@@ -49,6 +49,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -184,11 +187,12 @@ class ClientAdminEndpointsMockMvcTests {
         assertThat(client.getAdditionalInformation()).containsEntry("name", "Client " + client.getClientId());
     }
 
-    @Test
-    void createClientWithJwtBearerGrant() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createClientWithJwtBearerGrant(String url) throws Exception {
         String id = new RandomValueStringGenerator().generate();
         ClientDetails client = createBaseClient(id, SECRET, Collections.singletonList(GRANT_TYPE_JWT_BEARER), null, Collections.singletonList(id + ".read"));
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -197,11 +201,12 @@ class ClientAdminEndpointsMockMvcTests {
         verify(mockApplicationEventPublisher, times(1)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
-    @Test
-    void createClientWithJwtBearerGrantInvalid() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createClientWithJwtBearerGrantInvalid(String url) throws Exception {
         String id = new RandomValueStringGenerator().generate();
         ClientDetails client = createBaseClient(id, SECRET, Collections.singletonList(GRANT_TYPE_JWT_BEARER), null, null);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -211,11 +216,12 @@ class ClientAdminEndpointsMockMvcTests {
         verify(mockApplicationEventPublisher, times(0)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
-    @Test
-    void createClientWithInvalidRedirectUrl() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createClientWithInvalidRedirectUrl(String url) throws Exception {
         UaaClientDetails client = createBaseClient(new RandomValueStringGenerator().generate(), SECRET, Collections.singleton("implicit"));
         client.setRegisteredRedirectUri(Collections.singleton("*/**"));
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -224,8 +230,9 @@ class ClientAdminEndpointsMockMvcTests {
         verify(mockApplicationEventPublisher, times(0)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
-    @Test
-    void createClientWithValidLongRedirectUri() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createClientWithValidLongRedirectUri(String url) throws Exception {
         String id = new RandomValueStringGenerator().generate();
         UaaClientDetails client = createBaseClient(id, SECRET, Collections.singletonList(GRANT_TYPE_JWT_BEARER), null, Collections.singletonList(id + ".read"));
 
@@ -236,7 +243,7 @@ class ClientAdminEndpointsMockMvcTests {
         }
         client.setRegisteredRedirectUri(uris);
 
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -246,8 +253,9 @@ class ClientAdminEndpointsMockMvcTests {
     }
 
     // TODO: put in a nested context to clean up the excluded claims
-    @Test
-    void createClient_withClientAdminToken_withAuthoritiesExcluded() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createClient_withClientAdminToken_withAuthoritiesExcluded(String url) throws Exception {
         String clientId = generator.generate().toLowerCase();
         excludedClaims.add("authorities");
         try {
@@ -258,7 +266,7 @@ class ClientAdminEndpointsMockMvcTests {
             List<String> authorities = Arrays.asList("password.write", "scim.write", "scim.read");
             List<String> scopes = Arrays.asList("foo", "bar", "oauth.approvals");
             ClientDetailsModification client = createBaseClient(clientId, SECRET, Collections.singleton("client_credentials"), authorities, scopes);
-            MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+            MockHttpServletRequestBuilder createClientPost = post(url)
                     .header("Authorization", "Bearer " + clientAdminToken)
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
@@ -276,10 +284,11 @@ class ClientAdminEndpointsMockMvcTests {
         }
     }
 
-    @Test
-    void createClientWithLongSecret() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createClientWithLongSecret(String url) throws Exception {
         UaaClientDetails client = createBaseClient(new RandomValueStringGenerator().generate(), SECRET_TOO_LONG, Collections.singleton("client_credentials"));
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -289,15 +298,16 @@ class ClientAdminEndpointsMockMvcTests {
         verifyNoMoreInteractions(mockApplicationEventPublisher);
     }
 
-    @Test
-    void createClientWithSecondarySecret() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createClientWithSecondarySecret(String url) throws Exception {
         var client = new ClientDetailsCreation();
         client.setClientId(new RandomValueStringGenerator().generate());
         client.setClientSecret("primarySecret");
         client.setSecondaryClientSecret("secondarySecret");
         client.setAuthorizedGrantTypes(List.of("client_credentials"));
 
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -429,10 +439,25 @@ class ClientAdminEndpointsMockMvcTests {
     }
 
     @Test
-    void createClientsTxFailureSecretTooLong() throws Exception {
+    void createRestrictedClientSucceedsWhenEndingInSlash() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
+        List<String> scopes = Collections.singletonList("openid");
+        UaaClientDetails client = createBaseClient(id, SECRET, Arrays.asList("client_credentials", "password"), scopes, scopes);
+
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/restricted/")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(client));
+        mockMvc.perform(createClientPost).andExpect(status().isCreated());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx", "/oauth/clients/tx/"})
+    void createClientsTxFailureSecretTooLong(String url) throws Exception {
         int count = 5;
         UaaClientDetails[] details = createBaseClients(count, SECRET_TOO_LONG, null);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/tx")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -442,11 +467,12 @@ class ClientAdminEndpointsMockMvcTests {
         verifyNoMoreInteractions(mockApplicationEventPublisher);
     }
 
-    @Test
-    void createClientsTxSuccess() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx", "/oauth/clients/tx/"})
+    void createClientsTxSuccess(String url) throws Exception {
         int count = 5;
         UaaClientDetails[] details = createBaseClients(count, SECRET, null);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/tx")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -465,11 +491,12 @@ class ClientAdminEndpointsMockMvcTests {
         }
     }
 
-    @Test
-    void createClientsTxDuplicateId() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx", "/oauth/clients/tx/"})
+    void createClientsTxDuplicateId(String url) throws Exception {
         UaaClientDetails[] details = createBaseClients(5, SECRET, null);
         details[details.length - 1] = details[0];
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/tx")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -688,12 +715,13 @@ class ClientAdminEndpointsMockMvcTests {
         MockMvcUtils.getClient(mockMvc, zonesClientsReadToken, newclient.getClientId(), result.getIdentityZone());
     }
 
-    @Test
-    void createClientsTxClientCredentialsWithoutSecret() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx", "/oauth/clients/tx/"})
+    void createClientsTxClientCredentialsWithoutSecret(String url) throws Exception {
         UaaClientDetails[] details = createBaseClients(5, null, null);
         details[details.length - 1].setAuthorizedGrantTypes(StringUtils.commaDelimitedListToSet("client_credentials"));
         details[details.length - 1].setClientSecret(null);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/tx")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -705,15 +733,16 @@ class ClientAdminEndpointsMockMvcTests {
         verify(mockApplicationEventPublisher, atLeast(5)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
-    @Test
-    void updateClientsTxSuccess() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx", "/oauth/clients/tx/"})
+    void updateClientsTxSuccess(String url) throws Exception {
         int count = 5;
         UaaClientDetails[] details = new UaaClientDetails[count];
         for (int i = 0; i < details.length; i++) {
             details[i] = (UaaClientDetails) createClient(adminToken, null, SECRET, null);
             details[i].setRefreshTokenValiditySeconds(120);
         }
-        MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/tx")
+        MockHttpServletRequestBuilder updateClientPut = put(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -738,8 +767,9 @@ class ClientAdminEndpointsMockMvcTests {
         }
     }
 
-    @Test
-    void updateClientsTxInvalidId() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx", "/oauth/clients/tx/"})
+    void updateClientsTxInvalidId(String url) throws Exception {
         int count = 5;
         UaaClientDetails[] details = new UaaClientDetails[count];
         for (int i = 0; i < details.length; i++) {
@@ -749,7 +779,7 @@ class ClientAdminEndpointsMockMvcTests {
         String firstId = details[0].getClientId();
         details[0].setClientId("unknown.client.id");
 
-        MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/tx")
+        MockHttpServletRequestBuilder updateClientPut = put(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -767,14 +797,15 @@ class ClientAdminEndpointsMockMvcTests {
         verify(mockApplicationEventPublisher, times(count)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
-    @Test
-    void deleteClientsTxSuccess() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/delete", "/oauth/clients/tx/delete/"})
+    void deleteClientsTxSuccess(String url) throws Exception {
         int count = 5;
         UaaClientDetails[] details = new UaaClientDetails[count];
         for (int i = 0; i < details.length; i++) {
             details[i] = (UaaClientDetails) createClient(adminToken, null, SECRET, null);
         }
-        MockHttpServletRequestBuilder deleteClientsPost = post("/oauth/clients/tx/delete")
+        MockHttpServletRequestBuilder deleteClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -797,8 +828,9 @@ class ClientAdminEndpointsMockMvcTests {
         }
     }
 
-    @Test
-    void deleteClientsTxRollbackInvalidId() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/delete", "/oauth/clients/tx/delete/"})
+    void deleteClientsTxRollbackInvalidId(String url) throws Exception {
         int count = 5;
         UaaClientDetails[] details = new UaaClientDetails[count];
         for (int i = 0; i < details.length; i++) {
@@ -807,7 +839,7 @@ class ClientAdminEndpointsMockMvcTests {
         String firstId = details[0].getClientId();
         details[0].setClientId("unknown.client.id");
 
-        MockHttpServletRequestBuilder deleteClientsPost = post("/oauth/clients/tx/delete")
+        MockHttpServletRequestBuilder deleteClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -824,8 +856,9 @@ class ClientAdminEndpointsMockMvcTests {
         verify(mockApplicationEventPublisher, times(count)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
-    @Test
-    void addUpdateDeleteClientsTxSuccess() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/modify", "/oauth/clients/tx/modify/"})
+    void addUpdateDeleteClientsTxSuccess(String url) throws Exception {
         int count = 5;
         ClientDetailsModification[] details = new ClientDetailsModification[count * 3];
         for (int i = 0; i < count; i++) {
@@ -842,7 +875,7 @@ class ClientAdminEndpointsMockMvcTests {
             details[i].setAction(ClientDetailsModification.ADD);
         }
 
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -896,8 +929,9 @@ class ClientAdminEndpointsMockMvcTests {
         }
     }
 
-    @Test
-    void addUpdateDeleteClientsTxDeleteUnsuccessfulRollback() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/modify", "/oauth/clients/tx/modify/"})
+    void addUpdateDeleteClientsTxDeleteUnsuccessfulRollback(String url) throws Exception {
         ClientDetailsModification[] details = new ClientDetailsModification[15];
         for (int i = 0; i < 5; i++) {
             details[i] = (ClientDetailsModification) createClient(adminToken, null, SECRET,
@@ -927,7 +961,7 @@ class ClientAdminEndpointsMockMvcTests {
         String deleteId = details[5].getClientId();
         details[5].setClientId("unknown.client.id");
 
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -954,8 +988,9 @@ class ClientAdminEndpointsMockMvcTests {
         assertThat(approvals).hasSize(3);
     }
 
-    @Test
-    void approvalsAreDeleted() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/delete", "/oauth/clients/tx/delete/"})
+    void approvalsAreDeleted(String url) throws Exception {
         ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(),
                 SECRET, Collections.singleton("password"));
         String userToken = testClient.getUserOAuthAccessToken(
@@ -970,7 +1005,7 @@ class ClientAdminEndpointsMockMvcTests {
         approvals = getApprovals(details.getClientId());
         assertThat(approvals).hasSize(3);
 
-        MockHttpServletRequestBuilder deleteClientsPost = post("/oauth/clients/tx/delete")
+        MockHttpServletRequestBuilder deleteClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1020,8 +1055,9 @@ class ClientAdminEndpointsMockMvcTests {
         assertThat(approvals).isEmpty();
     }
 
-    @Test
-    void modifyApprovalsAreDeleted() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/modify", "/oauth/clients/tx/modify/"})
+    void modifyApprovalsAreDeleted(String url) throws Exception {
         ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(),
                 SECRET, Collections.singleton("password"));
         ((ClientDetailsModification) details).setAction(ClientDetailsModification.DELETE);
@@ -1037,7 +1073,7 @@ class ClientAdminEndpointsMockMvcTests {
         approvals = getApprovals(details.getClientId());
         assertThat(approvals).hasSize(3);
 
-        MockHttpServletRequestBuilder deleteClientsPost = post("/oauth/clients/tx/modify")
+        MockHttpServletRequestBuilder deleteClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1059,15 +1095,19 @@ class ClientAdminEndpointsMockMvcTests {
         assertThat(approvals).isEmpty();
     }
 
-    @Test
-    void secretChangeTxApprovalsNotDeleted() throws Exception {
+    @ParameterizedTest
+    @CsvSource({
+            "/oauth/clients/tx/modify,/oauth/clients/tx/secret",
+            "/oauth/clients/tx/modify/,/oauth/clients/tx/secret/"
+    })
+    void secretChangeTxApprovalsNotDeleted(String url, String secretUrl) throws Exception {
         int count = 3;
         //create clients
         ClientDetailsModification[] clients = createBaseClients(count, SECRET, Arrays.asList("client_credentials", "password"));
         for (ClientDetailsModification c : clients) {
             c.setAction(ClientDetailsModification.ADD);
         }
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1105,7 +1145,7 @@ class ClientAdminEndpointsMockMvcTests {
             srs[i].setOldSecret(clients[i].getClientSecret());
             srs[i].setSecret("secret2");
         }
-        modifyClientsPost = post("/oauth/clients/tx/secret")
+        modifyClientsPost = post(secretUrl)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1400,12 +1440,13 @@ class ClientAdminEndpointsMockMvcTests {
         mockMvc.perform(modifySecret).andExpect(status().isOk());
     }
 
-    @Test
-    void unsuccessfulSecretChangeEvent() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void unsuccessfulSecretChangeEvent(String url) throws Exception {
 
         List<String> scopes = Arrays.asList("oauth.approvals", "clients.secret");
         UaaClientDetails client = createBaseClient(null, SECRET, Arrays.asList("password", "client_credentials"), scopes, scopes);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder createClientPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1428,15 +1469,16 @@ class ClientAdminEndpointsMockMvcTests {
         assertThat(event.getAuditEvent().getPrincipalId()).isEqualTo(client.getClientId());
     }
 
-    @Test
-    void secretChangeModifyTxApprovalsDeleted() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/modify", "/oauth/clients/tx/modify/"})
+    void secretChangeModifyTxApprovalsDeleted(String url) throws Exception {
         int count = 3;
         //create clients
         ClientDetailsModification[] clients = createBaseClients(count, SECRET, Arrays.asList("client_credentials", "password"));
         for (ClientDetailsModification c : clients) {
             c.setAction(ClientDetailsModification.ADD);
         }
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1473,7 +1515,7 @@ class ClientAdminEndpointsMockMvcTests {
             c.setClientSecret("secret2");
             c.setAction(ClientDetailsModification.UPDATE_SECRET);
         }
-        modifyClientsPost = post("/oauth/clients/tx/modify")
+        modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1516,14 +1558,15 @@ class ClientAdminEndpointsMockMvcTests {
         }
     }
 
-    @Test
-    void secretChangeModifyTxApprovalsNotDeleted() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/modify", "/oauth/clients/tx/modify/"})
+    void secretChangeModifyTxApprovalsNotDeleted(String url) throws Exception {
         //create clients
         ClientDetailsModification[] clients = createBaseClients(3, SECRET, Arrays.asList("client_credentials", "password"));
         for (ClientDetailsModification c : clients) {
             c.setAction(ClientDetailsModification.ADD);
         }
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1560,7 +1603,7 @@ class ClientAdminEndpointsMockMvcTests {
             c.setClientSecret("secret");
             c.setAction(ClientDetailsModification.UPDATE_SECRET);
         }
-        modifyClientsPost = post("/oauth/clients/tx/modify")
+        modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1583,8 +1626,9 @@ class ClientAdminEndpointsMockMvcTests {
         }
     }
 
-    @Test
-    void clientsAdminPermissions() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/modify", "/oauth/clients/tx/modify/"})
+    void clientsAdminPermissions(String url) throws Exception {
         ClientDetails adminsClient = createClientAdminsClient(adminToken);
 
         //create clients
@@ -1599,7 +1643,7 @@ class ClientAdminEndpointsMockMvcTests {
                 "secret",
                 "clients.admin");
 
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + token)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1608,8 +1652,9 @@ class ClientAdminEndpointsMockMvcTests {
         result.andExpect(status().isOk());
     }
 
-    @Test
-    void nonClientsAdminPermissions() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients/tx/modify", "/oauth/clients/tx/modify/"})
+    void nonClientsAdminPermissions(String url) throws Exception {
         ClientDetails adminsClient = createReadWriteClient(adminToken);
 
         //create clients
@@ -1624,7 +1669,7 @@ class ClientAdminEndpointsMockMvcTests {
                 "secret",
                 "clients.write");
 
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + token)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1633,8 +1678,9 @@ class ClientAdminEndpointsMockMvcTests {
         result.andExpect(status().isForbidden());
     }
 
-    @Test
-    void createAsAdminPermissions() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createAsAdminPermissions(String url) throws Exception {
         ClientDetails adminsClient = createClientAdminsClient(adminToken);
 
         //create clients
@@ -1649,7 +1695,7 @@ class ClientAdminEndpointsMockMvcTests {
                 "secret",
                 "clients.admin");
 
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + token)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1658,8 +1704,9 @@ class ClientAdminEndpointsMockMvcTests {
         result.andExpect(status().isCreated());
     }
 
-    @Test
-    void createAsReadPermissions() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createAsReadPermissions(String url) throws Exception {
         ClientDetails adminsClient = createReadWriteClient(adminToken);
 
         //create clients
@@ -1674,7 +1721,7 @@ class ClientAdminEndpointsMockMvcTests {
                 "secret",
                 "clients.read");
 
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + token)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1683,8 +1730,9 @@ class ClientAdminEndpointsMockMvcTests {
         result.andExpect(status().isForbidden());
     }
 
-    @Test
-    void createAsWritePermissions() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void createAsWritePermissions(String url) throws Exception {
         ClientDetails adminsClient = createReadWriteClient(adminToken);
 
         //create clients
@@ -1699,7 +1747,7 @@ class ClientAdminEndpointsMockMvcTests {
                 "secret",
                 "clients.write");
 
-        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
+        MockHttpServletRequestBuilder modifyClientsPost = post(url)
                 .header("Authorization", "Bearer " + token)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
@@ -1708,8 +1756,9 @@ class ClientAdminEndpointsMockMvcTests {
         result.andExpect(status().isCreated());
     }
 
-    @Test
-    void getClientDetailsSortedByLastModified() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/oauth/clients", "/oauth/clients/"})
+    void getClientDetailsSortedByLastModified(String url) throws Exception {
 
         ClientDetails adminsClient = createReadWriteClient(adminToken);
 
@@ -1719,7 +1768,7 @@ class ClientAdminEndpointsMockMvcTests {
                 "secret",
                 "clients.read");
 
-        MockHttpServletRequestBuilder get = get("/oauth/clients")
+        MockHttpServletRequestBuilder get = get(url)
                 .header("Authorization", "Bearer " + token)
                 .param("sortBy", "lastmodified")
                 .param("sortOrder", "descending")

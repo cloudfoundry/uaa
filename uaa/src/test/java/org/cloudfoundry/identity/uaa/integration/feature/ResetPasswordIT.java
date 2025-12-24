@@ -187,7 +187,7 @@ class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
-        assertThat(webDriver.getCurrentUrl()).startsWith("https://example.redirect.com/?code=");
+        assertThat(webDriver.getCurrentUrl()).matches("^https?://example\\.redirect\\.com/\\?code=.*");
     }
 
     @Test

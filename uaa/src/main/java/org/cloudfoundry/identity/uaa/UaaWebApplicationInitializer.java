@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa;
 
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.FilterRegistration;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletRegistration;
 import org.apache.catalina.core.ApplicationContext;
 import org.apache.catalina.core.ApplicationContextFacade;
 import org.apache.catalina.core.StandardContext;
@@ -12,11 +16,6 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import org.springframework.web.filter.DelegatingFilterProxy;
 import org.springframework.web.servlet.DispatcherServlet;
 
-import jakarta.servlet.DispatcherType;
-import jakarta.servlet.FilterRegistration;
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRegistration;
 import java.lang.reflect.Field;
 import java.util.EnumSet;
 
@@ -25,7 +24,7 @@ import static org.springframework.util.ReflectionUtils.getField;
 
 public class UaaWebApplicationInitializer implements WebApplicationInitializer {
     @Override
-    public void onStartup(ServletContext servletContext) throws ServletException {
+    public void onStartup(ServletContext servletContext) {
         HttpSessionEventPublisher publisher = new HttpSessionEventPublisher();
         servletContext.addListener(publisher);
 
@@ -48,7 +47,7 @@ public class UaaWebApplicationInitializer implements WebApplicationInitializer {
         //<filter-name>aggregateSpringSecurityFilterChain</filter-name>
         DelegatingFilterProxy springSecurityFilterChain = new DelegatingFilterProxy("springSecurityFilterChain", context);
         FilterRegistration.Dynamic springSecurityFilterChainRegistration = servletContext.addFilter(
-                "springSecurityFilterChain",  springSecurityFilterChain
+                "springSecurityFilterChain", springSecurityFilterChain
         );
         springSecurityFilterChainRegistration.setInitParameter(
                 "contextAttribute", "org.springframework.web.servlet.FrameworkServlet.CONTEXT.spring"

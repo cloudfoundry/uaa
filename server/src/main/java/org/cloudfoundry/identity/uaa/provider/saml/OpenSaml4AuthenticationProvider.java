@@ -100,6 +100,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUrlForPortComparison;
+
 /**
  * This was copied from Spring Security, and modified to work with Open SAML 4.0.x
  * The original class only works with Open SAML 4.1.x+
@@ -225,7 +227,9 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             String issuer = response.getIssuer().getValue();
             String destination = response.getDestination();
             String location = token.getRelyingPartyRegistration().getAssertionConsumerServiceLocation();
-            if (StringUtils.hasText(destination) && !destination.equals(location)) {
+            String normalizedDestination = normalizeUrlForPortComparison(destination);
+            String normalizedLocation = normalizeUrlForPortComparison(location);
+            if (StringUtils.hasText(destination) && !normalizedDestination.equals(normalizedLocation)) {
                 String message = "Invalid destination [%s], location [%s] combo for SAML response [%s]"
                         .formatted(destination, location, response.getID());
                 result = result.concat(new Saml2Error(Saml2ErrorCodes.INVALID_DESTINATION, message));

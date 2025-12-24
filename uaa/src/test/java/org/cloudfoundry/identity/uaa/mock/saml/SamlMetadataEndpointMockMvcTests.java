@@ -177,6 +177,44 @@ class SamlMetadataEndpointMockMvcTests {
         }
     }
 
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = {
+            "login.entityID = http://some.saml.provider/url/entityId"
+    })
+    class SamlMetadataWhenEntityIDIsAUrlMockMvcTests {
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void samlMetadataXMLValidation() throws Exception {
+
+            mockMvc.perform(get(new URI("/saml/metadata")))
+                    .andDo(print())
+                    .andExpectAll(
+                            status().isOk(),
+                            header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp.xml\";")),
+                            xpath("/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location").string(containsString("/saml/SSO/alias/some.saml.provider")),
+                            xpath("/EntityDescriptor/@entityID").string("http://some.saml.provider/url/entityId")
+                    );
+        }
+
+        @Test
+        void samlMetadataXMLValidationInZone() throws Exception {
+            IdentityZone alternativeSpZone = setupIdentityZone(false);
+            String zoneSubdomain = alternativeSpZone.getSubdomain();
+            mockMvc.perform(get(new URI("/saml/metadata"))
+                    .header(HOST, zoneSubdomain + ".localhost:8080"))
+                    .andDo(print())
+                    .andExpectAll(
+                            status().isOk(),
+                            header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-%s-sp.xml\";".formatted(zoneSubdomain))),
+                            xpath("/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location").string(containsString("/saml/SSO/alias/%s.some.saml.provider".formatted(zoneSubdomain))),
+                            xpath("/EntityDescriptor/@entityID").string("http://%s.some.saml.provider/url/entityId".formatted(zoneSubdomain))
+                    );
+        }
+    }
+
     private IdentityZone setupIdentityZone(boolean hasEntityId) throws Exception {
         UaaClientDetails adminClient = new UaaClientDetails("admin", "", "", "client_credentials", "uaa.admin");
         adminClient.setClientSecret("adminsecret");

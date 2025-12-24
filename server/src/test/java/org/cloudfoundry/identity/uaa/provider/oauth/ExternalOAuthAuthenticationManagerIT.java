@@ -7,6 +7,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
@@ -32,6 +33,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager.AuthenticationData;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
@@ -87,7 +89,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -95,6 +96,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -109,6 +111,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -125,29 +128,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 class ExternalOAuthAuthenticationManagerIT {
     private static final String UAA_ORIGIN = "uaa";
-
-    private MockRestServiceServer mockUaaServer;
-    private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
-    private UrlContentCache urlContentCache;
-    private IdentityProviderProvisioning provisioning;
-    private InMemoryUaaUserDatabase userDatabase;
-    private ExternalOAuthCodeToken xCodeToken;
-    private ApplicationEventPublisher publisher;
     private static final String CODE = "the_code";
-
     private static final String ORIGIN = "the_origin";
     private static final String ISSUER = "cf-app.com";
     private static final String UAA_ISSUER_URL = "http://issuer.url";
     private static final List<String> SCOPES_LIST = Arrays.asList("openid", "some.other.scope", "closedid");
-
-    private Map<String, Object> claims;
-    private HashMap<String, Object> attributeMappings;
-    private OIDCIdentityProviderDefinition config;
-    private JWSSigner signer;
-    private Map<String, Object> header;
-    private String invalidRsaSigningKey;
-    private ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
-    private TokenEndpointBuilder tokenEndpointBuilder;
 
     private static final String PUBLIC_KEY = """
             -----BEGIN PUBLIC KEY-----
@@ -165,6 +150,33 @@ class ExternalOAuthAuthenticationManagerIT {
             RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3
             2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=
             -----END RSA PRIVATE KEY-----""";
+
+    private static final String INVALID_RSA_SIGNING_KEY = """
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe
+            GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy
+            sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw
+            gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu
+            xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex
+            uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg
+            z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA
+            -----END RSA PRIVATE KEY-----""";
+
+    private MockRestServiceServer mockUaaServer;
+    private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
+    private UrlContentCache urlContentCache;
+    private IdentityProviderProvisioning provisioning;
+    private InMemoryUaaUserDatabase userDatabase;
+    private ExternalOAuthCodeToken xCodeToken;
+    private ApplicationEventPublisher publisher;
+
+    private Map<String, Object> claims;
+    private HashMap<String, Object> attributeMappings;
+    private OIDCIdentityProviderDefinition config;
+    private JWSSigner signer;
+    private Map<String, Object> header;
+    private ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
+    private TokenEndpointBuilder tokenEndpointBuilder;
 
     @AfterEach
     void clearContext() {
@@ -222,7 +234,6 @@ class ExternalOAuthAuthenticationManagerIT {
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
         externalOAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         externalOAuthAuthenticationManager.setApplicationEventPublisher(publisher);
-        externalOAuthAuthenticationManager.setTokenEndpointBuilder(tokenEndpointBuilder);
         xCodeToken = new ExternalOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
         claims = map(
                 entry("sub", "12345"),
@@ -261,24 +272,9 @@ class ExternalOAuthAuthenticationManagerIT {
                 .setRelyingPartySecret("identitysecret")
                 .setUserInfoUrl(URI.create("http://localhost/userinfo").toURL())
                 .setTokenKey(PUBLIC_KEY);
-        config.setExternalGroupsWhitelist(
-                Collections.singletonList(
-                        "*"
-                )
-        );
+        config.setExternalGroupsWhitelist(Collections.singletonList("*"));
 
         mockUaaServer = MockRestServiceServer.createServer(nonTrustingRestTemplate);
-
-        invalidRsaSigningKey = """
-                -----BEGIN RSA PRIVATE KEY-----
-                MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe
-                GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy
-                sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw
-                gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu
-                xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex
-                uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg
-                z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA
-                -----END RSA PRIVATE KEY-----""";
     }
 
     @Test
@@ -318,68 +314,6 @@ class ExternalOAuthAuthenticationManagerIT {
         mac.init(secretKey);
         byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
         assertThat(new String(Base64.encodeBase64URLSafe(hmacData))).isEqualTo(externalOAuthAuthenticationManager.hmacSignAndEncode(data, key));
-    }
-
-    @Test
-    void authManager_origin_is_thread_safe() throws Exception {
-        CountDownLatch countDownLatchA = new CountDownLatch(1);
-        CountDownLatch countDownLatchB = new CountDownLatch(1);
-
-        final String[] thread1Origin = new String[1];
-        final String[] thread2Origin = new String[1];
-        Thread thread1 = new Thread() {
-            @Override
-            public void run() {
-                externalOAuthAuthenticationManager.setOrigin("a");
-                resumeThread2();
-                pauseThread1();
-                thread1Origin[0] = externalOAuthAuthenticationManager.getOrigin();
-            }
-
-            private void resumeThread2() {
-                countDownLatchB.countDown();
-            }
-
-            private void pauseThread1() {
-                try {
-                    countDownLatchA.await();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        Thread thread2 = new Thread() {
-            @Override
-            public void run() {
-                pauseThread2();
-                externalOAuthAuthenticationManager.setOrigin("b");
-                resumeThread1();
-
-                thread2Origin[0] = externalOAuthAuthenticationManager.getOrigin();
-            }
-
-            private void resumeThread1() {
-                countDownLatchA.countDown();
-            }
-
-            private void pauseThread2() {
-                try {
-                    countDownLatchB.await();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        thread2.start();
-        thread1.start();
-
-        thread1.join();
-        thread2.join();
-
-        assertThat(thread1Origin[0]).isEqualTo("a");
-        assertThat(thread2Origin[0]).isEqualTo("b");
     }
 
     @Test
@@ -453,12 +387,12 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
 
-        ExternalOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
+        AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
                 .getExternalAuthenticationDetails(xCodeToken);
 
         assertThat(username).isEqualTo(externalAuthenticationDetails.getUsername());
         assertThat(externalAuthenticationDetails.getClaims()).containsEntry(ClaimConstants.ORIGIN, UAA_ORIGIN);
-        assertThat(externalOAuthAuthenticationManager.getOrigin()).isEqualTo(UAA_ORIGIN);
+        assertThat(externalAuthenticationDetails.getOrigin()).isEqualTo(UAA_ORIGIN);
     }
 
     @ParameterizedTest
@@ -498,12 +432,12 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
 
-        ExternalOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
+        AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
                 .getExternalAuthenticationDetails(xCodeToken);
 
         assertThat(username).isEqualTo(externalAuthenticationDetails.getUsername());
         assertThat(externalAuthenticationDetails.getClaims()).containsEntry(ClaimConstants.ORIGIN, idpProvider.getOriginKey());
-        assertThat(externalOAuthAuthenticationManager.getOrigin()).isEqualTo(idpProvider.getOriginKey());
+        assertThat(externalAuthenticationDetails.getOrigin()).isEqualTo(idpProvider.getOriginKey());
     }
 
     @Test
@@ -523,12 +457,12 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
 
-        ExternalOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
+        AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
                 .getExternalAuthenticationDetails(xCodeToken);
 
         assertThat(username).isEqualTo(externalAuthenticationDetails.getUsername());
         assertThat(externalAuthenticationDetails.getClaims()).containsEntry(ClaimConstants.ORIGIN, OriginKeys.UAA);
-        assertThat(externalOAuthAuthenticationManager.getOrigin()).isEqualTo(idpProvider.getOriginKey());
+        assertThat(externalAuthenticationDetails.getOrigin()).isEqualTo(idpProvider.getOriginKey());
     }
 
     @Test
@@ -546,7 +480,7 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
 
-        ExternalOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
+        AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
                 .getExternalAuthenticationDetails(xCodeToken);
 
         assertThat(username).isEqualTo(externalAuthenticationDetails.getUsername());
@@ -580,6 +514,55 @@ class ExternalOAuthAuthenticationManagerIT {
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
         verify(externalOAuthProviderConfigurator, atLeast(1)).overlay(config);
+        mockUaaServer.verify();
+
+    }
+
+    @Test
+    void oauth20_flow_works_with_non_jwt_token() throws Exception {
+        String userInfoResponse = """
+                {
+                  "login": "octocat",
+                  "id": 1,
+                  "type": "User",
+                  "site_admin": false,
+                  "name": "monalisa octocat",
+                  "company": "GitHub",
+                  "email": "octocat@github.example.com"
+                }""";
+
+        CompositeToken accessToken = getCompositeAccessToken();
+        accessToken.setIdTokenValue(null); //DOES NOT EXIST FOR OAUTH2.0
+        String oauth2TokenResponse = JsonUtils.writeValueAsString(accessToken);
+
+        //UAA exchanges the code for a token
+        mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Accept", "application/json"))
+                .andExpect(content().string(containsString("grant_type=authorization_code")))
+                .andExpect(content().string(containsString("code=the_code")))
+                .andExpect(content().string(containsString("redirect_uri=http%3A%2F%2Flocalhost%2Fcallback%2Fthe_origin")))
+                .andExpect(content().string(containsString("response_type=code")))
+                .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(oauth2TokenResponse));
+
+        //UAA retrieves user info using an access token
+        mockUaaServer.expect(requestTo(config.getUserInfoUrl().toString()))
+                .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(userInfoResponse));
+
+        IdentityProvider<RawExternalOAuthIdentityProviderDefinition> identityProvider = getOauth20Provider();
+        identityProvider.getConfig().setResponseType("code");
+        reset(provisioning);
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        addTheUserOnAuth();
+
+        Authentication authentication = externalOAuthAuthenticationManager.authenticate(xCodeToken);
+        assertThat(authentication).isNotNull();
+        assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        assertThat(principal).isNotNull();
+        assertThat(principal.getName()).isEqualTo("octocat");
+        assertThat(principal.getEmail()).isEqualTo("octocat@github.example.com");
         mockUaaServer.verify();
 
     }
@@ -712,7 +695,7 @@ class ExternalOAuthAuthenticationManagerIT {
     @Test
     void single_key_response_without_value() throws Exception {
         String json = getKeyJson(PRIVATE_KEY, "correctKey", false);
-        Map<String, Object> map = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> map = JsonUtils.readValue(json, new TypeReference<>() {
         });
         map.remove("value");
         json = JsonUtils.writeValueAsString(map);
@@ -724,10 +707,10 @@ class ExternalOAuthAuthenticationManagerIT {
     @Test
     void multi_key_response_without_value() throws Exception {
         String jsonValid = getKeyJson(PRIVATE_KEY, "correctKey", false);
-        String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
-        Map<String, Object> mapValid = JsonUtils.readValue(jsonValid, new TypeReference<Map<String, Object>>() {
+        String jsonInvalid = getKeyJson(INVALID_RSA_SIGNING_KEY, "invalidKey", false);
+        Map<String, Object> mapValid = JsonUtils.readValue(jsonValid, new TypeReference<>() {
         });
-        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<>() {
         });
         mapValid.remove("value");
         mapInvalid.remove("value");
@@ -739,11 +722,11 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void multi_key_all_invalid() throws Exception {
-        String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
-        String jsonInvalid2 = getKeyJson(invalidRsaSigningKey, "invalidKey2", false);
-        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {
+        String jsonInvalid = getKeyJson(INVALID_RSA_SIGNING_KEY, "invalidKey", false);
+        String jsonInvalid2 = getKeyJson(INVALID_RSA_SIGNING_KEY, "invalidKey2", false);
+        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<>() {
         });
-        Map<String, Object> mapInvalid2 = JsonUtils.readValue(jsonInvalid2, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> mapInvalid2 = JsonUtils.readValue(jsonInvalid2, new TypeReference<>() {
         });
         String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapInvalid2))));
         assertThat(json).contains("\"invalidKey\"", "\"invalidKey2\"");
@@ -821,7 +804,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
-        configureTokenKeyResponse("http://localhost/token_key", invalidRsaSigningKey, "wrongKey");
+        configureTokenKeyResponse("http://localhost/token_key", INVALID_RSA_SIGNING_KEY, "wrongKey");
 
         assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
@@ -1026,12 +1009,28 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void getUserSetsTheRightOrigin() {
-        externalOAuthAuthenticationManager.getUser(xCodeToken, externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken));
-        assertThat(externalOAuthAuthenticationManager.getOrigin()).isEqualTo(ORIGIN);
+        final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition<?>> idp = MultitenancyFixture.identityProvider("the_origin", "uaa");
+        idp.setConfig(config);
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(idp);
 
+        final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition<?>> otherIdp = MultitenancyFixture.identityProvider("other_origin", "uaa");
+        otherIdp.setConfig(config);
+        when(provisioning.retrieveByOrigin(eq("other_origin"), anyString())).thenReturn(otherIdp);
+
+        mockToken();
+        AuthenticationData authenticationData = externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken);
+        assertThat(authenticationData).isNotNull();
+        externalOAuthAuthenticationManager.getUser(xCodeToken, authenticationData);
+        assertThat(authenticationData.getOrigin()).isEqualTo(ORIGIN);
+
+        mockUaaServer.verify();
+        mockUaaServer.reset();
+
+        mockToken();
         ExternalOAuthCodeToken otherToken = new ExternalOAuthCodeToken(CODE, "other_origin", "http://localhost/callback/the_origin");
-        externalOAuthAuthenticationManager.getUser(otherToken, externalOAuthAuthenticationManager.getExternalAuthenticationDetails(otherToken));
-        assertThat(externalOAuthAuthenticationManager.getOrigin()).isEqualTo("other_origin");
+        AuthenticationData authenticationDataOtherToken = externalOAuthAuthenticationManager.getExternalAuthenticationDetails(otherToken);
+        externalOAuthAuthenticationManager.getUser(otherToken, authenticationDataOtherToken);
+        assertThat(authenticationDataOtherToken.getOrigin()).isEqualTo("other_origin");
     }
 
     @Test
@@ -1341,6 +1340,31 @@ class ExternalOAuthAuthenticationManagerIT {
 
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
+        return identityProvider;
+    }
+
+    private IdentityProvider<RawExternalOAuthIdentityProviderDefinition> getOauth20Provider()  throws Exception {
+        RawExternalOAuthIdentityProviderDefinition config = new RawExternalOAuthIdentityProviderDefinition()
+                .setAuthUrl(URI.create("http://localhost/oauth/authorize").toURL())
+                .setTokenUrl(URI.create("http://localhost/oauth/token").toURL())
+                .setIssuer("http://localhost/oauth/token")
+                .setShowLinkText(true)
+                .setLinkText("My oauth20 Provider")
+                .setRelyingPartyId("identity")
+                .setRelyingPartySecret("identitysecret")
+                .setUserInfoUrl(URI.create("http://localhost/userinfo").toURL())
+                .setTokenKey(PUBLIC_KEY);
+        config.setExternalGroupsWhitelist(Collections.singletonList("*"));
+        attributeMappings.put(USER_NAME_ATTRIBUTE_NAME, "login");
+        config.setAttributeMappings(attributeMappings);
+        config.setResponseType("code");
+
+        IdentityProvider<RawExternalOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
+        identityProvider.setName("my oauth20 provider");
+        identityProvider.setIdentityZoneId(OriginKeys.UAA);
+        identityProvider.setType(OAUTH20);
+        identityProvider.setConfig(config);
+        identityProvider.setOriginKey(ORIGIN);
         return identityProvider;
     }
 

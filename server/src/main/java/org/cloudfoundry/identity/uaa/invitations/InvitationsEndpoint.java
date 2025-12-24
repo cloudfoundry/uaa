@@ -67,7 +67,7 @@ public class InvitationsEndpoint {
         this.expiringCodeStore = expiringCodeStore;
     }
 
-    @PostMapping(value = "/invite_users", consumes = "application/json")
+    @PostMapping(value = {"/invite_users", "/invite_users/"}, consumes = "application/json")
     public ResponseEntity<InvitationsResponse> inviteUsers(@RequestBody InvitationsRequest invitations,
             @RequestParam(value = "client_id", required = false) String clientId,
             @RequestParam(value = "redirect_uri") String redirectUri) {

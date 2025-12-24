@@ -35,11 +35,19 @@ fi
 pushd ${SCRIPT_DIR}
   java \
       -Dlogging.level.org.springframework.security=TRACE \
-      -Duaa.location.tomcat=${ROOT_DIR}/scripts/boot/tomcat \
-      -Duaa.location.certificate=${ROOT_DIR}/scripts/certificates \
+      -Duaa.boot.location.tomcat=${ROOT_DIR}/scripts/boot/tomcat \
+      -Duaa.boot.location.certificate=${ROOT_DIR}/scripts/certificates \
       -Dlogging.config=${ROOT_DIR}/scripts/boot/log4j2.properties \
-      -DCLOUDFOUNDRY_CONFIG_PATH=${ROOT_DIR}/scripts/cargo \
-      -DSECRETS_DIR=${ROOT_DIR}/scripts/cargo \
+      -DCLOUDFOUNDRY_CONFIG_PATH=${ROOT_DIR}/scripts/boot \
+      -DSECRETS_DIR=${ROOT_DIR}/scripts/boot \
+      -Dserver.http.port=8080 \
+      -Dserver.http.address=0.0.0.0 \
+      -Dserver.port=8443 \
+      -Dserver.ssl.enabled=true \
+      -Dserver.ssl.key-store=${ROOT_DIR}/scripts/certificates/uaa_keystore.p12 \
+      -Dserver.ssl.key-store-type=PKCS12 \
+      -Dserver.ssl.key-alias=uaa_ssl_cert \
+      -Dserver.ssl.key-store-password=k0*l*s3cur1tyr0ck$ \
       -Djava.security.egd=file:/dev/./urandom \
       -Dmetrics.perRequestMetrics=true \
       -Dserver.servlet.context-path=/uaa \

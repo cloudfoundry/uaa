@@ -33,7 +33,7 @@ docker pull cloudfoundry/uaa:latest \
 	&& docker run \
 		--detach \
 		--publish 8080:8080 \
-		--mount type=bind,source=${PWD}/../scripts/cargo/uaa.yml,target=/uaa.yml \
+		--mount type=bind,source=${PWD}/../scripts/boot/uaa.yml,target=/uaa.yml \
 		--env CLOUDFOUNDRY_CONFIG_PATH= \
 		--env spring_profiles=hsqldb \
 		cloudfoundry/uaa:latest
@@ -47,7 +47,7 @@ docker pull cloudfoundry/uaa:latest \
 		--detach \
 		--publish 8080:8080 \
 		--publish 5005:5005 \
-		--mount type=bind,source=${PWD}/../scripts/cargo/uaa.yml,target=/uaa.yml \
+		--mount type=bind,source=${PWD}/../scripts/boot/uaa.yml,target=/uaa.yml \
 		--env CLOUDFOUNDRY_CONFIG_PATH= \
 		--env spring_profiles=hsqldb \
 		--env JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Djava.security.egd=file:/dev/./urandom" \

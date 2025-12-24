@@ -37,9 +37,24 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     public static final String EXTERNAL_GROUPS_WHITELIST = "externalGroupsWhitelist";
     public static final String ATTRIBUTE_MAPPINGS = "attributeMappings";
 
+    /**
+     * An allowlist for external groups to be considered for group mapping. If not set or set to an empty list, all
+     * external groups are considered. The allowlist is applied *before* the group mapping is executed.
+     */
     private List<String> externalGroupsWhitelist = new LinkedList<>();
+
+    /**
+     * Mappings from claims/attributes in the IdP token/assertion (values in the map - list or string) to attributes
+     * known to UAA (keys in the map). The keys in the map might have a prefix to group them
+     * (e.g., {@link ExternalIdentityProviderDefinition#USER_ATTRIBUTE_PREFIX}).
+     */
     private Map<String, Object> attributeMappings = new HashMap<>();
+
     private boolean addShadowUserOnLogin = true;
+
+    /**
+     * Whether to store the external groups and user attributes in the user info after login via this IdP.
+     */
     private boolean storeCustomAttributes = true;
 
     public List<String> getExternalGroupsWhitelist() {

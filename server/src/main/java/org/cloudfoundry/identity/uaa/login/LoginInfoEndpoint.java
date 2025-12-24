@@ -332,9 +332,11 @@ public class LoginInfoEndpoint {
         } else {
             samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
 
-            if (jsonResponse) {
+            if (jsonResponse && !(IdentityZoneHolder.get().getConfig().getUserConfig().isAllowOriginLoop())) {
                 /* the OAuth IdPs and all IdPs are used for determining the redirect; if jsonResponse is true, the
-                 * redirect is ignored anyway */
+                 * redirect is ignored anyway
+                 * When login.allowOriginLoop is explicitly set to false, do not iterate over providers
+                 */
                 oauthIdentityProviders = addDefaultOauthMap(oauthIdentityProviders, allowedIdentityProviderKeys, defaultIdentityProviderName);
             } else {
                 oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);

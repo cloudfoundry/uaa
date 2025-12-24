@@ -311,6 +311,8 @@ public class InvitationsIT {
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
         webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
+        // redirected to /app, which is not there
+        assertThat(webDriver.getPageSource()).contains("Not Found");
 
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertThat(user.isVerified()).isTrue();
