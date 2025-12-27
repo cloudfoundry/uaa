@@ -72,8 +72,10 @@ public class JwtClientAuthentication {
 
     // no signature check with invalid algorithms
     private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
-    private static final Set<String> JWT_REQUIRED_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
+    private static final Set<String> JWT_RFC7523_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
             ClaimConstants.EXPIRY_IN_SECONDS);
+    private static final Set<String> JWT_OIDC_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
+        ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI);
 
     private final KeyInfoService keyInfoService;
     private final OidcMetadataFetcher oidcMetadataFetcher;
@@ -160,7 +162,7 @@ public class JwtClientAuthentication {
                     // Validate token according to private_key_jwt with OIDC
                     return clientId.equals(validateClientJWToken(clientJWT, oidcMetadataFetcher == null ? new JWKSet() :
                                     JWKSet.parse(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration).getKeySetMap()),
-                            clientId, clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
+                            JWT_OIDC_CLAIMS, clientId, clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
                 } else {
                     // Check if we found trust for private_key_jwt with RFC 7523. We allow client_id (from request) != sub (client_assertion)
                     ClientJwtCredential jwtFederation = getClientJwtFederation(clientJwtConfiguration, clientClaims);
@@ -217,11 +219,12 @@ public class JwtClientAuthentication {
         }
     }
 
+    // Validate federated client with RFC 7523
     private boolean validateFederatedClientWT(JWT jwtAssertion, JWTClaimsSet clientClaims, ClientJwtCredential jwtFederation) throws OidcMetadataFetchingException, ParseException {
         try {
             JWKSet jwkSet = retrieveJwkSet(clientClaims);
             String expectedAud = Optional.ofNullable(jwtFederation.getAudience()).orElse(keyInfoService.getTokenEndpointUrl());
-            return validateClientJWToken(jwtAssertion, jwkSet, jwtFederation.getSubject(), jwtFederation.getIssuer(), expectedAud) != null;
+            return validateClientJWToken(jwtAssertion, jwkSet, JWT_RFC7523_CLAIMS, jwtFederation.getSubject(), jwtFederation.getIssuer(), expectedAud) != null;
         } catch (MalformedURLException | IllegalArgumentException | URISyntaxException e) {
             return false;
         }
@@ -270,7 +273,7 @@ public class JwtClientAuthentication {
         }
     }
 
-    private JWTClaimsSet validateClientJWToken(JWT jwtAssertion, JWKSet jwkSet, String expectedSub, String expectIss, String expectedAud) {
+    private JWTClaimsSet validateClientJWToken(JWT jwtAssertion, JWKSet jwkSet, Set<String> requiredClaims, String expectedSub, String expectIss, String expectedAud) {
         if (Optional.ofNullable(jwkSet).orElse(new JWKSet()).isEmpty()) {
             throw new BadCredentialsException("Bad empty jwk_set");
         }
@@ -284,7 +287,7 @@ public class JwtClientAuthentication {
         jwtProcessor.setJWSKeySelector(keySelector);
 
         JWTClaimsSet.Builder claimSetBuilder = new JWTClaimsSet.Builder().issuer(expectIss).subject(expectedSub);
-        jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(expectedAud, claimSetBuilder.build(), JWT_REQUIRED_CLAIMS));
+        jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(expectedAud, claimSetBuilder.build(), requiredClaims));
 
         try {
             return jwtProcessor.process(jwtAssertion, null);
