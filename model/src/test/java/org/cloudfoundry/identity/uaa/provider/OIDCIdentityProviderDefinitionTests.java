@@ -89,4 +89,60 @@ class OIDCIdentityProviderDefinitionTests {
         assertThat(def.getJwtClientAuthentication()).isEqualTo(settings);
         assertThat(def.getAuthMethod()).isNull();
     }
+
+    @Test
+    void testToString() throws MalformedURLException {
+        OIDCIdentityProviderDefinition def = new OIDCIdentityProviderDefinition();
+        def.setDiscoveryUrl(URI.create(url).toURL());
+        def.setPasswordGrantEnabled(true);
+        def.setSetForwardHeader(true);
+        def.setTokenExchangeEnabled(true);
+        def.setOmitIdTokenHintOnLogout(true);
+
+        List<Prompt> prompts = Arrays.asList(
+            new Prompt("username", "text", "Email"),
+            new Prompt("password", "password", "Password")
+        );
+        def.setPrompts(prompts);
+
+        Map<String, String> jwtSettings = new HashMap<>();
+        jwtSettings.put("iss", "issuer");
+        def.setJwtClientAuthentication(jwtSettings);
+
+        Map<String, String> authzParams = new HashMap<>();
+        authzParams.put("token_format", "jwt");
+        def.setAdditionalAuthzParameters(authzParams);
+
+        String result = def.toString();
+
+        // Verify all attributes are present in toString output
+        assertThat(result).contains("OIDCIdentityProviderDefinition{");
+        assertThat(result).contains("discoveryUrl=" + def.getDiscoveryUrl());
+        assertThat(result).contains("passwordGrantEnabled=true");
+        assertThat(result).contains("setForwardHeader=true");
+        assertThat(result).contains("tokenExchangeEnabled=true");
+        assertThat(result).contains("omitIdTokenHintOnLogout=true");
+        assertThat(result).contains("prompts=");
+        assertThat(result).contains("jwtClientAuthentication=");
+        assertThat(result).contains("additionalAuthzParameters=");
+        assertThat(result).contains("parent=");
+    }
+
+    @Test
+    void testToStringWithNullValues() {
+        OIDCIdentityProviderDefinition def = new OIDCIdentityProviderDefinition();
+
+        String result = def.toString();
+
+        // Verify toString works with null values
+        assertThat(result).contains("OIDCIdentityProviderDefinition{");
+        assertThat(result).contains("discoveryUrl=null");
+        assertThat(result).contains("passwordGrantEnabled=false");
+        assertThat(result).contains("setForwardHeader=false");
+        assertThat(result).contains("tokenExchangeEnabled=null");
+        assertThat(result).contains("omitIdTokenHintOnLogout=null");
+        assertThat(result).contains("prompts=null");
+        assertThat(result).contains("jwtClientAuthentication=null");
+        assertThat(result).contains("additionalAuthzParameters=null");
+    }
 }

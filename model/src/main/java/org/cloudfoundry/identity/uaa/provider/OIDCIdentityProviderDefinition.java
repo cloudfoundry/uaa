@@ -177,6 +177,7 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
                 ", tokenExchangeEnabled=" + tokenExchangeEnabled +
                 ", omitIdTokenHintOnLogout=" + omitIdTokenHintOnLogout +
                 ", prompts=" + prompts +
+                ", jwtClientAuthentication=" + jwtClientAuthentication +
                 ", additionalAuthzParameters=" + additionalAuthzParameters +
                 ", parent=" + super.toString() +
                 '}';
