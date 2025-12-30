@@ -75,7 +75,7 @@ public class JwtClientAuthentication {
     private static final Set<String> JWT_RFC7523_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
             ClaimConstants.EXPIRY_IN_SECONDS);
     private static final Set<String> JWT_OIDC_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
-        ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI);
+            ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI);
 
     private final KeyInfoService keyInfoService;
     private final OidcMetadataFetcher oidcMetadataFetcher;
