@@ -73,6 +73,7 @@ class OIDCIdentityProviderDefinitionTests {
         OIDCIdentityProviderDefinition original = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
         OIDCIdentityProviderDefinition compare = (OIDCIdentityProviderDefinition) original.clone();
         compare.setTokenExchangeEnabled(false);
+        compare.setOmitIdTokenHintOnLogout(false);
         assertThat(original).isNotEqualTo(compare);
     }
 

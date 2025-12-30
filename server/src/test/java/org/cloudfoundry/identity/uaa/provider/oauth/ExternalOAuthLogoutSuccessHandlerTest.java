@@ -111,6 +111,15 @@ class ExternalOAuthLogoutSuccessHandlerTest {
     }
 
     @Test
+    void determineTargetUrlWithOmitIdTokenHint() {
+        request.setQueryString("parameter=value");
+        when(uaaAuthentication.getIdpIdToken()).thenReturn("token");
+        oAuthIdentityProviderDefinition.setOmitIdTokenHintOnLogout(true);
+        assertThat(oAuthLogoutHandler.determineTargetUrl(request, response, uaaAuthentication))
+                .isEqualTo("http://localhost:8080/uaa/logout.do?post_logout_redirect_uri=http%3A%2F%2Flocalhost%3Fparameter%3Dvalue&client_id=id");
+    }
+
+    @Test
     void determineDefaultTargetUrl() {
         oAuthIdentityProviderDefinition.setLogoutUrl(null);
         IdentityZoneHolder.get().setConfig(null);
