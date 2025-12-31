@@ -116,16 +116,16 @@ class OIDCIdentityProviderDefinitionTests {
         String result = def.toString();
 
         // Verify all attributes are present in toString output
-        assertThat(result).contains("OIDCIdentityProviderDefinition{");
-        assertThat(result).contains("discoveryUrl=" + def.getDiscoveryUrl());
-        assertThat(result).contains("passwordGrantEnabled=true");
-        assertThat(result).contains("setForwardHeader=true");
-        assertThat(result).contains("tokenExchangeEnabled=true");
-        assertThat(result).contains("omitIdTokenHintOnLogout=true");
-        assertThat(result).contains("prompts=");
-        assertThat(result).contains("jwtClientAuthentication=");
-        assertThat(result).contains("additionalAuthzParameters=");
-        assertThat(result).contains("parent=");
+        assertThat(result).contains("OIDCIdentityProviderDefinition{")
+        .contains("discoveryUrl=" + def.getDiscoveryUrl())
+        .contains("passwordGrantEnabled=true")
+        .contains("setForwardHeader=true")
+        .contains("tokenExchangeEnabled=true")
+        .contains("omitIdTokenHintOnLogout=true")
+        .contains("prompts=")
+        .contains("jwtClientAuthentication=")
+        .contains("additionalAuthzParameters=")
+        .contains("parent=");
     }
 
     @Test
@@ -135,14 +135,14 @@ class OIDCIdentityProviderDefinitionTests {
         String result = def.toString();
 
         // Verify toString works with null values
-        assertThat(result).contains("OIDCIdentityProviderDefinition{");
-        assertThat(result).contains("discoveryUrl=null");
-        assertThat(result).contains("passwordGrantEnabled=false");
-        assertThat(result).contains("setForwardHeader=false");
-        assertThat(result).contains("tokenExchangeEnabled=null");
-        assertThat(result).contains("omitIdTokenHintOnLogout=null");
-        assertThat(result).contains("prompts=null");
-        assertThat(result).contains("jwtClientAuthentication=null");
-        assertThat(result).contains("additionalAuthzParameters=null");
+        assertThat(result).contains("OIDCIdentityProviderDefinition{")
+        .contains("discoveryUrl=null")
+        .contains("passwordGrantEnabled=false")
+        .contains("setForwardHeader=false")
+        .contains("tokenExchangeEnabled=null")
+        .contains("omitIdTokenHintOnLogout=null")
+        .contains("prompts=null")
+        .contains("jwtClientAuthentication=null")
+        .contains("additionalAuthzParameters=null");
     }
 }
