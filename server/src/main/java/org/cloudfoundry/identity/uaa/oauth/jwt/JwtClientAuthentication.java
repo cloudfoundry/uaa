@@ -167,7 +167,7 @@ public class JwtClientAuthentication {
                     // Check if we found trust for private_key_jwt with RFC 7523. We allow client_id (from request) != sub (client_assertion)
                     ClientJwtCredential jwtFederation = getClientJwtFederation(clientJwtConfiguration, clientClaims);
                     if (jwtFederation != null) {
-                        return validateFederatedClientWT(clientJWT, clientClaims, jwtFederation);
+                        return validateFederatedClientJWT(clientJWT, clientClaims, jwtFederation);
                     }
                     throw new BadCredentialsException("Wrong client_assertion");
                 }
