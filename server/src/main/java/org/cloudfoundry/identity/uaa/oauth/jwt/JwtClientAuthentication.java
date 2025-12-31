@@ -220,7 +220,7 @@ public class JwtClientAuthentication {
     }
 
     // Validate federated client with RFC 7523
-    private boolean validateFederatedClientWT(JWT jwtAssertion, JWTClaimsSet clientClaims, ClientJwtCredential jwtFederation) throws OidcMetadataFetchingException, ParseException {
+    private boolean validateFederatedClientJWT(JWT jwtAssertion, JWTClaimsSet clientClaims, ClientJwtCredential jwtFederation) throws OidcMetadataFetchingException, ParseException {
         try {
             JWKSet jwkSet = retrieveJwkSet(clientClaims);
             String expectedAud = Optional.ofNullable(jwtFederation.getAudience()).orElse(keyInfoService.getTokenEndpointUrl());
