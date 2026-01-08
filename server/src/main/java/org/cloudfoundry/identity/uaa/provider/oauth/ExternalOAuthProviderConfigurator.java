@@ -82,8 +82,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         var responseType = URLEncoder.encode(definition.getResponseType(), StandardCharsets.UTF_8);
         var relyingPartyId = definition.getRelyingPartyId();
 
-        var state = generateStateParam();
-        SessionUtils.setStateParam(request.getSession(), SessionUtils.stateParameterAttributeKeyForIdp(idpOriginKey), state);
+        var state = SessionUtils.setStateParam(request.getSession(), SessionUtils.stateParameterAttributeKeyForIdp(idpOriginKey), generateStateParam());
 
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromUriString(idpUrlBase)
@@ -96,9 +95,8 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         // https://docs.spring.io/spring-security/site/docs/5.3.1.RELEASE/reference/html5/#initiating-the-authorization-request
         if (isPkceNeeded(definition)) {
             var pkceVerifier = new S256PkceVerifier();
-            var codeVerifier = generateCodeVerifier();
-            var codeChallenge = pkceVerifier.compute(codeVerifier);
-            SessionUtils.setStateParam(request.getSession(), SessionUtils.codeVerifierParameterAttributeKeyForIdp(idpOriginKey), codeVerifier);
+            var codeVerifier = SessionUtils.setStateParam(request.getSession(), SessionUtils.codeVerifierParameterAttributeKeyForIdp(idpOriginKey), generateCodeVerifier());
+            var codeChallenge = SessionUtils.setStateParam(request.getSession(), SessionUtils.codeChallengeParameterAttributeKeyForIdp(idpOriginKey), pkceVerifier.compute(codeVerifier));
             uriBuilder.queryParam("code_challenge", codeChallenge);
             uriBuilder.queryParam("code_challenge_method", pkceVerifier.getCodeChallengeMethod());
         }

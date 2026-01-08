@@ -26,6 +26,7 @@ public final class SessionUtils {
 
     private static final String EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX = "external-oauth-state-";
     private static final String EXTERNAL_OAUTH_CODE_VERIFIER_ATTRIBUTE_PREFIX = "external-oauth-verifier-";
+    private static final String EXTERNAL_OAUTH_CODE_CHALLENGE_ATTRIBUTE_PREFIX = "external-oauth-challenge-";
 
     private SessionUtils() {
     }
@@ -56,8 +57,13 @@ public final class SessionUtils {
         return (UaaAuthentication) session.getAttribute(FORCE_PASSWORD_EXPIRED_USER);
     }
 
-    public static void setStateParam(HttpSession session, String stateParamKey, String state) {
-        session.setAttribute(stateParamKey, state);
+    public static String setStateParam(HttpSession session, String stateParamKey, String state) {
+        if (session.isNew() || session.getAttribute(stateParamKey) == null) {
+            session.setAttribute(stateParamKey, state);
+            return state;
+        } else {
+            return session.getAttribute(stateParamKey) instanceof String existingState ? existingState : null;
+        }
     }
 
     public static Object getStateParam(HttpSession session, String stateParamKey) {
@@ -86,5 +92,9 @@ public final class SessionUtils {
 
     public static String codeVerifierParameterAttributeKeyForIdp(String idpOriginKey) {
         return EXTERNAL_OAUTH_CODE_VERIFIER_ATTRIBUTE_PREFIX + idpOriginKey;
+    }
+
+    public static String codeChallengeParameterAttributeKeyForIdp(String idpOriginKey) {
+        return EXTERNAL_OAUTH_CODE_CHALLENGE_ATTRIBUTE_PREFIX + idpOriginKey;
     }
 }
