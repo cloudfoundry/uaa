@@ -64,7 +64,8 @@ public class SpringServletXmlSecurityConfiguration {
             "/session",
             "/session_management",
             "/oauth/token/.well-known/openid-configuration",
-            "/.well-known/openid-configuration"
+            "/.well-known/openid-configuration",
+            "/logged_out"
     };
 
     private final String[] secFilterOpenSamlEndPoints = {
