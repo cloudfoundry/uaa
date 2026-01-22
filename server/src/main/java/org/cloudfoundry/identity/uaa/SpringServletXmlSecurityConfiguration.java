@@ -32,6 +32,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.filter.RequestContextFilter;
 
 import java.util.Arrays;
@@ -183,7 +184,7 @@ public class SpringServletXmlSecurityConfiguration {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), saml2WebSsoAuthenticationRequestFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), saml2WebSsoAuthenticationFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(OAuth2AuthenticationProcessingFilter.class), identityZoneSwitchingFilter.getFilter());
-        additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(IdentityZoneSwitchingFilter.class), saml2LogoutRequestFilter.getFilter());
+        additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.before(LogoutFilter.class), saml2LogoutRequestFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(Saml2LogoutRequestFilter.class), saml2LogoutResponseFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(Saml2LogoutResponseFilter.class), userManagementSecurityFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.after(DisableUserManagementSecurityFilter.class), userManagementFilter.getFilter());
