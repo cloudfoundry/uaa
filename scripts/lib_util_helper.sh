@@ -80,6 +80,7 @@ function setup_hosts_file() {
 127.0.0.1 oidcloginit.localhost
 127.0.0.1 testzoneinactive.localhost
 127.0.0.1 ldap01.example.com
+127.0.0.1 example.redirect.com
 EOF
   fi
 }
