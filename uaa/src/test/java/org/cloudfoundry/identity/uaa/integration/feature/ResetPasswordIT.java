@@ -89,7 +89,7 @@ class ResetPasswordIT {
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
         testClient.createScimClient(adminAccessToken, scimClientId);
-        UaaClientDetails authCodeClient = new UaaClientDetails(authCodeClientId, "oauth", "uaa.user", "authorization_code,refresh_token", null, "http://example.redirect.com");
+        UaaClientDetails authCodeClient = new UaaClientDetails(authCodeClientId, "oauth", "uaa.user", "authorization_code,refresh_token", null, "http://testzonedoesnotexist.localhost");
         authCodeClient.setClientSecret("scimsecret");
         authCodeClient.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         IntegrationTestUtils.createClient(adminAccessToken, baseUrl, authCodeClient);
@@ -119,7 +119,7 @@ class ResetPasswordIT {
 
     @Test
     void resetPassword_with_clientRedirect() {
-        webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=http://example.redirect.com");
+        webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=http://testzonedoesnotexist.localhost");
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Reset Password");
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
@@ -147,12 +147,12 @@ class ResetPasswordIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
 
-        assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login?success=password_reset&form_redirect_uri=http://example.redirect.com");
+        assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login?success=password_reset&form_redirect_uri=http://testzonedoesnotexist.localhost");
     }
 
     @Test
     void notAutoLoginAfterResetPassword() {
-        webDriver.get(baseUrl + "/oauth/authorize?client_id=" + authCodeClientId + "&redirect_uri=http://example.redirect.com&grant_type=authorization_code&response_type=code");
+        webDriver.get(baseUrl + "/oauth/authorize?client_id=" + authCodeClientId + "&redirect_uri=http://testzonedoesnotexist.localhost&grant_type=authorization_code&response_type=code");
         webDriver.clickAndWait(By.linkText("Reset password"));
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Reset Password");
 
@@ -187,7 +187,7 @@ class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
-        assertThat(webDriver.getCurrentUrl()).matches("^https?://example\\.redirect\\.com/\\?code=.*");
+        assertThat(webDriver.getCurrentUrl()).matches("^http://testzonedoesnotexist\\.localhost.*\\?code=.*");
     }
 
     @Test
