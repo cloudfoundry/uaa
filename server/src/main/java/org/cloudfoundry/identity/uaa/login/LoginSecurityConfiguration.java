@@ -524,6 +524,7 @@ class LoginSecurityConfiguration {
                 .authenticationManager(authenticationManager)
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/force_password_change/**").fullyAuthenticated();
+                    auth.requestMatchers("/saml/SingleLogout/**").anonymous();
                     auth.requestMatchers("/reset_password**").anonymous();
                     auth.requestMatchers("/create_account*").anonymous();
                     auth.requestMatchers("/login/idp_discovery").anonymous();
