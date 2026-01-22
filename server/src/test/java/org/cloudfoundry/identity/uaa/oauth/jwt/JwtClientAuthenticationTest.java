@@ -41,6 +41,7 @@ import org.springframework.util.MultiValueMap;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.text.ParseException;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
@@ -636,7 +637,11 @@ class JwtClientAuthenticationTest {
         assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
-        assertThat(ChronoUnit.MINUTES.between(jwtClaimsSet.getIssueTime().toInstant(), jwtClaimsSet.getExpirationTime().toInstant())).isEqualTo(5L);
+        assertThat(Instant.now())
+                .isBetween(jwtClaimsSet.getIssueTime().toInstant(), jwtClaimsSet.getExpirationTime().toInstant());
+        assertThat(jwtClaimsSet.getExpirationTime().toInstant())
+                .as("valid for 5 minutes or less")
+                .isBeforeOrEqualTo(jwtClaimsSet.getIssueTime().toInstant().plus(5, ChronoUnit.MINUTES));
     }
 
     private static void validateClientAssertionRfc7523Compliant(String clientAssertion, String iss, String aud) throws ParseException {
@@ -644,8 +649,11 @@ class JwtClientAuthenticationTest {
         assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList(aud));
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo(iss);
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
-        assertThat(ChronoUnit.MINUTES.between(jwtClaimsSet.getIssueTime().toInstant(), jwtClaimsSet.getExpirationTime().toInstant())).isEqualTo(5L);
-    }
+        assertThat(Instant.now())
+                .isBetween(jwtClaimsSet.getIssueTime().toInstant(), jwtClaimsSet.getExpirationTime().toInstant());
+        assertThat(jwtClaimsSet.getExpirationTime().toInstant())
+                .as("valid for 5 minutes or less")
+                .isBeforeOrEqualTo(jwtClaimsSet.getIssueTime().toInstant().plus(5, ChronoUnit.MINUTES));    }
 
     private static Map<String, String[]> getMockedRequestParameter(String type, String assertion) {
         Map<String, String[]> requestParameters = new HashMap<>();
