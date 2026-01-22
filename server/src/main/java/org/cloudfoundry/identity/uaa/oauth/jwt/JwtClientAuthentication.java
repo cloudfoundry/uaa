@@ -110,8 +110,9 @@ public class JwtClientAuthentication {
         claims.setSub(subject);
         claims.setIss(issuer);
         claims.setJti(UUID.randomUUID().toString().replace("-", ""));
-        claims.setIat((int) Instant.now().minusSeconds(60).getEpochSecond());
-        claims.setExp(Instant.now().plusSeconds(240).getEpochSecond());
+        Instant now = Instant.now();
+        claims.setIat((int) now.minusSeconds(60).getEpochSecond());
+        claims.setExp(now.plusSeconds(240).getEpochSecond());
         KeyInfo signingKeyInfo = loadKeyInfo(keyInfoService, jwtClientConfiguration, kid, allowDynamicValueLookupInCustomZone);
         return signingKeyInfo.verifierCertificate().isPresent() ?
                 JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
