@@ -591,3 +591,23 @@ ldap:
     autoAdd: true
   externalGroupsWhitelist:
     - '*'
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+    resolve-schema-properties: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    url: /v3/api-docs
+    disable-swagger-default-url: true
+    try-it-out-enabled: true
+  show-actuator: false
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  disable-swagger-default-url: true
+  use-management-port: false
+  writer-with-default-pretty-printer: false
+  model-and-view-allowed: false
+  override-with-generic-response: false

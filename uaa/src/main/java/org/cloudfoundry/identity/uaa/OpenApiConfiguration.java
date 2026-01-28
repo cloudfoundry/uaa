@@ -8,8 +8,6 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
-import org.springdoc.core.models.GroupedOpenApi;
-import org.springdoc.core.properties.SpringDocConfigProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -28,16 +26,18 @@ public class OpenApiConfiguration {
     public OpenAPI uaaOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("UAA SCIM 2.0 API")
+                        .title("UAA API Reference")
                         .description("""
-                                UAA SCIM 2.0 API endpoints for managing admin roles and user groups.
-                                
-                                This API provides endpoints for:
-                                - Creating and managing groups (admin scopes)
-                                - Adding/removing users from groups (assigning admin roles)
-                                - Querying users and groups
-                                
-                                Based on SCIM 2.0 specification and UAA implementation.
+                                UAA (User Account and Authentication) is an OAuth2/OpenID Connect server 
+                                for centralized identity management. This API reference provides endpoints 
+                                for managing users, groups, and client applications.
+                            
+                                Key Features:
+                                - OAuth2 & OpenID Connect authentication
+                                - SCIM 2.0 user and group management
+                                - Identity provider integration (SAML, LDAP, OIDC)
+                                - Multi-tenancy via identity zones
+                                - Client application management                                
                                 """)
                         .version("1.0.0")
                         .contact(new Contact()
@@ -52,7 +52,7 @@ public class OpenApiConfiguration {
                                 .description("Local Development"),
                         new Server()
                                 .url("https://uaa.example.com")
-                                .description("UAA Server")
+                                .description("Production UAA Server")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()
@@ -61,27 +61,17 @@ public class OpenApiConfiguration {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
                                 .description("""
-                                        OAuth2 Bearer token with required scopes:
-                                        - scim.read: Read access to users and groups
-                                        - scim.write: Full access to create/update users and groups
-                                        - groups.update: Update group memberships
+                                        OAuth2 Bearer token (JWT format).
+                                    
+                                        Required scopes vary by endpoint:
+                                        - OAuth/Token: uaa.admin, clients.admin
+                                        - Users/Groups: scim.read, scim.write, groups.update
+                                        - Clients: clients.read, clients.write, clients.admin
+                                        - Identity Zones: zones.read, zones.write, uaa.admin
+                                        - Identity Providers: idps.read, idps.write
+                                    
+                                        Obtain tokens via /oauth/token endpoint.
                                         """)));
     }
 
-    @Bean
-    public GroupedOpenApi scimApi() {
-        return GroupedOpenApi.builder()
-                .group("scim")
-                .pathsToMatch("/Groups/**", "/Users/**")
-                .packagesToScan("org.cloudfoundry.identity.uaa.scim.endpoints")
-                .build();
-    }
-
-    @Bean
-    public SpringDocConfigProperties springDocConfigProperties() {
-        SpringDocConfigProperties properties = new SpringDocConfigProperties();
-        // Enable YAML format
-        properties.setWriterWithDefaultPrettyPrinter(true);
-        return properties;
-    }
 }
