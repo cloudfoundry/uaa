@@ -36,7 +36,8 @@ class HealthzEndpointTests {
         statement = mock(Statement.class);
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.createStatement()).thenReturn(statement);
-        endpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN, mockRuntime, dataSource);
+        String healthCheckStatement = "SELECT 1 FROM identity_zone;";
+        endpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN, mockRuntime, dataSource, healthCheckStatement);
         response = new MockHttpServletResponse();
 
         ArgumentCaptor<Thread> threadArgumentCaptor = ArgumentCaptor.forClass(Thread.class);
@@ -51,9 +52,10 @@ class HealthzEndpointTests {
     }
 
     @Test
-    void getHealthz_connectionSuccess() {
+    void getHealthz_connectionSuccess() throws SQLException {
         endpoint.isDataSourceConnectionAvailable();
         assertThat(endpoint.getHealthz(response)).isEqualTo("ok\n");
+        verify(statement).execute("SELECT 1 FROM identity_zone;");
     }
 
     @Test
@@ -62,6 +64,24 @@ class HealthzEndpointTests {
         endpoint.isDataSourceConnectionAvailable();
         assertThat(endpoint.getHealthz(response)).isEqualTo("Database Connection failed.\n");
         assertThat(response.getStatus()).isEqualTo(503);
+    }
+
+    @Test
+    void getHealthz_withChangedStatement() throws SQLException {
+        Runtime mockRuntime = mock(Runtime.class);
+        DataSource changedDataSource = mock(DataSource.class);
+        Connection changedConnection = mock(Connection.class);
+        Statement changeStatement = mock(Statement.class);
+        when(changedDataSource.getConnection()).thenReturn(changedConnection);
+        when(changedConnection.createStatement()).thenReturn(changeStatement);
+
+        String changedHealthCheckStatement = "SELECT 1;";
+        HealthzEndpoint changedEndpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN, mockRuntime, changedDataSource, changedHealthCheckStatement);
+        MockHttpServletResponse changedResponse = new MockHttpServletResponse();
+
+        changedEndpoint.isDataSourceConnectionAvailable();
+        assertThat(changedEndpoint.getHealthz(changedResponse)).isEqualTo("ok\n");
+        verify(changeStatement).execute(changedHealthCheckStatement);
     }
 
     @Test
@@ -81,7 +101,8 @@ class HealthzEndpointTests {
         void setUp() {
             Runtime mockRuntime = mock(Runtime.class);
             DataSource dataSource = mock(DataSource.class);
-            endpoint = new HealthzEndpoint(-1, mockRuntime, dataSource);
+            String healthCheckStatement = "SELECT 1 FROM identity_zone;";
+            endpoint = new HealthzEndpoint(-1, mockRuntime, dataSource, healthCheckStatement);
             response = new MockHttpServletResponse();
 
             ArgumentCaptor<Thread> threadArgumentCaptor = ArgumentCaptor.forClass(Thread.class);

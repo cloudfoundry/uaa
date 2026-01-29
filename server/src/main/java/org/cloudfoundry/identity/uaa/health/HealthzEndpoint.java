@@ -24,11 +24,14 @@ public class HealthzEndpoint {
     private volatile boolean stopping;
     private volatile Boolean wasLastConnectionSuccessful = null;
     private DataSource dataSource;
+    private String healthCheckStatement;
+
 
     public HealthzEndpoint(
             @Value("${uaa.shutdown.sleep:10000}") final long sleepTime,
             final Runtime runtime,
-            final DataSource dataSource) {
+            final DataSource dataSource,
+            @Value("${uaa.health.db.statement:SELECT 1 from identity_zone;}") final String healthCheckStatement) {
         Thread shutdownHook = new Thread(() -> {
             stopping = true;
             logger.warn("Shutdown hook received, future requests to this endpoint will return 503");
@@ -43,6 +46,7 @@ public class HealthzEndpoint {
         });
         runtime.addShutdownHook(shutdownHook);
         this.dataSource = dataSource;
+        this.healthCheckStatement = healthCheckStatement;
     }
 
     @GetMapping({"/healthz", "/healthz/**"})
@@ -72,7 +76,7 @@ public class HealthzEndpoint {
     @Scheduled(fixedRateString = "${uaa.health.db.rate:10000}")
     void isDataSourceConnectionAvailable() {
         try (Connection c = dataSource.getConnection(); Statement statement = c.createStatement()) {
-            statement.execute("SELECT 1 from identity_zone;"); //"SELECT 1;" Not supported by HSQLDB
+            statement.execute(healthCheckStatement);
             wasLastConnectionSuccessful = true;
             return;
         } catch (Exception ex) {
