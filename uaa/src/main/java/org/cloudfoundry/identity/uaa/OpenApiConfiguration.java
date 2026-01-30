@@ -10,15 +10,14 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springdoc.core.customizers.OpenApiCustomizer;
 
 import java.util.List;
 
 /**
- * OpenAPI 3.0 configuration for UAA SCIM API documentation.
+ * OpenAPI 3.0 configuration for UAA API documentation.
  * 
- * This configuration provides interactive API documentation for UAA SCIM endpoints,
- * specifically focused on admin role management capabilities.
+ * This configuration provides interactive API documentation for all UAA endpoints,
+ * including users, groups, clients, identity zones, and identity providers.
  */
 @Configuration
 public class OpenApiConfiguration {
@@ -70,15 +69,5 @@ public class OpenApiConfiguration {
                                     
                                         Obtain tokens via /oauth/token endpoint.
                                         """)));
-    }
-
-    @Bean
-    public OpenApiCustomizer sortTagsAlphabetically() {
-        return openApi -> {
-            if (openApi.getTags() != null) {
-            // Sort tags Z-A
-                openApi.getTags().sort((t1, t2) -> t2.getName().compareToIgnoreCase(t1.getName()));
-            }
-        };
     }
 }

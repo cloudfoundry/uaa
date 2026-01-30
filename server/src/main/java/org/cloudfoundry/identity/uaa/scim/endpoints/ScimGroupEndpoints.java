@@ -1,15 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
@@ -574,14 +565,14 @@ public class ScimGroupEndpoints {
     @PostMapping({"/Groups/{groupId}/members", "/Groups/{groupId}/members/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ScimGroupMember addMemberToGroup(@PathVariable String groupId,@RequestBody ScimGroupMember member) {
+    public ScimGroupMember addMemberToGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
         return membershipManager.addMember(groupId, member, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @DeleteMapping({"/Groups/{groupId}/members/{memberId}", "/Groups/{groupId}/members/{memberId}/"})
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
-    public ScimGroupMember deleteGroupMembership(@PathVariable String groupId,@PathVariable String memberId) {
+    public ScimGroupMember deleteGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
         return membershipManager.removeMemberById(groupId, memberId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
