@@ -377,6 +377,8 @@ springdoc:
     url: /v3/api-docs
     disable-swagger-default-url: true
     try-it-out-enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
   show-actuator: false
   default-consumes-media-type: application/json
   default-produces-media-type: application/json

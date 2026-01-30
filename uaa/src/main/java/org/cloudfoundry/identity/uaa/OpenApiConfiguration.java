@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 
 import java.util.List;
 
@@ -49,10 +50,7 @@ public class OpenApiConfiguration {
                 .servers(List.of(
                         new Server()
                                 .url("http://localhost:8080/uaa")
-                                .description("Local Development"),
-                        new Server()
-                                .url("https://uaa.example.com")
-                                .description("Production UAA Server")
+                                .description("Local Development")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()
@@ -74,4 +72,13 @@ public class OpenApiConfiguration {
                                         """)));
     }
 
+    @Bean
+    public OpenApiCustomizer sortTagsAlphabetically() {
+        return openApi -> {
+            if (openApi.getTags() != null) {
+            // Sort tags Z-A
+                openApi.getTags().sort((t1, t2) -> t2.getName().compareToIgnoreCase(t1.getName()));
+            }
+        };
+    }
 }
