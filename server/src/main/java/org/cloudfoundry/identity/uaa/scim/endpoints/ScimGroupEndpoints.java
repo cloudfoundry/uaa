@@ -566,7 +566,7 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimGroupMember addMemberToGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
-        
+
         return membershipManager.addMember(groupId, member, identityZoneManager.getCurrentIdentityZoneId());
     }
 
