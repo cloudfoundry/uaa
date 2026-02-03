@@ -8,6 +8,7 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,6 +22,12 @@ import java.util.List;
  */
 @Configuration
 public class OpenApiConfiguration {
+
+    private final BuildInfo buildInfo;
+
+    public OpenApiConfiguration(BuildInfo buildInfo) {
+        this.buildInfo = buildInfo;
+    }
 
     @Bean
     public OpenAPI uaaOpenAPI() {
@@ -39,17 +46,17 @@ public class OpenApiConfiguration {
                                 - Multi-tenancy via identity zones
                                 - Client application management                                
                                 """)
-                        .version("1.0.0")
+                        .version(buildInfo.getVersion())
                         .contact(new Contact()
-                                .name("UAA Team")
+                                .name("Cloudfoundry Foundation")
                                 .url("https://github.com/cloudfoundry/uaa"))
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0")))
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:8080/uaa")
-                                .description("Local Development")
+                                .url(buildInfo.getUaaUrl())
+                                .description("UAA Server")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()
