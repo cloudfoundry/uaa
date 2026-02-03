@@ -26,10 +26,10 @@ function main() {
   echo "Setting test worker heap to ${gradle_test_heap:=640m}"
 
   set -x
-  ./gradlew -Dspring.profiles.active=${test_profile} \
+  ./gradlew -Dspring.profiles.active="${test_profile}" \
             -Djava.security.egd=file:/dev/./urandom \
             "-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_heap} -XX:MaxMetaspaceSize=384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100" \
-            clean assemble compileTestJava \
+            clean compileTestJava \
             --no-watch-fs \
             --no-daemon \
             --no-configuration-cache \
@@ -37,7 +37,7 @@ function main() {
             --stacktrace \
             --console=plain
 
-    ./gradlew "-Dspring.profiles.active=${test_profile}" \
+    ./gradlew -Dspring.profiles.active="${test_profile}" \
             -Djava.security.egd=file:/dev/./urandom \
             "-Dorg.gradle.jvmargs=-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_test_heap} -XX:MaxMetaspaceSize=384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=2 -XX:CICompilerCount=2 -Djdk.lang.processReaperUseDefaultStackSize=true" \
             -Dorg.gradle.daemon.idletimeout=300000 \

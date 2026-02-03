@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.db.beans;
 
 import org.cloudfoundry.identity.uaa.db.FixFailedBackportMigrations_4_0_4;
 import org.flywaydb.core.Flyway;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
@@ -22,9 +23,12 @@ public class FlywayConfiguration {
      * We need to maintain backwards compatibility due to {@link FixFailedBackportMigrations_4_0_4}
      */
     static final String VERSION_TABLE = "schema_version";
+    static final String FLYWAY_CLEAN_DISABLED = "spring.flyway.clean-disabled";
 
     @Bean
-    public Flyway baseFlyway(DataSource dataSource, DatabaseProperties databaseProperties) {
+    public Flyway baseFlyway(ApplicationContext context, DataSource dataSource, DatabaseProperties databaseProperties) {
+        boolean cleanDisabled = context.getEnvironment().getProperty(FLYWAY_CLEAN_DISABLED, "true").equalsIgnoreCase("true");
+
         return Flyway.configure()
                 .baselineOnMigrate(true)
                 .dataSource(dataSource)
@@ -32,6 +36,7 @@ public class FlywayConfiguration {
                 .baselineVersion("1.5.2")
                 .validateOnMigrate(false)
                 .table(VERSION_TABLE)
+                .cleanDisabled(cleanDisabled)
                 .load();
     }
 

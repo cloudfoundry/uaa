@@ -7,10 +7,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 import java.sql.SQLException;
 
 @WithDatabaseContext
+@TestPropertySource(properties = {"spring.flyway.clean-disabled=false"})
 public abstract class DbMigrationIntegrationTestParent {
 
     @Autowired

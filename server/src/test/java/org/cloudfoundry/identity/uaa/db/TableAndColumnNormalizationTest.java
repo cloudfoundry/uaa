@@ -24,9 +24,11 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 
 /**
  * For MySQL, the database name is hardcoded in the {@link V1_5_4__NormalizeTableAndColumnNames} migration as
@@ -43,7 +45,7 @@ class MySQLConfiguration {
     @Order(TestDatabaseNameCustomizer.ORDER + 1)
     @Profile("mysql")
     JdbcUrlCustomizer mysqlHardcodedJdbcUrlCustomizer() {
-        return url -> "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true";
+        return url -> "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true&permitMysqlScheme=true";
     }
 }
 
@@ -56,7 +58,6 @@ class MySQLConfiguration {
         TestDatabaseNameCustomizer.class,
         MySQLConfiguration.class
 })
-@EnabledIfProfile({"postgresql", "mysql"})
 class TableAndColumnNormalizationTest {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -65,41 +66,71 @@ class TableAndColumnNormalizationTest {
     private DataSource dataSource;
 
     @Test
-    void checkTables() throws Exception {
+    @EnabledIfProfile({"postgresql", "mysql"})
+    void tableNamesAreLowercase() throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet rs = metaData.getTables(null, null, null, new String[]{"TABLE"});
-            int count = 0;
+            List<String> validatedTables = new ArrayList<>();
+            List<String> failures = new ArrayList<>();
+
             while (rs.next()) {
-                String name = rs.getString("TABLE_NAME");
-                logger.info("Checking table [{}]", name);
-                if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
-                    count++;
-                    logger.info("Validating table [{}]", name);
-                    assertThat(name).as("Table[%s] is not lower case.".formatted(name)).isEqualTo(name.toLowerCase());
+                String catalog = rs.getString("TABLE_CAT");
+                String table = rs.getString("TABLE_NAME");
+
+                logger.info("Checking table [{}.{}]", catalog, table);
+                if (isTableInUaaCatalog(catalog, table)) {
+                    logger.info("Validating table [{}.{}]", catalog, table);
+                    if (table.equals(table.toLowerCase())) {
+                        validatedTables.add(table);
+                    } else {
+                        failures.add("Table[%s.%s] is not lower case.".formatted(catalog, table));
+                    }
                 }
             }
-            assertThat(count).as("Table count:").isEqualTo(DatabaseInformation1_5_3.tableNames.size());
+            assertThat(validatedTables).hasSameElementsAs(DatabaseInformation1_5_3.tableNames);
+            assertThat(failures).isEmpty();
         }
     }
 
+    /**
+     * Only on postgresql are column names case-sensitive.
+     * Column names are not case-sensitive in MySQL on any platform.
+     *
+     * @throws SQLException
+     */
     @Test
-    void checkColumns() throws Exception {
+    @EnabledIfProfile({"postgresql"})
+    void columnNamesAreLowercase() throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet rs = metaData.getColumns(null, null, null, null);
             boolean hadSomeResults = false;
+            List<String> failures = new ArrayList<>();
+
             while (rs.next()) {
                 hadSomeResults = true;
-                String name = rs.getString("TABLE_NAME");
+                String catalog = rs.getString("TABLE_CAT");
+                String table = rs.getString("TABLE_NAME");
                 String col = rs.getString("COLUMN_NAME");
-                logger.info("Checking column [{}.{}]", name, col);
-                if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
-                    logger.info("Validating column [{}.{}]", name, col);
-                    assertThat(col.toLowerCase()).as("Column[%s.%s] is not lower case.".formatted(name, col)).isEqualTo(col);
+                logger.info("Checking column [{}.{}.{}]", catalog, table, col);
+
+                if (isTableInUaaCatalog(catalog, table)) {
+                    logger.info("Validating column [{}.{}]", table, col);
+                    if (!col.equals(col.toLowerCase())) {
+                        failures.add("Column[%s.%s.%s] is not lower case.".formatted(catalog, table, col));
+                    }
                 }
             }
             assertThat(hadSomeResults).as("Getting columns from db metadata should have returned some results").isTrue();
+            assertThat(failures).isEmpty();
         }
+    }
+
+    private static boolean isTableInUaaCatalog(String catalog, String table) {
+        return catalog != null
+                && catalog.startsWith("uaa")
+                && table != null
+                && DatabaseInformation1_5_3.tableNames.contains(table.toLowerCase());
     }
 }

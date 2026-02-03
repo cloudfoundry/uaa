@@ -7,7 +7,7 @@ permissions:
   pull-requests: read
 
 jobs:
-  container-test-job:
+  db-unit-test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -28,7 +28,7 @@ jobs:
         run: /root/uaa/scripts/unit_tests.sh ${PROFILE},default
         continue-on-error: true
       - name: Test result upload
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: steps.testrun.outcome == 'failure'
         with:
           name: Server test

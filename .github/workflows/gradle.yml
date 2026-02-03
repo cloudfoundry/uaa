@@ -6,17 +6,17 @@ on:
   pull_request:
     branches: [ develop ]
 
-# Run job on CF landscape, e.g. ubuntu 1804 and bellsoft java 21
+# Run unit tests on CF landscape: Ubuntu with various Bellsoft Liberica Java versions
 permissions:
   contents: read
 
 jobs:
   uaa_standalone_test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        java: [ '21' ]
+        java: [ '21', '25' ]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5

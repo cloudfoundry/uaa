@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.NonBlockingStatsDClient;
+import com.timgroup.statsd.StatsDClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -22,18 +23,22 @@ import org.springframework.scheduling.annotation.SchedulingConfigurer;
 
 import java.lang.management.ManagementFactory;
 import java.time.Instant;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.temporal.ChronoUnit;
 
 @Configuration
 @EnableScheduling
 public class StatsdConfiguration {
 
     @Bean
-    public UaaMetricsEmitter statsDClientWrapper() {
+    public StatsDClient statsDClient() {
+        return new NonBlockingStatsDClient("uaa", "localhost", 8125);
+    }
+
+    @Bean
+    public UaaMetricsEmitter statsDClientWrapper(StatsDClient statsDClient) {
         return new UaaMetricsEmitter(
                 new MetricsUtils(),
-                new NonBlockingStatsDClient("uaa", "localhost", 8125),
+                statsDClient,
                 ManagementFactory.getPlatformMBeanServer());
     }
 
@@ -45,16 +50,12 @@ public class StatsdConfiguration {
                     if (uaaMetricsEmitter.isNotificationEnabled()) {
                         return null;
                     }
-                    return triggerContext.lastCompletionTime() != null
-                            ? getFiveSecondsFrom(triggerContext.lastCompletionTime())
-                            : getFiveSecondsFrom(new Date());
+                    Instant lastCompletion = triggerContext.lastCompletion();
+                    return getFiveSecondsFrom(lastCompletion != null ? lastCompletion : Instant.now());
                 });
     }
 
-    private Instant getFiveSecondsFrom(Date date) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.add(Calendar.SECOND, 5);
-        return calendar.getTime().toInstant();
+    private Instant getFiveSecondsFrom(Instant instant) {
+        return instant.plus(5, ChronoUnit.SECONDS);
     }
 }

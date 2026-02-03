@@ -71,7 +71,10 @@ public class ExternalOAuthLogoutSuccessHandler extends SimpleUrlLogoutSuccessHan
         final String oauthLogoutUri = URLEncoder.encode(oauthLogoutUriBuilder.toString(), StandardCharsets.UTF_8);
 
         String idTokenHint = "";
-        if (authentication instanceof UaaAuthentication uaaAuthentication && uaaAuthentication.getIdpIdToken() != null) {
+        boolean omitIdTokenHint = oauthConfig instanceof OIDCIdentityProviderDefinition oidcConfig
+            && Boolean.TRUE.equals(oidcConfig.isOmitIdTokenHintOnLogout());
+
+        if (!omitIdTokenHint && authentication instanceof UaaAuthentication uaaAuthentication && uaaAuthentication.getIdpIdToken() != null) {
             idTokenHint = "&id_token_hint=%s".formatted(uaaAuthentication.getIdpIdToken());
         }
 

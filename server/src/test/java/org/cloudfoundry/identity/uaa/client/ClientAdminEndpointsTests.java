@@ -584,6 +584,27 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
+    void updateClientDetailsHandlesMultipleNullValuesInAdditionalInformation() {
+        Mockito.when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
+                new UaaClientDetails(input));
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+
+        input.setScope(Collections.singletonList(input.getClientId() + ".read"));
+        Map<String, Object> additionalInformation = new HashMap<>();
+        additionalInformation.put(ClientConstants.ALLOW_PUBLIC, null);
+        additionalInformation.put("notEmpty", "notEmpty");
+        additionalInformation.put("empty", null);
+        input.setAdditionalInformation(additionalInformation);
+
+        ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
+        assertThat(result).isNotNull();
+        detail.setScope(input.getScope());
+        detail.setAdditionalInformation(Map.of("notEmpty", "notEmpty"));
+        verify(clientRegistrationService).updateClientDetails(detail, "testzone");
+    }
+
+    @Test
     void partialUpdateClientDetails() {
         Mockito.when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());

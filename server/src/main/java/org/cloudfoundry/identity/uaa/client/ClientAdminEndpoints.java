@@ -84,6 +84,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -731,7 +732,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
         Map<String, Object> additionalInformation = new HashMap<>(existing.getAdditionalInformation());
         additionalInformation.putAll(input.getAdditionalInformation());
-        for (String key : Collections.unmodifiableSet(additionalInformation.keySet())) {
+        for (String key : Set.copyOf(additionalInformation.keySet())) {
             if (additionalInformation.get(key) == null) {
                 additionalInformation.remove(key);
             }

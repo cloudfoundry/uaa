@@ -9,6 +9,8 @@ import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.opensaml.saml.saml2.core.LogoutRequest;
+import org.opensaml.saml.saml2.core.NameID;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -147,7 +149,13 @@ public class SamlAuthenticationFilterConfig {
 
     @Bean
     Saml2LogoutRequestResolver saml2LogoutRequestResolver(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
-        return new OpenSaml4LogoutRequestResolver(relyingPartyRegistrationResolver);
+        OpenSaml4LogoutRequestResolver logoutRequestResolver = new OpenSaml4LogoutRequestResolver(relyingPartyRegistrationResolver);
+        logoutRequestResolver.setParametersConsumer((parameters) -> {
+            LogoutRequest logoutRequest = parameters.getLogoutRequest();
+            NameID nameId = logoutRequest.getNameID();
+            nameId.setFormat(parameters.getRelyingPartyRegistration().getNameIdFormat());
+        });
+        return logoutRequestResolver;
     }
 
     /**

@@ -1,6 +1,6 @@
 /*
  * *****************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,20 +13,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db;
 
+import org.springframework.jdbc.core.RowMapper;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-
-import org.springframework.jdbc.core.RowMapper;
 
 /**
  * Created by fhanik on 3/5/14.
  */
 public class DatabaseInformation1_5_3 {
 
-    public static List<String> tableNames = Collections.unmodifiableList(Arrays.asList(
+    public static final List<String> tableNames = List.of(
             "users",
             "sec_audit",
             "oauth_client_details",
@@ -35,8 +33,7 @@ public class DatabaseInformation1_5_3 {
             "oauth_code",
             "authz_approvals",
             "external_group_mapping"
-
-    ));
+    );
 
     public static boolean processColumn(ColumnInfo column) {
         return (!column.columnName.equals(column.columnName.toLowerCase())) &&

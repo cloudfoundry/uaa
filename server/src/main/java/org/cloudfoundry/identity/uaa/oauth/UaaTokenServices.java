@@ -64,6 +64,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -190,6 +191,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.excludedClaims = new HashSet<>(excludedClaims);
     }
 
+    @Autowired(required = false)
     public void setUaaTokenEnhancer(UaaTokenEnhancer uaaTokenEnhancer) {
         this.uaaTokenEnhancer = uaaTokenEnhancer;
     }

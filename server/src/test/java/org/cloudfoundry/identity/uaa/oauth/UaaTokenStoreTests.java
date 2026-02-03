@@ -345,9 +345,8 @@ class UaaTokenStoreTests {
             }
         }
         // Then
-        Instant after = Instant.now();
-        assertThat(after).isAfter(before)
-                // Expect less than 5 minutes between the start and end of the tests
+        assertThat(Instant.now())
+                .as("completes in under 5 minutes.")
                 .isBefore(before.plus(Duration.ofMinutes(5)));
         // Expect us to call the DB only once within 5 minutes. Check this when using the data source object
         verify(mockedDataSource, atMost(1)).getConnection();

@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpSession;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -47,8 +49,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -77,8 +77,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpSession;
 import java.io.File;
 import java.net.URI;
 import java.net.URL;
@@ -624,9 +622,7 @@ public class LoginMockMvcTests {
         securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
 
         Long lastLoginTime = ((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime();
-        assertThat(lastLoginTime).isGreaterThanOrEqualTo(beforeAuthTime)
-                .isLessThanOrEqualTo(afterAuthTime);
-
+        assertThat(lastLoginTime).isBetween(beforeAuthTime, afterAuthTime);
     }
 
     @Test

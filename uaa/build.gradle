@@ -55,6 +55,7 @@ dependencies {
     runtimeOnly(libraries.springRetry)
     runtimeOnly(libraries.aspectJWeaver)
     runtimeOnly(libraries.postgresql)
+    runtimeOnly(libraries.mariaJdbcDriver)
 
     implementation(libraries.braveInstrumentation)
     implementation(libraries.braveContextSlf4j)

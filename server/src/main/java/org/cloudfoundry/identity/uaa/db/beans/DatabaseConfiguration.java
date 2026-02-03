@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.HsqlDbLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.MySqlLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.PostgresLimitSqlAdapter;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
@@ -34,7 +35,7 @@ import java.util.Properties;
  * can be overridden by users, or in {@link DatabasePlatform} when they are static.
  * <p>
  * Note that we reference property sources directly here, without relying on Boot auto-discovery. We do this so
- * that all configuration is visible from a single place.
+ * that all configurations are visible from a single place.
  * <p>
  * The following beans and configurations are wired by Spring Boot auto-configuration.
  * <p>
@@ -93,9 +94,42 @@ public class DatabaseConfiguration {
         return url -> {
             DatabasePlatform databasePlatform = databaseProperties.getDatabasePlatform();
             var timeout = Duration.ofSeconds(databaseProperties.getConnecttimeout());
-            String connectorCharacter = url.contains("?") ? "&" : "?";
-            return url + connectorCharacter + "connectTimeout=" + databasePlatform.getJdbcUrlTimeoutValue(timeout);
+            long platformSpecificTimeout = databasePlatform.getJdbcUrlTimeoutValue(timeout);
+            return addConnectionParameter(url, "connectTimeout", Long.toString(platformSpecificTimeout));
         };
+    }
+
+    /**
+     * Use lower case table names with the mariadb driver
+     * and allow connection to mysql scheme urls
+     */
+    @Bean
+    @Profile("mysql")
+    JdbcUrlCustomizer jdbcUrlMariaDbSchemeCustomizer(DatabaseProperties databaseProperties) {
+        return url -> {
+            if (!url.startsWith("jdbc:mysql")) {
+                return url;
+            }
+            if (!databaseProperties.getDriverClassName().contains("mariadb")) {
+                return url;
+            }
+
+            // this is a mysql scheme url with the mariadb driver
+            url = addConnectionParameter(url, "permitMysqlScheme", "true");
+            url = addConnectionParameter(url, "lower_case_table_names", "1");
+            return url;
+        };
+    }
+
+    private static @NonNull String addConnectionParameter(String url, String parameter, String value) {
+        if (!url.contains(parameter + "=")) {
+            url += getConnectorCharacter(url) + parameter + "=" + value;
+        }
+        return url;
+    }
+
+    private static @NonNull String getConnectorCharacter(String url) {
+        return url.contains("?") ? "&" : "?";
     }
 
     @Bean
@@ -129,7 +163,7 @@ public class DatabaseConfiguration {
 
     @Configuration
     @Profile("postgresql")
-    // The property source location is already inferred by the profile but we make it explicit
+    // The property source location is already inferred by the profile, but we make it explicit
     @PropertySource("classpath:application-postgresql.properties")
     public static class PostgresConfiguration {
 
@@ -142,7 +176,7 @@ public class DatabaseConfiguration {
 
     @Configuration
     @Profile("mysql")
-    // The property source location is already inferred by the profile but we make it explicit
+    // The property source location is already inferred by the profile, but we make it explicit
     @PropertySource("classpath:application-mysql.properties")
     public static class MysqlConfiguration {
 

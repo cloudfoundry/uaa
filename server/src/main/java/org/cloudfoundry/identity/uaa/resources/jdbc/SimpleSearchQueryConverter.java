@@ -339,7 +339,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     private Object getStringOrDate(String s) {
         try {
-            DateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            DateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
             return timestampFormat.parse(s);
         } catch (ParseException x) {
             return s;

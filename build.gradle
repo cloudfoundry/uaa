@@ -144,7 +144,8 @@ subprojects {
         afterSuite { descriptor, result ->
             if (descriptor.parent == null) {
                 def duration = result.endTime - result.startTime
-                logger.lifecycle("[${project.name}] Unit tests completed: ${result.testCount} tests, ${result.successfulTestCount} passed, ${result.failedTestCount} failed, ${result.skippedTestCount} skipped in ${duration}ms")
+                def testLabel = result.testCount == 1 ? "unit-test" : "unit-tests"
+                logger.lifecycle("[${project.name}] Completed ${result.testCount} ${testLabel} in ${duration}ms (passed=${result.successfulTestCount};failed=${result.failedTestCount};skipped=${result.skippedTestCount})")
             }
         }
     }
@@ -195,7 +196,8 @@ subprojects {
         afterSuite { descriptor, result ->
             if (descriptor.parent == null) {
                 def duration = result.endTime - result.startTime
-                logger.lifecycle("[${project.name}] Integration tests completed: ${result.testCount} tests, ${result.successfulTestCount} passed, ${result.failedTestCount} failed, ${result.skippedTestCount} skipped in ${duration}ms")
+                def testLabel = result.testCount == 1 ? "integration-test" : "integration-tests"
+                logger.lifecycle("[${project.name}] Completed ${result.testCount} ${testLabel} in ${duration}ms (passed=${result.successfulTestCount};failed=${result.failedTestCount};skipped=${result.skippedTestCount})")
             }
         }
     }
