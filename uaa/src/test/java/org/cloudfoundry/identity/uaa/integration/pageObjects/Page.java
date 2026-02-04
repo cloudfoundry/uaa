@@ -71,17 +71,22 @@ public class Page {
     }
 
     public LoginPage assertThatLogout_goesToLoginPage(String baseUrl) {
-        return clickLogout(baseUrl);
+        clickLogout(baseUrl);
+        // check that we end in /login
+        return LoginPage.go(driver, baseUrl).assertThatLoginPageShown();
     }
 
-    private LoginPage clickLogout(String baseUrl) {
+    public LoggedOutPage assertThatLogout_goesToLoggedOutPage(final String baseUrl) {
+        clickLogout(baseUrl);
+        return new LoggedOutPage(driver, baseUrl); // checks that we end in "/logged_out"
+    }
+
+    private void clickLogout(String baseUrl) {
         try {
             ((UaaWebDriver) driver).pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-logout");
         } catch (WebDriverException e) {
             driver.get(baseUrl + "/logout.do");
         }
-        // check that we end in /login
-        return LoginPage.go(driver, baseUrl).assertThatLoginPageShown();
     }
 
     public void clearCookies() {

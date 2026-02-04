@@ -452,6 +452,57 @@ public class SamlLoginIT {
     }
 
     @Test
+    void singleLogout_ShouldRedirectToLoggedOutPageIfConfigured() {
+        final String zoneId = "testzone1";
+        final String zoneBaseUrl = baseUrl.replace("localhost", "%s.localhost".formatted(zoneId));
+
+        // create the zone "testzone1" with redirect to "/logged_out" endpoint after logout configured
+        final RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(
+                        baseUrl,
+                        new String[]{"zones.write", "zones.read", "scim.zones"},
+                        "identity",
+                        "identitysecret"
+                )
+        );
+        final IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
+        config.getLinks().getLogout().setRedirectUrl("/logged_out");
+        final IdentityZone createdIdz = IntegrationTestUtils.createZoneOrUpdateSubdomain(
+                identityClient, baseUrl, zoneId, zoneId, config
+        );
+        assertThat(createdIdz.getId()).isEqualTo(zoneId);
+        assertThat(createdIdz.getSubdomain()).isEqualTo(zoneId);
+        assertThat(createdIdz.getConfig().getLinks().getLogout().getRedirectUrl()).isEqualTo("/logged_out");
+
+        // create IdP in zone
+        final SamlIdentityProviderDefinition idpConfig = IntegrationTestUtils.createSimplePHPSamlIDP(
+                SAML_ORIGIN,
+                zoneId,
+                samlServerConfig.getSamlServerUrl()
+        );
+        final IdentityProvider<SamlIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setIdentityZoneId(zoneId);
+        idp.setType(OriginKeys.SAML);
+        idp.setActive(true);
+        idp.setConfig(idpConfig);
+        idp.setOriginKey(idpConfig.getIdpEntityAlias());
+        idp.setName("simplesamlphp for uaa");
+        final String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, zoneId);
+        final IdentityProvider<SamlIdentityProviderDefinition> createdIdp = IntegrationTestUtils.createOrUpdateProvider(
+                zoneAdminToken, baseUrl, idp
+        );
+        assertThat(createdIdp.getIdentityZoneId()).isEqualTo(zoneId);
+        assertThat(createdIdp.getOriginKey()).isEqualTo(SAML_ORIGIN);
+
+        LoginPage.go(webDriver, zoneBaseUrl)
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .assertThatLogout_goesToLoggedOutPage(zoneBaseUrl)
+                .assertThatBackToSignInLink_goesToLoginPage(zoneBaseUrl);
+    }
+
+    @Test
     void idpInitiatedLogout() {
         createIdentityProvider(SAML_ORIGIN);
 

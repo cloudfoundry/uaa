@@ -36,6 +36,8 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
     private boolean setForwardHeader;
     // Enable JWT Bearer Token Exchange Grant flow for this identity provider.
     private Boolean tokenExchangeEnabled;
+    // Omit id_token_hint parameter in logout requests to this identity provider.
+    private Boolean omitIdTokenHintOnLogout;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts;
     // Enables private_key_jwt towards identity provider.
@@ -104,6 +106,14 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         this.tokenExchangeEnabled = tokenExchangeEnabled;
     }
 
+    public Boolean isOmitIdTokenHintOnLogout() {
+        return omitIdTokenHintOnLogout;
+    }
+
+    public void setOmitIdTokenHintOnLogout(Boolean omitIdTokenHintOnLogout) {
+        this.omitIdTokenHintOnLogout = omitIdTokenHintOnLogout;
+    }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -129,6 +139,9 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         if (this.setForwardHeader != that.setForwardHeader) {
             return false;
         }
+        if (!Objects.equals(this.omitIdTokenHintOnLogout, that.omitIdTokenHintOnLogout)) {
+            return false;
+        }
         if (!Objects.equals(this.jwtClientAuthentication, that.jwtClientAuthentication)) {
             return false;
         }
@@ -148,9 +161,25 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
         result = 31 * result + (passwordGrantEnabled ? 1 : 0);
         result = 31 * result + (setForwardHeader ? 1 : 0);
+        result = 31 * result + (omitIdTokenHintOnLogout != null ? omitIdTokenHintOnLogout.hashCode() : 0);
         result = 31 * result + (jwtClientAuthentication != null ? jwtClientAuthentication.hashCode() : 0);
         result = 31 * result + (additionalAuthzParameters != null ? additionalAuthzParameters.hashCode() : 0);
         result = 31 * result + (tokenExchangeEnabled != null ? tokenExchangeEnabled.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "OIDCIdentityProviderDefinition{" +
+                "discoveryUrl=" + discoveryUrl +
+                ", passwordGrantEnabled=" + passwordGrantEnabled +
+                ", setForwardHeader=" + setForwardHeader +
+                ", tokenExchangeEnabled=" + tokenExchangeEnabled +
+                ", omitIdTokenHintOnLogout=" + omitIdTokenHintOnLogout +
+                ", prompts=" + prompts +
+                ", jwtClientAuthentication=" + jwtClientAuthentication +
+                ", additionalAuthzParameters=" + additionalAuthzParameters +
+                ", parent=" + super.toString() +
+                '}';
     }
 }

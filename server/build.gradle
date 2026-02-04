@@ -63,8 +63,9 @@ dependencies {
     }
 
     implementation(libraries.hibernateValidator)
-    implementation(libraries.flywayCore)
-    implementation(libraries.mariaJdbcDriver)
+    implementation(libraries.flywayHsqlDb)
+    implementation(libraries.flywayMySql)
+    implementation(libraries.flywayPostgresql)
     implementation(libraries.hsqldb)
 
     implementation(libraries.snakeyaml)
@@ -97,6 +98,7 @@ dependencies {
     testImplementation(libraries.mockitoJunit5)
 
     testImplementation(libraries.postgresql)
+    testImplementation(libraries.mariaJdbcDriver)
 
     testImplementation(libraries.tomcatElApi)
     testImplementation(libraries.tomcatJasperEl)

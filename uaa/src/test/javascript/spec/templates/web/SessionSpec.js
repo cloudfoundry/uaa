@@ -183,7 +183,7 @@ describe("Session", function() {
                 handler = sm.buildMessageHandler(origin, clientId);
             });
 
-            it("replies to the RP iframe with 'error'", function () {
+            it("with message hash, replies to the RP iframe with 'error'", function () {
                 handler({
                     data: hash,
                     origin: origin,
@@ -192,7 +192,7 @@ describe("Session", function() {
                 expect(postMessageSpy).toHaveBeenCalledWith('error', origin);
             });
 
-            it("replies to the RP iframe with 'error'", function () {
+            it("with message 'clientwithnosessionstate', replies to the RP iframe with 'error'", function () {
                 handler({
                     data: 'clientwithnosessionstate asfd',
                     origin: origin,
@@ -201,7 +201,7 @@ describe("Session", function() {
                 expect(postMessageSpy).toHaveBeenCalledWith('error', origin);
             });
 
-            it("replies to the RP iframe with 'error'", function () {
+            it("with message 'apps_manager_js hashwithoutsalt', replies to the RP iframe with 'error'", function () {
                 handler({
                     data: 'apps_manager_js hashwithoutsalt',
                     origin: origin,
@@ -210,7 +210,7 @@ describe("Session", function() {
                 expect(postMessageSpy).toHaveBeenCalledWith('error', origin);
             });
 
-            it("replies to the RP iframe with 'error'", function () {
+            it("with message 'apps_manager_js .saltwithouthash', replies to the RP iframe with 'error'", function () {
                 handler({
                     data: 'apps_manager_js .saltwithouthash',
                     origin: origin,

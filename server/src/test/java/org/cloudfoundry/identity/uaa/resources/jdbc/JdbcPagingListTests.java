@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -144,14 +145,15 @@ class JdbcPagingListTests {
     }
 
     @Test
-    void testWrongStatement() {
+    void wrongStatement() {
         assertThatThrownBy(() -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "Insert ('6', 'sab') from foo", new ColumnMapRowMapper(), 3))
                 .isInstanceOf(BadSqlGrammarException.class);
 
         assertThatThrownBy(() -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * ", new ColumnMapRowMapper(), 3))
                 .isInstanceOfAny(
                         BadSqlGrammarException.class, // hsqldb, postgres
-                        TransientDataAccessResourceException.class // mysql
+                        TransientDataAccessResourceException.class, // mysql
+                        UncategorizedSQLException.class // mariadb driver
                 );
     }
 

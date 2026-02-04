@@ -8,16 +8,13 @@ versions.apacheDsVersion = "2.0.0.AM27"
 versions.bouncyCastleFipsVersion = "2.1.2"
 versions.bouncyCastlePkixFipsVersion = "2.1.9"
 versions.bouncyCastleTlsFipsVersion = "2.1.20"
-versions.springBootVersion = "3.5.8"
+versions.springBootVersion = "3.5.10"
 versions.guavaVersion = "33.4.8-jre"
 versions.seleniumVersion = "4.38.0"
 versions.braveVersion = "6.3.0"
 versions.opensaml = "4.0.1"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
-ext["mariadb.version"] = "2.7.12" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
-ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
-ext["hsqldb.version"] = "2.7.4" // HSQL-DB used for tests but not supported for productive usage
 ext["selenium.version"] = "${versions.seleniumVersion}" // Selenium for integration tests only
 
 // Dependencies (some rely on shared versions, some are shared between projects)
@@ -37,6 +34,9 @@ libraries.commonsIo = "commons-io:commons-io:2.20.0"
 libraries.dumbster = "dumbster:dumbster:1.6"
 libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r"
 libraries.flywayCore = "org.flywaydb:flyway-core"
+libraries.flywayHsqlDb = "org.flywaydb:flyway-database-hsqldb"
+libraries.flywayMySql = "org.flywaydb:flyway-mysql"
+libraries.flywayPostgresql = "org.flywaydb:flyway-database-postgresql"
 libraries.greenmail = "com.icegreen:greenmail:2.1.5"
 libraries.guava = "com.google.guava:guava:${versions.guavaVersion}"
 libraries.guavaTestLib = "com.google.guava:guava-testlib:${versions.guavaVersion}"

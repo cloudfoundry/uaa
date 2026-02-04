@@ -555,6 +555,7 @@ public final class TestOpenSamlObjects {
         logoutRequest.setID("id");
         NameIDBuilder nameIdBuilder = new NameIDBuilder();
         NameID nameId = nameIdBuilder.buildObject();
+        nameId.setFormat(registration.getNameIdFormat());
         nameId.setValue("user");
         logoutRequest.setNameID(nameId);
         IssuerBuilder issuerBuilder = new IssuerBuilder();

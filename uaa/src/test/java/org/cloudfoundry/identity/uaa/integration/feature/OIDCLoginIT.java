@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,6 +68,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -74,6 +76,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -133,6 +136,10 @@ public class OIDCLoginIT {
         );
 
         IdentityZoneConfiguration zoneConfiguration = new IdentityZoneConfiguration();
+
+        // configure redirect to "/logged_out" after logout
+        zoneConfiguration.setLinks(new Links().setLogout(new Links.Logout().setRedirectUrl("/logged_out")));
+
         //create the zone
         zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, subdomain, subdomain, zoneConfiguration);
         adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
@@ -221,6 +228,7 @@ public class OIDCLoginIT {
 
     private void logout(String zoneUrl) {
         webDriver.get(zoneUrl + "/logout.do");
+        assertRedirectToLoggedOutPage(zoneUrl);
         webDriver.get(zoneUrl + "/");
     }
 
@@ -629,5 +637,14 @@ public class OIDCLoginIT {
         policy.setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
         config.setTokenPolicy(policy);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zone.getId(), zone.getSubdomain(), config);
+    }
+
+    private void assertRedirectToLoggedOutPage(final String zoneUrl) {
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(webDriver.getCurrentUrl()).endsWith("/logged_out"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText())
+                .contains("You have successfully logged out.");
+        assertThat(webDriver.findElement(By.linkText("Back to Sign In")).getAttribute("href"))
+                .isEqualTo(zoneUrl + "/login");
     }
 }

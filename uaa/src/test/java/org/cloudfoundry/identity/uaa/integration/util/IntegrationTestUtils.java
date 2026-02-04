@@ -970,6 +970,19 @@ public class IntegrationTestUtils {
         return getZoneAdminToken(baseUrl, serverRunning, OriginKeys.UAA);
     }
 
+    /**
+     * Fetches a token that can be used to administer a specific zone.
+     *
+     * <ol>
+     *     <li>creates a user in the UAA zone using the admin client</li>
+     *     <li>creates a group <code>zones.ZONE_ID.admin</code> in the UAA zone using the admin client</li>
+     *     <li>assigns the group to the user</li>
+     *     <li>fetches a token for the user with the identity client</li>
+     * </ol>
+     * <p>
+     * The resulting token is issued for the UAA zone and can be used to administer the specified zone by adding one of
+     * the zone switching headers to the subsequent request.
+     */
     public static String getZoneAdminToken(String baseUrl, ServerRunningExtension serverRunning, String zoneId) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
