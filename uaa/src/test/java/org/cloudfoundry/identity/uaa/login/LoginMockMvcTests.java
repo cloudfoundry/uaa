@@ -1080,7 +1080,7 @@ public class LoginMockMvcTests {
     void defaultBranding() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
-                .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
+                .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.min.css']").exists())
                 .andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
     }
 

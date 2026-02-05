@@ -22,7 +22,7 @@
     <meta name='keywords' content=""/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
-    <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
+    <link href="/resources/oss/stylesheets/application.min.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.min.css'}" rel="stylesheet"/>
     <style th:unless="${#strings.isEmpty(logo)}" th:text="'.header-image {' + (|background-image: url(@{${logo}});|) + '}'">
         .header-image {
             background-image: url(/resources/oss/images/product-logo.png);
