@@ -160,8 +160,6 @@ class UaaRelyingPartyRegistrationResolverTests {
         RelyingPartyRegistration result = resolverWithNullOrEmptyBaseUrl.resolve(request, "test-idp");
 
         assertThat(result).isNotNull();
-        assertThat(result.getEntityId()).startsWith("https://uaa.example.com");
-        assertThat(result.getAssertionConsumerServiceLocation()).startsWith("https://uaa.example.com");
         assertThat(result.getEntityId()).isEqualTo(expectedBaseUrl +"/saml/metadata");
         assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(expectedBaseUrl +"/saml/SSO");
     }
@@ -198,8 +196,6 @@ class UaaRelyingPartyRegistrationResolverTests {
         RelyingPartyRegistration result = resolverWithConfiguredBaseUrl.resolve(request, "test-idp");
 
         assertThat(result).isNotNull();
-        assertThat(result.getEntityId()).startsWith("https://custom.domain.com");
-        assertThat(result.getAssertionConsumerServiceLocation()).startsWith("https://custom.domain.com");
         assertThat(result.getEntityId()).isEqualTo(configuredBaseUrl + "/saml/metadata");
         assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(configuredBaseUrl + "/saml/SSO");
         assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(configuredBaseUrl + "/saml/SingleLogout");
