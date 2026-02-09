@@ -139,6 +139,8 @@ class UaaRelyingPartyRegistrationResolverTests {
         request.setContextPath("/uaa-security");
         request.setRequestURI("/uaa-security/saml/metadata/test-idp");
 
+        String expectedBaseUrl = "https://uaa.example.com/uaa-security";
+
         RelyingPartyRegistration testRegistration = RelyingPartyRegistration.withRegistrationId("test-idp")
                 .entityId("{baseUrl}/saml/metadata")
                 .assertionConsumerServiceLocation("{baseUrl}/saml/SSO")
@@ -160,8 +162,8 @@ class UaaRelyingPartyRegistrationResolverTests {
         assertThat(result).isNotNull();
         assertThat(result.getEntityId()).startsWith("https://uaa.example.com");
         assertThat(result.getAssertionConsumerServiceLocation()).startsWith("https://uaa.example.com");
-        assertThat(result.getEntityId()).isEqualTo("https://uaa.example.com/uaa-security/saml/metadata");
-        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo("https://uaa.example.com/uaa-security/saml/SSO");
+        assertThat(result.getEntityId()).isEqualTo(expectedBaseUrl +"/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(expectedBaseUrl +"/saml/SSO");
     }
 
     @Test
@@ -198,8 +200,8 @@ class UaaRelyingPartyRegistrationResolverTests {
         assertThat(result).isNotNull();
         assertThat(result.getEntityId()).startsWith("https://custom.domain.com");
         assertThat(result.getAssertionConsumerServiceLocation()).startsWith("https://custom.domain.com");
-        assertThat(result.getEntityId()).isEqualTo("https://custom.domain.com/uaa/saml/metadata");
-        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo("https://custom.domain.com/uaa/saml/SSO");
-        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo("https://custom.domain.com/uaa/saml/SingleLogout");
+        assertThat(result.getEntityId()).isEqualTo(configuredBaseUrl + "/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(configuredBaseUrl + "/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(configuredBaseUrl + "/saml/SingleLogout");
     }
 }
