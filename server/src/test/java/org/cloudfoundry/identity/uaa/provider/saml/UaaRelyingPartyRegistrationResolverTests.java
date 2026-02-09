@@ -124,7 +124,6 @@ class UaaRelyingPartyRegistrationResolverTests {
 
     @Test
     void resolveWhenEntityBaseUrlIsNotSetUsesRequestUrl() {
-        // Create resolver with null entityBaseURL
         UaaRelyingPartyRegistrationResolver resolverWithNullBaseUrl =
             new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", null);
 
@@ -162,7 +161,6 @@ class UaaRelyingPartyRegistrationResolverTests {
 
     @Test
     void resolveWhenEntityBaseUrlIsSetUsesConfiguredEntityBaseUrl() {
-        // Create resolver with configured entityBaseURL
         String configuredBaseUrl = "https://custom.domain.com/uaa";
         UaaRelyingPartyRegistrationResolver resolverWithConfiguredBaseUrl =
             new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", configuredBaseUrl);
@@ -202,7 +200,6 @@ class UaaRelyingPartyRegistrationResolverTests {
 
     @Test
     void resolveWhenEntityBaseUrlIsEmptyUsesRequestUrl() {
-        // Create resolver with empty entityBaseURL
         UaaRelyingPartyRegistrationResolver resolverWithEmptyBaseUrl =
             new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", "");
 
