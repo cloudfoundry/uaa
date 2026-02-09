@@ -58,7 +58,7 @@ class UaaRelyingPartyRegistrationResolverTests {
     void beforeEach() {
         registration = mock(RelyingPartyRegistration.class);
         repository = mock(RelyingPartyRegistrationRepository.class);
-        resolver = new UaaRelyingPartyRegistrationResolver(repository, "clouodfoundry-saml-login", "http://localhost:8080/uaa");
+        resolver = new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", "http://localhost:8080/uaa");
     }
 
     @Test
