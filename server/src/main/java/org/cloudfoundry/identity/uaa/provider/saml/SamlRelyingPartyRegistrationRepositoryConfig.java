@@ -107,7 +107,8 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
 
     @Bean
     UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-            @Qualifier("samlEntityID") String samlEntityID) {
-        return new UaaRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, Optional.ofNullable(samlConfigProps.getEntityIDAlias()).orElse(samlEntityID));
+            @Qualifier("samlEntityID") String samlEntityID,
+            @Value("${login.entityBaseURL:#{null}}") String entityBaseURL) {
+        return new UaaRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, Optional.ofNullable(samlConfigProps.getEntityIDAlias()).orElse(samlEntityID), entityBaseURL);
     }
 }
