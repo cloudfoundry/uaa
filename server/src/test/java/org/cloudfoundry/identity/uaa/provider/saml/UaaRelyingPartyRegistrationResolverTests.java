@@ -19,6 +19,9 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
@@ -122,10 +125,12 @@ class UaaRelyingPartyRegistrationResolverTests {
         assertThatIllegalArgumentException().isThrownBy(() -> new UaaRelyingPartyRegistrationResolver(null, null, null));
     }
 
-    @Test
-    void resolveWhenEntityBaseUrlIsNotSetUsesRequestUrl() {
-        UaaRelyingPartyRegistrationResolver resolverWithNullBaseUrl =
-            new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", null);
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {""})
+    void resolveWhenEntityBaseUrlIsNullOrEmptyUsesRequestUrl(String baseUrl) {
+        UaaRelyingPartyRegistrationResolver resolverWithNullOrEmptyBaseUrl =
+            new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", baseUrl);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("https");
@@ -150,7 +155,7 @@ class UaaRelyingPartyRegistrationResolverTests {
 
         doReturn(testRegistration).when(repository).findByRegistrationId("test-idp");
 
-        RelyingPartyRegistration result = resolverWithNullBaseUrl.resolve(request, "test-idp");
+        RelyingPartyRegistration result = resolverWithNullOrEmptyBaseUrl.resolve(request, "test-idp");
 
         assertThat(result).isNotNull();
         assertThat(result.getEntityId()).startsWith("https://uaa.example.com");
@@ -196,42 +201,5 @@ class UaaRelyingPartyRegistrationResolverTests {
         assertThat(result.getEntityId()).isEqualTo("https://custom.domain.com/uaa/saml/metadata");
         assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo("https://custom.domain.com/uaa/saml/SSO");
         assertThat(result.getSingleLogoutServiceLocation()).isEqualTo("https://custom.domain.com/uaa/saml/SingleLogout");
-    }
-
-    @Test
-    void resolveWhenEntityBaseUrlIsEmptyUsesRequestUrl() {
-        UaaRelyingPartyRegistrationResolver resolverWithEmptyBaseUrl =
-            new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", "");
-
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setScheme("https");
-        request.setServerName("uaa.example.com");
-        request.setServerPort(443);
-        request.setContextPath("/uaa-security");
-        request.setRequestURI("/uaa-security/saml/metadata/test-idp");
-
-        RelyingPartyRegistration testRegistration = RelyingPartyRegistration.withRegistrationId("test-idp")
-                .entityId("{baseUrl}/saml/metadata")
-                .assertionConsumerServiceLocation("{baseUrl}/saml/SSO")
-                .assertionConsumerServiceBinding(Saml2MessageBinding.POST)
-                .singleLogoutServiceLocation("{baseUrl}/saml/SingleLogout")
-                .singleLogoutServiceResponseLocation("{baseUrl}/saml/SingleLogout")
-                .singleLogoutServiceBinding(Saml2MessageBinding.POST)
-                .assertingPartyMetadata(party -> party
-                        .entityId("https://idp.example.com")
-                        .singleSignOnServiceLocation("https://idp.example.com/sso")
-                        .singleSignOnServiceBinding(Saml2MessageBinding.POST)
-                        .wantAuthnRequestsSigned(false))
-                .build();
-
-        doReturn(testRegistration).when(repository).findByRegistrationId("test-idp");
-
-        RelyingPartyRegistration result = resolverWithEmptyBaseUrl.resolve(request, "test-idp");
-
-        assertThat(result).isNotNull();
-        assertThat(result.getEntityId()).startsWith("https://uaa.example.com");
-        assertThat(result.getAssertionConsumerServiceLocation()).startsWith("https://uaa.example.com");
-        assertThat(result.getEntityId()).isEqualTo("https://uaa.example.com/uaa-security/saml/metadata");
-        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo("https://uaa.example.com/uaa-security/saml/SSO");
     }
 }
