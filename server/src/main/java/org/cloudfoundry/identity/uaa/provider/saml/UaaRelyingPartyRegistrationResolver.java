@@ -43,10 +43,10 @@ import java.util.function.Function;
 @Slf4j
 public final class UaaRelyingPartyRegistrationResolver implements Converter<HttpServletRequest, RelyingPartyRegistration>, RelyingPartyRegistrationResolver {
 
+    private final String entityBaseURL;
     private final String uaaWideSamlEntityIDAlias;
     private final RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
     private final RequestMatcher registrationRequestMatcher = new AntPathRequestMatcher("/**/{registrationId}");
-    private final String entityBaseURL;
 
     public UaaRelyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
             String uaaWideSamlEntityIDAlias,
