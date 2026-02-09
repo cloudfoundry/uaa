@@ -91,7 +91,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
                         List.of(SignatureAlgorithm.SHA256, SignatureAlgorithm.SHA512));
 
         RelyingPartyRegistrationRepository relyingPartyRegistrationRepository = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationRepository(identityProviderConfigurator);
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationResolver(relyingPartyRegistrationRepository, null);
+        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationResolver(relyingPartyRegistrationRepository, null, "http://localhost:8080/uaa");
 
         provider = new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
                null);
