@@ -162,6 +162,7 @@ class UaaRelyingPartyRegistrationResolverTests {
         assertThat(result).isNotNull();
         assertThat(result.getEntityId()).isEqualTo(expectedBaseUrl +"/saml/metadata");
         assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(expectedBaseUrl +"/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SingleLogout");
     }
 
     @Test
