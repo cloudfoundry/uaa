@@ -84,7 +84,7 @@ class UaaRelyingPartyRegistrationResolverTests {
     @Test
     void resolveWhenRequestIsWithInvalidSamlResponse() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setPathInfo("/some/path/clouodfoundry-saml-login");
+        request.setPathInfo("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
         request.setParameter("SAMLResponse", "PGJhc2U2ND4=");
         assertThatExceptionOfType(Saml2AuthenticationException.class).isThrownBy(() -> resolver.resolve(request, null));
@@ -93,7 +93,7 @@ class UaaRelyingPartyRegistrationResolverTests {
     @Test
     void resolveWhenRequestIsWithValiddSamlResponseFromSimplySamlButNoTrust() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setPathInfo("/some/path/clouodfoundry-saml-login");
+        request.setPathInfo("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
         request.setParameter("SAMLResponse", SIMPLE_SAML_RESPONSE);
         assertThat(resolver.resolve(request, null)).isNull();
@@ -114,7 +114,7 @@ class UaaRelyingPartyRegistrationResolverTests {
         doReturn(mock(Saml2MessageBinding.class)).when(details).getSingleSignOnServiceBinding();
         doReturn(mock(Saml2MessageBinding.class)).when(newMock).getAssertionConsumerServiceBinding();
         doReturn(newMock).when(repository).findByRegistrationId("http://uaa-acceptance.cf-app.com/saml-idp");
-        request.setPathInfo("/some/path/clouodfoundry-saml-login");
+        request.setPathInfo("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
         request.setParameter("SAMLResponse", SIMPLE_SAML_RESPONSE);
         assertThat(resolver.resolve(request, null).getEntityId()).isEqualTo("simpleEndityID");
