@@ -110,9 +110,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
     UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
             @Qualifier("samlEntityID") String samlEntityID,
             @Value("${login.entityBaseURL:#{null}}") String entityBaseURL) {
-        String normalizedBaseUrl = StringUtils.trimTrailingCharacter(entityBaseURL, '/');
-
         return new UaaRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository,
-                Optional.ofNullable(samlConfigProps.getEntityIDAlias()).orElse(samlEntityID), normalizedBaseUrl);
+                Optional.ofNullable(samlConfigProps.getEntityIDAlias()).orElse(samlEntityID), entityBaseURL);
     }
 }

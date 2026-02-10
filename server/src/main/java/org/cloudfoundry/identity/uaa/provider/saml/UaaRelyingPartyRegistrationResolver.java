@@ -54,7 +54,7 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
         Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
         this.relyingPartyRegistrationRepository = relyingPartyRegistrationRepository;
         this.uaaWideSamlEntityIDAlias = uaaWideSamlEntityIDAlias;
-        this.entityBaseURL = entityBaseURL;
+        this.entityBaseURL = StringUtils.trimTrailingCharacter(entityBaseURL, '/');
     }
 
     public RelyingPartyRegistration convert(HttpServletRequest request) {
