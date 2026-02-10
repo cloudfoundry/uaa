@@ -27,6 +27,7 @@ import org.springframework.security.saml2.provider.service.authentication.Saml2A
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
+import org.springframework.util.StringUtils;
 
 import java.security.Security;
 
@@ -165,9 +166,9 @@ class UaaRelyingPartyRegistrationResolverTests {
         assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SingleLogout");
     }
 
-    @Test
-    void resolveWhenEntityBaseUrlIsSetUsesConfiguredEntityBaseUrl() {
-        String configuredBaseUrl = "https://custom.domain.com/uaa";
+    @ParameterizedTest
+    @ValueSource(strings = {"https://custom.domain.com/uaa", "https://trailing.slash.domain.com/uaa/", "https://many.trailing.slashes.domain.com/uaa///"})
+    void resolveWhenEntityBaseUrlIsSetUsesConfiguredEntityBaseUrl(String configuredBaseUrl) {
         UaaRelyingPartyRegistrationResolver resolverWithConfiguredBaseUrl =
             new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", configuredBaseUrl);
 
@@ -177,6 +178,8 @@ class UaaRelyingPartyRegistrationResolverTests {
         request.setServerPort(443);
         request.setContextPath("/uaa-security");
         request.setRequestURI("/uaa-security/saml/metadata/test-idp");
+
+        String expectedBaseUrl = StringUtils.trimTrailingCharacter(configuredBaseUrl, '/');
 
         RelyingPartyRegistration testRegistration = RelyingPartyRegistration.withRegistrationId("test-idp")
                 .entityId("{baseUrl}/saml/metadata")
@@ -197,8 +200,8 @@ class UaaRelyingPartyRegistrationResolverTests {
         RelyingPartyRegistration result = resolverWithConfiguredBaseUrl.resolve(request, "test-idp");
 
         assertThat(result).isNotNull();
-        assertThat(result.getEntityId()).isEqualTo(configuredBaseUrl + "/saml/metadata");
-        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(configuredBaseUrl + "/saml/SSO");
-        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(configuredBaseUrl + "/saml/SingleLogout");
+        assertThat(result.getEntityId()).isEqualTo(expectedBaseUrl + "/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SingleLogout");
     }
 }
