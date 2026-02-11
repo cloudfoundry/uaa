@@ -367,6 +367,6 @@ class EmailChangeEmailServiceTest {
 
         assertThat(emailBody).contains("A request has been made to change the email for %s from %s to %s".formatted(zoneName, "user@example.com", "new@example.com"))
                 .contains("<a href=\"http://test.localhost/login/verify_email?code=the_secret_code\">Verify your email</a>")
-                .contains("Thank you,<br />\n    " + zoneName);
+                .containsIgnoringWhitespaces("Thank you,<br /> " + zoneName);
     }
 }
