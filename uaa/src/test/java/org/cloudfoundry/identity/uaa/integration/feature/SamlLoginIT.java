@@ -64,6 +64,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.client.RestOperations;
@@ -108,6 +109,7 @@ import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @ExtendWith(ScreenshotOnFailExtension.class)
+@TestPropertySource(properties = "login.entityBaseURL=")
 public class SamlLoginIT {
 
     private static final String MARISSA2_USERNAME = "marissa2";

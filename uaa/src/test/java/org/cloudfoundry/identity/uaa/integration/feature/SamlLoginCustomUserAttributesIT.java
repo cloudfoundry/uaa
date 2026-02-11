@@ -46,6 +46,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.web.client.RestTemplate;
 
@@ -72,6 +73,7 @@ import static org.springframework.http.HttpMethod.POST;
  */
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @ExtendWith(ScreenshotOnFailExtension.class)
+@TestPropertySource(properties = "login.entityBaseURL=")
 class SamlLoginCustomUserAttributesIT {
 
     private static final String SAML_ORIGIN = "simplesamlphp";
