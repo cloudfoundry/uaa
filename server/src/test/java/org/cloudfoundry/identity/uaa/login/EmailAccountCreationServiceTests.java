@@ -175,6 +175,7 @@ class EmailAccountCreationServiceTests {
         assertThat(emailBody).contains("A request has been made to activate an account for:")
                 .contains("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>")
                 .containsIgnoringWhitespaces("Thank you,<br /> " + zoneName);
+        assertThat(emailBody).doesNotContain("Cloud Foundry");
     }
 
     @Test
