@@ -1906,12 +1906,7 @@ td.visible-print {
   th.hidden-print,
   td.hidden-print {
     display: none !important; } }
-/* ==========================================================================
-  Compass Helpers
-  ========================================================================== */
-/* ==========================================================================
-   Mixin and functions
-   ========================================================================== */
+
 /*
  * clearfix     used project wide to clear floats and create a new formatting context
  * usage      @include clearfix-me(<empty|overflow|facebook|micro|stubborn>)
@@ -1973,67 +1968,6 @@ td.visible-print {
 table h1, table h2, table h3, table h4, table h5, table h6, table p, table ul, table ol, table dl, table blockquote, table .media, table pre {
   margin-top: 0;
   margin-bottom: 0; }
-
-/* *
- * debug default spacing 
- * set $debug-spacing to true to visualize spacing and positioning
- */
-/* ==========================================================================
-   Spacing helpers
-   ========================================================================== */
-/**
- * Spacing helpers 
- * Should be used to modify the default spacing between objects (not between nodes of the same object)
- * Please use judiciously. You want to be using defaults most of the time, these are exceptions! 
- * <type><location><size>
- *
- * p,m 				padding,margin
- * a,t,r,b,l,h,v	all,top,right,bottom,left,horizontal,vertical
- * s,m,l,n 			small(5px),medium(10px),large(20px),none(0px)
- */
-/*
- * Can define your own spacing units, or calculate the units based on how many spacing sizes you want
- * 
- * @param $units - specific spacing units you want to use. Must go from small to large
- * e.g. @include whitespace((5px,10px,20px));
- *
- * @param $sizes - how many sizes you want. Calculate sizes based on line-height
- * e.g. @include whitespace((), 4);
- *
- */
-/* FOPPPPPP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*doc
----
-title: Hiding and Showing
-name: hide
-category: Base CSS
----
-### Javascript
-
-Try disabling js and rendering this page.
-
-```haml_example
-%h3.invisible-no-js Won't show if browser doesn't support JS.
-```
-
-### Printing
-Try printing this page to see these styles in action.
-
-```haml_example
-%h3.print-only This will only show when printed
-%h3.no-print This will not show when printed
-```
-
-*/
-.no-js .invisible-no-js {
-  visibility: hidden; }
-
-.print-only {
-  display: none; }
-
-/* Button Mixins */
-.container-main {
-  padding-bottom: 30px; }
 
 /*doc
 ---
@@ -3558,73 +3492,6 @@ Use `.checkbox-inline` or `.radio-inline` class to a series of checkboxes or rad
 */
 input[type="radio"] {
   margin-top: 2px; }
-
-/*doc
----
-title: Inline Forms
-name: inline_forms
-parent: form
-category: Base CSS
----
-
-Add `.form-inline` to your `<form>` for left-aligned and inline-block controls. This only applies to forms within viewports that are at least 768px wide.
-
-
-<div class="alert alert-warning">
-<h2 class="mtn">Requires custom widths</h2>
-Inputs, selects, and textareas are 100% wide by default in Bootstrap. To use the inline form, you'll have to set a width on the form controls used within.
-</div>
-
-<div class="alert alert-warning">
-<h2 class="mtn">Always add labels</h2>
-Screen readers will have trouble with your forms if you don't include a label for every input. For these inline forms, you can hide the labels using the <code>.sr-only</code> class.
-</div>
-
-
-```haml_example
-%form.styleguide-form.form-inline{:role => "form"}
-  .form-group
-    %label.sr-only{:for => "exampleInputEmail2"} Email address
-    %input#exampleInputEmail2.form-control{:placeholder => "Enter email", :type => "email"}
-  .form-group
-    %label.sr-only{:for => "exampleInputPassword2"} Password
-    %input#exampleInputPassword2.form-control{:placeholder => "Password", :type => "password"}
-  .checkbox
-    %label
-      %input{:type => "checkbox"}
-      Remember me
-  %button.btn.btn-primary{:type => "submit"} Sign in
-```
-*/
-/*doc
----
-title: Inline Forms with Labels
-name: inline_forms_with_labels
-parent: form
-category: Base CSS
----
-
-Add `.form-inline.inline-labels` to your `<form>` for left-aligned and inline-block controls with labels inline with inputs.
-
-
-```haml_example
-%form.styleguide-form.form-inline.inline-labels{:role => "form"}
-  .form-group
-    %label{:for => "exampleInputEmail2"} Write a thing
-    %input#exampleInputEmail2.form-control{:placeholder => "Write a thing", :type => "email"}
-  .form-group
-    %label{:for => "exampleSelect"} Choose a thing
-    %select#exampleSelect.form-control
-      %option thing
-  .checkbox
-    %label
-      %input{:type => "checkbox"}
-      Remember me
-  %button.btn.btn-primary{:type => "submit"} Sign in
-```
-*/
-.form-inline.inline-labels .form-group input, .inline-labels.navbar-form .form-group input, .form-inline.inline-labels .form-group select, .inline-labels.navbar-form .form-group select {
-  width: auto !important; }
 
 /*doc
 ---
