@@ -45,6 +45,9 @@ class RateLimitingIT {
     TestAccounts testAccounts;
 
     @Autowired
+    TestClient testClient;
+
+    @Autowired
     WebDriver webDriver;
 
     @Value("${integration.test.base_url}")
@@ -95,8 +98,12 @@ class RateLimitingIT {
     void rateLimitingStatusActive() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader(testAccounts.getAdminClientId(),
-                testAccounts.getAdminClientSecret()));
+        String adminToken = testClient.getOAuthAccessToken(
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "client_credentials", "uaa.admin");
+
+        headers.add("Authorization", "Bearer " + adminToken);
 
         ResponseEntity<String> responseEntity = restOperations.exchange(baseUrl + "/RateLimitingStatus",
                 HttpMethod.GET,
