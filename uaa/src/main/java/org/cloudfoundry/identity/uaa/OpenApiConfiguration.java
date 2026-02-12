@@ -48,7 +48,7 @@ public class OpenApiConfiguration {
                                 """)
                         .version(buildInfo.getVersion())
                         .contact(new Contact()
-                                .name("Cloudfoundry Foundation")
+                                .name("Cloud Foundry Foundation")
                                 .url("https://github.com/cloudfoundry/uaa"))
                         .license(new License()
                                 .name("Apache 2.0")

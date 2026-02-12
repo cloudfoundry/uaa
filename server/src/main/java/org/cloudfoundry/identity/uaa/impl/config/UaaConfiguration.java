@@ -117,6 +117,7 @@ public class UaaConfiguration {
     public Integer groupMaxCount;
     public Integer clientMaxCount;
     public RateLimit ratelimit;
+    public Map<String, Object> springdoc;
 
     public static class Zones {
         @Valid

@@ -608,7 +608,6 @@ springdoc:
   show-actuator: false
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
-  disable-swagger-default-url: true
   use-management-port: false
   writer-with-default-pretty-printer: false
   model-and-view-allowed: false
