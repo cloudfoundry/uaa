@@ -2535,6 +2535,28 @@ _Response Fields_
 
 <%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/response-fields.md') %>
 
+## Rate Limiting Status
+
+The `/RateLimitingStatus` endpoint provides information about the current state of rate limiting in the UAA.
+This endpoint cannot be configured with a rate limit.
+
+<aside class="warning">
+  This endpoint requires authentication with a bearer token that has the `uaa.admin` scope in the default 
+authentication zone. (token claim `zid: uaa`) 
+</aside>
+
+<%= render('RateLimitingStatusEndpointDocs/getRateLimitingStatus/curl-request.md') %>
+<%= render('RateLimitingStatusEndpointDocs/getRateLimitingStatus/http-request.md') %>
+<%= render('RateLimitingStatusEndpointDocs/getRateLimitingStatus/http-response.md') %>
+
+_Request Headers_
+
+<%= render('RateLimitingStatusEndpointDocs/getRateLimitingStatus/request-headers.md') %>
+
+_Response Fields_
+
+<%= render('RateLimitingStatusEndpointDocs/getRateLimitingStatus/response-fields.md') %>
+
 ## Passcode
 
 A user that has been authenticated, can request a one time authentication code, pass code, to be used during a

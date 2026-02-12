@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.beans;
 
-import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
@@ -20,6 +19,8 @@ import org.springframework.security.config.annotation.web.configurers.CsrfConfig
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+
+import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf;
 
 @Configuration
 @EnableWebSecurity
@@ -42,24 +43,17 @@ class RateLimiterSecurityConfiguration {
     @Qualifier("oauthWithoutResourceAuthenticationFilter")
     FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> oauthWithoutResourceAuthenticationFilter;
 
-    @Autowired
-    @Qualifier("clientAuthenticationFilter")
-    FilterRegistrationBean<ClientBasicAuthenticationFilter> clientAuthenticationFilter;
-
     @Bean
     @Order(FilterChainOrder.RESOURCE)
     UaaFilterChain ratelimitSecurity(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher("/RateLimitingStatus/**")
+                .securityMatcher("/RateLimitingStatus", "/RateLimitingStatus/**")
                 .authorizeHttpRequests( auth -> {
-                    auth.requestMatchers("/**").hasAuthority("uaa.admin");
+                    auth.requestMatchers("/**").access(anyOf(true).hasScopeWithZoneId("uaa.admin"));
                     auth.anyRequest().denyAll();
                 })
-                //TODO is the auth manager needed?
-                .authenticationManager(clientAuthenticationManager)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(oauthWithoutResourceAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
-                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
