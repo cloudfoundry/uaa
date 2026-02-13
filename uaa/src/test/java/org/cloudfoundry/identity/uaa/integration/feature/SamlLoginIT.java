@@ -109,7 +109,6 @@ import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @ExtendWith(ScreenshotOnFailExtension.class)
-@TestPropertySource(properties = "login.entityBaseURL=")
 public class SamlLoginIT {
 
     private static final String MARISSA2_USERNAME = "marissa2";

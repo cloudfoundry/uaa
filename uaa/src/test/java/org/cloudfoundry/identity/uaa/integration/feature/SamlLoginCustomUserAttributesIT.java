@@ -73,7 +73,6 @@ import static org.springframework.http.HttpMethod.POST;
  */
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @ExtendWith(ScreenshotOnFailExtension.class)
-@TestPropertySource(properties = "login.entityBaseURL=")
 class SamlLoginCustomUserAttributesIT {
 
     private static final String SAML_ORIGIN = "simplesamlphp";
