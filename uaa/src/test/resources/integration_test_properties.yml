@@ -58,7 +58,7 @@ jwt:
       unique: false
 login:
   url: http://localhost:8080/uaa
-  # entityBaseURL: http://localhost:8080/uaa  # Commented out to use request URL for zone subdomains in ITs
+  entityBaseURL: http://localhost:8080/uaa
   entityID: integration-saml-entity-id
   saml:
     activeKeyId: key1
