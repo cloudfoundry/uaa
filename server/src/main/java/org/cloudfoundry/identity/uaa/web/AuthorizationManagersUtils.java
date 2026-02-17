@@ -119,7 +119,8 @@ public class AuthorizationManagersUtils {
         }
 
         /**
-         * Grants access for the given scope, swapping {@code {zone.id}} for the current Zone ID.
+         * Grants access for the given scope, swapping {@code {zone.id}} for the current Zone ID
+         * or match the name exactly if it is in the default zone.
          */
         public AnyOfAuthorizationManager hasScopeWithZoneId(String scope) {
             delegateAuthorizationManagers.add(

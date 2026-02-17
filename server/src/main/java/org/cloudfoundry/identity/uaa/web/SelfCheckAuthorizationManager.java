@@ -10,9 +10,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 public class SelfCheckAuthorizationManager  implements AuthorizationManager<RequestAuthorizationContext> {
-    private enum CheckType {USER, TOKEN_REVOCATION_USER, TOKEN_REVOCATION_CLIENT, TOKEN_REVOCATION_SELF};
+    private enum CheckType {
+        USER,
+        TOKEN_REVOCATION_USER,
+        TOKEN_REVOCATION_CLIENT,
+        TOKEN_REVOCATION_SELF,
+        TOKEN_REVOCATION_CLIENT_USER
+    };
     private final IsSelfCheck selfCheck;
     private final int parameterIndex;
+    private final int parameterIndex2;
     private final CheckType type;
 
 
@@ -28,14 +35,31 @@ public class SelfCheckAuthorizationManager  implements AuthorizationManager<Requ
         return new SelfCheckAuthorizationManager(CheckType.TOKEN_REVOCATION_CLIENT, selfCheck, parameterIndex);
     }
 
+    public static SelfCheckAuthorizationManager isClientUserTokenRevocationForSelf(
+            IsSelfCheck selfCheck,
+            int clientParameterIndex,
+            int userParameterIndex
+    ) {
+        return new SelfCheckAuthorizationManager(
+                CheckType.TOKEN_REVOCATION_CLIENT_USER,
+                selfCheck,
+                clientParameterIndex,
+                userParameterIndex
+        );
+    }
+
     public static SelfCheckAuthorizationManager isTokenRevocationForSelf(IsSelfCheck selfCheck, int parameterIndex) {
         return new SelfCheckAuthorizationManager(CheckType.TOKEN_REVOCATION_SELF, selfCheck, parameterIndex);
     }
 
     private SelfCheckAuthorizationManager(CheckType type, IsSelfCheck selfCheck, int parameterIndex) {
+        this(type, selfCheck, parameterIndex, -1);
+    }
+    private SelfCheckAuthorizationManager(CheckType type, IsSelfCheck selfCheck, int parameterIndex, int parameterIndex2) {
 		this.type = type;
         this.selfCheck = selfCheck;
 		this.parameterIndex = parameterIndex;
+        this.parameterIndex2 = parameterIndex2;
 	}
 
 	@Override
@@ -59,6 +83,13 @@ public class SelfCheckAuthorizationManager  implements AuthorizationManager<Requ
             }
             case TOKEN_REVOCATION_CLIENT -> {
                 if (this.selfCheck.isClientTokenRevocationForSelf(request, this.parameterIndex)) {
+                    return new AuthorizationDecision(true);
+                }
+            }
+            case TOKEN_REVOCATION_CLIENT_USER -> {
+                if (this.selfCheck.isClientTokenRevocationForSelf(request, this.parameterIndex) &&
+                        this.selfCheck.isUserTokenRevocationForSelf(request, this.parameterIndex2)
+                ) {
                     return new AuthorizationDecision(true);
                 }
             }

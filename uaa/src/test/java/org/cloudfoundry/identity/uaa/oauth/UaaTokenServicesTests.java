@@ -3,10 +3,12 @@ package org.cloudfoundry.identity.uaa.oauth;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
@@ -62,6 +64,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static org.apache.logging.log4j.Level.DEBUG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
@@ -168,6 +171,7 @@ class UaaTokenServicesTests {
         class WhenUserDoesntRequestOpenIdScope {
             private List<String> logEvents = new ArrayList<>();
             private AbstractAppender appender;
+            private Level originalLevel;
 
             @BeforeEach
             void addLoggerAppender() {
@@ -180,6 +184,8 @@ class UaaTokenServicesTests {
                 appender.start();
 
                 LoggerContext context = (LoggerContext) LogManager.getContext(false);
+                originalLevel = context.getRootLogger().getLevel();
+                Configurator.setRootLevel(DEBUG);
                 context.getRootLogger().addAppender(appender);
             }
 
@@ -189,6 +195,7 @@ class UaaTokenServicesTests {
                 if (appender != null) {
                     context.getRootLogger().removeAppender(appender);
                 }
+                Configurator.setRootLevel(originalLevel);
             }
 
             @BeforeEach

@@ -239,8 +239,7 @@ class OauthEndpointSecurityConfiguration {
                 .authorizeHttpRequests( auth -> {
                     auth.requestMatchers("/oauth/token/revoke/client/**").access(anyOf(true).hasScope("tokens.revoke").isUaaAdmin().isZoneAdmin());
                     auth.requestMatchers("/oauth/token/revoke/user/*/client/**").access(anyOf(true).hasScope("tokens.revoke").isUaaAdmin().isZoneAdmin()
-                            .or(SelfCheckAuthorizationManager.isUserTokenRevocationForSelf(selfCheck, 4))
-                            .or(SelfCheckAuthorizationManager.isClientTokenRevocationForSelf(selfCheck, 6))
+                            .or(SelfCheckAuthorizationManager.isClientUserTokenRevocationForSelf(selfCheck, 6, 4))
                     );
                     auth.requestMatchers("/oauth/token/revoke/user/**").access(anyOf(true)
                             .hasScope("tokens.revoke").isUaaAdmin()

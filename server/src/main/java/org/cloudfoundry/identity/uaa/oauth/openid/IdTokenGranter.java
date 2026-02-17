@@ -73,7 +73,7 @@ public class IdTokenGranter {
         if (requestedScopes != null &&
                 !requestedScopes.isEmpty() &&
                 !requestedScopes.contains(REQUIRED_OPENID_SCOPE)) {
-            logger.info("an ID token was requested but 'openid' is missing from the requested scopes");
+            logger.debug("an ID token was requested but 'openid' is missing from the requested scopes");
             return false;
         }
 
