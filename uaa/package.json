@@ -14,6 +14,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "jasmine": "^6.0.0",
-    "jasmine-core": "6.0.1"
+    "jasmine-core": "6.1.0"
   }
 }
