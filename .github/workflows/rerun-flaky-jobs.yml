@@ -1,0 +1,62 @@
+# Rerun failed integration/unit tests when flakiness is detected.
+# Must run in a separate workflow: gh run rerun only works on *completed* runs,
+# so we trigger on workflow_run (completed) and then rerun that completed run.
+name: Rerun flaky tests
+on:
+  workflow_run:
+    workflows: [ "Integration tests on database", "JUnit tests on database" ]
+    types: [ completed ]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  check-and-rerun:
+    # Only act when the test run failed and we're under the retry limit.
+    # run_attempt is 1-based; we allow attempts 1 and 2 to be rerun (up to 3 total attempts).
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for flakiness and rerun failed jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -uo pipefail
+          # Capture gh exit code separately so we can print a clear error; with set -e
+          # the script would exit on gh failure before we could run the error block.
+          JOBS_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/attempts/${RUN_ATTEMPT}/jobs" 2>&1)
+          GH_STATUS=$?
+
+          if [ "$GH_STATUS" -ne 0 ]; then
+            echo "Error: failed to fetch jobs via 'gh api' (exit code: $GH_STATUS)." >&2
+            echo "Raw 'gh api' output:" >&2
+            echo "$JOBS_JSON" >&2
+            exit "$GH_STATUS"
+          fi
+
+          set -e
+          # Fetch succeeded; validate JSON and compute counts
+          if ! echo "$JOBS_JSON" | jq empty >/dev/null 2>&1; then
+            echo "Error: 'gh api' did not return valid JSON." >&2
+            echo "Raw response:" >&2
+            echo "$JOBS_JSON" >&2
+            exit 1
+          fi
+
+          FAILED_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion == "failure")] | length')
+          SUCCESS_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion == "success")] | length')
+
+          echo "Failed jobs: $FAILED_COUNT"
+          echo "Successful jobs: $SUCCESS_COUNT"
+          echo "$JOBS_JSON" | jq -r '.jobs[] | "\(.name): \(.conclusion)"'
+
+          # If some failed but at least one passed, treat as flaky and rerun only failed jobs
+          if [ "$FAILED_COUNT" -gt 0 ] && [ "$SUCCESS_COUNT" -gt 0 ]; then
+            echo "Flakiness detected. Rerunning failed jobs..."
+            gh run rerun "$RUN_ID" --failed --repo ${{ github.repository }}
+          else
+            echo "Flakiness not detected. Skipping auto-rerun."
+          fi
