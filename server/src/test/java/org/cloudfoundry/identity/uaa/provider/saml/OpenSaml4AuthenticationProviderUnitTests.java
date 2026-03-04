@@ -767,7 +767,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
 
     // gh-14931
     @Test
-    public void authenticateWhenAssertionHasProxyRestrictionThenParses() {
+    void authenticateWhenAssertionHasProxyRestrictionThenParses() {
         OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
         Response response = response();
         Assertion assertion = assertion();
