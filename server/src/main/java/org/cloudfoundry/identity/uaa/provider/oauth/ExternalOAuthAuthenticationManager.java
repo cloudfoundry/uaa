@@ -578,8 +578,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     @Override
     protected boolean isAddNewShadowUser(final String origin) {
-        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId());
-        return provider.getConfig().isAddShadowUserOnLogin();
+        try {
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId());
+            return provider.getConfig().isAddShadowUserOnLogin();
+        } catch (EmptyResultDataAccessException | ClassCastException e) {
+            return true;
+        }
     }
 
     public RestTemplate getRestTemplate(AbstractExternalOAuthIdentityProviderDefinition config) {
