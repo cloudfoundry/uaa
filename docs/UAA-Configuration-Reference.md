@@ -801,7 +801,7 @@ Use this to work around database driver parameter limits.
 **Type:** `String`
 
 The session storage mechanism. Accepted values:
-- `memory` — In-memory sessions (default, not suitable for multi-instance deployments)
+- `memory` — In-memory sessions (default, suitable for multi-instance deployments that support sticky sessions)
 - `database` — Database-backed sessions via Spring Session JDBC
 
 [Back to table](#servlet--session)
