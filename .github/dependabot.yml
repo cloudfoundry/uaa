@@ -13,51 +13,15 @@ updates:
     time: "11:00"
   open-pull-requests-limit: 10
 - package-ecosystem: gradle
-  directory: "/statsd"
-  schedule:
-    interval: daily
-    time: "11:00"
-  open-pull-requests-limit: 10
-- package-ecosystem: gradle
   directory: "/"
   schedule:
     interval: daily
     time: "11:00"
   open-pull-requests-limit: 10
-  allow:
-  - dependency-name: "org.springframework.boot:*"
-  - dependency-name: "org.apache.tomcat:*"
   ignore:
-  - dependency-name: "org.apache.tomcat:*"
-    versions:
-    - ">= 11"  # Stay in Tomcat major version 10 and do updates manually, based on Spring Boot version.
-  - dependency-name: "org.springframework.spring-*"
-    versions:
-    - ">= 7"  # Stay in Spring Framework and Security major version 6 and do updates manually, based on Spring Boot version.
   - dependency-name: "org.springframework.boot:*"
     versions:
     - ">= 4"  # Stay in Spring Boot major version 3 and do updates manually.
-  - dependency-name: org.flywaydb:flyway-core
-    versions:
-    - ">= 8" # Version 8+ no longer supports MySQL 5.7, we're not ready to drop MySQL 5.7 support yet. Tracker story: https://www.pivotaltracker.com/story/show/180879913.
-- package-ecosystem: gradle
-  directory: "/model"
-  schedule:
-    interval: daily
-    time: "11:00"
-  open-pull-requests-limit: 10
-- package-ecosystem: gradle
-  directory: "/metrics-data"
-  schedule:
-    interval: daily
-    time: "11:00"
-  open-pull-requests-limit: 10
-- package-ecosystem: gradle
-  directory: "/server"
-  schedule:
-    interval: daily
-    time: "11:00"
-  open-pull-requests-limit: 10
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
