@@ -115,5 +115,5 @@ libraries.xmlUnit = "org.xmlunit:xmlunit-assertj"
 // gradle plugins
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springDependencyManagementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
-libraries.gradleJcocoPlugin = "org.barfuin.gradle.jacocolog:gradle-jacoco-log:3.1.0"
+libraries.gradleJcocoPlugin = "org.barfuin.gradle.jacocolog:gradle-jacoco-log:4.0.1"
 libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:7.0.1.6134"
