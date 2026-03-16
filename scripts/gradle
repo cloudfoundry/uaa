@@ -24,7 +24,7 @@ COMMAND
   command popd >/dev/null # silence output
 }
 
-db="$(db_variant "${DB-hsqldb}")"
+db="$(db_variant "${DB:-hsqldb}")"
 TESTENV="${TESTENV-${db},default}"
 
 # Default to listing tasks when no arguments (avoids "No tasks specified" failure)
