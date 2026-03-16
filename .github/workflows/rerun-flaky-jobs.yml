@@ -69,10 +69,22 @@ jobs:
           if [ "$FAILED_COUNT" -gt 0 ] && [ "$SUCCESS_COUNT" -gt 0 ]; then
             CONCLUSION_MSG="Flakiness detected. Rerunning failed jobs..."
             echo "$CONCLUSION_MSG"
+            # Run rerun command but don't let failures prevent writing the summary
+            set +e
             gh run rerun "$RUN_ID" --failed --repo ${{ github.repository }}
+            RERUN_EXIT_CODE=$?
+            set -e
+            if [ "$RERUN_EXIT_CODE" -ne 0 ]; then
+              RERUN_ERROR_MSG="Rerun command failed with exit code ${RERUN_EXIT_CODE}. See logs above for details."
+              echo "$RERUN_ERROR_MSG"
+              CONCLUSION_MSG="${CONCLUSION_MSG} However, the rerun command failed with exit code ${RERUN_EXIT_CODE}."
+            else
+              RERUN_ERROR_MSG=""
+            fi
           else
             CONCLUSION_MSG="Flakiness not detected. Skipping auto-rerun."
             echo "$CONCLUSION_MSG"
+            RERUN_ERROR_MSG=""
           fi
 
           # Write GITHUB_STEP_SUMMARY
@@ -98,4 +110,9 @@ jobs:
             echo ""
             echo "### Conclusion"
             echo "${CONCLUSION_MSG}"
+            if [ -n "${RERUN_ERROR_MSG}" ]; then
+              echo ""
+              echo "### Rerun error details"
+              echo "${RERUN_ERROR_MSG}"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
