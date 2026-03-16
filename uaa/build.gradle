@@ -232,21 +232,16 @@ integrationTest {
     }
     
     doFirst {
-        if (System.getProperty("skipUaaAutoStart", "false").toBoolean()) {
-            logger.lifecycle("Skipping UAA auto-start (skipUaaAutoStart=true)")
-            return
-        }
         logger.lifecycle("Killing UAA before auto-start")
         rootProject.tasks.named('killUaa').get().exec()
-        
+
         def bootPidFile = rootProject.file('build/boot.pid')
         def bootLogFile = rootProject.file('build/boot.log')
-
-        logger.lifecycle("Starting UAA application for integration tests...")
-        
         def springProfile = System.getProperty("spring.profiles.active", "hsqldb")
         def warFile = file("build/libs/cloudfoundry-identity-uaa-0.0.0.war")
         def bootDir = rootProject.file("scripts/boot")
+
+        logger.lifecycle("Starting UAA application for integration tests...")
 
         def javaCmd = """nohup java \\
             -DCLOUDFOUNDRY_CONFIG_PATH=${bootDir.absolutePath} \\
@@ -256,15 +251,15 @@ integrationTest {
             -Dsmtp.port=2525 \\
             -Dspring.profiles.active=${springProfile} \\
             -jar ${warFile.absolutePath} > ${bootLogFile.absolutePath} 2>&1 & echo \$!"""
-        
+
         def proc = ['bash', '-c', javaCmd].execute()
         proc.waitFor()
         def pid = proc.text.trim()
         bootPidFile.text = pid
-        
+
         logger.lifecycle("UAA started with PID: ${pid}, waiting for it to be ready...")
-        
-        def maxWaitSeconds = 120
+
+        def maxWaitSeconds = 300
         def startTime = System.currentTimeMillis()
         while (System.currentTimeMillis() - startTime < maxWaitSeconds * 1000) {
             if (bootLogFile.exists() && bootLogFile.text.contains("Started UaaBootApplication")) {
@@ -278,13 +273,8 @@ integrationTest {
         rootProject.tasks.named('killUaa').get().exec()
         throw new GradleException("UAA failed to start within ${maxWaitSeconds} seconds. Check ${bootLogFile.absolutePath}")
     }
-    
+
     doLast {
-        if (System.getProperty("skipUaaAutoStart", "false").toBoolean()) {
-            logger.lifecycle("Skipping UAA auto-stop (skipUaaAutoStart=true)")
-            return
-        }
-        
         logger.lifecycle("Stopping UAA application...")
         rootProject.tasks.named('killUaa').get().exec()
         rootProject.file('build/boot.pid').delete()
