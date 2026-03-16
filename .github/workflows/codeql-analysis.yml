@@ -32,20 +32,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'go', 'java', 'javascript', 'ruby' ]
+        language: [ 'java', 'javascript', 'ruby' ]
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
         # Learn more about CodeQL language support at https://git.io/codeql-language-support
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v6
-
-    - name: Set up Go
-      id: go
-      uses: actions/setup-go@v6
-      with:
-        go-version: stable
-      if: ${{ matrix.language == 'go' }}
 
     - name: Set up Java
       id: java
