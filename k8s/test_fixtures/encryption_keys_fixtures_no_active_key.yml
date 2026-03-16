@@ -1,9 +1,0 @@
-#@data/values
-#@ load("@ytt:overlay", "overlay")
-
----
-#@overlay/replace
-encryption:
-  encryption_keys:
-    - label: CHANGED-KEY
-      passphrase: NEVERGONNAGUESS

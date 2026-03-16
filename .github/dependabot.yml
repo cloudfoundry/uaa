@@ -6,12 +6,6 @@ updates:
     interval: daily
     time: "11:00"
   open-pull-requests-limit: 10
-- package-ecosystem: gomod
-  directory: "/k8s"
-  schedule:
-    interval: daily
-    time: "11:00"
-  open-pull-requests-limit: 10
 - package-ecosystem: gradle
   directory: "/"
   schedule:
