@@ -40,11 +40,11 @@ function main() {
 
     if [[ "${RUN_TESTS:-true}" = 'true' ]]; then
       set -x
-      # Assemble and compile tests; integrationTest doFirst in uaa/build.gradle starts UAA and waits for it
+      # Assemble and compile production code and tests
       ./gradlew -Dspring.profiles.active="${test_profile}" \
         -Djava.security.egd=file:/dev/./urandom \
         -Dorg.gradle.jvmargs="-Dfile.encoding=utf8 -Xms64m -Xmx${gradle_heap} -XX:MaxMetaspaceSize=384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100" \
-        assemble \
+        assemble compileTestJava \
         --no-watch-fs \
         --no-daemon \
         --no-configuration-cache \
@@ -52,12 +52,7 @@ function main() {
         --stacktrace \
         --console=plain
 
-      ./gradlew \
-        -Dspring.profiles.active="${test_profile}" \
-        --no-daemon \
-        --no-configuration-cache \
-        compileTestJava
-
+      # integrationTest doFirst in uaa/build.gradle starts UAA and waits for it
       ./gradlew \
         -Dspring.profiles.active="${test_profile}" \
         -Djava.security.egd=file:/dev/./urandom \
