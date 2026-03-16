@@ -11,6 +11,8 @@ permissions:
   actions: write
   contents: read
 
+run-name: "Rerun Flaky Tests in ${{ github.event.workflow_run.name }}"
+
 jobs:
   check-and-rerun:
     # Act when the test run did not fully succeed and we're under the retry limit.
