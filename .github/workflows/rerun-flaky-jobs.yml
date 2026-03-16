@@ -13,9 +13,10 @@ permissions:
 
 jobs:
   check-and-rerun:
-    # Only act when the test run failed and we're under the retry limit.
+    # Act when the test run did not fully succeed and we're under the retry limit.
     # run_attempt is 1-based; we allow attempts 1 and 2 to be rerun (up to 3 total attempts).
-    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt < 3
+    # Include failure, cancelled, skipped, timed_out, etc. (anything != success).
+    if: github.event.workflow_run.conclusion != 'success' && github.event.workflow_run.run_attempt < 3
     runs-on: ubuntu-latest
     steps:
       - name: Check for flakiness and rerun failed jobs
@@ -23,6 +24,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
           RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_STATUS: ${{ github.event.workflow_run.status }}
         run: |
           set -uo pipefail
           # Capture gh exit code separately so we can print a clear error; with set -e
@@ -46,17 +51,49 @@ jobs:
             exit 1
           fi
 
-          FAILED_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion == "failure")] | length')
+          # Count anything that is not success as failed (failure, cancelled, skipped, timed_out, etc.)
+          FAILED_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion != "success" and .conclusion != null)] | length')
           SUCCESS_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion == "success")] | length')
+          TOTAL_JOBS=$(echo "$JOBS_JSON" | jq '.jobs | length')
 
-          echo "Failed jobs: $FAILED_COUNT"
+          echo "Failed (non-success) jobs: $FAILED_COUNT"
           echo "Successful jobs: $SUCCESS_COUNT"
           echo "$JOBS_JSON" | jq -r '.jobs[] | "\(.name): \(.conclusion)"'
 
-          # If some failed but at least one passed, treat as flaky and rerun only failed jobs
+          # Build job list for summary (one line per job: name, conclusion)
+          JOB_LIST=$(echo "$JOBS_JSON" | jq -r '.jobs[] | "- **\(.name)**: \(.conclusion // "pending")"')
+
+          # Decision: rerun only if some failed and at least one passed (flakiness)
           if [ "$FAILED_COUNT" -gt 0 ] && [ "$SUCCESS_COUNT" -gt 0 ]; then
-            echo "Flakiness detected. Rerunning failed jobs..."
+            CONCLUSION_MSG="Flakiness detected. Rerunning failed jobs..."
+            echo "$CONCLUSION_MSG"
             gh run rerun "$RUN_ID" --failed --repo ${{ github.repository }}
           else
-            echo "Flakiness not detected. Skipping auto-rerun."
+            CONCLUSION_MSG="Flakiness not detected. Skipping auto-rerun."
+            echo "$CONCLUSION_MSG"
           fi
+
+          # Write GITHUB_STEP_SUMMARY
+          {
+            echo "## Rerun flaky tests"
+            echo ""
+            echo "### Workflow run checked"
+            echo "- **Name:** ${WORKFLOW_NAME}"
+            echo "- **Link:** [View run](${WORKFLOW_URL})"
+            echo "- **Run conclusion:** \`${RUN_CONCLUSION}\`"
+            echo "- **Run status:** ${RUN_STATUS}"
+            echo "- **Attempt:** ${RUN_ATTEMPT}"
+            echo ""
+            echo "### Job counts"
+            echo "| Outcome | Count |"
+            echo "|---------|-------|"
+            echo "| Non-success (failed, cancelled, skipped, etc.) | ${FAILED_COUNT} |"
+            echo "| Success | ${SUCCESS_COUNT} |"
+            echo "| Total jobs | ${TOTAL_JOBS} |"
+            echo ""
+            echo "### Jobs"
+            echo "$JOB_LIST"
+            echo ""
+            echo "### Conclusion"
+            echo "${CONCLUSION_MSG}"
+          } >> "$GITHUB_STEP_SUMMARY"
