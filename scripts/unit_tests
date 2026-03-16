@@ -5,5 +5,5 @@ UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 if [ "$#" -eq 0 ]; then
     "${UAA_DIR}/scripts/gradle" test
 else
-    "${UAA_DIR}/scripts/gradle" test "${@}"
+    "${UAA_DIR}/scripts/gradle" test "$@"
 fi

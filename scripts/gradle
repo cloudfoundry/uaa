@@ -14,23 +14,25 @@ db_variant() {
 }
 
 gradle() {
-  local gradle_command="./gradlew ${*}"
   cat <<COMMAND
 Running:
-  ${gradle_command}
+  ./gradlew $*
 COMMAND
 
   command pushd "${UAA_DIR}" >/dev/null # silence output
-  ${gradle_command}
+  ./gradlew "$@"
   command popd >/dev/null # silence output
 }
 
 db="$(db_variant "${DB-hsqldb}")"
 TESTENV="${TESTENV-${db},default}"
 
+# Default to listing tasks when no arguments (avoids "No tasks specified" failure)
+if [ $# -eq 0 ]; then set -- tasks; fi
+
 if [[ -x /bin/start-slapd ]]; then /bin/start-slapd; fi
 if [[ -x "/bin/start-${db}" ]]; then "/bin/start-${db}"; fi
 
 gradle --stacktrace \
   "-Dspring.profiles.active=${TESTENV}" \
-  "${@}"
+  "$@"

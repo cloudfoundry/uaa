@@ -23,4 +23,4 @@ elif [ "${1:-}" == "-r" ]; then
 fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd
-./gradlew run ${debug_flag} "${@}"
+./gradlew run ${debug_flag} "$@"
