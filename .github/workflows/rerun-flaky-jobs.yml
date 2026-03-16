@@ -53,12 +53,12 @@ jobs:
             exit 1
           fi
 
-          # Count anything that is not success as failed (failure, cancelled, skipped, timed_out, etc.)
-          FAILED_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion != "success" and .conclusion != null)] | length')
+          # Count failed/rerunnable jobs (those that 'gh run rerun --failed' will rerun)
+          FAILED_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion != null and (.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out"))] | length')
           SUCCESS_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion == "success")] | length')
           TOTAL_JOBS=$(echo "$JOBS_JSON" | jq '.jobs | length')
 
-          echo "Failed (non-success) jobs: $FAILED_COUNT"
+          echo "Failed/rerunnable jobs (failure/cancelled/timed_out): $FAILED_COUNT"
           echo "Successful jobs: $SUCCESS_COUNT"
           echo "$JOBS_JSON" | jq -r '.jobs[] | "\(.name): \(.conclusion)"'
 
@@ -89,7 +89,7 @@ jobs:
             echo "### Job counts"
             echo "| Outcome | Count |"
             echo "|---------|-------|"
-            echo "| Non-success (failed, cancelled, skipped, etc.) | ${FAILED_COUNT} |"
+            echo "| Failed/rerunnable (failure, cancelled, timed_out) | ${FAILED_COUNT} |"
             echo "| Success | ${SUCCESS_COUNT} |"
             echo "| Total jobs | ${TOTAL_JOBS} |"
             echo ""
