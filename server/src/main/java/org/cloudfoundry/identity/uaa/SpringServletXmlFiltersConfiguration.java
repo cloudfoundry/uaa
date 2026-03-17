@@ -12,7 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
 import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
 import org.cloudfoundry.identity.uaa.security.web.ContentSecurityPolicyFilter;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
-import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.HeaderFilter;
@@ -184,7 +184,7 @@ public class SpringServletXmlFiltersConfiguration {
 
     @Bean
     FilterRegistrationBean<SessionResetFilter> sessionResetFilter(
-            @Qualifier("userDatabase") JdbcUaaUserDatabase userDatabase
+            @Qualifier("userDatabase") UaaUserDatabase userDatabase
     ) {
         SessionResetFilter filter = new SessionResetFilter(
                 new DefaultRedirectStrategy(),

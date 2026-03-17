@@ -29,7 +29,7 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.web.beans.UaaRequestRejectedHandler;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
@@ -335,7 +335,7 @@ public class SpringServletXmlBeansConfiguration {
     @Bean
     LdapLoginAuthenticationManager ldapLoginAuthenticationMgr(
             @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
-            @Qualifier("userDatabase") JdbcUaaUserDatabase userDatabase
+            @Qualifier("userDatabase") UaaUserDatabase userDatabase
     ) {
         LdapLoginAuthenticationManager bean = new LdapLoginAuthenticationManager(provisioning);
         bean.setUserDatabase(userDatabase);
@@ -353,7 +353,7 @@ public class SpringServletXmlBeansConfiguration {
     AutologinAuthenticationManager autologinAuthenticationManager(
             @Qualifier("codeStore") ExpiringCodeStore codeStore,
             @Qualifier("jdbcClientDetailsService") MultitenantClientServices jdbcClientDetailsService,
-            @Qualifier("userDatabase") JdbcUaaUserDatabase userDatabase
+            @Qualifier("userDatabase") UaaUserDatabase userDatabase
     ) {
         AutologinAuthenticationManager bean = new AutologinAuthenticationManager();
         bean.setExpiringCodeStore(codeStore);
