@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -29,6 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -67,7 +69,9 @@ import java.util.stream.Stream;
 import static org.apache.logging.log4j.Level.DEBUG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.HamcrestCondition.matching;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ISSUER_URI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
@@ -77,6 +81,8 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_TOKEN_EXCHANGE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ISSUED_TOKEN_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TOKEN_TYPE_ACCESS;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuerUri;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -117,7 +123,7 @@ class UaaTokenServicesTests {
 
             CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
 
-            String issuedTokenType = (String)accessToken.getAdditionalInformation().get(ISSUED_TOKEN_TYPE);
+            String issuedTokenType = (String) accessToken.getAdditionalInformation().get(ISSUED_TOKEN_TYPE);
             assertThat(issuedTokenType)
                     .isNotNull()
                     .isEqualTo(TOKEN_TYPE_ACCESS);
@@ -297,6 +303,8 @@ class UaaTokenServicesTests {
     class WhenRefreshGrant {
         @Autowired
         private RefreshTokenCreator refreshTokenCreator;
+        @Autowired
+        private KeyInfoService keyInfoService;
 
         private CompositeExpiringOAuth2RefreshToken refreshToken;
 
@@ -333,6 +341,52 @@ class UaaTokenServicesTests {
             assertThat(refreshedToken).isNotNull();
             Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class);
             assertThat(claims).containsEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE);
+        }
+
+        /**
+         * Refresh token with only client_id (no cid) is accepted and exchange succeeds.
+         * Legacy or external tokens may omit the cid claim; we fall back to client_id.
+         */
+        @Test
+        void refreshAccessToken_succeedsWhenRefreshTokenHasClientIdButNoCid() {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
+            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    null,
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    new Date(),
+                    null,
+                    null
+            );
+            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            assertThat(refreshToken).isNotNull();
+            String refreshTokenJwt = refreshToken.getValue();
+
+            Jwt decoded = JwtHelper.decode(refreshTokenJwt);
+            String kid = decoded.getHeader().getKid();
+            Map<String, Object> claimsMap = JsonUtils.readValue(decoded.getClaims(), new TypeReference<HashMap<String, Object>>() {
+            });
+            claimsMap.remove(ClaimConstants.CID);
+            assertThat(claimsMap).containsKey(ClaimConstants.CLIENT_ID);
+
+            Map<String, Object> headerMap = new HashMap<>();
+            headerMap.put("alg", decoded.getHeader().getAlg());
+            headerMap.put("kid", kid);
+            headerMap.put("typ", decoded.getHeader().getTyp());
+            String refreshTokenWithOnlyClientId = UaaTokenUtils.constructToken(headerMap, claimsMap,
+                    keyInfoService.getKey(kid).getSigner());
+
+            OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(refreshTokenWithOnlyClientId,
+                    new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
+
+            assertThat(refreshedAccessToken).isNotNull();
+            assertThat(refreshedAccessToken.getScope()).containsExactlyInAnyOrder("openid", "user_attributes");
+            assertThat(refreshedAccessToken).is(matching(issuerUri(is(ISSUER_URI))));
         }
 
         @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")

@@ -323,6 +323,43 @@ public class JwtTokenSignedByThisUAATest {
     }
 
     @Test
+    void getClientDetails_usesClientIdWhenCidIsMissing() {
+        String token = getToken(Lists.newArrayList("cid"));
+        ClientDetails clientDetails = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
+                .getClientDetails(inMemoryMultitenantClientServices);
+        assertThat(clientDetails.getClientId()).isEqualTo(CLIENT_ID);
+    }
+
+    @Test
+    void checkClient_acceptsTokenWithOnlyClientIdNoCid() {
+        String token = getToken(Lists.newArrayList("cid"));
+        buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
+                .checkIssuer("http://localhost:8080/uaa/oauth/token")
+                .checkClient(clientId -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
+                .checkExpiry(oneSecondBeforeTheTokenExpires);
+    }
+
+    @Test
+    void checkClient_throwsWhenNeitherCidNorClientIdPresent() {
+        String token = getToken(Lists.newArrayList("cid", "client_id"));
+        assertThatThrownBy(() -> buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
+                .checkClient(clientId -> inMemoryMultitenantClientServices.loadClientByClientId(clientId)))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("Token bears no client ID.");
+    }
+
+    @Test
+    void checkClient_throwsWhenCidAndClientIdConflict() {
+        content.put("cid", "app");
+        content.put("client_id", "other-client");
+        String token = getToken();
+        assertThatThrownBy(() -> buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
+                .checkClient(clientId -> inMemoryMultitenantClientServices.loadClientByClientId(clientId)))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("Token bears conflicting client ID claims.");
+    }
+
+    @Test
     void getUserById() {
         String token = getToken();
 

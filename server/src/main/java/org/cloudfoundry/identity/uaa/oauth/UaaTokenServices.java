@@ -217,20 +217,21 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Claims claims = getClaims(refreshTokenClaims);
 
+        // Token client id: prefer cid, fall back to client_id for legacy or external tokens
+        String tokenClientId = claims.getCid() != null ? claims.getCid() : claims.getClientId();
+        if (tokenClientId == null || !tokenClientId.equals(request.getClientId())) {
+            throw new InvalidGrantException("Wrong client for this refresh token: " + tokenClientId);
+        }
+
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
         Map<String, String> requestParams = request.getRequestParameters();
         String requestedTokenFormat = requestParams.get(REQUEST_TOKEN_FORMAT);
-        String requestedClientId = request.getClientId();
-
-        if (claims.getCid() == null || !claims.getCid().equals(requestedClientId)) {
-            throw new InvalidGrantException("Wrong client for this refresh token: " + claims.getCid());
-        }
         boolean isOpaque = OPAQUE.getStringValue().equals(requestedTokenFormat);
         boolean isRevocable = isRevocable(claims, isOpaque);
 
         UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
-        UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
+        UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(tokenClientId);
 
         long refreshTokenExpireMillis = claims.getExp().longValue() * MILLIS_PER_SECOND;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
@@ -281,7 +282,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         user,
                         AuthTimeDateConverter.authTimeToDate(claims.getAuthTime()),
                         getClientPermissions(client),
-                        claims.getCid(),
+                        tokenClientId,
                         Set.copyOf(claims.getAud()),
                         refreshTokenValue,
                         claims.getAzAttr(),
@@ -299,7 +300,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens(clientAuth)) {
             tokenIdToBeDeleted = (String) jwtToken.getClaims().get(JTI);
         }
-        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
+        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, tokenClientId, user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
 
     private static String getAuthenticationMethod(OAuth2Request oAuth2Request) {

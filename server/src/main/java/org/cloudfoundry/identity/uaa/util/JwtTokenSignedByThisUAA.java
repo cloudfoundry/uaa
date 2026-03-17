@@ -278,20 +278,15 @@ public abstract class JwtTokenSignedByThisUAA {
     }
 
     protected JwtTokenSignedByThisUAA checkClient(Function<String, ClientDetails> getClient) {
-        if (!claims.containsKey(CID)) {
+        String cid = (String) claims.get(CID);
+        String clientIdClaim = (String) claims.get(CLIENT_ID);
+        if (cid == null && clientIdClaim == null) {
             throw new InvalidTokenException("Token bears no client ID.", null);
         }
-
-        if (claims.containsKey(CLIENT_ID) && !equals(claims.get(CID), claims.get(CLIENT_ID))) {
+        if (cid != null && clientIdClaim != null && !equals(cid, clientIdClaim)) {
             throw new InvalidTokenException("Token bears conflicting client ID claims.", null);
         }
-
-        String clientId;
-        try {
-            clientId = (String) claims.get(CID);
-        } catch (ClassCastException ex) {
-            throw new InvalidTokenException("Token bears an invalid or unparseable CID claim.", ex);
-        }
+        String clientId = cid != null ? cid : clientIdClaim;
 
         try {
             ClientDetails client = getClient.apply(clientId);
@@ -467,6 +462,9 @@ public abstract class JwtTokenSignedByThisUAA {
 
     public ClientDetails getClientDetails(MultitenantClientServices clientDetailsService) {
         String clientId = (String) claims.get(CID);
+        if (clientId == null) {
+            clientId = (String) claims.get(CLIENT_ID);
+        }
         try {
             return clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         } catch (NoSuchClientException x) {
