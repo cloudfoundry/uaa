@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.LoginConsent;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -417,6 +418,9 @@ public class LoginInfoEndpoint {
         model.addAttribute(ZONE_NAME, IdentityZoneHolder.get().getName());
         // Entity ID to start the discovery
         model.addAttribute(ENTITY_ID, zonifiedEntityID);
+        
+        // Add login consent configuration if available
+        addLoginConsentToModel(model);
 
         String origin = request.getParameter("origin");
         populatePrompts(model, excludedPrompts, origin, samlIdentityProviders, oauthIdentityProviders, returnLoginPrompts);
@@ -999,6 +1003,32 @@ public class LoginInfoEndpoint {
             }
         }
         return selfServiceLinks;
+    }
+
+    private void addLoginConsentToModel(Model model) {
+        log.info("in addLoginConsentToModel()");
+        IdentityZone zone = IdentityZoneHolder.get();
+        if (zone.getConfig() != null && 
+            zone.getConfig().getBranding() != null && 
+            zone.getConfig().getBranding().getLoginConsent() != null) {
+            
+            LoginConsent loginConsent = zone.getConfig().getBranding().getLoginConsent();
+            
+            if (loginConsent.isEnabled()) {
+                model.addAttribute("loginConsent", loginConsent);
+                log.info("addLoginConsentToModel: " + loginConsent);
+
+                // Calculate and add the consent hash for client-side verification
+                String consentHash = LoginConsentHashUtil.calculateConsentHash(loginConsent);
+                model.addAttribute("loginConsentHash", consentHash);
+                
+                // Parse and add the duration in seconds for cookie max-age
+                long durationSeconds = LoginConsentHashUtil.parseDurationToSeconds(
+                    loginConsent.getConsentValidDuration()
+                );
+                model.addAttribute("loginConsentDurationSeconds", durationSeconds);
+            }
+        }
     }
 
     static class SavedAccountOptionModel extends SavedAccountOption {
