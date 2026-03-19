@@ -165,12 +165,13 @@ class LoginConsentValidatorTest {
 
     @Test
     void testValidateValidHttpUrl() {
+        //noinspection HttpUrlsUsage
         LoginConsent consent = new LoginConsent(
             true,
             "Notice",
             "Text",
             "Accept",
-            "https://example.com",
+            "http://example.com",
             "12h"
         );
         

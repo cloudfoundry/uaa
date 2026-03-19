@@ -1,13 +1,12 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.http.impl.auth.UnsupportedDigestAlgorithmException;
 import org.cloudfoundry.identity.uaa.zone.LoginConsent;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility class for calculating consent hashes used to track consent versioning.
@@ -16,7 +15,8 @@ import java.util.WeakHashMap;
  */
 public class LoginConsentHashUtil {
 
-    private static final WeakHashMap<String, String> consentHashCache = new WeakHashMap<>();
+    private static final int DEFAULT_SESSION_DURATION = 24 * 60 * 60; // 24 hours in seconds
+    private static final ConcurrentHashMap<String, String> consentHashCache = new ConcurrentHashMap<>();
 
     private LoginConsentHashUtil() {
         // Utility class
@@ -45,7 +45,7 @@ public class LoginConsentHashUtil {
                 byte[] hash = digest.digest(c.getBytes(StandardCharsets.UTF_8));
                 return bytesToHex(hash);
             } catch (NoSuchAlgorithmException e) {
-                throw new UnsupportedDigestAlgorithmException("SHA-256 algorithm not available", e);
+                throw new IllegalStateException("SHA-256 algorithm not available", e);
             }
         });
     }
@@ -73,11 +73,12 @@ public class LoginConsentHashUtil {
      * Supports formats: 0, 15m, 12h, 7d, 1w, 1y
      *
      * @param duration the duration string (e.g., "12h", "7d", "0")
-     * @return duration in seconds, or 0 if duration is "0" or invalid
+     * @return duration in seconds; returns 0 only if duration is "0", otherwise defaults
+     *         to 24 hours (in seconds) for missing or invalid values
      */
     public static long parseDurationToSeconds(String duration) {
         if (!StringUtils.hasText(duration)) {
-            return 24 * 60 * 60; // Default: 24 hours
+            return DEFAULT_SESSION_DURATION;
         }
 
         duration = duration.trim();
@@ -91,7 +92,7 @@ public class LoginConsentHashUtil {
             // Extract number and unit
             int length = duration.length();
             if (length < 2) {
-                return 24 * 60 * 60; // Default if invalid
+                return DEFAULT_SESSION_DURATION; // Default if invalid
             }
 
             String numberPart = duration.substring(0, length - 1);
@@ -105,10 +106,10 @@ public class LoginConsentHashUtil {
                 case "d" -> value * 24 * 60 * 60;      // days
                 case "w" -> value * 7 * 24 * 60 * 60;  // weeks (7 days)
                 case "y" -> value * 365 * 24 * 60 * 60; // years (365 days)
-                default -> 24 * 60 * 60;               // Default: 1 day (24 hours)
+                default -> DEFAULT_SESSION_DURATION;
             };
         } catch (NumberFormatException e) {
-            return 24 * 60 * 60; // Default: 24 hours
+            return DEFAULT_SESSION_DURATION; // Default: if not parsable
         }
     }
 }

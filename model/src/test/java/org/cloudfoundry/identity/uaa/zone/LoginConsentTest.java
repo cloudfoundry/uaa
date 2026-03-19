@@ -1,12 +1,10 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Disabled
 class LoginConsentTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();

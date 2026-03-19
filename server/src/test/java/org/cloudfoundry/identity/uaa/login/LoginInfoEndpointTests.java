@@ -1846,8 +1846,8 @@ class LoginInfoEndpointTests {
     @Test
     void testLoginConsentNotAddedWhenDisabled() throws Exception {
         // Set up login consent configuration (disabled)
-        org.cloudfoundry.identity.uaa.zone.BrandingInformation branding = new org.cloudfoundry.identity.uaa.zone.BrandingInformation();
-        org.cloudfoundry.identity.uaa.zone.LoginConsent loginConsent = new org.cloudfoundry.identity.uaa.zone.LoginConsent();
+        BrandingInformation branding = new BrandingInformation();
+        LoginConsent loginConsent = new LoginConsent();
         loginConsent.setEnabled(false);
         branding.setLoginConsent(loginConsent);
 

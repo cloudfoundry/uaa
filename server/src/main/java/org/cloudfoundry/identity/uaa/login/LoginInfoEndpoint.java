@@ -1006,7 +1006,6 @@ public class LoginInfoEndpoint {
     }
 
     private void addLoginConsentToModel(Model model) {
-        log.info("in addLoginConsentToModel()");
         IdentityZone zone = IdentityZoneHolder.get();
         if (zone.getConfig() != null && 
             zone.getConfig().getBranding() != null && 
@@ -1016,7 +1015,6 @@ public class LoginInfoEndpoint {
             
             if (loginConsent.isEnabled()) {
                 model.addAttribute("loginConsent", loginConsent);
-                log.info("addLoginConsentToModel: " + loginConsent);
 
                 // Calculate and add the consent hash for client-side verification
                 String consentHash = LoginConsentHashUtil.calculateConsentHash(loginConsent);

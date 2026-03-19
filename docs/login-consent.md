@@ -49,7 +49,7 @@ branding:
 - **`0`** – Always show the modal (do not remember acceptance).
 - **`<number><unit>`** – Remember acceptance for the given amount of time.  
   Units: `m` (minutes), `h` (hours), `d` (days), `w` (weeks), `y` (years).  
-  Examples: `15m`, `12h`, `7d`, `1w`, `1y`.
+  Examples: `15m`, `12h`, `7d`, `1w`.
 
 Invalid or missing duration falls back to 24 hours.
 
