@@ -43,8 +43,11 @@ class SessionControllerIntegrationTests {
                 "/session?clientId=admin&messageOrigin=http://localhost:8080");
 
         WebDriverWait wait = webDriver.createWebDriverWait();
-        Object type = wait.until(driver -> webDriver.getJavascriptExecutor().executeScript(
-                "return typeof(handleMessage);"));
+        Object type = wait.until(driver -> {
+            Object t = webDriver.getJavascriptExecutor().executeScript(
+                    "return typeof(handleMessage);");
+            return "function".equals(String.valueOf(t)) ? t : null;
+        });
 
         assertThat(type).hasToString("function");
     }

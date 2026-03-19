@@ -68,28 +68,33 @@ class RateLimitingIT {
     @Test
     void infoEndpointRateLimited() throws InterruptedException {
         RestOperations restTemplate = serverRunning.getRestTemplate();
-        //One Request should pass
+
+        // Wait for a fresh rate-limit window to avoid interference from prior requests
+        TimeUnit.SECONDS.sleep(2);
+
         ResponseEntity<String> response = restTemplate.getForEntity(baseUrl + "/info", String.class);
         assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.TOO_MANY_REQUESTS);
-        boolean rateLimited = false;
+
         int infoLimit = 20;
         int requestCount = 50;
-        //Limit on /info is set to 20
+        int tolerance = 5;
+
         List<ResponseEntity> responses = new ArrayList<>(requestCount);
-        //Many Requests should hit the RL
         IntStream.range(0, requestCount).forEach(x -> responses.add(restTemplate.getForEntity(baseUrl + "/info", String.class)));
-        //Check numbers
+
         long limits = responses.stream().filter(s -> HttpStatus.TOO_MANY_REQUESTS.equals(s.getStatusCode())).count();
         long oKs = responses.stream().filter(s -> HttpStatus.OK.equals(s.getStatusCode())).count();
         assertThat(limits + oKs).isEqualTo(requestCount);
-        //Expect limited count around expected ones, more limited then with OK and check with tolerance of 2 that only expected limits are done
-        if (limits > oKs && limits > (infoLimit - 2) && limits < (requestCount - infoLimit + 2)) {
-            rateLimited = true;
-        }
-        assertThat(rateLimited).as("Rate limit counters are not as expected. Request: " + requestCount + ", Limit: " + infoLimit + ", blocked: " + limits
-                + ", allowed: " + oKs).isTrue();
-        //After 1s, New Limit should be available
-        TimeUnit.SECONDS.sleep(1);
+
+        assertThat(limits)
+                .as("Rate limit counters are not as expected. Request: %d, Limit: %d, blocked: %d, allowed: %d",
+                        requestCount, infoLimit, limits, oKs)
+                .isGreaterThan(oKs)
+                .isGreaterThanOrEqualTo(infoLimit - tolerance)
+                .isLessThanOrEqualTo(requestCount - infoLimit + tolerance);
+
+        // After the window resets, a new request should pass
+        TimeUnit.SECONDS.sleep(2);
         response = restTemplate.getForEntity(baseUrl + "/info", String.class);
         assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.TOO_MANY_REQUESTS);
     }
