@@ -20,6 +20,7 @@ public class AuditEvent {
 
     private final AuditEventType type;
     private final String principalId;
+    private final String principalName;
     private final String origin;
     private final long time;
     private final String data;
@@ -28,11 +29,16 @@ public class AuditEvent {
     private final String authenticationType;
 
     public AuditEvent(AuditEventType type, String principalId, String origin, String data, long time, String identityZoneId, String authenticationType, String description) {
+        this(type, principalId, origin, data, time, identityZoneId, authenticationType, description, null);
+    }
+
+    public AuditEvent(AuditEventType type, String principalId, String origin, String data, long time, String identityZoneId, String authenticationType, String description, String principalName) {
         this.type = type;
         this.data = data;
         this.origin = origin;
         this.time = time;
         this.principalId = principalId;
+        this.principalName = principalName;
         this.identityZoneId = identityZoneId;
         this.description = description;
         this.authenticationType = authenticationType;
@@ -44,6 +50,10 @@ public class AuditEvent {
 
     public String getPrincipalId() {
         return principalId;
+    }
+
+    public String getPrincipalName() {
+        return principalName;
     }
 
     public String getOrigin() {

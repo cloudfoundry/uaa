@@ -32,7 +32,7 @@ public class PasswordChangeEvent extends AbstractPasswordChangeEvent {
     @Override
     public AuditEvent getAuditEvent() {
         return createAuditRecord(getUser().getId(), AuditEventType.PasswordChangeSuccess,
-                getOrigin(getPrincipal()), getMessage());
+                getOrigin(getPrincipal()), getMessage(), getUser().getUsername());
     }
 
 }

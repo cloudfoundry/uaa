@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -58,7 +59,7 @@ public class InvitationsEndpoint {
     private final ExpiringCodeStore expiringCodeStore;
 
     public InvitationsEndpoint(final ScimUserProvisioning scimUserProvisioning,
-            final IdentityProviderProvisioning identityProviderProvisioning,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
             final MultitenantClientServices multitenantClientServices,
             final ExpiringCodeStore expiringCodeStore) {
         this.scimUserProvisioning = scimUserProvisioning;

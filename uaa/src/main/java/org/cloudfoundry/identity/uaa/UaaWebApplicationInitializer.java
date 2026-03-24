@@ -9,6 +9,8 @@ import org.apache.catalina.core.ApplicationContextFacade;
 import org.apache.catalina.core.StandardContext;
 import org.apache.tomcat.util.descriptor.web.ErrorPage;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.zone.ZoneContextPathSessionFilter;
+import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.context.ContextLoaderListener;
@@ -35,6 +37,13 @@ public class UaaWebApplicationInitializer implements WebApplicationInitializer {
         contextLoaderListener.setContextInitializers(new YamlServletProfileInitializer());
         servletContext.addListener(contextLoaderListener);
 
+        // Filter registration order matters: first registered = outermost in the chain.
+        // Order: rewriting → Spring Session → zone session → Spring Security
+
+        DelegatingFilterProxy zonePathContextRewritingFilter = new DelegatingFilterProxy(ZonePathContextRewritingFilter.BEAN_NAME, context);
+        FilterRegistration.Dynamic zonePathRegistration = servletContext.addFilter(ZonePathContextRewritingFilter.BEAN_NAME, zonePathContextRewritingFilter);
+        zonePathRegistration.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST, DispatcherType.ERROR), false, "/*");
+
         //<filter-name>springSessionRepositoryFilter</filter-name>
         DelegatingFilterProxy springSessionRepositoryFilter = new DelegatingFilterProxy("springSessionRepositoryFilter", context);
         FilterRegistration.Dynamic springSessionRepositoryFilterRegistration = servletContext.addFilter(
@@ -43,6 +52,10 @@ public class UaaWebApplicationInitializer implements WebApplicationInitializer {
         springSessionRepositoryFilterRegistration.addMappingForUrlPatterns(
                 EnumSet.of(DispatcherType.REQUEST, DispatcherType.ERROR), false, "/*"
         );
+
+        DelegatingFilterProxy zoneContextPathSessionFilter = new DelegatingFilterProxy(ZoneContextPathSessionFilter.BEAN_NAME, context);
+        FilterRegistration.Dynamic zoneSessionRegistration = servletContext.addFilter(ZoneContextPathSessionFilter.BEAN_NAME, zoneContextPathSessionFilter);
+        zoneSessionRegistration.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST, DispatcherType.ERROR), false, "/*");
 
         //<filter-name>aggregateSpringSecurityFilterChain</filter-name>
         DelegatingFilterProxy springSecurityFilterChain = new DelegatingFilterProxy("springSecurityFilterChain", context);

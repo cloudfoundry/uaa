@@ -101,8 +101,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
                         .param(CLIENT_ID, client1.getClientId()))
                 .andExpect(status().isOk()); //200 means the approvals page
 
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNotNull();
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNotNull();
 
         //no token
         mockMvc.perform(post("/oauth/authorize")
@@ -119,8 +119,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
                         .param("scope.0", "scope.test.scope1"))
                 .andExpect(status().is4xxClientError());
 
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNotNull();
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNotNull();
 
         //valid token
         mockMvc.perform(post("/oauth/authorize")
@@ -132,8 +132,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrlPattern("**/*code=*"));
 
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNull();
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNull();
 
         mockMvc.perform(get("/oauth/authorize")
                         .session(session)
@@ -155,8 +155,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
                         .param(CLIENT_ID, client1.getClientId()))
                 .andExpect(status().isOk()); //200 means the approvals page
 
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNotNull();
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNotNull();
 
         mockMvc.perform(post("/oauth/authorize")
                         .with(cookieCsrf())
@@ -168,8 +168,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("http://test.example.org/redirect?error=invalid_scope&error_description=The%20requested%20scopes%20are%20invalid.%20Please%20use%20valid%20scope%20names%20in%20the%20request*"));
 
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNull();
-        assertThat(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)).isNull();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST)).isNull();
     }
 
     @Test
@@ -208,7 +208,7 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         assertThat(auth.isAuthenticated()).isTrue();
         SecurityContextHolder.getContext().setAuthentication(auth);
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new MockMvcUtils.MockSecurityContext(auth)
         );

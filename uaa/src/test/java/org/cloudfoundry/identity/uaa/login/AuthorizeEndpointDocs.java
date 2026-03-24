@@ -72,7 +72,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     @Test
     void browserCodeRequest() throws Exception {
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new MockMvcUtils.MockSecurityContext(principal)
         );
@@ -145,7 +145,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     @Test
     void implicitGrant_browserRequest() throws Exception {
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new MockMvcUtils.MockSecurityContext(principal)
         );
@@ -209,7 +209,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     @Test
     void getIdToken() throws Exception {
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new MockMvcUtils.MockSecurityContext(principal)
         );
@@ -246,7 +246,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     @Test
     void getIdTokenAndAccessToken() throws Exception {
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new MockMvcUtils.MockSecurityContext(principal)
         );
@@ -284,7 +284,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     @Test
     void getIdTokenAndCode() throws Exception {
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new MockMvcUtils.MockSecurityContext(principal)
         );

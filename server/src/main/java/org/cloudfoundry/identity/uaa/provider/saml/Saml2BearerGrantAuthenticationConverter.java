@@ -26,6 +26,7 @@ import org.opensaml.core.xml.config.XMLObjectProviderRegistry;
 import org.opensaml.saml.common.assertion.ValidationContext;
 import org.opensaml.saml.saml2.assertion.SAML2AssertionValidationParameters;
 import org.opensaml.saml.saml2.core.Assertion;
+import org.opensaml.saml.saml2.core.AttributeStatement;
 import org.opensaml.saml.saml2.core.Issuer;
 import org.opensaml.saml.saml2.core.Response;
 import org.opensaml.saml.saml2.core.impl.AssertionUnmarshaller;
@@ -236,6 +237,18 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
                 .orElseThrow(() -> new Saml2AuthenticationException(new Saml2Error(Saml2ErrorCodes.INVALID_ASSERTION, "Missing issuer in bearer assertion")));
     }
 
+    private static boolean hasEncryptedElements(Assertion assertion) {
+        if (assertion.getSubject() != null && assertion.getSubject().getEncryptedID() != null) {
+            return true;
+        }
+        for (AttributeStatement statement : assertion.getAttributeStatements()) {
+            if (!statement.getEncryptedAttributes().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void process(Saml2AuthenticationToken token, Assertion assertion) {
         String issuer = getIssuer(assertion);
         log.debug("Processing SAML response from {}", issuer);
@@ -244,6 +257,14 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         Saml2ResponseValidatorResult result = this.assertionSignatureValidator.convert(assertionToken);
         if (assertion.isSigned()) {
             this.assertionElementsDecrypter.accept(new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token));
+        } else if (hasEncryptedElements(assertion)) {
+            this.assertionElementsDecrypter.accept(new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token));
+        } else {
+            throw OpenSaml4AuthenticationProvider.createAuthenticationException(
+                    Saml2ErrorCodes.INVALID_SIGNATURE,
+                    "Assertion is missing a signature.",
+                    null
+            );
         }
         result = result.concat(this.assertionValidator.convert(assertionToken));
 

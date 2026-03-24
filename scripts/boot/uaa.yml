@@ -1,3 +1,7 @@
+zones:
+  paths:
+    enabled: true
+
 servlet:
   session-store: database
   session-cookie:
@@ -56,6 +60,9 @@ jwt:
         - excluded-claim1
         - excluded-claim2
 login:
+  # The entity base url is the location of this application (Used for SAML SP metadata generation)
+  # Not set for integration tests - allows UAA to use request URL for zone subdomains
+  entityBaseURL: null
   saml:
     activeKeyId: key1
     keys:

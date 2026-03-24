@@ -1,3 +1,7 @@
+zones:
+  paths:
+    enabled: false
+
 # Configuration in this file is overridden by an external file
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
@@ -396,7 +400,7 @@ login:
 #    -----END CERTIFICATE-----
 
   # The entity base url is the location of this application
-  # (No longer used for SAML SP metadata generation)
+  # (Used for SAML SP metadata generation)
   entityBaseURL: http://localhost:8080/uaa
   # The entityID of this SP (SAML SP metadata will declare this as "entityID"); SAML Authn Request will use this as the "Issuer" of the request
   entityID: cloudfoundry-saml-login

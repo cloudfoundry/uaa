@@ -19,11 +19,15 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
+import org.springframework.util.StringUtils;
 
 import java.security.Security;
 
@@ -55,7 +59,7 @@ class UaaRelyingPartyRegistrationResolverTests {
     void beforeEach() {
         registration = mock(RelyingPartyRegistration.class);
         repository = mock(RelyingPartyRegistrationRepository.class);
-        resolver = new UaaRelyingPartyRegistrationResolver(repository, "clouodfoundry-saml-login");
+        resolver = new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", "http://localhost:8080/uaa");
     }
 
     @Test
@@ -81,7 +85,7 @@ class UaaRelyingPartyRegistrationResolverTests {
     @Test
     void resolveWhenRequestIsWithInvalidSamlResponse() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setPathInfo("/some/path/clouodfoundry-saml-login");
+        request.setPathInfo("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
         request.setParameter("SAMLResponse", "PGJhc2U2ND4=");
         assertThatExceptionOfType(Saml2AuthenticationException.class).isThrownBy(() -> resolver.resolve(request, null));
@@ -90,7 +94,7 @@ class UaaRelyingPartyRegistrationResolverTests {
     @Test
     void resolveWhenRequestIsWithValiddSamlResponseFromSimplySamlButNoTrust() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setPathInfo("/some/path/clouodfoundry-saml-login");
+        request.setPathInfo("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
         request.setParameter("SAMLResponse", SIMPLE_SAML_RESPONSE);
         assertThat(resolver.resolve(request, null)).isNull();
@@ -111,7 +115,7 @@ class UaaRelyingPartyRegistrationResolverTests {
         doReturn(mock(Saml2MessageBinding.class)).when(details).getSingleSignOnServiceBinding();
         doReturn(mock(Saml2MessageBinding.class)).when(newMock).getAssertionConsumerServiceBinding();
         doReturn(newMock).when(repository).findByRegistrationId("http://uaa-acceptance.cf-app.com/saml-idp");
-        request.setPathInfo("/some/path/clouodfoundry-saml-login");
+        request.setPathInfo("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
         request.setParameter("SAMLResponse", SIMPLE_SAML_RESPONSE);
         assertThat(resolver.resolve(request, null).getEntityId()).isEqualTo("simpleEndityID");
@@ -119,6 +123,85 @@ class UaaRelyingPartyRegistrationResolverTests {
 
     @Test
     void constructorWhenNullRelyingPartyRegistrationThenIllegalArgument() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new UaaRelyingPartyRegistrationResolver(null, null));
+        assertThatIllegalArgumentException().isThrownBy(() -> new UaaRelyingPartyRegistrationResolver(null, null, null));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {""})
+    void resolveWhenEntityBaseUrlIsNullOrEmptyUsesRequestUrl(String baseUrl) {
+        UaaRelyingPartyRegistrationResolver resolverWithNullOrEmptyBaseUrl =
+            new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", baseUrl);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("https");
+        request.setServerName("uaa.example.com");
+        request.setServerPort(443);
+        request.setContextPath("/uaa-security");
+        request.setRequestURI("/uaa-security/saml/metadata/test-idp");
+
+        String expectedBaseUrl = "https://uaa.example.com/uaa-security";
+
+        RelyingPartyRegistration testRegistration = RelyingPartyRegistration.withRegistrationId("test-idp")
+                .entityId("{baseUrl}/saml/metadata")
+                .assertionConsumerServiceLocation("{baseUrl}/saml/SSO")
+                .assertionConsumerServiceBinding(Saml2MessageBinding.POST)
+                .singleLogoutServiceLocation("{baseUrl}/saml/SingleLogout")
+                .singleLogoutServiceResponseLocation("{baseUrl}/saml/SingleLogout")
+                .singleLogoutServiceBinding(Saml2MessageBinding.POST)
+                .assertingPartyMetadata(party -> party
+                        .entityId("https://idp.example.com")
+                        .singleSignOnServiceLocation("https://idp.example.com/sso")
+                        .singleSignOnServiceBinding(Saml2MessageBinding.POST)
+                        .wantAuthnRequestsSigned(false))
+                .build();
+
+        doReturn(testRegistration).when(repository).findByRegistrationId("test-idp");
+
+        RelyingPartyRegistration result = resolverWithNullOrEmptyBaseUrl.resolve(request, "test-idp");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getEntityId()).isEqualTo(expectedBaseUrl +"/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(expectedBaseUrl +"/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SingleLogout");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"https://custom.domain.com/uaa", "https://trailing.slash.domain.com/uaa/", "https://many.trailing.slashes.domain.com/uaa///"})
+    void resolveWhenEntityBaseUrlIsSetUsesConfiguredEntityBaseUrl(String configuredBaseUrl) {
+        UaaRelyingPartyRegistrationResolver resolverWithConfiguredBaseUrl =
+            new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", configuredBaseUrl);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("https");
+        request.setServerName("uaa.example.com");
+        request.setServerPort(443);
+        request.setContextPath("/uaa-security");
+        request.setRequestURI("/uaa-security/saml/metadata/test-idp");
+
+        String expectedBaseUrl = StringUtils.trimTrailingCharacter(configuredBaseUrl, '/');
+
+        RelyingPartyRegistration testRegistration = RelyingPartyRegistration.withRegistrationId("test-idp")
+                .entityId("{baseUrl}/saml/metadata")
+                .assertionConsumerServiceLocation("{baseUrl}/saml/SSO")
+                .assertionConsumerServiceBinding(Saml2MessageBinding.POST)
+                .singleLogoutServiceLocation("{baseUrl}/saml/SingleLogout")
+                .singleLogoutServiceResponseLocation("{baseUrl}/saml/SingleLogout")
+                .singleLogoutServiceBinding(Saml2MessageBinding.POST)
+                .assertingPartyMetadata(party -> party
+                        .entityId("https://idp.example.com")
+                        .singleSignOnServiceLocation("https://idp.example.com/sso")
+                        .singleSignOnServiceBinding(Saml2MessageBinding.POST)
+                        .wantAuthnRequestsSigned(false))
+                .build();
+
+        doReturn(testRegistration).when(repository).findByRegistrationId("test-idp");
+
+        RelyingPartyRegistration result = resolverWithConfiguredBaseUrl.resolve(request, "test-idp");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getEntityId()).isEqualTo(expectedBaseUrl + "/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SingleLogout");
     }
 }

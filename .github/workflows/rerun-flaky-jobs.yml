@@ -1,0 +1,118 @@
+# Rerun failed integration/unit tests when flakiness is detected.
+# Must run in a separate workflow: gh run rerun only works on *completed* runs,
+# so we trigger on workflow_run (completed) and then rerun that completed run.
+name: Rerun flaky tests
+on:
+  workflow_run:
+    workflows: [ "Integration tests on database", "JUnit tests on database" ]
+    types: [ completed ]
+
+permissions:
+  actions: write
+  contents: read
+
+run-name: "Rerun Flaky Tests in ${{ github.event.workflow_run.name }}"
+
+jobs:
+  check-and-rerun:
+    # Act when the test run did not fully succeed and we're under the retry limit.
+    # run_attempt is 1-based; we allow attempts 1 and 2 to be rerun (up to 3 total attempts).
+    # Include failure, cancelled, skipped, timed_out, etc. (anything != success).
+    if: github.event.workflow_run.conclusion != 'success' && github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for flakiness and rerun failed jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_STATUS: ${{ github.event.workflow_run.status }}
+        run: |
+          set -uo pipefail
+          # Capture gh exit code separately so we can print a clear error; with set -e
+          # the script would exit on gh failure before we could run the error block.
+          JOBS_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}/attempts/${RUN_ATTEMPT}/jobs" 2>&1)
+          GH_STATUS=$?
+
+          if [ "$GH_STATUS" -ne 0 ]; then
+            echo "Error: failed to fetch jobs via 'gh api' (exit code: $GH_STATUS)." >&2
+            echo "Raw 'gh api' output:" >&2
+            echo "$JOBS_JSON" >&2
+            exit "$GH_STATUS"
+          fi
+
+          set -e
+          # Fetch succeeded; validate JSON and compute counts
+          if ! echo "$JOBS_JSON" | jq empty >/dev/null 2>&1; then
+            echo "Error: 'gh api' did not return valid JSON." >&2
+            echo "Raw response:" >&2
+            echo "$JOBS_JSON" >&2
+            exit 1
+          fi
+
+          # Count failed/rerunnable jobs (those that 'gh run rerun --failed' will rerun)
+          FAILED_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion != null and (.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out"))] | length')
+          SUCCESS_COUNT=$(echo "$JOBS_JSON" | jq '[.jobs[] | select(.conclusion == "success")] | length')
+          TOTAL_JOBS=$(echo "$JOBS_JSON" | jq '.jobs | length')
+
+          echo "Failed/rerunnable jobs (failure/cancelled/timed_out): $FAILED_COUNT"
+          echo "Successful jobs: $SUCCESS_COUNT"
+          echo "$JOBS_JSON" | jq -r '.jobs[] | "\(.name): \(.conclusion)"'
+
+          # Build job list for summary (one line per job: name, conclusion)
+          JOB_LIST=$(echo "$JOBS_JSON" | jq -r '.jobs[] | "- **\(.name)**: \(.conclusion // "pending")"')
+
+          # Decision: rerun only if some failed and at least one passed (flakiness)
+          if [ "$FAILED_COUNT" -gt 0 ] && [ "$SUCCESS_COUNT" -gt 0 ]; then
+            CONCLUSION_MSG="Flakiness detected. Rerunning failed jobs..."
+            echo "$CONCLUSION_MSG"
+            # Run rerun command but don't let failures prevent writing the summary
+            set +e
+            gh run rerun "$RUN_ID" --failed --repo ${{ github.repository }}
+            RERUN_EXIT_CODE=$?
+            set -e
+            if [ "$RERUN_EXIT_CODE" -ne 0 ]; then
+              RERUN_ERROR_MSG="Rerun command failed with exit code ${RERUN_EXIT_CODE}. See logs above for details."
+              echo "$RERUN_ERROR_MSG"
+              CONCLUSION_MSG="${CONCLUSION_MSG} However, the rerun command failed with exit code ${RERUN_EXIT_CODE}."
+            else
+              RERUN_ERROR_MSG=""
+            fi
+          else
+            CONCLUSION_MSG="Flakiness not detected. Skipping auto-rerun."
+            echo "$CONCLUSION_MSG"
+            RERUN_ERROR_MSG=""
+          fi
+
+          # Write GITHUB_STEP_SUMMARY
+          {
+            echo "## Rerun flaky tests"
+            echo ""
+            echo "### Workflow run checked"
+            echo "- **Name:** ${WORKFLOW_NAME}"
+            echo "- **Link:** [View run](${WORKFLOW_URL})"
+            echo "- **Run conclusion:** \`${RUN_CONCLUSION}\`"
+            echo "- **Run status:** ${RUN_STATUS}"
+            echo "- **Attempt:** ${RUN_ATTEMPT}"
+            echo ""
+            echo "### Job counts"
+            echo "| Outcome | Count |"
+            echo "|---------|-------|"
+            echo "| Failed/rerunnable (failure, cancelled, timed_out) | ${FAILED_COUNT} |"
+            echo "| Success | ${SUCCESS_COUNT} |"
+            echo "| Total jobs | ${TOTAL_JOBS} |"
+            echo ""
+            echo "### Jobs"
+            echo "$JOB_LIST"
+            echo ""
+            echo "### Conclusion"
+            echo "${CONCLUSION_MSG}"
+            if [ -n "${RERUN_ERROR_MSG}" ]; then
+              echo ""
+              echo "### Rerun error details"
+              echo "${RERUN_ERROR_MSG}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

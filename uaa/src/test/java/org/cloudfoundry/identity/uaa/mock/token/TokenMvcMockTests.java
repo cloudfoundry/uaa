@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
@@ -50,6 +51,7 @@ import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -1021,18 +1023,20 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void getToken_withPasswordGrantType_resultsInUserLastLogonTimestampUpdate() throws Exception {
-        long delayTime = 15;
+        TimeService timeService = webApplicationContext.getBean(TimeService.class);
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
+        long now = timeService.getCurrentTimeMillis();
         webApplicationContext.getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
+        now = MockMvcUtils.ensureClockMoved(timeService, now);
         webApplicationContext.getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
-
+        now = MockMvcUtils.ensureClockMoved(timeService, now);
         String accessToken = getAccessTokenForPasswordGrant(username);
         Long firstTimestamp = getPreviousLogonTime(accessToken);
         //simulate two sequential tests
         //on a fast processor, there isn't enough granularity in the time
-        Thread.sleep(delayTime);
+        MockMvcUtils.ensureClockMoved(timeService, now);
         String accessToken2 = getAccessTokenForPasswordGrant(username);
         Long secondTimestamp = getPreviousLogonTime(accessToken2);
 
@@ -1421,8 +1425,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code", "id_token")));
         authorizationRequest.setState(state);
 
-        session.setAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
-        session.setAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, unmodifiableMap(authorizationRequest));
+        MockMvcUtils.getZoneSession(session).setAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
+        MockMvcUtils.getZoneSession(session).setAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, unmodifiableMap(authorizationRequest));
 
         MvcResult result = mockMvc.perform(
                 post("/oauth/authorize")
@@ -1458,8 +1462,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         authorizationRequest.setScope(new ArrayList<>(Collections.singletonList("openid")));
         authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code", "id_token")));
         authorizationRequest.setState(state);
-        session.setAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
-        session.setAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, unmodifiableMap(authorizationRequest));
+        MockMvcUtils.getZoneSession(session).setAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
+        MockMvcUtils.getZoneSession(session).setAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, unmodifiableMap(authorizationRequest));
 
         MvcResult result = mockMvc.perform(
                 post("/oauth/authorize")
@@ -1640,7 +1644,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         assertThat(session).isNotNull();
-        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(session);
+        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(MockMvcUtils.getZoneSession(session));
         assertThat(savedRequest).isNotNull();
         assertThat(savedRequest.getRedirectUrl()).isEqualTo(authUrl);
 
@@ -1668,7 +1672,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         session = (MockHttpSession) result.getRequest().getSession(false);
         assertThat(session).isNotNull();
-        savedRequest = SessionUtils.getSavedRequestSession(session);
+        savedRequest = SessionUtils.getSavedRequestSession(MockMvcUtils.getZoneSession(session));
         assertThat(savedRequest).isNotNull();
 
         mockMvc.perform(
@@ -4064,11 +4068,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private void setAuthentication(MockHttpSession session, ScimUser developer, boolean forcePasswordChange, String... authMethods) {
         UaaPrincipal p = new UaaPrincipal(developer.getId(), developer.getUserName(), developer.getPrimaryEmail(), OriginKeys.UAA, "", IdentityZoneHolder.get().getId());
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(false, "clientId", OriginKeys.ORIGIN, "sessionId"));
-        SessionUtils.setPasswordChangeRequired(session, forcePasswordChange);
+        HttpSession zoneSession = MockMvcUtils.getZoneSession(session);
+        SessionUtils.setPasswordChangeRequired(zoneSession, forcePasswordChange);
         auth.setAuthenticationMethods(new HashSet<>(Arrays.asList(authMethods)));
         assertThat(auth.isAuthenticated()).isTrue();
         SecurityContextHolder.getContext().setAuthentication(auth);
-        session.setAttribute(
+        zoneSession.setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new MockSecurityContext(auth)
         );

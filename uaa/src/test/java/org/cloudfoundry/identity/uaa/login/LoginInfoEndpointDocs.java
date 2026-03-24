@@ -138,7 +138,7 @@ class LoginInfoEndpointDocs extends EndpointDocs {
                 Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 new MockMvcUtils.MockSecurityContext(principal)
         );

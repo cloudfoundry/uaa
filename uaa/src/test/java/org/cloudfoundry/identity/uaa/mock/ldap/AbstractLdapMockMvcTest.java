@@ -437,7 +437,7 @@ public abstract class AbstractLdapMockMvcTest {
         String password = "ldap9";
         MvcResult result = performUiAuthentication(username, password, HttpStatus.FOUND, true);
 
-        UaaAuthentication authentication = (UaaAuthentication) ((SecurityContext) result.getRequest().getSession().getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
+        UaaAuthentication authentication = (UaaAuthentication) ((SecurityContext) MockMvcUtils.getZoneSession(result.getRequest().getSession()).getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
 
         assertThat(authentication.getUserAttributes()).as("Expected two user attributes").hasSize(2)
                 .as("Expected cost center attribute").containsKey(costCenters)
@@ -538,14 +538,15 @@ public abstract class AbstractLdapMockMvcTest {
         provider.getConfig().setGroupSearchBase("memberOf");
         updateLdapProvider();
 
-        Object securityContext = getMockMvc().perform(post("/login.do").accept(TEXT_HTML_VALUE)
+        HttpSession memberOfLoginSession = getMockMvc().perform(post("/login.do").accept(TEXT_HTML_VALUE)
                         .with(cookieCsrf())
                         .header(HOST, host)
                         .param("username", "marissa10")
                         .param("password", "ldap10"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/"))
-                .andReturn().getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+                .andReturn().getRequest().getSession();
+        Object securityContext = MockMvcUtils.getZoneSession(memberOfLoginSession).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
 
         assertThat(securityContext).isInstanceOf(SecurityContext.class);
         String[] list = new String[]{
@@ -864,8 +865,8 @@ public abstract class AbstractLdapMockMvcTest {
                         .andExpect(authenticated())
                         .andReturn().getRequest().getSession(false);
         assertThat(session).isNotNull();
-        assertThat(session.getAttribute(SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
-        Authentication authentication = ((SecurityContext) session.getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
+        assertThat(MockMvcUtils.getZoneSession(session).getAttribute(SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
+        Authentication authentication = ((SecurityContext) MockMvcUtils.getZoneSession(session).getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
         assertThat(authentication).isNotNull();
         assertThat(authentication.isAuthenticated()).isTrue();
     }

@@ -16,7 +16,7 @@ function main() {
 
   local test_profile="${1:-hsqldb}"
   setup_hosts_file
-  boot_db "${DB}" # DB is set in the Dockerfile for each image
+  boot_db "${DB:-hsqldb}" # DB is set in the Dockerfile for each image
 
   pushd "$(dirname ${script_dir})"
     start_ldap

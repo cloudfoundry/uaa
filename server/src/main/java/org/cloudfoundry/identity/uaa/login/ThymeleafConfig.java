@@ -58,6 +58,11 @@ public class ThymeleafConfig {
         additionalDialects.add(new SpringSecurityDialect());
         springTemplateEngine.setAdditionalDialects(additionalDialects);
 
+        //ensures that /resources/ and /vendor/ links do not
+        //get /z/{subdomain}/ added to them
+        //static content is always served at the default zone
+        springTemplateEngine.setLinkBuilder(new ZoneAwareStaticResourceLinkBuilder());
+
         return springTemplateEngine;
     }
 

@@ -247,6 +247,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
         it.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "hsqldb"))
         it.systemProperty("testId", System.getProperty("testId", ""))
+        it.systemProperty("zones.paths.enabled", System.getProperty("zones.paths.enabled", "true"))
     }
 }
 
@@ -287,6 +288,7 @@ tasks.register('bootWarRun', JavaExec) {
     systemProperty("server.servlet.context-path", "/uaa")
     systemProperty("statsd.enabled", "true")
     systemProperty("logging.config", file("scripts/boot/log4j2.properties").getAbsolutePath())
+    systemProperty("zones.paths.enabled", System.getProperty("zones.paths.enabled", "true"))
 }
 
 tasks.register('killUaa', Exec) {

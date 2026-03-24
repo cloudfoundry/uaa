@@ -174,7 +174,7 @@ class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your account");
         assertThat(emailBody).contains("A request has been made to activate an account for:")
                 .contains("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>")
-                .contains("Thank you,<br />\n    " + zoneName)
+                .containsIgnoringWhitespaces("Thank you,<br /> " + zoneName)
                 .doesNotContain("Cloud Foundry");
     }
 

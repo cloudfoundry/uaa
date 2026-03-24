@@ -52,3 +52,8 @@ scripts/certificates/tmp/**
 # temporary tomcat war file directories
 scripts/boot/tomcat/**
 
+# VS Code and Cursor
+.cursor/
+.ruby-version
+.vscode/
+

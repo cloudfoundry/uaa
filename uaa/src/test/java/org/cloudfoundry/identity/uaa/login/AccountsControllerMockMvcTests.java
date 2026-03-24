@@ -239,7 +239,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) MockMvcUtils.getZoneSession(mvcResult.getRequest().getSession()).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -272,7 +272,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) MockMvcUtils.getZoneSession(mvcResult.getRequest().getSession()).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -318,7 +318,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) MockMvcUtils.getZoneSession(mvcResult.getRequest().getSession()).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -375,7 +375,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) MockMvcUtils.getZoneSession(mvcResult.getRequest().getSession()).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -423,7 +423,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) MockMvcUtils.getZoneSession(mvcResult.getRequest().getSession()).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
@@ -463,7 +463,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
                 .andReturn();
 
-        assertThat(SessionUtils.getSavedRequestSession(session).getRedirectUrl()).isNotNull();
+        assertThat(SessionUtils.getSavedRequestSession(MockMvcUtils.getZoneSession(session)).getRedirectUrl()).isNotNull();
     }
 
     @Test
@@ -593,7 +593,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(authenticated())
                 .andReturn();
 
-        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) MockMvcUtils.getZoneSession(mvcResult.getRequest().getSession()).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();

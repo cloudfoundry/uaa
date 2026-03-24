@@ -26,6 +26,7 @@ public final class SessionUtils {
 
     private static final String EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX = "external-oauth-state-";
     private static final String EXTERNAL_OAUTH_CODE_VERIFIER_ATTRIBUTE_PREFIX = "external-oauth-verifier-";
+    private static final String EXTERNAL_OAUTH_REDIRECT_URI_ATTRIBUTE_PREFIX = "external-oauth-redirect-uri-";
 
     private SessionUtils() {
     }
@@ -86,5 +87,9 @@ public final class SessionUtils {
 
     public static String codeVerifierParameterAttributeKeyForIdp(String idpOriginKey) {
         return EXTERNAL_OAUTH_CODE_VERIFIER_ATTRIBUTE_PREFIX + idpOriginKey;
+    }
+
+    public static String redirectUriParameterAttributeKeyForIdp(String idpOriginKey) {
+        return EXTERNAL_OAUTH_REDIRECT_URI_ATTRIBUTE_PREFIX + idpOriginKey;
     }
 }

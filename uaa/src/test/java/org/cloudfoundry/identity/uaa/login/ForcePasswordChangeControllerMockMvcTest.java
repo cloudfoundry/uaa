@@ -106,16 +106,16 @@ class ForcePasswordChangeControllerMockMvcTest {
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/"));
 
-            assertThat(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
-            assertThat(SessionUtils.isPasswordChangeRequired(session)).isTrue();
+            assertThat(((SecurityContext) MockMvcUtils.getZoneSession(session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
+            assertThat(SessionUtils.isPasswordChangeRequired(MockMvcUtils.getZoneSession(session))).isTrue();
 
             mockMvc.perform(get("/")
                             .session(session))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/force_password_change"));
 
-            assertThat(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
-            assertThat(SessionUtils.isPasswordChangeRequired(session)).isTrue();
+            assertThat(((SecurityContext) MockMvcUtils.getZoneSession(session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
+            assertThat(SessionUtils.isPasswordChangeRequired(MockMvcUtils.getZoneSession(session))).isTrue();
 
             MockHttpServletRequestBuilder validPost = post("/force_password_change")
                     .param("password", "test")
@@ -125,15 +125,15 @@ class ForcePasswordChangeControllerMockMvcTest {
             mockMvc.perform(validPost)
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/force_password_change_completed"));
-            assertThat(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
-            assertThat(SessionUtils.isPasswordChangeRequired(session)).isFalse();
+            assertThat(((SecurityContext) MockMvcUtils.getZoneSession(session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
+            assertThat(SessionUtils.isPasswordChangeRequired(MockMvcUtils.getZoneSession(session))).isFalse();
 
             mockMvc.perform(get("/force_password_change_completed")
                             .session(session))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("http://localhost/"));
-            assertThat(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
-            assertThat(SessionUtils.isPasswordChangeRequired(session)).isFalse();
+            assertThat(((SecurityContext) MockMvcUtils.getZoneSession(session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
+            assertThat(SessionUtils.isPasswordChangeRequired(MockMvcUtils.getZoneSession(session))).isFalse();
         }
 
     }
@@ -237,8 +237,8 @@ class ForcePasswordChangeControllerMockMvcTest {
                             .session(session))
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("http://localhost/"));
-            assertThat(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
-            assertThat(SessionUtils.isPasswordChangeRequired(session)).isFalse();
+            assertThat(((SecurityContext) MockMvcUtils.getZoneSession(session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated()).isTrue();
+            assertThat(SessionUtils.isPasswordChangeRequired(MockMvcUtils.getZoneSession(session))).isFalse();
         }
     }
 

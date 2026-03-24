@@ -79,6 +79,10 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
         return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), zoneId, null, null);
     }
 
+    protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data, String principalName) {
+        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), zoneId, null, null, principalName);
+    }
+
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data, String authenticationType, String message) {
         return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), zoneId, authenticationType, message);
     }

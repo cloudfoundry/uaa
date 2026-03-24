@@ -275,7 +275,7 @@ public class LoginMockMvcTests {
         SavedRequest savedRequest = getSavedRequest(client);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        MockMvcUtils.getZoneSession(session).setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         return session;
     }
 
@@ -609,7 +609,7 @@ public class LoginMockMvcTests {
                 .param("username", user.getUserName())
                 .param("password", user.getPassword()));
         long afterAuthTime = System.currentTimeMillis();
-        SecurityContext securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = (SecurityContext) MockMvcUtils.getZoneSession(session, "/uaa").getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         assertThat(((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime()).isNull();
         session = new MockHttpSession();
 
@@ -619,7 +619,7 @@ public class LoginMockMvcTests {
                 .contextPath("/uaa")
                 .param("username", user.getUserName())
                 .param("password", user.getPassword()));
-        securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        securityContext = (SecurityContext) MockMvcUtils.getZoneSession(session, "/uaa").getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
 
         Long lastLoginTime = ((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime();
         assertThat(lastLoginTime).isBetween(beforeAuthTime, afterAuthTime);
@@ -1120,7 +1120,7 @@ public class LoginMockMvcTests {
         MockHttpSession session = new MockHttpSession();
         SecurityContext securityContext = new SecurityContextImpl();
         securityContext.setAuthentication(principal);
-        session.setAttribute("SPRING_SECURITY_CONTEXT", securityContext);
+        MockMvcUtils.getZoneSession(session).setAttribute("SPRING_SECURITY_CONTEXT", securityContext);
         MockHttpServletRequestBuilder get = get("/oauth/authorize")
                 .accept(TEXT_HTML)
                 .param("response_type", "code")
@@ -1339,7 +1339,7 @@ public class LoginMockMvcTests {
 
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = new MockMvcUtils.MockSavedRequest();
-        SessionUtils.setSavedRequestSession(session, savedRequest);
+        SessionUtils.setSavedRequestSession(MockMvcUtils.getZoneSession(session), savedRequest);
 
         mockMvc.perform(get("/login")
                         .accept(TEXT_HTML)
@@ -1554,7 +1554,7 @@ public class LoginMockMvcTests {
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = mock(DefaultSavedRequest.class);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"example.com"});
-        SessionUtils.setSavedRequestSession(session, savedRequest);
+        SessionUtils.setSavedRequestSession(MockMvcUtils.getZoneSession(session), savedRequest);
 
         MvcResult mvcResult = mockMvc.perform(get("/login")
                         .accept(TEXT_HTML)
@@ -1715,7 +1715,7 @@ public class LoginMockMvcTests {
                 return null;
             }
         };
-        SessionUtils.setSavedRequestSession(session, savedRequest);
+        SessionUtils.setSavedRequestSession(MockMvcUtils.getZoneSession(session), savedRequest);
 
         mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
                         .session(session)
@@ -1940,7 +1940,7 @@ public class LoginMockMvcTests {
         MockHttpSession inviteSession = new MockHttpSession();
         SecurityContext inviteContext = new SecurityContextImpl();
         inviteContext.setAuthentication(inviteToken);
-        inviteSession.setAttribute("SPRING_SECURITY_CONTEXT", inviteContext);
+        MockMvcUtils.getZoneSession(inviteSession).setAttribute("SPRING_SECURITY_CONTEXT", inviteContext);
 
         Map<String, String> codeData = new HashMap();
         codeData.put("user_id", ((UaaPrincipal) marissaContext.getAuthentication().getPrincipal()).getId());
@@ -1960,7 +1960,7 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(post)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrlPattern("accept?error_message_code=form_error&code=*"))
+                .andExpect(redirectedUrlPattern("/invitations/accept?error_message_code=form_error&code=*"))
         ;
 
         //logged in, invalid CSRF
@@ -2297,7 +2297,7 @@ public class LoginMockMvcTests {
         MockMvcUtils.createClient(webApplicationContext, client, zone);
 
         SavedRequest savedRequest = getSavedRequest(client);
-        SessionUtils.setSavedRequestSession(session, savedRequest);
+        SessionUtils.setSavedRequestSession(MockMvcUtils.getZoneSession(session), savedRequest);
 
         mockMvc.perform(get("/login")
                         .session(session)
@@ -2719,15 +2719,16 @@ public class LoginMockMvcTests {
         client.setRegisteredRedirectUri(registeredRedirectUris);
         MockMvcUtils.createClient(webApplicationContext, client, zone);
 
-        MockHttpServletRequestBuilder authorize = get("/oauth/authorize")
+        MockHttpServletRequestBuilder authorize = get("/uaa/oauth/authorize")
                 .with(inZone)
+                .contextPath("/uaa")
                 .session(session)
                 .param("client_id", "different-provider-client")
                 .param("response_type", "code")
                 .param("client_secret", "secret")
                 .param("garbage", "this-should-be-preserved");
 
-        String expectedUrl = "http://" + subdomain + ".localhost/oauth/authorize?client_id=different-provider-client&response_type=code&client_secret=secret&garbage=this-should-be-preserved";
+        String expectedUrl = "http://" + subdomain + ".localhost/uaa/oauth/authorize?client_id=different-provider-client&response_type=code&client_secret=secret&garbage=this-should-be-preserved";
         String html = mockMvc.perform(authorize)
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
@@ -2768,7 +2769,7 @@ public class LoginMockMvcTests {
 
         SavedRequest savedRequest = getSavedRequest(client);
         MockHttpSession session = new MockHttpSession();
-        SessionUtils.setSavedRequestSession(session, savedRequest);
+        SessionUtils.setSavedRequestSession(MockMvcUtils.getZoneSession(session), savedRequest);
         return session;
     }
 

@@ -18,11 +18,14 @@ package org.cloudfoundry.identity.uaa.mock.token;
 import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.ZoneContextPathSessionFilter;
+import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.headers.RequestHeadersSnippet;
 import org.springframework.restdocs.snippet.Snippet;
@@ -53,9 +56,19 @@ class JwtBearerGrantEndpointDocs extends JwtBearerGrantMockMvcTests {
     @Autowired
     FilterChainProxy securityFilterChain;
 
+    @Qualifier(ZonePathContextRewritingFilter.BEAN_NAME)
+    @Autowired
+    FilterRegistrationBean<ZonePathContextRewritingFilter> zonePathFilterRegistration;
+
+    @Qualifier(ZoneContextPathSessionFilter.BEAN_NAME)
+    @Autowired
+    FilterRegistrationBean<ZoneContextPathSessionFilter> zoneContextPathSessionFilterRegistration;
+
     @BeforeEach
     void setUpContext(ManualRestDocumentation manualRestDocumentation) {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(zonePathFilterRegistration.getFilter())
+                .addFilter(zoneContextPathSessionFilterRegistration.getFilter())
                 .addFilter(securityFilterChain)
                 .apply(documentationConfiguration(manualRestDocumentation)
                         .uris().withPort(80)

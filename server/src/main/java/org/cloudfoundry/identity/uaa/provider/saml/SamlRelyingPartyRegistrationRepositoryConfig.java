@@ -13,6 +13,7 @@ import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +108,9 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
 
     @Bean
     UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-            @Qualifier("samlEntityID") String samlEntityID) {
-        return new UaaRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, Optional.ofNullable(samlConfigProps.getEntityIDAlias()).orElse(samlEntityID));
+            @Qualifier("samlEntityID") String samlEntityID,
+            @Value("${login.entityBaseURL:#{null}}") String entityBaseURL) {
+        return new UaaRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository,
+                Optional.ofNullable(samlConfigProps.getEntityIDAlias()).orElse(samlEntityID), entityBaseURL);
     }
 }

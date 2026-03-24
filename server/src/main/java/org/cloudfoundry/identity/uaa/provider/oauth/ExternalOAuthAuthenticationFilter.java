@@ -98,7 +98,10 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
         final String accessToken = request.getParameter("access_token");
         final String signedRequest = request.getParameter("signed_request");
 
-        final String redirectUrl = request.getRequestURL().toString();
+        final String redirectUrl = ofNullable(request.getSession(false))
+                .map(s -> SessionUtils.getStateParam(s, SessionUtils.redirectUriParameterAttributeKeyForIdp(origin)))
+                .map(Object::toString)
+                .orElse(request.getRequestURL().toString());
         final ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken(code,
                 origin,
                 redirectUrl,

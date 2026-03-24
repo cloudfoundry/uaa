@@ -3,10 +3,14 @@ package org.cloudfoundry.identity.uaa.mock;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.zone.ZoneContextPathSessionFilter;
+import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +31,14 @@ public class EndpointDocs {
     @Autowired
     protected IdentityZoneManager identityZoneManager;
 
+    @Qualifier(ZonePathContextRewritingFilter.BEAN_NAME)
+    @Autowired
+    FilterRegistrationBean<ZonePathContextRewritingFilter> zonePathFilterRegistration;
+
+    @Qualifier(ZoneContextPathSessionFilter.BEAN_NAME)
+    @Autowired
+    FilterRegistrationBean<ZoneContextPathSessionFilter> zoneContextPathSessionFilterRegistration;
+
     protected MockMvc mockMvc;
     protected TestClient testClient;
 
@@ -35,6 +47,8 @@ public class EndpointDocs {
         FilterChainProxy securityFilterChain = webApplicationContext.getBean(SPRING_SECURITY_FILTER_CHAIN, FilterChainProxy.class);
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(zonePathFilterRegistration.getFilter())
+                .addFilter(zoneContextPathSessionFilterRegistration.getFilter())
                 .addFilter(securityFilterChain)
                 .apply(documentationConfiguration(manualRestDocumentation)
                         .uris().withPort(80)

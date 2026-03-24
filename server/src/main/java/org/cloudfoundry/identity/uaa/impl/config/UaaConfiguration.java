@@ -123,8 +123,15 @@ public class UaaConfiguration {
         @Valid
         public InternalZone internal;
 
+        @Valid
+        public Paths paths;
+
         public static class InternalZone {
             public Set<String> hostnames;
+        }
+
+        public static class Paths {
+            public boolean enabled;
         }
     }
 

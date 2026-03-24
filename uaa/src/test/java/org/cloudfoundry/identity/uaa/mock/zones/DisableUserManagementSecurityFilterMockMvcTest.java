@@ -506,7 +506,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
                 .andReturn().getRequest().getSession(false);
 
         assertThat(afterLoginSession).isNotNull();
-        assertThat(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(afterLoginSession).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
         return afterLoginSession;
     }
 

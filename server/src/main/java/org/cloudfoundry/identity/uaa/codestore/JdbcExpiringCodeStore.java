@@ -169,7 +169,8 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
         long now = timeService.getCurrentTimeMillis();
         long lastCheck = lastExpired.get();
 
-        if ((now - lastCheck) > expirationInterval && lastExpired.compareAndSet(lastCheck, now)) {
+        boolean shouldRun = expirationInterval == 0 || (now - lastCheck) > expirationInterval;
+        if (shouldRun && lastExpired.compareAndSet(lastCheck, now)) {
             int count = jdbcTemplate.update(deleteExpired, now);
             logger.debug("Expiring code sweeper complete, deleted {} entries.", count);
             return count;

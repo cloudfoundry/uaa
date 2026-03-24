@@ -12,7 +12,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database: [ 'postgresql-15', 'postgresql-16', 'postgresql-17', 'postgresql-18', 'mysql-8.0', 'mysql-8.4', 'mysql-9' ]
+        database:
+          - postgresql-15
+          - postgresql-16
+          - postgresql-17
+          - postgresql-18
+          - mysql-8.0
+          - mysql-8.4
+          - mysql-9
     container:
       image: cfidentity/uaa-${{ matrix.database }}
       volumes:
@@ -28,7 +35,7 @@ jobs:
         run: /root/uaa/scripts/unit_tests.sh ${PROFILE},default
         continue-on-error: true
       - name: Test result upload
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: steps.testrun.outcome == 'failure'
         with:
           name: Server test

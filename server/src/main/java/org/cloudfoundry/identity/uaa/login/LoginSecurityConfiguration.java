@@ -538,7 +538,7 @@ class LoginSecurityConfiguration {
                     login.usernameParameter("username");
                     login.passwordParameter("password");
                     login.loginProcessingUrl("/login.do");
-                    login.defaultSuccessUrl("/"); // TODO is this exactly the same?
+                    login.defaultSuccessUrl("/");
                     login.successHandler(loginSuccessHandler);
                     login.failureHandler(loginFailureHandler);
                     login.authenticationDetailsSource(new UaaAuthenticationDetailsSource());

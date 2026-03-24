@@ -1,3 +1,7 @@
+zones:
+  paths:
+    enabled: true
+
 servlet:
   session-store: database
   session-cookie:

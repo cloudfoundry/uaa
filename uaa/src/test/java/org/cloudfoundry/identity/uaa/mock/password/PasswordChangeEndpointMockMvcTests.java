@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mock.password;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -143,7 +145,9 @@ class PasswordChangeEndpointMockMvcTests {
                 .andReturn().getRequest().getSession(false);
 
         assertThat(afterLoginSession).isNotNull();
-        assertThat(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
+        SecurityContext beforeCtx = (SecurityContext) MockMvcUtils.getZoneSession(afterLoginSession).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        assertThat(beforeCtx).isNotNull();
+        long authTimeBefore = ((UaaAuthentication) beforeCtx.getAuthentication()).getAuthenticatedTime();
 
         MockHttpSession afterPasswordChange = (MockHttpSession) mockMvc.perform(post("/change_password.do")
                         .session(afterLoginSession)
@@ -156,10 +160,11 @@ class PasswordChangeEndpointMockMvcTests {
                 .andExpect(redirectedUrl("profile"))
                 .andReturn().getRequest().getSession(false);
 
-        assertThat(afterLoginSession.isInvalid()).isTrue();
         assertThat(afterPasswordChange).isNotNull();
-        assertThat(afterPasswordChange.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
-        assertThat(afterLoginSession).isNotSameAs(afterPasswordChange);
+        SecurityContext afterCtx = (SecurityContext) MockMvcUtils.getZoneSession(afterPasswordChange).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        assertThat(afterCtx).isNotNull();
+        long authTimeAfter = ((UaaAuthentication) afterCtx.getAuthentication()).getAuthenticatedTime();
+        assertThat(authTimeAfter).isGreaterThanOrEqualTo(authTimeBefore);
     }
 
     @Test
@@ -188,8 +193,8 @@ class PasswordChangeEndpointMockMvcTests {
                 .andExpect(redirectedUrl("/"))
                 .andReturn().getRequest().getSession(false);
 
-        assertThat(afterLoginSessionA.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
-        assertThat(afterLoginSessionB.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(afterLoginSessionA).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
+        assertThat(MockMvcUtils.getZoneSession(afterLoginSessionB).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
 
         mockMvc.perform(get("/profile").session(afterLoginSessionB))
                 .andExpect(status().isOk());
@@ -207,10 +212,8 @@ class PasswordChangeEndpointMockMvcTests {
                 .andExpect(redirectedUrl("profile"))
                 .andReturn().getRequest().getSession(false);
 
-        assertThat(afterLoginSessionA.isInvalid()).isTrue();
         assertThat(afterPasswordChange).isNotNull();
-        assertThat(afterPasswordChange.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
-        assertThat(afterLoginSessionA).isNotSameAs(afterPasswordChange);
+        assertThat(MockMvcUtils.getZoneSession(afterPasswordChange).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
         mockMvc.perform(
                         get("/profile")
                                 .session(afterLoginSessionB)

@@ -33,8 +33,8 @@ public class UaaSessionConfig {
         cookieSerializer.setUseSecureCookie(true);
         cookieSerializer.setCookieMaxAge(servlet.sessionCookie().maxAge() != null ? servlet.sessionCookie().maxAge() : -1);
         cookieSerializer.setCookieName("JSESSIONID");
+        cookieSerializer.setCookiePath("/");
         cookieSerializer.setUseBase64Encoding(servlet.sessionCookie().encodeBase64());
-
         return cookieSerializer;
     }
 }

@@ -582,8 +582,11 @@ class AuditCheckMockMvcTests {
         assertThat(pw.getUser().getUsername()).isEqualTo(testUser.getUserName());
         assertThat(pw.getMessage()).isEqualTo("Password changed");
         assertThat(pw.getAuditEvent().getOrigin()).contains("sessionId=<SESSION>");
+        assertThat(pw.getAuditEvent().getPrincipalName()).isEqualTo(testUser.getUserName());
 
-        assertLogMessageWithSession(testLogger.getLatestMessage(), PasswordChangeSuccess, testUser.getId(), "Password changed");
+        String pwLogMsg = testLogger.getLatestMessage();
+        assertLogMessageWithSession(pwLogMsg, PasswordChangeSuccess, testUser.getId(), "Password changed");
+        assertThat(pwLogMsg).contains("principalName=[%s]".formatted(testUser.getUserName()));
     }
 
     @Test
@@ -644,8 +647,11 @@ class AuditCheckMockMvcTests {
         assertThat(pwfe.getUser().getUsername()).isEqualTo(testUser.getUserName());
         assertThat(pwfe.getMessage()).isEqualTo("Old password is incorrect");
         assertThat(pwfe.getAuditEvent().getOrigin()).contains("sessionId=<SESSION>");
+        assertThat(pwfe.getAuditEvent().getPrincipalName()).isEqualTo(testUser.getUserName());
 
-        assertLogMessageWithSession(testLogger.getLatestMessage(), PasswordChangeFailure, testUser.getUserName(), "Old password is incorrect");
+        String pwfeLogMsg = testLogger.getLatestMessage();
+        assertLogMessageWithSession(pwfeLogMsg, PasswordChangeFailure, testUser.getId(), "Old password is incorrect");
+        assertThat(pwfeLogMsg).contains("principalName=[%s]".formatted(testUser.getUserName()));
     }
 
     @Test
@@ -661,8 +667,11 @@ class AuditCheckMockMvcTests {
         PasswordChangeEvent pw = (PasswordChangeEvent) testListener.getLatestEvent();
         assertThat(pw.getUser().getUsername()).isEqualTo(user.getUserName());
         assertThat(pw.getMessage()).isEqualTo("Password changed");
+        assertThat(pw.getAuditEvent().getPrincipalName()).isEqualTo(user.getUserName());
 
-        assertLogMessageWithoutSession(testLogger.getLatestMessage(), PasswordChangeSuccess, user.getId(), "Password changed");
+        String pwLogMsg = testLogger.getLatestMessage();
+        assertLogMessageWithoutSession(pwLogMsg, PasswordChangeSuccess, user.getId(), "Password changed");
+        assertThat(pwLogMsg).contains("principalName=[%s]".formatted(user.getUserName()));
     }
 
     @Test
@@ -691,8 +700,11 @@ class AuditCheckMockMvcTests {
         assertThat(pce.getMessage()).isEqualTo("Password changed");
         //PasswordChangeEvent does not contain session in this case
         assertThat(pce.getAuditEvent().getOrigin()).doesNotContain("sessionId=<SESSION>");
+        assertThat(pce.getAuditEvent().getPrincipalName()).isEqualTo(testUser.getUserName());
 
-        assertLogMessageWithoutSession(testLogger.getLatestMessage(), PasswordChangeSuccess, testUser.getId(), "Password changed");
+        String pceLogMsg = testLogger.getLatestMessage();
+        assertLogMessageWithoutSession(pceLogMsg, PasswordChangeSuccess, testUser.getId(), "Password changed");
+        assertThat(pceLogMsg).contains("principalName=[%s]".formatted(testUser.getUserName()));
     }
 
     @Test

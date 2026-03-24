@@ -43,15 +43,18 @@ import java.util.function.Function;
 @Slf4j
 public final class UaaRelyingPartyRegistrationResolver implements Converter<HttpServletRequest, RelyingPartyRegistration>, RelyingPartyRegistrationResolver {
 
+    private final String entityBaseURL;
     private final String uaaWideSamlEntityIDAlias;
     private final RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
     private final RequestMatcher registrationRequestMatcher = new AntPathRequestMatcher("/**/{registrationId}");
 
     public UaaRelyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-            String uaaWideSamlEntityIDAlias) {
+            String uaaWideSamlEntityIDAlias,
+            String entityBaseURL) {
         Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
         this.relyingPartyRegistrationRepository = relyingPartyRegistrationRepository;
         this.uaaWideSamlEntityIDAlias = uaaWideSamlEntityIDAlias;
+        this.entityBaseURL = StringUtils.trimTrailingCharacter(entityBaseURL, '/');
     }
 
     public RelyingPartyRegistration convert(HttpServletRequest request) {
@@ -82,8 +85,8 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
             if (relyingPartyRegistration == null) {
                 return null;
             } else {
-                String applicationUri = getApplicationUri(request);
-                Function<String, String> templateResolver = this.templateResolver(applicationUri, relyingPartyRegistration);
+                String baseUrl = StringUtils.hasText(entityBaseURL) ? entityBaseURL : getApplicationUri(request);
+                Function<String, String> templateResolver = this.templateResolver(baseUrl, relyingPartyRegistration);
                 String relyingPartyEntityId = templateResolver.apply(relyingPartyRegistration.getEntityId());
                 String assertionConsumerServiceLocation = templateResolver.apply(relyingPartyRegistration.getAssertionConsumerServiceLocation());
                 String singleLogoutServiceLocation = templateResolver.apply(relyingPartyRegistration.getSingleLogoutServiceLocation());

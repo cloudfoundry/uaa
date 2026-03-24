@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -87,7 +88,7 @@ class PasscodeMockMvcTests {
         SecurityContextHolder.setContext(mockSecurityContext);
         MockHttpSession session = new MockHttpSession();
 
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 mockSecurityContext
         );
@@ -104,7 +105,7 @@ class PasscodeMockMvcTests {
 
         mockSecurityContext.setAuthentication(null);
         session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 mockSecurityContext
         );
@@ -149,7 +150,7 @@ class PasscodeMockMvcTests {
         SecurityContextHolder.setContext(mockSecurityContext);
         MockHttpSession session = new MockHttpSession();
 
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 mockSecurityContext
         );
@@ -171,7 +172,7 @@ class PasscodeMockMvcTests {
         SecurityContextHolder.setContext(mockSecurityContext);
         MockHttpSession session = new MockHttpSession();
 
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 mockSecurityContext
         );
@@ -193,7 +194,7 @@ class PasscodeMockMvcTests {
 
         mockSecurityContext.setAuthentication(null);
         session = new MockHttpSession();
-        session.setAttribute(
+        MockMvcUtils.getZoneSession(session).setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 mockSecurityContext
         );
@@ -254,7 +255,7 @@ class PasscodeMockMvcTests {
 
         SecurityContextHolder.setContext(mockSecurityContext);
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, mockSecurityContext);
+        MockMvcUtils.getZoneSession(session).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, mockSecurityContext);
 
         // try for up to 15 seconds to get a passcode with - or _
         await().atMost(15, SECONDS).untilAsserted(() -> {

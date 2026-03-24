@@ -110,6 +110,10 @@ public class LoggingAuditService implements UaaAuditService {
                 auditEvent.getIdentityZoneId()
         );
 
+        if (auditEvent.getPrincipalName() != null) {
+            logMessage = "%s, principalName=[%s]".formatted(logMessage, auditEvent.getPrincipalName());
+        }
+
         if (auditEvent.getAuthenticationType() != null) {
             logMessage = "%s, authenticationType=[%s]".formatted(logMessage, auditEvent.getAuthenticationType());
         }

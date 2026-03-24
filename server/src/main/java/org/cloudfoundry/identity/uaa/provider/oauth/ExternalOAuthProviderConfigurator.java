@@ -23,6 +23,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -84,6 +85,8 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
 
         var state = generateStateParam();
         SessionUtils.setStateParam(request.getSession(), SessionUtils.stateParameterAttributeKeyForIdp(idpOriginKey), state);
+        SessionUtils.setStateParam(request.getSession(), SessionUtils.redirectUriParameterAttributeKeyForIdp(idpOriginKey),
+                URLDecoder.decode(callbackUrl, StandardCharsets.UTF_8));
 
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromUriString(idpUrlBase)

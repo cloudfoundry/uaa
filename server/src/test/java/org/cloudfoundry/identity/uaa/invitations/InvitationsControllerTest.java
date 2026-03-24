@@ -508,7 +508,7 @@ class InvitationsControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
                 .andExpect(model().attribute("code", "thenewcode2"))
-                .andExpect(view().name("redirect:accept"));
+                .andExpect(view().name("redirect:/invitations/accept"));
         verify(expiringCodeStore).retrieveCode("thecode", zoneId);
         verify(expiringCodeStore, times(2)).generateCode(anyString(), any(), anyString(), eq(zoneId));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
@@ -652,7 +652,7 @@ class InvitationsControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(model().attribute("error_message_code", "form_error"))
                 .andExpect(model().attribute("code", "thenewcode2"))
-                .andExpect(view().name("redirect:accept"));
+                .andExpect(view().name("redirect:/invitations/accept"));
         verify(expiringCodeStore).retrieveCode("thecode", zoneId);
         verify(expiringCodeStore, times(2)).generateCode(anyString(), any(), anyString(), eq(zoneId));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
@@ -729,7 +729,9 @@ class InvitationsControllerTest {
         MvcResult mvcResult = mockMvc.perform(startAcceptInviteFlow("password", "password"))
                 .andReturn();
 
-        mockMvc.perform(get("/invitations/" + mvcResult.getResponse().getHeader("Location")))
+        String location = mvcResult.getResponse().getHeader("Location");
+        String followPath = (location != null && location.startsWith("/")) ? location : "/invitations/" + location;
+        mockMvc.perform(get(followPath))
                 .andExpect(model().attribute("error_message_code", "missing_consent"));
 
         // cleanup changes to default zone
