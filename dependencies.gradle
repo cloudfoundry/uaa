@@ -11,7 +11,7 @@ versions.bouncyCastleTlsFipsVersion = "2.1.22"
 versions.springBootVersion = "3.5.12"
 versions.guavaVersion = "33.5.0-jre"
 versions.seleniumVersion = "4.41.0"
-versions.braveVersion = "6.3.0"
+versions.braveVersion = "6.3.1"
 versions.opensaml = "4.0.1"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
