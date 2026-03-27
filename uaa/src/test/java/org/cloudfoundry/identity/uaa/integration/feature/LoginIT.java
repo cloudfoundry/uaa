@@ -255,7 +255,7 @@ class LoginIT {
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
 
         WebDriverWait wait = webDriver.createWebDriverWait();
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("h1")));
+        wait.until(ExpectedConditions.textToBePresentInElementLocated(By.cssSelector("h1"), "Temporary Authentication Code"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Temporary Authentication Code");
 
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("passcode")));
