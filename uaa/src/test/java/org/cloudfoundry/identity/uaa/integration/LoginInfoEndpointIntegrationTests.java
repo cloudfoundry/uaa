@@ -17,12 +17,14 @@ import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,5 +60,17 @@ class LoginInfoEndpointIntegrationTests {
         String body = response.getBody();
         // System.err.println(body);
         assertThat(body).as("Wrong body: " + body).contains("<form action=\"/uaa/login.do\" method=\"post\" novalidate=\"novalidate\" accept-charset=\"UTF-8\">");
+    }
+
+    /**
+     * Tests that OPTIONS request on /login returns only GET, HEAD, and OPTIONS methods
+     */
+    @Test
+    void optionsLoginEndpoint() {
+        Set<HttpMethod> allowedMethods = serverRunning.getRestTemplate().optionsForAllow(serverRunning.getUrl("/login"));
+
+        assertThat(allowedMethods)
+            .as("Login endpoint should only support GET, HEAD, and OPTIONS methods")
+            .containsExactlyInAnyOrder(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS);
     }
 }

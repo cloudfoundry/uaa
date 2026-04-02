@@ -97,6 +97,8 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
@@ -211,17 +213,17 @@ public class LoginInfoEndpoint {
         return allIdentityProviders;
     }
 
-    @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
+    @RequestMapping(value = {"/login"}, method = {GET, HEAD}, headers = "Accept=application/json")
     public String infoForLoginJson(Model model, Principal principal, HttpServletRequest request) {
         return login(model, principal, emptyList(), true, request);
     }
 
-    @RequestMapping(value = {"/info"}, headers = "Accept=application/json")
+    @RequestMapping(value = {"/info"}, method = {GET, HEAD}, headers = "Accept=application/json")
     public String infoForJson(Model model, Principal principal, HttpServletRequest request) {
         return login(model, principal, emptyList(), true, request);
     }
 
-    @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
+    @RequestMapping(value = {"/login"}, method = {GET, HEAD}, headers = "Accept=text/html, */*")
     public String loginForHtml(Model model,
             Principal principal,
             HttpServletRequest request,
