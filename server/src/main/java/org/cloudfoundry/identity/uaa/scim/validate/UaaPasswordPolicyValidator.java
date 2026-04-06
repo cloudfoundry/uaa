@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.passay.PasswordData;
+import org.passay.SuccessValidationResult;
 import org.passay.ValidationResult;
 import org.passay.resolver.PropertiesMessageResolver;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -55,8 +56,8 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     public ValidationResult validate(String password) throws InvalidPasswordException {
         IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (idp == null) {
-            //should never happen
-            return null;
+            // return without further checks
+            return new SuccessValidationResult();
         }
 
         PasswordPolicy policy = globalDefaultPolicy;

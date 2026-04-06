@@ -27,10 +27,10 @@ import org.passay.ValidationResult;
  */
 public interface PasswordValidator {
     /**
-     * Validates the password as to whether it is valid for a specific user.
+     * Validates the password whether it is valid for a specific user.
      *
      * @param password the trial password
-     * @return
+     * @return {@link ValidationResult}
      *
      */
     ValidationResult validate(String password) throws InvalidPasswordException;

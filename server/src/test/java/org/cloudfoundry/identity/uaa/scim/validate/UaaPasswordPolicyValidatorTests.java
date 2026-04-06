@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.passay.ValidationResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -122,8 +123,8 @@ class UaaPasswordPolicyValidatorTests {
         ScimUser user = new ScimUser();
         user.setOrigin(OriginKeys.UAA);
         try {
-            validator.validate(password);
-            if (expectedErrors != null && expectedErrors.length > 0) {
+            ValidationResult validationResult = validator.validate(password);
+            if (validationResult.getMessages() != null && !validationResult.getMessages().isEmpty() || (expectedErrors != null && expectedErrors.length > 0)) {
                 fail("");
             }
         } catch (InvalidPasswordException e) {
