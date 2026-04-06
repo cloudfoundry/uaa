@@ -13,7 +13,6 @@ import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +46,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
     @DependsOn({"setUpBouncyCastle"})
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) {
+        OpenSaml4AuthenticationProvider.initialize();
         SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl samlKeyManager = new SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl(samlConfigProps);
         List<KeyWithCert> defaultKeysWithCerts = samlKeyManager.getAvailableCredentials();
 

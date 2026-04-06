@@ -5,6 +5,7 @@ import org.cloudfoundry.experimental.boot.UaaBootConfiguration;
 import org.cloudfoundry.identity.uaa.db.beans.JdbcUrlCustomizer;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4AuthenticationProvider;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.zone.ZoneContextPathSessionFilter;
 import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
@@ -71,6 +72,7 @@ class TestPropertyInitializer implements ApplicationContextInitializer<Configura
     @Override
     public void initialize(ConfigurableWebApplicationContext applicationContext) {
         System.setProperty("UAA_CONFIG_URL","classpath:integration_test_properties.yml");
+        OpenSaml4AuthenticationProvider.initialize();
     }
 }
 

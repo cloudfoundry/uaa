@@ -45,7 +45,6 @@ import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.opensaml.core.config.InitializationException;
-import org.opensaml.core.config.InitializationService;
 import org.opensaml.saml.saml2.core.AuthnContext;
 import org.opensaml.saml.saml2.core.Response;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -183,7 +182,7 @@ class OpenSaml4AuthenticationProviderUaaTests {
         RequestContextHolder.setRequestAttributes(servletWebRequest);
         DbUtils dbUtils = new DbUtils();
 
-        InitializationService.initialize();
+        OpenSaml4AuthenticationProvider.initialize();
 
         ScimGroupProvisioning groupProvisioning = new JdbcScimGroupProvisioning(
                 namedJdbcTemplate, new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter),

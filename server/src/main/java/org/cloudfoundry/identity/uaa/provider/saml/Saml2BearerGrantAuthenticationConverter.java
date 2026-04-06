@@ -37,7 +37,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.saml2.Saml2Exception;
-import org.springframework.security.saml2.core.OpenSamlInitializationService;
 import org.springframework.security.saml2.core.Saml2Error;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
 import org.springframework.security.saml2.core.Saml2ResponseValidatorResult;
@@ -73,7 +72,7 @@ import static org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4Authenticatio
 public final class Saml2BearerGrantAuthenticationConverter implements AuthenticationConverter {
 
     static {
-        OpenSamlInitializationService.initialize();
+        OpenSaml4AuthenticationProvider.initialize();
     }
 
     private static final AssertionUnmarshaller assertionUnmarshaller;

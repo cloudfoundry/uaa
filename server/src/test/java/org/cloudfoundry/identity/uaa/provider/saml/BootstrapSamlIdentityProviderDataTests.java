@@ -153,6 +153,7 @@ public class BootstrapSamlIdentityProviderDataTests {
 
     @BeforeEach
     void beforeEach() {
+        OpenSaml4AuthenticationProvider.initialize();
         bootstrap = new BootstrapSamlIdentityProviderData(new SamlIdentityProviderConfigurator(mock(JdbcIdentityProviderProvisioning.class), new IdentityZoneManagerImpl(), mock(FixedHttpMetaDataProvider.class)));
         singleAdd = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID.formatted(new RandomValueStringGenerator().generate()))
