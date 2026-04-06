@@ -16,13 +16,14 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.authentication.GenericPasswordPolicy;
-import org.passay.CharacterRule;
-import org.passay.EnglishCharacterData;
-import org.passay.LengthRule;
-import org.passay.MessageResolver;
+import org.passay.DefaultPasswordValidator;
 import org.passay.PasswordValidator;
-import org.passay.PropertiesMessageResolver;
-import org.passay.Rule;
+import org.passay.data.EnglishCharacterData;
+import org.passay.resolver.MessageResolver;
+import org.passay.resolver.PropertiesMessageResolver;
+import org.passay.rule.CharacterRule;
+import org.passay.rule.LengthRule;
+import org.passay.rule.Rule;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -69,6 +70,6 @@ public final class PasswordValidatorUtil {
         if (policy.getRequireSpecialCharacter() > 0) {
             rules.add(new CharacterRule(EnglishCharacterData.Special, policy.getRequireSpecialCharacter()));
         }
-        return new PasswordValidator(messageResolver, rules);
+        return new DefaultPasswordValidator(messageResolver, rules);
     }
 }

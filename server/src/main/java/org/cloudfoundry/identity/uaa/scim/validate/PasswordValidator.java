@@ -14,6 +14,8 @@
 package org.cloudfoundry.identity.uaa.scim.validate;
 
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.passay.ValidationResult;
+
 
 /**
  * Validates password values when creating users or changing passwords.
@@ -26,8 +28,10 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 public interface PasswordValidator {
     /**
      * Validates the password as to whether it is valid for a specific user.
-     *  @param password the trial password
+     *
+     * @param password the trial password
+     * @return
      *
      */
-    void validate(String password) throws InvalidPasswordException;
+    ValidationResult validate(String password) throws InvalidPasswordException;
 }

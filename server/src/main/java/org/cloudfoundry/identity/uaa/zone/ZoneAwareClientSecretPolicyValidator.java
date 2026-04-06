@@ -16,8 +16,8 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.passay.PasswordData;
 import org.passay.PasswordValidator;
-import org.passay.PropertiesMessageResolver;
-import org.passay.RuleResult;
+import org.passay.ValidationResult;
+import org.passay.resolver.PropertiesMessageResolver;
 import org.springframework.util.StringUtils;
 
 import java.util.LinkedList;
@@ -85,9 +85,9 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
 
         PasswordValidator clientSecretValidator = validator(clientSecretPolicy,
                 messageResolver);
-        RuleResult result = clientSecretValidator.validate(new PasswordData(clientSecret));
+        ValidationResult result = clientSecretValidator.validate(new PasswordData(clientSecret));
         if (!result.isValid()) {
-            List<String> errorMessages = new LinkedList<>(clientSecretValidator.getMessages(result));
+            List<String> errorMessages = new LinkedList<>(result.getMessages());
             if (!errorMessages.isEmpty()) {
                 throw new InvalidClientSecretException(errorMessages);
             }
