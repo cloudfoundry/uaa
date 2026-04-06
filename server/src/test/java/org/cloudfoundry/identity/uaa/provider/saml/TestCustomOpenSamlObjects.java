@@ -49,7 +49,7 @@ import org.w3c.dom.Element;
 public final class TestCustomOpenSamlObjects {
 
     static {
-        OpenSaml4AuthenticationProvider.initialize();
+        IdentityZoneConfig.setupOpenSaml();
         XMLObjectProviderRegistrySupport.getMarshallerFactory()
                 .registerMarshaller(CustomOpenSamlObject.TYPE_NAME,
                         new TestCustomOpenSamlObjects.CustomSamlObjectMarshaller());

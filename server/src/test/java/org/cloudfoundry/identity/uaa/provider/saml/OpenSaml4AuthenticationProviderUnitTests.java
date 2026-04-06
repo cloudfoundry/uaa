@@ -96,7 +96,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
 
     @BeforeEach
     void setUp() {
-        OpenSaml4AuthenticationProvider.initialize();
+        IdentityZoneConfig.setupOpenSaml();
     }
 
     @AfterEach void cleanup() {

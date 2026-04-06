@@ -100,7 +100,7 @@ public final class TestOpenSamlObjects {
     public static final String RELYING_PARTY_ENTITY_ID = "https://localhost/saml2/service-provider-metadata/idp-alias";
 
     static {
-        OpenSaml4AuthenticationProvider.initialize();
+        IdentityZoneConfig.setupOpenSaml();
     }
 
     private TestOpenSamlObjects() {

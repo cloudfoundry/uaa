@@ -24,8 +24,6 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.opensaml.core.config.ConfigurationService;
-import org.opensaml.core.config.InitializationException;
-import org.opensaml.core.config.Initializer;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistry;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -61,8 +59,6 @@ import org.opensaml.saml.saml2.core.SubjectConfirmationData;
 import org.opensaml.saml.saml2.core.impl.AuthnRequestUnmarshaller;
 import org.opensaml.saml.saml2.core.impl.ResponseUnmarshaller;
 import org.opensaml.saml.security.impl.SAMLSignatureProfileValidator;
-import org.opensaml.security.config.GlobalNamedCurveRegistryInitializer;
-import org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap;
 import org.opensaml.xmlsec.signature.support.SignaturePrevalidator;
 import org.opensaml.xmlsec.signature.support.SignatureTrustEngine;
 import org.springframework.core.convert.converter.Converter;
@@ -73,7 +69,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.saml2.Saml2Exception;
-import org.springframework.security.saml2.core.OpenSamlInitializationService;
 import org.springframework.security.saml2.core.Saml2Error;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
 import org.springframework.security.saml2.core.Saml2ResponseValidatorResult;
@@ -103,12 +98,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import java.util.ServiceLoader;
 import java.util.function.Consumer;
 
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUrlForPortComparison;
-import static org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap.CONFIG_PROPERTY_ECDH_DEFAULT_KDF;
 
 /**
  * This was copied from Spring Security, and modified to work with Open SAML 4.0.x
@@ -120,7 +112,7 @@ import static org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootst
 public final class OpenSaml4AuthenticationProvider implements AuthenticationProvider, ZoneAware {
 
     static {
-        initialize();
+        IdentityZoneConfig.setupOpenSaml();
     }
 
     private final Log logger = LogFactory.getLog(this.getClass());
@@ -150,29 +142,6 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     private final Converter<AssertionToken, Saml2ResponseValidatorResult> assertionValidator = createDefaultAssertionValidator();
 
     private Converter<ResponseToken, ? extends AbstractAuthenticationToken> responseAuthenticationConverter = createDefaultResponseAuthenticationConverter();
-
-    public static void initialize() {
-        if (authnRequestUnmarshaller != null) return;
-        Properties props = ConfigurationService.getConfigurationProperties();
-        props.put(CONFIG_PROPERTY_ECDH_DEFAULT_KDF, DefaultSecurityConfigurationBootstrap.PBKDF2);
-        Class<?> toSkip = GlobalNamedCurveRegistryInitializer.class;
-        ServiceLoader.load(Initializer.class).stream()
-            .filter((provider) -> provider.type() != toSkip)
-            .forEach((provider) -> init(provider));
-        try {
-            OpenSamlInitializationService.initialize();
-        } catch (NoClassDefFoundError | NoSuchMethodError e) {
-            // ignore
-        }
-    }
-
-    private static void init(ServiceLoader.Provider<Initializer> provider) {
-        try {
-            provider.get().init();
-        } catch (InitializationException ex) {
-            throw new Saml2Exception(ex);
-        }
-    }
 
     /**
      * Creates an {@link OpenSaml4AuthenticationProvider}

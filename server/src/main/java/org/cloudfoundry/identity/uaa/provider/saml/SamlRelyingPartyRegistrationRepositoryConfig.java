@@ -43,10 +43,9 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         this.signatureAlgorithms = signatureAlgorithms;
     }
 
-    @DependsOn({"setUpBouncyCastle"})
+    @DependsOn({"setUpBouncyCastle", "setupOpenSaml"})
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) {
-        OpenSaml4AuthenticationProvider.initialize();
         SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl samlKeyManager = new SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl(samlConfigProps);
         List<KeyWithCert> defaultKeysWithCerts = samlKeyManager.getAvailableCredentials();
 
