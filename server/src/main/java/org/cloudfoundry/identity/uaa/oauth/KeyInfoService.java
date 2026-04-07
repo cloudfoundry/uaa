@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
@@ -24,6 +25,7 @@ import org.springframework.util.StringUtils;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 
@@ -95,6 +97,10 @@ public class KeyInfoService {
     }
 
     public String getTokenEndpointUrl() throws URISyntaxException {
-        return UaaTokenUtils.constructTokenEndpointUrl(uaaBaseURL, IdentityZoneHolder.get());
+        IdentityZone identityZone = IdentityZoneHolder.get();
+        String issuer = Optional.ofNullable(identityZone.getConfig())
+                .map(IdentityZoneConfiguration::getIssuer)
+                .orElse(uaaBaseURL);
+        return UaaTokenUtils.constructTokenEndpointUrl(issuer, identityZone);
     }
 }

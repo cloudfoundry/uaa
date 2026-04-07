@@ -152,10 +152,18 @@ class KeyInfoServiceTests {
     }
 
     @Test
-    void tokenEndpointUrl() throws URISyntaxException {
+    void tokenEndpointUrl_whenIssuerIsNull() throws URISyntaxException {
         configureDefaultZoneKeys(Collections.emptyMap());
 
         assertThat(keyInfoService.getTokenEndpointUrl()).isEqualTo("https://localhost/uaa/oauth/token");
+    }
+
+    @Test
+    void tokenEndpointUrl_whenIssuerSet() throws URISyntaxException {
+        configureDefaultZoneKeys(Collections.emptyMap());
+        IdentityZoneHolder.get().getConfig().setIssuer("https://issuer.set/uaa");
+
+        assertThat(keyInfoService.getTokenEndpointUrl()).isEqualTo("https://issuer.set/uaa/oauth/token");
     }
 
     private void configureDefaultZoneKeys(Map<String, String> keys) {
