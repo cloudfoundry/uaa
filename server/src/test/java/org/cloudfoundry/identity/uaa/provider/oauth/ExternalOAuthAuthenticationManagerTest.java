@@ -606,7 +606,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    void populateAuthenticationAttributes_setsIdpIdTokenAndExternalGroups() {
+    void populateAuthenticationAttributes_setsIdpIdTokenAndExternalGroupsFromMappedAuthorities() {
         UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("user-guid", "marissa", "marissa@test.org", "uaa", "", ""), Collections.emptyList(), null);
         Map<String, Object> header = map(
                 entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
@@ -627,10 +627,11 @@ class ExternalOAuthAuthenticationManagerTest {
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
-        authenticationData.setExternalAuthorities(List.of(new SimpleGrantedAuthority("uaa-authorities")));
+        authenticationData.setAuthorities(List.of(new SimpleGrantedAuthority("uaa-authorities")));
+        authenticationData.setExternalAuthorities(List.of(new SimpleGrantedAuthority("raw_external_group")));
         authManager.populateAuthenticationAttributes(authentication, oidcAuthentication, authenticationData);
         assertThat(authentication.getIdpIdToken()).isEqualTo(idTokenJwt);
-        assertThat(authentication.getExternalGroups()).containsAll(List.of("uaa-authorities"));
+        assertThat(authentication.getExternalGroups()).containsExactlyInAnyOrder("uaa-authorities");
     }
 
     @Test

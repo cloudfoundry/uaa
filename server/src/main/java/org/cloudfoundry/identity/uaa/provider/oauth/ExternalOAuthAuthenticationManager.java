@@ -394,7 +394,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             authentication.setUserAttributes(userAttributes);
 
             authentication.setExternalGroups(
-                    Optional.ofNullable(authenticationData.getExternalAuthorities())
+                    Optional.ofNullable(authenticationData.getAuthorities())
                             .orElse(emptyList())
                             .stream()
                             .map(GrantedAuthority::getAuthority)
