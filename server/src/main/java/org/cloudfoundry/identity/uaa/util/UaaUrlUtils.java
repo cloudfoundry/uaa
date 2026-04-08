@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
@@ -50,6 +51,12 @@ public abstract class UaaUrlUtils {
             UaaUrlUtils.class);
 
     private static final int MAX_URI_DECODES = 5;
+
+    /**
+     * Static resource path prefixes that should be treated as static assets.
+     * These paths typically serve CSS, JavaScript, images, and font files.
+     */
+    private static final Set<String> STATIC_RESOURCE_PREFIXES = Set.of("/resources/", "/vendor/");
 
     public static String getUaaUrl(String path, IdentityZone currentIdentityZone) {
         return getUaaUrl(path, false, currentIdentityZone);
@@ -316,6 +323,29 @@ public abstract class UaaUrlUtils {
         }
 
         return "%s%s".formatted(servletPath, pathInfo);
+    }
+
+    /**
+     * Checks if the given request path represents a static resource.
+     *
+     * @param requestPath the request path to check
+     * @return true if the path starts with any of the static resource prefixes
+     */
+    public static boolean isStaticResource(String requestPath) {
+        if (requestPath == null) {
+            return false;
+        }
+        return STATIC_RESOURCE_PREFIXES.stream().anyMatch(requestPath::startsWith);
+    }
+
+    /**
+     * Checks if the given request represents a static resource by extracting and checking its path.
+     *
+     * @param request the HTTP servlet request
+     * @return true if the request path starts with any of the static resource prefixes
+     */
+    public static boolean isStaticResource(HttpServletRequest request) {
+        return isStaticResource(getRequestPath(request));
     }
 
     public static boolean uriHasMatchingHost(String uri, String hostname) {

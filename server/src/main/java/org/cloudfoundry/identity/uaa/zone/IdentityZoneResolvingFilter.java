@@ -39,7 +39,6 @@ import java.util.Set;
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements InitializingBean {
 
     private final IdentityZoneProvisioning dao;
-    private final Set<String> staticResources = Set.of("/resources/", "/vendor/font-awesome/");
     private final Set<String> defaultZoneHostnames = new HashSet<>();
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -111,8 +110,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
      * Handles the case when no zone was found: serve static resources or send 404. Caller must return after calling.
      */
     private void handleZoneNotFound(String subdomain, HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        boolean isStaticResource = staticResources.stream().anyMatch(UaaUrlUtils.getRequestPath(request)::startsWith);
-        if (isStaticResource) {
+        if (UaaUrlUtils.isStaticResource(request)) {
             filterChain.doFilter(request, response);
             return;
         }
