@@ -10,6 +10,8 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -481,8 +483,8 @@ class ZoneContextPathSessionTests {
             ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
 
             HttpSession first = w.getSession(true);
-            long creationTime = first.getLastAccessedTime();
-            assertThat(creationTime).isEqualTo(1_000_000L);
+            long initialLastAccessedTime = first.getLastAccessedTime();
+            assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
 
             // Advance the clock and access the session again on a new request
             clock.set(2_000_000L);
@@ -492,84 +494,72 @@ class ZoneContextPathSessionTests {
             assertThat(second.getLastAccessedTime()).isEqualTo(2_000_000L);
         }
 
-        @Test
-        void getSession_doesNotTouchLastAccessedTimeForStaticResources() {
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "/resources/oss/stylesheets/application.css",
+            "/resources/oss/images/product-logo.png",
+            "/vendor/font-awesome/css/font-awesome.min.css",
+            "/vendor/jquery/jquery.min.js",
+            "/vendor/bootstrap/css/bootstrap.min.css",
+            "/resources/javascripts/session/session.js"
+        })
+        void getSession_doesNotTouchLastAccessedTimeForStaticResources(String path) {
             AtomicLong clock = new AtomicLong(1_000_000L);
             TimeService controllableClock = new TimeService() {
                 @Override public long getCurrentTimeMillis() { return clock.get(); }
             };
 
-            // Test various static resource paths
-            String[] staticPaths = {
-                "/resources/oss/stylesheets/application.css",
-                "/resources/oss/images/product-logo.png", 
-                "/vendor/font-awesome/css/font-awesome.min.css",
-                "/resources/javascripts/session/session.js",
-                "/vendor/bootstrap/css/bootstrap.min.css"
-            };
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            req.setContextPath("/uaa");
+            req.setServletPath(path);
+            
+            ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession first = w.getSession(true);
+            long initialLastAccessedTime = first.getLastAccessedTime();
+            assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
 
-            for (String path : staticPaths) {
-                // Reset clock for each test case
-                clock.set(1_000_000L);
-                
-                MockHttpServletRequest req = new MockHttpServletRequest();
-                req.setContextPath("/uaa");
-                req.setServletPath(path);
-                
-                ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession first = w.getSession(true);
-                long creationTime = first.getLastAccessedTime();
-                assertThat(creationTime).isEqualTo(1_000_000L);
-
-                // Advance clock and access session again - should NOT update lastAccessedTime for static resources
-                clock.set(2_000_000L);
-                ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession second = w2.getSession(false);
-                assertThat(second).isNotNull();
-                
-                // For static resources, lastAccessedTime should remain at creation time
-                assertThat(second.getLastAccessedTime()).as("Static resource %s should not update lastAccessedTime", path)
-                    .isEqualTo(creationTime);
-            }
+            // Advance clock and access session again - should NOT update lastAccessedTime for static resources
+            clock.set(2_000_000L);
+            ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession second = w2.getSession(false);
+            assertThat(second).isNotNull();
+            
+            // For static resources, lastAccessedTime should remain at initial value
+            assertThat(second.getLastAccessedTime()).as("Static resource %s should not update lastAccessedTime", path)
+                .isEqualTo(initialLastAccessedTime);
         }
 
-        @Test
-        void getSession_doesNotTouchLastAccessedTimeForZoneBasedStaticResources() {
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "/resources/oss/stylesheets/application.css",
+            "/resources/oss/images/product-logo.png",
+            "/vendor/font-awesome/css/font-awesome.min.css",
+            "/vendor/jquery/jquery.min.js"
+        })
+        void getSession_doesNotTouchLastAccessedTimeForZoneBasedStaticResources(String path) {
             AtomicLong clock = new AtomicLong(1_000_000L);
             TimeService controllableClock = new TimeService() {
                 @Override public long getCurrentTimeMillis() { return clock.get(); }
             };
 
-            // Test identity zone-based static resource paths
-            String[] zoneStaticPaths = {
-                "/resources/oss/stylesheets/application.css",
-                "/resources/oss/images/product-logo.png",
-                "/vendor/font-awesome/css/font-awesome.min.css"
-            };
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            req.setContextPath("/uaa/z/tenant1");
+            req.setServletPath(path);
+            
+            ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession first = w.getSession(true);
+            long initialLastAccessedTime = first.getLastAccessedTime();
+            assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
 
-            for (String path : zoneStaticPaths) {
-                // Reset clock for each test case
-                clock.set(1_000_000L);
-                
-                MockHttpServletRequest req = new MockHttpServletRequest();
-                req.setContextPath("/uaa/z/tenant1");
-                req.setServletPath(path);
-                
-                ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession first = w.getSession(true);
-                long creationTime = first.getLastAccessedTime();
-                assertThat(creationTime).isEqualTo(1_000_000L);
-
-                // Advance clock and access session again
-                clock.set(2_000_000L);
-                ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession second = w2.getSession(false);
-                assertThat(second).isNotNull();
-                
-                // For zone-based static resources, lastAccessedTime should remain at creation time
-                assertThat(second.getLastAccessedTime()).as("Zone-based static resource %s should not update lastAccessedTime", path)
-                    .isEqualTo(creationTime);
-            }
+            // Advance clock and access session again
+            clock.set(2_000_000L);
+            ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession second = w2.getSession(false);
+            assertThat(second).isNotNull();
+            
+            // For zone-based static resources, lastAccessedTime should remain at initial value
+            assertThat(second.getLastAccessedTime()).as("Zone-based static resource %s should not update lastAccessedTime", path)
+                .isEqualTo(initialLastAccessedTime);
         }
 
         @Test
@@ -599,8 +589,8 @@ class ZoneContextPathSessionTests {
                 
                 ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
                 HttpSession first = w.getSession(true);
-                long creationTime = first.getLastAccessedTime();
-                assertThat(creationTime).isEqualTo(1_000_000L);
+                long initialLastAccessedTime = first.getLastAccessedTime();
+                assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
 
                 // Advance clock and access session again
                 clock.set(2_000_000L);
@@ -638,8 +628,8 @@ class ZoneContextPathSessionTests {
                 
                 ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
                 HttpSession first = w.getSession(true);
-                long creationTime = first.getLastAccessedTime();
-                assertThat(creationTime).isEqualTo(1_000_000L);
+                long initialLastAccessedTime = first.getLastAccessedTime();
+                assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
 
                 // Advance clock and access session again
                 clock.set(2_000_000L);
@@ -679,8 +669,8 @@ class ZoneContextPathSessionTests {
                 
                 ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
                 HttpSession first = w.getSession(true);
-                long creationTime = first.getLastAccessedTime();
-                assertThat(creationTime).isEqualTo(1_000_000L);
+                long initialLastAccessedTime = first.getLastAccessedTime();
+                assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
 
                 // Advance clock and access session again
                 clock.set(2_000_000L);
@@ -692,6 +682,39 @@ class ZoneContextPathSessionTests {
                 assertThat(second.getLastAccessedTime()).as("Edge case path %s should update lastAccessedTime", path)
                     .isEqualTo(2_000_000L);
             }
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "/login",
+            "/profile", 
+            "/oauth/authorize",
+            "/api/users"
+        })
+        void getSession_touchesLastAccessedTimeForNonStaticPaths(String path) {
+            AtomicLong clock = new AtomicLong(1_000_000L);
+            TimeService controllableClock = new TimeService() {
+                @Override public long getCurrentTimeMillis() { return clock.get(); }
+            };
+
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            req.setContextPath("/uaa");
+            req.setServletPath(path);
+            
+            ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession first = w.getSession(true);
+            long initialLastAccessedTime = first.getLastAccessedTime();
+            assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
+
+            // Advance clock and access session again - SHOULD update lastAccessedTime for non-static paths
+            clock.set(2_000_000L);
+            ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession second = w2.getSession(false);
+            assertThat(second).isNotNull();
+            
+            // For non-static paths, lastAccessedTime should be updated
+            assertThat(second.getLastAccessedTime()).as("Non-static path %s should update lastAccessedTime", path)
+                .isEqualTo(2_000_000L);
         }
 
         @Test

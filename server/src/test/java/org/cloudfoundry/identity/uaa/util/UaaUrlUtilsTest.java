@@ -761,4 +761,80 @@ class UaaUrlUtilsTest {
         String result = normalizeUrlForPortComparison(null);
         assertThat(result).isNull();
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/resources/oss/stylesheets/application.css",
+            "/resources/oss/images/product-logo.png",
+            "/resources/javascripts/session/session.js",
+            "/resources/",
+            "/vendor/font-awesome/css/font-awesome.min.css",
+            "/vendor/jquery/jquery.min.js",
+            "/vendor/bootstrap/css/bootstrap.min.css",
+            "/vendor/"
+    })
+    void isStaticResource_returnsTrueForStaticPaths(String path) {
+        // Test string version
+        assertThat(UaaUrlUtils.isStaticResource(path)).isTrue();
+        
+        // Test HttpServletRequest version
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath(path);
+        assertThat(UaaUrlUtils.isStaticResource(request)).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/login",
+            "/profile",
+            "/oauth/authorize",
+            "/api/users",
+            "/vendorapi/something"
+    })
+    void isStaticResource_returnsFalseForNonStaticPaths(String path) {
+        // Test string version
+        assertThat(UaaUrlUtils.isStaticResource(path)).isFalse();
+        
+        // Test HttpServletRequest version
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath(path);
+        assertThat(UaaUrlUtils.isStaticResource(request)).isFalse();
+    }
+
+    @Test
+    void isStaticResource_returnsFalseForNullPath() {
+        assertThat(UaaUrlUtils.isStaticResource((String) null)).isFalse();
+    }
+
+    @Test
+    void isStaticResource_returnsFalseForEmptyPath() {
+        assertThat(UaaUrlUtils.isStaticResource("")).isFalse();
+    }
+
+    @Test
+    void isStaticResource_withHttpServletRequest_handlesPathInfo() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/resources");
+        request.setPathInfo("/css/style.css");
+        
+        assertThat(UaaUrlUtils.isStaticResource(request)).isTrue();
+    }
+
+    @Test
+    void isStaticResource_withHttpServletRequest_handlesNullServletPath() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath(null);
+        request.setPathInfo("/vendor/jquery/jquery.min.js");
+        
+        assertThat(UaaUrlUtils.isStaticResource(request)).isTrue();
+    }
+
+    @Test
+    void isStaticResource_withHttpServletRequest_handlesNullPathInfo() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/resources/css/app.css");
+        request.setPathInfo(null);
+        
+        assertThat(UaaUrlUtils.isStaticResource(request)).isTrue();
+    }
 }
