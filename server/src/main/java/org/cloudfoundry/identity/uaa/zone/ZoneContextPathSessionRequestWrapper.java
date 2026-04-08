@@ -6,11 +6,13 @@ import jakarta.servlet.http.HttpSession;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter.DEFAULT_ZONE_SUBDOMAIN_PATH;
 
@@ -31,6 +33,12 @@ public class ZoneContextPathSessionRequestWrapper extends HttpServletRequestWrap
      */
     public static final String ATTRIBUTE_NAME_PREFIX =
             ZonePathHttpSession.class.getName() + ".";
+
+    /**
+     * Static resource path prefixes that should not trigger session timestamp updates.
+     * Uses the same patterns as IdentityZoneResolvingFilter for consistency.
+     */
+    private static final Set<String> STATIC_RESOURCE_PREFIXES = Set.of("/resources/", "/vendor/");
 
     private final TimeService timeService;
     private ZonePathHttpSession cachedSession;
@@ -65,7 +73,7 @@ public class ZoneContextPathSessionRequestWrapper extends HttpServletRequestWrap
         String attributeName = attributeNameForContextPath(contextPathKey);
 
         cachedSession = new ZonePathHttpSession(containerSession, contextPathKey, attributeName, timeService);
-        if (!cachedSession.isNew()) {
+        if (!cachedSession.isNew() && !isStaticResource()) {
             cachedSession.touchLastAccessedTime();
         }
         return cachedSession;
@@ -123,6 +131,15 @@ public class ZoneContextPathSessionRequestWrapper extends HttpServletRequestWrap
 
     private void restoreOurAttributes(HttpSession containerSession, Map<String, Object> snapshot) {
         snapshot.forEach(containerSession::setAttribute);
+    }
+
+    /**
+     * Checks if the current request is for a static resource that should not trigger session updates.
+     * Uses the same logic as IdentityZoneResolvingFilter for consistency.
+     */
+    private boolean isStaticResource() {
+        String requestPath = UaaUrlUtils.getRequestPath(this);
+        return STATIC_RESOURCE_PREFIXES.stream().anyMatch(requestPath::startsWith);
     }
 
     /**
