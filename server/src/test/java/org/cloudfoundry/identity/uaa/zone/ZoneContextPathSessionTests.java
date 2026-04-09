@@ -562,126 +562,104 @@ class ZoneContextPathSessionTests {
                 .isEqualTo(initialLastAccessedTime);
         }
 
-        @Test
-        void getSession_stillTouchesLastAccessedTimeForNonStaticResources() {
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "/login",
+            "/oauth/token",
+            "/profile",
+            "/logout",
+            "/saml/SSO",
+            "/api/users"
+        })
+        void getSession_stillTouchesLastAccessedTimeForNonStaticResources(String path) {
             AtomicLong clock = new AtomicLong(1_000_000L);
             TimeService controllableClock = new TimeService() {
                 @Override public long getCurrentTimeMillis() { return clock.get(); }
             };
 
-            // Test non-static resource paths that should still update timestamps
-            String[] nonStaticPaths = {
-                "/login",
-                "/oauth/token", 
-                "/profile",
-                "/logout",
-                "/saml/SSO",
-                "/api/users"
-            };
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            req.setContextPath("/uaa");
+            req.setServletPath(path);
 
-            for (String path : nonStaticPaths) {
-                // Reset clock for each test case
-                clock.set(1_000_000L);
-                
-                MockHttpServletRequest req = new MockHttpServletRequest();
-                req.setContextPath("/uaa");
-                req.setServletPath(path);
-                
-                ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession first = w.getSession(true);
-                long initialLastAccessedTime = first.getLastAccessedTime();
-                assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
+            ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession first = w.getSession(true);
+            long initialLastAccessedTime = first.getLastAccessedTime();
+            assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
 
-                // Advance clock and access session again
-                clock.set(2_000_000L);
-                ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession second = w2.getSession(false);
-                assertThat(second).isNotNull();
-                
-                // For non-static resources, lastAccessedTime should be updated
-                assertThat(second.getLastAccessedTime()).as("Non-static resource %s should update lastAccessedTime", path)
-                    .isEqualTo(2_000_000L);
-            }
+            clock.set(2_000_000L);
+            ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession second = w2.getSession(false);
+            assertThat(second).isNotNull();
+
+            assertThat(second.getLastAccessedTime()).as("Non-static resource %s should update lastAccessedTime", path)
+                .isEqualTo(2_000_000L);
         }
 
-        @Test
-        void getSession_stillTouchesLastAccessedTimeForZoneBasedNonStaticResources() {
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "/login",
+            "/oauth/token",
+            "/profile"
+        })
+        void getSession_stillTouchesLastAccessedTimeForZoneBasedNonStaticResources(String path) {
             AtomicLong clock = new AtomicLong(1_000_000L);
             TimeService controllableClock = new TimeService() {
                 @Override public long getCurrentTimeMillis() { return clock.get(); }
             };
 
-            // Test zone-based non-static resource paths
-            String[] zoneNonStaticPaths = {
-                "/login",
-                "/oauth/token",
-                "/profile"
-            };
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            req.setContextPath("/uaa/z/tenant1");
+            req.setServletPath(path);
 
-            for (String path : zoneNonStaticPaths) {
-                // Reset clock for each test case
-                clock.set(1_000_000L);
-                
-                MockHttpServletRequest req = new MockHttpServletRequest();
-                req.setContextPath("/uaa/z/tenant1");
-                req.setServletPath(path);
-                
-                ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession first = w.getSession(true);
-                long initialLastAccessedTime = first.getLastAccessedTime();
-                assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
+            ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession first = w.getSession(true);
+            long initialLastAccessedTime = first.getLastAccessedTime();
+            assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
 
-                // Advance clock and access session again
-                clock.set(2_000_000L);
-                ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession second = w2.getSession(false);
-                assertThat(second).isNotNull();
-                
-                // For zone-based non-static resources, lastAccessedTime should be updated
-                assertThat(second.getLastAccessedTime()).as("Zone-based non-static resource %s should update lastAccessedTime", path)
-                    .isEqualTo(2_000_000L);
-            }
+            clock.set(2_000_000L);
+            ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession second = w2.getSession(false);
+            assertThat(second).isNotNull();
+
+            assertThat(second.getLastAccessedTime()).as("Zone-based non-static resource %s should update lastAccessedTime", path)
+                .isEqualTo(2_000_000L);
         }
 
-        @Test
-        void getSession_handlesEdgeCasesCorrectly() {
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "/resourcesabc/file.css",  // Not a static resource - should update timestamp
+            "/vendorabc/file.css",     // Not a static resource - should update timestamp
+            "/resources",              // Exact match without trailing slash - should update timestamp
+            "/vendor",                 // Exact match without trailing slash - should update timestamp
+            ""                         // Empty path - should update timestamp
+        })
+        void getSession_handlesEdgeCasesCorrectly(String path) {
             AtomicLong clock = new AtomicLong(1_000_000L);
             TimeService controllableClock = new TimeService() {
                 @Override public long getCurrentTimeMillis() { return clock.get(); }
             };
 
-            // Test edge cases that look like static resources but aren't
-            String[] edgeCasePaths = {
-                "/resourcesabc/file.css",  // Not a static resource - should update timestamp
-                "/vendorabc/file.css",     // Not a static resource - should update timestamp
-                "/resources",              // Exact match without trailing slash - should update timestamp
-                "/vendor",                 // Exact match without trailing slash - should update timestamp
-                ""                         // Empty path - should update timestamp
-            };
+            // Reset clock for each test case
+            clock.set(1_000_000L);
 
-            for (String path : edgeCasePaths) {
-                // Reset clock for each test case
-                clock.set(1_000_000L);
-                
-                MockHttpServletRequest req = new MockHttpServletRequest();
-                req.setContextPath("/uaa");
-                req.setServletPath(path);
-                
-                ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession first = w.getSession(true);
-                long initialLastAccessedTime = first.getLastAccessedTime();
-                assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            req.setContextPath("/uaa");
+            req.setServletPath(path);
 
-                // Advance clock and access session again
-                clock.set(2_000_000L);
-                ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
-                HttpSession second = w2.getSession(false);
-                assertThat(second).isNotNull();
-                
-                // For edge cases, lastAccessedTime should be updated (they're not static resources)
-                assertThat(second.getLastAccessedTime()).as("Edge case path %s should update lastAccessedTime", path)
-                    .isEqualTo(2_000_000L);
-            }
+            ZoneContextPathSessionRequestWrapper w = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession first = w.getSession(true);
+            long initialLastAccessedTime = first.getLastAccessedTime();
+            assertThat(initialLastAccessedTime).isEqualTo(1_000_000L);
+
+            // Advance clock and access session again
+            clock.set(2_000_000L);
+            ZoneContextPathSessionRequestWrapper w2 = new ZoneContextPathSessionRequestWrapper(req, controllableClock);
+            HttpSession second = w2.getSession(false);
+            assertThat(second).isNotNull();
+
+            // For edge cases, lastAccessedTime should be updated (they're not static resources)
+            assertThat(second.getLastAccessedTime()).as("Edge case path %s should update lastAccessedTime", path)
+                .isEqualTo(2_000_000L);
         }
 
         @ParameterizedTest
