@@ -79,8 +79,8 @@ class TestClientAndMockMvcTestConfig {
     public MockMvc mockMvc(
             WebApplicationContext webApplicationContext,
             @Qualifier(SPRING_SECURITY_FILTER_CHAIN) FilterChainProxy securityFilterChain,
-            @Qualifier(ZonePathContextRewritingFilter.BEAN_NAME) org.springframework.boot.web.servlet.FilterRegistrationBean<ZonePathContextRewritingFilter> zonePathFilterRegistration,
-            @Qualifier(ZoneContextPathSessionFilter.BEAN_NAME) org.springframework.boot.web.servlet.FilterRegistrationBean<ZoneContextPathSessionFilter> zoneContextPathSessionFilterRegistration
+            @Qualifier(ZonePathContextRewritingFilter.REGISTRATION_BEAN_NAME) org.springframework.boot.web.servlet.FilterRegistrationBean<ZonePathContextRewritingFilter> zonePathFilterRegistration,
+            @Qualifier(ZoneContextPathSessionFilter.REGISTRATION_BEAN_NAME) org.springframework.boot.web.servlet.FilterRegistrationBean<ZoneContextPathSessionFilter> zoneContextPathSessionFilterRegistration
     ) {
         return MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(zonePathFilterRegistration.getFilter())
