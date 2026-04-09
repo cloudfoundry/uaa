@@ -204,6 +204,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#loginalloworiginloop"><img src="images/click-me.png" width="14" height="14"/></a> `login.allowOriginLoop` | `true`| Allow origin loop|
 | <a href="#loginaliasEntitiesenabled"><img src="images/click-me.png" width="14" height="14"/></a> `login.aliasEntitiesEnabled` | `false`| Enable alias entities|
 | <a href="#loginoauthproviders"><img src="images/click-me.png" width="14" height="14"/></a> `login.oauth.providers` | —| External OAuth/OIDC providers|
+| <a href="#loginoauthexternalgroupsfrommappedauthorities"><img src="images/click-me.png" width="14" height="14"/></a> `login.oauth.externalGroupsFromMappedAuthorities` | `false`| Use mapped UAA authorities for external OAuth external groups|
 
 ### SAML Service Provider
 
@@ -1861,6 +1862,18 @@ External OAuth 2.0 and OIDC provider definitions. Each provider entry includes:
 - `linkText` — Text for the login link
 - `relyingPartyId` / `relyingPartySecret` — Client credentials
 - `attributeMappings` — Attribute mapping configuration
+
+[Back to table](#login--branding)
+
+---
+
+### `login.oauth.externalGroupsFromMappedAuthorities`
+
+**Default:** `false`
+**Source:** `@Value("${login.oauth.externalGroupsFromMappedAuthorities:false}")` in [`OauthEndpointBeanConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java) (bean `externalOAuthAuthenticationManager`)
+**Type:** `boolean`
+
+When `false` (default), external OAuth login populates `UaaAuthentication` external group names from IdP token authorities **before** UAA group mapping (`externalAuthorities`). When `true`, external group names are taken from **mapped** UAA authorities (`authorities` after `mapExternalGroups`), for deployments that want downstream external-group membership logic to follow mapped group or scope names instead of raw IdP values.
 
 [Back to table](#login--branding)
 

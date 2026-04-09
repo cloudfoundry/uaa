@@ -59,7 +59,8 @@ public class TokenExchangeOverrideAuthManagerMockMvcTests extends TokenExchangeM
                     nonTrustingRestTemplate,
                     tokenEndpointBuilder,
                     keyInfoService,
-                    oidcMetadataFetcher
+                    oidcMetadataFetcher,
+                    false
             ) {
                 @Override
                 public AuthenticationData getExternalAuthenticationDetails(Authentication authentication) {

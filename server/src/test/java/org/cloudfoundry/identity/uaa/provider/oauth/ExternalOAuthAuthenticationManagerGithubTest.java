@@ -92,7 +92,7 @@ class ExternalOAuthAuthenticationManagerGithubTest {
                 nonTrustingRestTemplate
         );
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), trustingRestTemplate,
-                nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
+                nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher, false);
     }
 
     @AfterEach

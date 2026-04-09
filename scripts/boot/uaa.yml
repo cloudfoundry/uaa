@@ -63,6 +63,9 @@ login:
   # The entity base url is the location of this application (Used for SAML SP metadata generation)
   # Not set for integration tests - allows UAA to use request URL for zone subdomains
   entityBaseURL: null
+  # Non-default: integration server exercises mapped-authorities path for external OAuth external groups
+  oauth:
+    externalGroupsFromMappedAuthorities: true
   saml:
     activeKeyId: key1
     keys:
