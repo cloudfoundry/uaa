@@ -105,6 +105,7 @@ dependencies {
     testImplementation(libraries.springSecurityLdap)
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.springBootStarterMail)
+    testImplementation(libraries.passay)
     testImplementation(libraries.mockitoJunit5)
     testImplementation(libraries.bytebuddy)
     testImplementation(libraries.bytebuddyagent)

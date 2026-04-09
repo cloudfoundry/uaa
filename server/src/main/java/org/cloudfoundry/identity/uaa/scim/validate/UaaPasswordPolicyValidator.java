@@ -8,8 +8,9 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.passay.PasswordData;
-import org.passay.PropertiesMessageResolver;
-import org.passay.RuleResult;
+import org.passay.SuccessValidationResult;
+import org.passay.ValidationResult;
+import org.passay.resolver.PropertiesMessageResolver;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -52,11 +53,11 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     }
 
     @Override
-    public void validate(String password) throws InvalidPasswordException {
+    public ValidationResult validate(String password) throws InvalidPasswordException {
         IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (idp == null) {
-            //should never happen
-            return;
+            // return without further checks
+            return new SuccessValidationResult();
         }
 
         PasswordPolicy policy = globalDefaultPolicy;
@@ -67,12 +68,13 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         }
 
         org.passay.PasswordValidator validator = validator(policy, messageResolver);
-        RuleResult result = validator.validate(new PasswordData(password != null ? password : ""));
+        ValidationResult result = validator.validate(new PasswordData(password != null ? password : ""));
         if (!result.isValid()) {
-            List<String> errorMessages = new LinkedList<>(validator.getMessages(result));
+            List<String> errorMessages = new LinkedList<>(result.getMessages());
             if (!errorMessages.isEmpty()) {
                 throw new InvalidPasswordException(errorMessages);
             }
         }
+        return result;
     }
 }
