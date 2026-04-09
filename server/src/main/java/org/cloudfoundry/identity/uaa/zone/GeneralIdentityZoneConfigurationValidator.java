@@ -63,10 +63,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                 }
             }
             if (UaaStringUtils.isNotEmpty(config.getIssuer()) && (tokenPolicy == null || UaaStringUtils.isNullOrEmpty(tokenPolicy.getActiveKeyId()))) {
-                // Allow the default zone to have an issuer without a custom signing key
-                if (!zone.isUaa()) {
-                    throw new InvalidIdentityZoneConfigurationException("You cannot set issuer value unless you have set your own signing key for this identity zone.");
-                }
+                throw new InvalidIdentityZoneConfigurationException("You cannot set issuer value unless you have set your own signing key for this identity zone.");
             }
 
             validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedUris(), "config.corsPolicy.xhrConfiguration.allowedUris");

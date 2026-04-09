@@ -304,6 +304,15 @@ public class IdentityZoneConfigurationBootstrapTests {
     @Test
     void issuerConfiguration() throws Exception {
         String testIssuer = "http://test.example.com/uaa";
+        
+        // Set up token policy with keys to satisfy validation
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        Map<String, String> keys = new HashMap<>();
+        keys.put("testkey", "test-signing-key");
+        tokenPolicy.setKeys(keys);
+        tokenPolicy.setActiveKeyId("testkey");
+        bootstrap.setTokenPolicy(tokenPolicy);
+        
         bootstrap.setIssuer(testIssuer);
         bootstrap.afterPropertiesSet();
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
@@ -327,16 +336,24 @@ public class IdentityZoneConfigurationBootstrapTests {
     }
 
     @Test
-    void issuerConfiguration_defaultZoneAllowed() throws Exception {
-        // This test verifies that the default zone can have an issuer set without a custom signing key
+    void issuerConfiguration_defaultZoneWithTokenPolicy() throws Exception {
+        // This test verifies that the default zone can have an issuer set with a proper token policy
         String testIssuer = "http://localhost:8080/uaa";
-        bootstrap.setIssuer(testIssuer);
         
-        // Verify that the default zone allows issuer without custom signing key
+        // Set up token policy with keys to satisfy validation
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        Map<String, String> keys = new HashMap<>();
+        keys.put("defaultkey", "default-signing-key");
+        tokenPolicy.setKeys(keys);
+        tokenPolicy.setActiveKeyId("defaultkey");
+        bootstrap.setTokenPolicy(tokenPolicy);
+        
+        bootstrap.setIssuer(testIssuer);
         bootstrap.afterPropertiesSet();
         
         IdentityZone defaultZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertThat(defaultZone.isUaa()).isTrue();
         assertThat(defaultZone.getConfig().getIssuer()).isEqualTo(testIssuer);
+        assertThat(defaultZone.getConfig().getTokenPolicy().getActiveKeyId()).isEqualTo("defaultkey");
     }
 }
