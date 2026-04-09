@@ -449,6 +449,7 @@ public class OIDCLoginIT {
         attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
         attributeMappings.put("user.attribute.roles", "scope");
         if (identityProvider.getConfig() instanceof OIDCIdentityProviderDefinition oidcConfig) {
+            oidcConfig.setExternalGroupsWhitelist(List.of("*"));
             oidcConfig.setStoreCustomAttributes(true);
             oidcConfig.setPasswordGrantEnabled(true);
             oidcConfig.setAttributeMappings(attributeMappings);
