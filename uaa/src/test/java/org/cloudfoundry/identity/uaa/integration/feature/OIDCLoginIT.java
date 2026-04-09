@@ -14,6 +14,8 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.JWTParser;
 import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
@@ -68,18 +70,23 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
@@ -436,12 +443,49 @@ public class OIDCLoginIT {
     }
 
     @Test
+    void roleMappingAndUserAttributesFromIdTokenOfZone() throws ParseException {
+        // test role and user_attribute claims in id token with external group membership assignment, see issue https://github.com/cloudfoundry/uaa/issues/3813
+        Map<String, Object> attributeMappings = new HashMap<>(identityProvider.getConfig().getAttributeMappings());
+        attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
+        attributeMappings.put("user.attribute.roles", "scope");
+        if (identityProvider.getConfig() instanceof OIDCIdentityProviderDefinition oidcConfig) {
+            oidcConfig.setStoreCustomAttributes(true);
+            oidcConfig.setPasswordGrantEnabled(true);
+            oidcConfig.setAttributeMappings(attributeMappings);
+        }
+        updateProvider();
+
+        String clientId = "client" + new RandomValueStringGenerator(5).generate();
+        UaaClientDetails passwordClient = new UaaClientDetails(clientId, null, "openid,roles,user_attributes,"+createdGroup.getDisplayName(), GRANT_TYPE_PASSWORD, "uaa.none", baseUrl);
+        passwordClient.setClientSecret("clientsecret");
+        passwordClient.setAutoApproveScopes(Collections.singletonList("true"));
+        IntegrationTestUtils.createClientAsZoneAdmin(clientCredentialsToken, baseUrl, zone.getId(), passwordClient);
+        Map response = IntegrationTestUtils.getPasswordToken(zoneUrl, passwordClient.getClientId(), "clientsecret", testAccounts.getUserName(), testAccounts.getPassword(), null,
+            identityProvider.getOriginKey());
+        assertThat(response).isNotNull();
+        String idToken = response.get("id_token") instanceof String idString ? idString : null;
+        assertThat(idToken).isNotNull();
+
+        JWTClaimsSet jwtClaimsSet = JWTParser.parse(idToken).getJWTClaimsSet();
+        assertThat(jwtClaimsSet.getStringClaim("origin")).isEqualTo(identityProvider.getOriginKey());
+        Set<String> rolesInJwt = Arrays.stream(jwtClaimsSet.getStringArrayClaim("roles")).collect(Collectors.toSet());
+        assertThat(rolesInJwt).isNotNull().contains(createdGroup.getDisplayName());
+        Map userAttributeJwt = jwtClaimsSet.getJSONObjectClaim("user_attributes");
+        assertThat(userAttributeJwt).isInstanceOf(Map.class);
+        List attr1 = userAttributeJwt.get("the_client_id") instanceof ArrayList<?> arrayList ? arrayList : null;
+        assertThat(attr1).isNotNull().contains("identity");
+        List attr2 = userAttributeJwt.get("roles") instanceof ArrayList<?> arrayList ? arrayList : null;
+        assertThat(attr2).isNotNull().contains("openid");
+    }
+
+    @Test
     void claimsComeFromUserInfoEndpoint() {
         AbstractExternalOAuthIdentityProviderDefinition<?> oldConfig = identityProvider.getConfig();
         Map<String, Object> attributeMappings = new HashMap<>(identityProvider.getConfig().getAttributeMappings());
         attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
         oldConfig.setAttributeMappings(attributeMappings);
         oldConfig.setLinkText("My Oauth2.0 Provider");
+        oldConfig.setStoreCustomAttributes(true);
         //change the type so that we will use the /userinfo endpoint
         identityProvider.setType(OriginKeys.OAUTH20);
         updateProvider();
@@ -461,7 +505,7 @@ public class OIDCLoginIT {
         localhostServerRunning.setHostName("localhost");
 
         String clientId = "client" + new RandomValueStringGenerator(5).generate();
-        UaaClientDetails client = new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "openid", baseUrl);
+        UaaClientDetails client = new UaaClientDetails(clientId, null, "openid,roles,user_attributes,"+createdGroup.getDisplayName(), GRANT_TYPE_AUTHORIZATION_CODE, "openid", baseUrl);
         client.setClientSecret("clientsecret");
         client.setAutoApproveScopes(Collections.singletonList("true"));
         IntegrationTestUtils.createClient(adminToken, baseUrl, client);
