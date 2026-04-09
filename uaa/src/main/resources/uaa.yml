@@ -616,3 +616,8 @@ springdoc:
   writer-with-default-pretty-printer: false
   model-and-view-allowed: false
   override-with-generic-response: false
+
+#logged_out:
+#  message: You have successfully logged out.
+#  link_text: Back to Sign In
+#  link_url: http://localhost:8080/uaa/login

@@ -35,6 +35,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
   - [Metrics](#metrics)
   - [Zone Paths](#zone-paths)
   - [CSP (Content Security Policy)](#csp-content-security-policy)
+  - [Logged Out Page](#logged-out-page)
   - [Miscellaneous](#miscellaneous)
 
 ---
@@ -363,11 +364,20 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 |----------|---------|-------------|
 | <a href="#cspscript-src"><img src="images/click-me.png" width="14" height="14"/></a> `csp.script-src` | `['self']`| CSP script-src directive|
 
+### Logged Out Page
+
+| Property                                                                                                          | Default | Description |
+|-------------------------------------------------------------------------------------------------------------------|---------|-------------|
+| <a href="#logged_outmessage"><img src="images/click-me.png" width="14" height="14"/></a> `logged_out.message`     | `You have successfully logged out.`| Logged out page message|
+| <a href="#logged_outlink_text"><img src="images/click-me.png" width="14" height="14"/></a> `logged_out.link_text` | `Back to Sign In`| Logged out page link text|
+| <a href="#logged_outlink_url"><img src="images/click-me.png" width="14" height="14"/></a> `logged_out.link_url`   | `/login`| Logged out page link URL|
+
 ### Miscellaneous
 
 | Property | Default | Description |
 |----------|---------|-------------|
 | <a href="#loggingfilenamepath"><img src="images/click-me.png" width="14" height="14"/></a> `logging.file.name.path` | —| Log file directory|
+
 
 ---
 
@@ -2939,6 +2949,42 @@ Content Security Policy `script-src` directive values. Controls which sources ar
 to execute JavaScript on UAA pages.
 
 [Back to table](#csp-content-security-policy)
+
+---
+
+### `logged_out.message`
+
+**Default:** `You have successfully logged out.`
+**Source:** `@Value("${logged_out.message:You have successfully logged out.}")` in [`LoggedOutEndpoint`](../server/src/main/java/org/cloudfoundry/identity/uaa/logout/LoggedOutEndpoint.java)
+**Type:** `String`
+
+Customizable message displayed on the logged out page after a user successfully logs out.
+
+[Back to table](#logged-out-page)
+
+---
+
+### `logged_out.link_text`
+
+**Default:** `Back to Sign In`
+**Source:** `@Value("${logged_out.link_text:Back to Sign In}")` in [`LoggedOutEndpoint`](../server/src/main/java/org/cloudfoundry/identity/uaa/logout/LoggedOutEndpoint.java)
+**Type:** `String`
+
+Customizable text for the link displayed on the logged out page that takes users back to the login page.
+
+[Back to table](#logged-out-page)
+
+---
+
+### `logged_out.link_url`
+
+**Default:** `/login`
+**Source:** `@Value("${logged_out.link_url:/login}")` in [`LoggedOutEndpoint`](../server/src/main/java/org/cloudfoundry/identity/uaa/logout/LoggedOutEndpoint.java)
+**Type:** `String`
+
+Customizable URL for the link displayed on the logged out page. Can be a relative path (e.g., `/login`) or an absolute URL (e.g., `http://localhost:8080/uaa/login`). Relative URLs are resolved against the UAA base URL.
+
+[Back to table](#logged-out-page)
 
 ---
 
