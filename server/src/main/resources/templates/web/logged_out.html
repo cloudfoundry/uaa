@@ -3,7 +3,7 @@
 <div class="island" layout:fragment="page-content">
     <h1 th:text="${message}">You have successfully logged out.</h1>
     <div class="island-content">
-        <a th:href="@{${linkUrl}}" th:text="${linkText}" class="link-lowlight">Back to Sign In</a>
+        <a th:href="@{${linkUrl}}" href="/login" th:text="${linkText}" class="link-lowlight">Back to Sign In</a>
     </div>
 </div>
 </html>
