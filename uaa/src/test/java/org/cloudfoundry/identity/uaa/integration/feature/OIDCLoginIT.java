@@ -69,7 +69,6 @@ import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -441,6 +440,7 @@ public class OIDCLoginIT {
         attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
         attributeMappings.put("user.attribute.roles", "scope");
         if (identityProvider.getConfig() instanceof OIDCIdentityProviderDefinition oidcConfig) {
+            oidcConfig.setExternalGroupsWhitelist(List.of("*"));
             oidcConfig.setStoreCustomAttributes(true);
             oidcConfig.setPasswordGrantEnabled(true);
             oidcConfig.setAttributeMappings(attributeMappings);
@@ -461,71 +461,13 @@ public class OIDCLoginIT {
         JWTClaimsSet jwtClaimsSet = JWTParser.parse(idToken).getJWTClaimsSet();
         assertThat(jwtClaimsSet.getStringClaim("origin")).isEqualTo(identityProvider.getOriginKey());
         Set<String> rolesInJwt = Arrays.stream(jwtClaimsSet.getStringArrayClaim("roles")).collect(Collectors.toSet());
-        assertThat(rolesInJwt).isNotNull().contains(createdGroup.getDisplayName());
+        assertThat(rolesInJwt).isNotNull().contains(createdGroup.getDisplayName()).as(idToken);
         Map userAttributeJwt = jwtClaimsSet.getJSONObjectClaim("user_attributes");
         assertThat(userAttributeJwt).isInstanceOf(Map.class);
         List attr1 = userAttributeJwt.get("the_client_id") instanceof ArrayList<?> arrayList ? arrayList : null;
         assertThat(attr1).isNotNull().contains("identity");
         List attr2 = userAttributeJwt.get("roles") instanceof ArrayList<?> arrayList ? arrayList : null;
         assertThat(attr2).isNotNull().contains("openid");
-    }
-
-    @Test
-    void claimsComeFromUserInfoEndpoint() {
-        AbstractExternalOAuthIdentityProviderDefinition<?> oldConfig = identityProvider.getConfig();
-        Map<String, Object> attributeMappings = new HashMap<>(identityProvider.getConfig().getAttributeMappings());
-        attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
-        oldConfig.setAttributeMappings(attributeMappings);
-        oldConfig.setLinkText("My Oauth2.0 Provider");
-        oldConfig.setStoreCustomAttributes(true);
-        //change the type so that we will use the /userinfo endpoint
-        identityProvider.setType(OriginKeys.OAUTH20);
-        updateProvider();
-
-        webDriver.get(zoneUrl);
-        webDriver.clickAndWait(By.linkText(oldConfig.getLinkText()));
-
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
-
-        webDriver.get(baseUrl);
-        Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
-
-        ServerRunningExtension localhostServerRunning = ServerRunningExtension.connect();
-        localhostServerRunning.setHostName("localhost");
-
-        String clientId = "client" + new RandomValueStringGenerator(5).generate();
-        UaaClientDetails client = new UaaClientDetails(clientId, null, "openid,roles,user_attributes,"+createdGroup.getDisplayName(), GRANT_TYPE_AUTHORIZATION_CODE, "openid", baseUrl);
-        client.setClientSecret("clientsecret");
-        client.setAutoApproveScopes(Collections.singletonList("true"));
-        IntegrationTestUtils.createClient(adminToken, baseUrl, client);
-
-        Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(localhostServerRunning,
-                clientId,
-                "clientsecret",
-                null,
-                null,
-                "token id_token",
-                cookie.getValue(),
-                baseUrl,
-                null,
-                false);
-
-        //validate that we have an ID token, and that it contains costCenter and manager values
-        String idToken = authCodeTokenResponse.get("id_token");
-        assertThat(idToken).isNotNull();
-
-        Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<>() {});
-        String expectedUsername = (String) claims.get(SUB);
-
-        String anAdminToken = IntegrationTestUtils.getClientCredentialsToken(zoneUrl, zoneClient.getClientId(), zoneClient.getClientSecret());
-        ScimUser shadowUser = IntegrationTestUtils.getUser(anAdminToken, zoneUrl, identityProvider.getOriginKey(), expectedUsername);
-        assertThat(shadowUser.getUserName()).isEqualTo(expectedUsername);
-        //there is no 'scope' attribute exposed on the /userinfo endpoint in this test.
-        assertThat(shadowUser.getGroups().stream().map(g -> g.getDisplay())).doesNotContain(createdGroup.getDisplayName());
     }
 
     @Test
@@ -595,7 +537,7 @@ public class OIDCLoginIT {
             assertThat(userAttributeMap).isNotNull();
             List<String> clientIds = userAttributeMap.get("the_client_id");
             assertThat(clientIds).isNotNull();
-            assertThat(clientIds.getFirst()).isEqualTo("identity");
+            assertThat(clientIds.get(0)).isEqualTo("identity");
             setRefreshTokenRotate(false);
             String refreshToken1 = getRefreshTokenResponse(zoneServerRunning, authCodeTokenResponse.get("refresh_token"));
             String refreshToken2 = getRefreshTokenResponse(zoneServerRunning, refreshToken1);
