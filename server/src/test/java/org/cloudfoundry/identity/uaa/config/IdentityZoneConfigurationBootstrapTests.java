@@ -300,4 +300,43 @@ public class IdentityZoneConfigurationBootstrapTests {
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         assertThat(config.isIdpDiscoveryEnabled()).isTrue();
     }
+
+    @Test
+    void issuerConfiguration() throws Exception {
+        String testIssuer = "http://test.example.com/uaa";
+        bootstrap.setIssuer(testIssuer);
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getIssuer()).isEqualTo(testIssuer);
+    }
+
+    @Test
+    void issuerConfiguration_nullValue() throws Exception {
+        bootstrap.setIssuer(null);
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getIssuer()).isNull();
+    }
+
+    @Test
+    void issuerConfiguration_emptyValue() throws Exception {
+        bootstrap.setIssuer("");
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getIssuer()).isNull();
+    }
+
+    @Test
+    void issuerConfiguration_defaultZoneAllowed() throws Exception {
+        // This test verifies that the default zone can have an issuer set without a custom signing key
+        String testIssuer = "http://localhost:8080/uaa";
+        bootstrap.setIssuer(testIssuer);
+        
+        // Verify that the default zone allows issuer without custom signing key
+        bootstrap.afterPropertiesSet();
+        
+        IdentityZone defaultZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
+        assertThat(defaultZone.isUaa()).isTrue();
+        assertThat(defaultZone.getConfig().getIssuer()).isEqualTo(testIssuer);
+    }
 }

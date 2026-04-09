@@ -396,7 +396,8 @@ public class SpringServletXmlBeansConfiguration {
             @Qualifier("uaaTokenPolicy") TokenPolicy uaaTokenPolicy,
             @Qualifier("links") HashMap<String, Object> links,
             @Qualifier("prompts") List<Prompt> prompts,
-            @Qualifier("defaultUserConfig") UserConfig defaultUserConfig
+            @Qualifier("defaultUserConfig") UserConfig defaultUserConfig,
+            @Value("${issuer.uri}") String issuerUri
     ) {
         IdentityZoneConfigurationBootstrap bean = new IdentityZoneConfigurationBootstrap(provisioning);
         bean.setValidator(identityZoneValidator);
@@ -427,6 +428,7 @@ public class SpringServletXmlBeansConfiguration {
         bean.setSamlRequestSigned(loginProps.saml().signRequest());
         bean.setDefaultUserConfig(defaultUserConfig);
         bean.setDefaultIdentityProvider(loginProps.defaultIdentityProvider());
+        bean.setIssuer(issuerUri);
         return bean;
     }
 
