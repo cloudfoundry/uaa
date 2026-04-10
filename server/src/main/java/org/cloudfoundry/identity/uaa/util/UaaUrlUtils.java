@@ -266,6 +266,43 @@ public abstract class UaaUrlUtils {
         }
     }
 
+    /**
+     * Validates and normalizes a URL for safe use in web contexts to prevent XSS attacks.
+     * Only allows:
+     * - Context-relative paths starting with /
+     * - Absolute HTTP/HTTPS URLs
+     * 
+     * @param url the URL to validate
+     * @param fallbackUrl the fallback URL to use for invalid URLs (should be safe, e.g., "/login")
+     * @return the validated URL, or fallbackUrl for invalid URLs
+     */
+    public static String validateAndNormalizeSafeUrl(String url, String fallbackUrl) {
+        if (url == null || url.trim().isEmpty()) {
+            return fallbackUrl;
+        }
+        
+        String trimmed = url.trim();
+        
+        // Allow context-relative paths starting with /
+        if (trimmed.startsWith("/")) {
+            return trimmed;
+        }
+        
+        // Allow absolute HTTP/HTTPS URLs
+        try {
+            URI uri = new URI(trimmed);
+            String scheme = uri.getScheme();
+            if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) {
+                return trimmed;
+            }
+        } catch (URISyntaxException e) {
+            // Invalid URI syntax, fall back to default
+        }
+        
+        // For any other scheme (javascript:, data:, etc.) or invalid URLs, fall back to safe default
+        return fallbackUrl;
+    }
+
     public static String addQueryParameter(String url, String name, String value) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url);
         builder.queryParam(name, value);

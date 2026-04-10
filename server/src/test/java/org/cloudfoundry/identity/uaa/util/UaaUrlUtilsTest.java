@@ -837,4 +837,59 @@ class UaaUrlUtilsTest {
         
         assertThat(UaaUrlUtils.isStaticResource(request)).isTrue();
     }
+
+    // Tests for validateAndNormalizeSafeUrl method
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "javascript:alert('xss')",
+            "data:text/html,<script>alert('xss')</script>",
+            "vbscript:msgbox('xss')",
+            "file:///etc/passwd",
+            "ftp://example.com/file",
+            "mailto:user@example.com",
+            "tel:+1234567890",
+            "not-a-url",
+            "relative-without-slash",
+            "://malformed",
+            "",
+            "   "
+    })
+    void validateAndNormalizeSafeUrl_shouldRejectDangerousAndInvalidUrls(String dangerousUrl) {
+        String result = UaaUrlUtils.validateAndNormalizeSafeUrl(dangerousUrl, "/fallback");
+        assertThat(result).isEqualTo("/fallback");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/login",
+            "/auth/login",
+            "/app/dashboard",
+            "/logout",
+            "/uaa/logout",
+            "/path/with/multiple/segments"
+    })
+    void validateAndNormalizeSafeUrl_shouldAllowValidRelativePaths(String validPath) {
+        String result = UaaUrlUtils.validateAndNormalizeSafeUrl(validPath, "/fallback");
+        assertThat(result).isEqualTo(validPath);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "http://example.com/login",
+            "https://secure.example.com/auth",
+            "https://app.example.com:8443/login?redirect=home",
+            "http://localhost:8080/login",
+            "https://subdomain.example.org/path/to/login",
+            "https://example.com/login#fragment"
+    })
+    void validateAndNormalizeSafeUrl_shouldAllowValidAbsoluteUrls(String validUrl) {
+        String result = UaaUrlUtils.validateAndNormalizeSafeUrl(validUrl, "/fallback");
+        assertThat(result).isEqualTo(validUrl);
+    }
+
+    @Test
+    void validateAndNormalizeSafeUrl_withNullUrl_returnsFallback() {
+        String result = UaaUrlUtils.validateAndNormalizeSafeUrl(null, "/fallback");
+        assertThat(result).isEqualTo("/fallback");
+    }
 }

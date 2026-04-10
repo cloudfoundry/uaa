@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.logout;
 
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,7 +19,7 @@ public class LoggedOutEndpoint {
             @Value("${logged_out.link_url:/login}") String linkUrl) {
         this.message = message;
         this.linkText = linkText;
-        this.linkUrl = linkUrl;
+        this.linkUrl = UaaUrlUtils.validateAndNormalizeSafeUrl(linkUrl, "/login");
     }
 
     @GetMapping("/logged_out")

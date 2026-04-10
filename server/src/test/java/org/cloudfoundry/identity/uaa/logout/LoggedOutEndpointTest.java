@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.logout;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ui.Model;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,14 +48,14 @@ class LoggedOutEndpointTest {
 
         verify(model).addAttribute("message", expectedMessage);
         verify(model).addAttribute("linkText", expectedLinkText);
-        verify(model).addAttribute("linkUrl", expectedLinkUrl);
+        verify(model).addAttribute("linkUrl", expectedLinkUrl); // Valid HTTPS URL should pass validation
         
         assertThat(viewName).isEqualTo("logged_out");
     }
 
     @Test
     void loggedOutMethod_shouldHandleNullValues() {
-        // Test with null values (edge case)
+        // Test with null values (edge case) - linkUrl should fallback to /login
         LoggedOutEndpoint controller = new LoggedOutEndpoint(null, null, null);
 
         Model model = mock(Model.class);
@@ -61,14 +63,14 @@ class LoggedOutEndpointTest {
 
         verify(model).addAttribute("message", null);
         verify(model).addAttribute("linkText", null);
-        verify(model).addAttribute("linkUrl", null);
+        verify(model).addAttribute("linkUrl", "/login"); // URL validation fallback
         
         assertThat(viewName).isEqualTo("logged_out");
     }
 
     @Test
     void loggedOutMethod_shouldHandleEmptyValues() {
-        // Test with empty string values
+        // Test with empty string values - linkUrl should fallback to /login
         LoggedOutEndpoint controller = new LoggedOutEndpoint("", "", "");
 
         Model model = mock(Model.class);
@@ -76,7 +78,7 @@ class LoggedOutEndpointTest {
 
         verify(model).addAttribute("message", "");
         verify(model).addAttribute("linkText", "");
-        verify(model).addAttribute("linkUrl", "");
+        verify(model).addAttribute("linkUrl", "/login"); // URL validation fallback
         
         assertThat(viewName).isEqualTo("logged_out");
     }
@@ -99,26 +101,88 @@ class LoggedOutEndpointTest {
 
         verify(model).addAttribute("message", messageWithSpecialChars);
         verify(model).addAttribute("linkText", linkTextWithSpecialChars);
-        verify(model).addAttribute("linkUrl", linkUrlWithSpecialChars);
+        verify(model).addAttribute("linkUrl", linkUrlWithSpecialChars); // Valid HTTPS URL should pass validation
         
         assertThat(viewName).isEqualTo("logged_out");
     }
 
-    @Test
-    void constructor_shouldAcceptConfigurationValues() {
-        // Test that constructor accepts and stores configuration values
-        String message = "Test message";
-        String linkText = "Test link text";
-        String linkUrl = "Test URL";
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "javascript:alert('xss')",
+            "data:text/html,<script>alert('xss')</script>",
+            "vbscript:msgbox('xss')",
+            "file:///etc/passwd",
+            "ftp://example.com/file",
+            "mailto:user@example.com",
+            "tel:+1234567890"
+    })
+    void constructor_shouldValidateAndSanitizeDangerousUrls(String dangerousUrl) {
+        // Test XSS prevention - dangerous schemes should be rejected
+        LoggedOutEndpoint controller = new LoggedOutEndpoint("msg", "text", dangerousUrl);
 
-        LoggedOutEndpoint controller = new LoggedOutEndpoint(message, linkText, linkUrl);
-        
-        // Verify by calling the method and checking the model attributes
         Model model = mock(Model.class);
         controller.loggedOut(model);
-
-        verify(model).addAttribute("message", message);
-        verify(model).addAttribute("linkText", linkText);
-        verify(model).addAttribute("linkUrl", linkUrl);
+        
+        verify(model).addAttribute("linkUrl", "/login"); // Should fallback to safe default
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/login",
+            "/auth/login", 
+            "/app/dashboard",
+            "/logout",
+            "/uaa/logout",
+            "/path/with/multiple/segments"
+    })
+    void constructor_shouldAllowValidRelativePaths(String validPath) {
+        // Test that valid relative paths are allowed
+        LoggedOutEndpoint controller = new LoggedOutEndpoint("msg", "text", validPath);
+
+        Model model = mock(Model.class);
+        controller.loggedOut(model);
+        
+        verify(model).addAttribute("linkUrl", validPath);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "http://example.com/login",
+            "https://secure.example.com/auth",
+            "https://app.example.com:8443/login?redirect=home",
+            "http://localhost:8080/login",
+            "https://subdomain.example.org/path/to/login",
+            "https://example.com/login#fragment"
+    })
+    void constructor_shouldAllowValidAbsoluteUrls(String validUrl) {
+        // Test that valid HTTP/HTTPS URLs are allowed
+        LoggedOutEndpoint controller = new LoggedOutEndpoint("msg", "text", validUrl);
+
+        Model model = mock(Model.class);
+        controller.loggedOut(model);
+        
+        verify(model).addAttribute("linkUrl", validUrl);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "not-a-url",
+            "relative-without-slash", 
+            "://malformed",
+            "   ",
+            "",
+            "http://",
+            "https://",
+            "invalid-scheme://example.com"
+    })
+    void constructor_shouldRejectInvalidUrls(String invalidUrl) {
+        // Test that malformed URLs are rejected
+        LoggedOutEndpoint controller = new LoggedOutEndpoint("msg", "text", invalidUrl);
+
+        Model model = mock(Model.class);
+        controller.loggedOut(model);
+        
+        verify(model).addAttribute("linkUrl", "/login"); // Should fallback
+    }
+
 }
