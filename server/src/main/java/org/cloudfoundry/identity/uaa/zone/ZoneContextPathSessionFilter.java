@@ -26,6 +26,9 @@ public class ZoneContextPathSessionFilter extends OncePerRequestFilter {
 
     public static final String BEAN_NAME = "zoneContextPathSessionFilter";
 
+    /** Spring Boot {@link org.springframework.boot.web.servlet.FilterRegistrationBean} name (not the {@link jakarta.servlet.Filter} bean). */
+    public static final String REGISTRATION_BEAN_NAME = "zoneContextPathSessionFilterRegistration";
+
     public static final String JSESSIONID = "JSESSIONID";
 
     private final TimeService timeService;

@@ -234,8 +234,17 @@ integrationTest {
         systemProperty("integration.test.saml.url", samlUrl)
         project.logger.warn("UAA - Overriding SAML Url:"+samlUrl)
     }
-    
+
+    def useExternalIntegrationServer = {
+        def v = rootProject.findProperty('uaaIntegrationServer') ?: findProperty('uaaIntegrationServer') ?: System.getenv('UAA_INTEGRATION_SERVER')
+        v != null && v.toString().equalsIgnoreCase('external')
+    }
+
     doFirst {
+        if (useExternalIntegrationServer()) {
+            logger.lifecycle("UAA_INTEGRATION_SERVER=external (or -PuaaIntegrationServer=external): skipping embedded java -jar; tests expect UAA on port 8080")
+            return
+        }
         logger.lifecycle("Killing UAA before auto-start")
         rootProject.tasks.named('killUaa').get().exec()
 
@@ -279,6 +288,10 @@ integrationTest {
     }
 
     doLast {
+        if (useExternalIntegrationServer()) {
+            logger.lifecycle("Skipping embedded UAA shutdown; external Tomcat lifecycle is managed by the caller")
+            return
+        }
         logger.lifecycle("Stopping UAA application...")
         rootProject.tasks.named('killUaa').get().exec()
         rootProject.file('build/boot.pid').delete()

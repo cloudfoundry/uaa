@@ -56,11 +56,11 @@ class JwtBearerGrantEndpointDocs extends JwtBearerGrantMockMvcTests {
     @Autowired
     FilterChainProxy securityFilterChain;
 
-    @Qualifier(ZonePathContextRewritingFilter.BEAN_NAME)
+    @Qualifier(ZonePathContextRewritingFilter.REGISTRATION_BEAN_NAME)
     @Autowired
     FilterRegistrationBean<ZonePathContextRewritingFilter> zonePathFilterRegistration;
 
-    @Qualifier(ZoneContextPathSessionFilter.BEAN_NAME)
+    @Qualifier(ZoneContextPathSessionFilter.REGISTRATION_BEAN_NAME)
     @Autowired
     FilterRegistrationBean<ZoneContextPathSessionFilter> zoneContextPathSessionFilterRegistration;
 

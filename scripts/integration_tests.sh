@@ -8,6 +8,7 @@ set -eu
 #       this could include :cloudfoundry-identity-server:integrationTest --tests to run specific tests
 #   gradle_heap: JVM heap size for Gradle daemon (default: 1024m)
 #   gradle_test_heap: JVM heap size for Gradle test workers (default: 640m)
+#   UAA_VERBOSE_TESTS: default on (Gradle prints each test PASSED/SKIPPED/FAILED); set to 0/false/off to disable
 # UAA boot is started and stopped by the integrationTest task in uaa/build.gradle (doFirst/doLast).
 #######################################
 function main() {

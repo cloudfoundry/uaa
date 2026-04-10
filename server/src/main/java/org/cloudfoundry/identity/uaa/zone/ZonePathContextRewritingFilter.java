@@ -37,6 +37,9 @@ public class ZonePathContextRewritingFilter extends OncePerRequestFilter {
 
     public static final String BEAN_NAME = "zonePathContextRewritingFilter";
 
+    /** Spring Boot {@link org.springframework.boot.web.servlet.FilterRegistrationBean} name (not the {@link jakarta.servlet.Filter} bean). */
+    public static final String REGISTRATION_BEAN_NAME = "zonePathContextRewritingFilterRegistration";
+
     private static final String SLASH_Z = "/z";
     public static final String ZONE_PATH_PREFIX = SLASH_Z + "/";
 
