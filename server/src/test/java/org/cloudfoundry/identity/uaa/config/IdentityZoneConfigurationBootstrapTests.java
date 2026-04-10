@@ -300,4 +300,60 @@ public class IdentityZoneConfigurationBootstrapTests {
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         assertThat(config.isIdpDiscoveryEnabled()).isTrue();
     }
+
+    @Test
+    void issuerConfiguration() throws Exception {
+        String testIssuer = "http://test.example.com/uaa";
+        
+        // Set up token policy with keys to satisfy validation
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        Map<String, String> keys = new HashMap<>();
+        keys.put("testkey", "test-signing-key");
+        tokenPolicy.setKeys(keys);
+        tokenPolicy.setActiveKeyId("testkey");
+        bootstrap.setTokenPolicy(tokenPolicy);
+        
+        bootstrap.setIssuer(testIssuer);
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getIssuer()).isEqualTo(testIssuer);
+    }
+
+    @Test
+    void issuerConfiguration_nullValue() throws Exception {
+        bootstrap.setIssuer(null);
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getIssuer()).isNull();
+    }
+
+    @Test
+    void issuerConfiguration_emptyValue() throws Exception {
+        bootstrap.setIssuer("");
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getIssuer()).isNull();
+    }
+
+    @Test
+    void issuerConfiguration_defaultZoneWithTokenPolicy() throws Exception {
+        // This test verifies that the default zone can have an issuer set with a proper token policy
+        String testIssuer = "http://localhost:8080/uaa";
+        
+        // Set up token policy with keys to satisfy validation
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        Map<String, String> keys = new HashMap<>();
+        keys.put("defaultkey", "default-signing-key");
+        tokenPolicy.setKeys(keys);
+        tokenPolicy.setActiveKeyId("defaultkey");
+        bootstrap.setTokenPolicy(tokenPolicy);
+        
+        bootstrap.setIssuer(testIssuer);
+        bootstrap.afterPropertiesSet();
+        
+        IdentityZone defaultZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
+        assertThat(defaultZone.isUaa()).isTrue();
+        assertThat(defaultZone.getConfig().getIssuer()).isEqualTo(testIssuer);
+        assertThat(defaultZone.getConfig().getTokenPolicy().getActiveKeyId()).isEqualTo("defaultkey");
+    }
 }

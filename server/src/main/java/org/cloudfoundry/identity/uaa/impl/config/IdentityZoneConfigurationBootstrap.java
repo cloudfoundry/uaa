@@ -52,6 +52,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private boolean logoutDisableRedirectParameter = true;
     private List<Prompt> prompts;
     private String defaultIdentityProvider;
+    private String issuer;
 
     private String samlSpPrivateKey;
     private String samlSpPrivateKeyPassphrase;
@@ -92,6 +93,9 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.setAccountChooserEnabled(accountChooserEnabled);
         definition.setDefaultIdentityProvider(defaultIdentityProvider);
         definition.setUserConfig(defaultUserConfig);
+        if (hasText(issuer)) {
+            definition.setIssuer(issuer);
+        }
 
         samlKeys = ofNullable(samlKeys).orElse(Map.of());
         for (Map.Entry<String, Map<String, String>> entry : samlKeys.entrySet()) {
@@ -140,6 +144,11 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public IdentityZoneConfigurationBootstrap setActiveKeyId(String activeKeyId) {
         this.activeKeyId = activeKeyId != null ? activeKeyId.toLowerCase(Locale.ROOT) : null;
+        return this;
+    }
+
+    public IdentityZoneConfigurationBootstrap setIssuer(String issuer) {
+        this.issuer = issuer;
         return this;
     }
 }
