@@ -148,6 +148,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     @Getter
     private final KeyInfoService keyInfoService;
     private final IdentityZoneManager identityZoneManager;
+    private final boolean externalGroupsFromMappedAuthorities;
 
     public ExternalOAuthAuthenticationManager(
             IdentityProviderProvisioning providerProvisioning,
@@ -156,7 +157,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             RestTemplate nonTrustingRestTemplate,
             TokenEndpointBuilder tokenEndpointBuilder,
             KeyInfoService keyInfoService,
-            OidcMetadataFetcher oidcMetadataFetcher
+            OidcMetadataFetcher oidcMetadataFetcher,
+            boolean externalGroupsFromMappedAuthorities
     ) {
         super(providerProvisioning);
         this.identityZoneManager = identityZoneManager;
@@ -165,6 +167,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.keyInfoService = keyInfoService;
         this.oidcMetadataFetcher = oidcMetadataFetcher;
+        this.externalGroupsFromMappedAuthorities = externalGroupsFromMappedAuthorities;
     }
 
     /**
@@ -393,8 +396,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             }
             authentication.setUserAttributes(userAttributes);
 
+            List<SimpleGrantedAuthority> authoritiesForExternalGroups = externalGroupsFromMappedAuthorities
+                    ? authenticationData.getAuthorities()
+                    : authenticationData.getExternalAuthorities();
             authentication.setExternalGroups(
-                    Optional.ofNullable(authenticationData.getExternalAuthorities())
+                    Optional.ofNullable(authoritiesForExternalGroups)
                             .orElse(emptyList())
                             .stream()
                             .map(GrantedAuthority::getAuthority)

@@ -1128,11 +1128,21 @@ public class IntegrationTestUtils {
     }
 
     public static Map getPasswordToken(String baseUrl,
+        String clientId,
+        String clientSecret,
+        String username,
+        String password,
+        String scopes) {
+        return getPasswordToken(baseUrl, clientId, clientSecret, username, password, scopes, null);
+    }
+
+    public static Map getPasswordToken(String baseUrl,
                                        String clientId,
                                        String clientSecret,
                                        String username,
                                        String password,
-                                       String scopes) {
+                                       String scopes,
+                                       String loginHint) {
         RestTemplate template = new RestTemplate();
         template.getMessageConverters().addFirst(new StringHttpMessageConverter(StandardCharsets.UTF_8));
         template.setRequestFactory(new StatelessRequestFactory());
@@ -1144,6 +1154,9 @@ public class IntegrationTestUtils {
         formData.add("response_type", "token id_token");
         if (hasText(scopes)) {
             formData.add("scope", scopes);
+        }
+        if (loginHint != null) {
+            formData.add("login_hint", "{\"origin\": \""+loginHint+"\"}");
         }
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));

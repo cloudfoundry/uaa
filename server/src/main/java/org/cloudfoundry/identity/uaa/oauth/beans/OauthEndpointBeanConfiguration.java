@@ -555,7 +555,8 @@ public class OauthEndpointBeanConfiguration {
         @Qualifier("keyInfoService") KeyInfoService keyInfoService,
         @Qualifier("oidcMetadataFetcher") OidcMetadataFetcher oidcMetadataFetcher,
         @Qualifier("userDatabase") UaaUserDatabase userDatabase,
-        @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager externalMembershipManager
+        @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager externalMembershipManager,
+        @Value("${login.oauth.externalGroupsFromMappedAuthorities:false}") boolean externalGroupsFromMappedAuthorities
     ) {
         ExternalOAuthAuthenticationManager bean = new ExternalOAuthAuthenticationManager(
                 providerProvisioning,
@@ -564,7 +565,8 @@ public class OauthEndpointBeanConfiguration {
                 nonTrustingRestTemplate,
                 tokenEndpointBuilder,
                 keyInfoService,
-                oidcMetadataFetcher
+                oidcMetadataFetcher,
+                externalGroupsFromMappedAuthorities
         );
         bean.setUserDatabase(userDatabase);
         bean.setExternalMembershipManager(externalMembershipManager);
