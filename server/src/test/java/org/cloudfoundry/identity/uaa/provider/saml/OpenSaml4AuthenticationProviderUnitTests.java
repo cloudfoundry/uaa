@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4AuthenticationProvid
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -93,11 +92,6 @@ class OpenSaml4AuthenticationProviderUnitTests {
     private static final String ASSERTING_PARTY_ENTITY_ID = "https://some.idp.test/saml2/idp";
 
     private final OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
-
-    @BeforeEach
-    void setUp() {
-        IdentityZoneConfig.setupOpenSaml();
-    }
 
     @AfterEach void cleanup() {
         IdentityZoneHolder.clear();
