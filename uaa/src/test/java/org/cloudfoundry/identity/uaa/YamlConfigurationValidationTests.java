@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa;
 
 import org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
-import org.cloudfoundry.identity.uaa.provider.saml.IdentityZoneConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.BeansException;
@@ -49,7 +48,6 @@ class YamlConfigurationValidationTests {
     }
 
     private static TestApplicationContext createApplicationContext() {
-        IdentityZoneConfig.setupOpenSaml();
         var applicationContext = new TestApplicationContext();
         var servletContext = new TestMockContext();
         applicationContext.setServletContext(servletContext);

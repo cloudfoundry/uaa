@@ -63,6 +63,7 @@ import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureSupport;
 import org.springframework.security.saml2.Saml2Exception;
+import org.springframework.security.saml2.core.OpenSamlInitializationService;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
@@ -100,7 +101,7 @@ public final class TestOpenSamlObjects {
     public static final String RELYING_PARTY_ENTITY_ID = "https://localhost/saml2/service-provider-metadata/idp-alias";
 
     static {
-        IdentityZoneConfig.setupOpenSaml();
+        OpenSamlInitializationService.initialize();
     }
 
     private TestOpenSamlObjects() {
@@ -132,7 +133,6 @@ public final class TestOpenSamlObjects {
 
     static Response signedResponseWithOneAssertion(Consumer<Response> responseConsumer) {
         Response response = response();
-        response.setIssueInstant(Instant.now());
         response.getAssertions().add(assertion());
         responseConsumer.accept(response);
         return signed(response, TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID);
@@ -156,7 +156,6 @@ public final class TestOpenSamlObjects {
         Assertion assertion = build(Assertion.DEFAULT_ELEMENT_NAME);
         assertion.setID("A" + UUID.randomUUID());
         assertion.setVersion(SAMLVersion.VERSION_20);
-        assertion.setIssueInstant(Instant.now());
         assertion.setIssuer(issuer(issuerEntityId));
         assertion.setSubject(subject(username));
         assertion.setConditions(conditions());
