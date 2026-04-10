@@ -43,3 +43,30 @@ jobs:
       - name: Check error Result
         run: exit 1
         if: steps.testrun.outcome == 'failure'
+
+  # Standalone Apache Tomcat (version aligned with Spring Boot BOM via writeTomcatDistributionVersion)
+  tomcat-integration-test:
+    runs-on: ubuntu-latest
+    container:
+      image: cfidentity/uaa-postgresql-15
+      volumes:
+        - ${{ github.workspace }}:/root/uaa
+      options: --privileged --tty --interactive --shm-size=1G
+    steps:
+      - name: Set env
+        run: echo "PROFILE=postgresql,default" >> $GITHUB_ENV
+      - name: Check out repository code
+        uses: actions/checkout@v6
+      - name: Integration tests with standalone Tomcat
+        id: tomcat_testrun
+        run: /root/uaa/scripts/tomcat/integration_tests_tomcat.sh "${PROFILE}"
+        continue-on-error: true
+      - name: Test result upload (Tomcat)
+        uses: actions/upload-artifact@v7
+        if: steps.tomcat_testrun.outcome == 'failure'
+        with:
+          name: Tomcat integration tests
+          path: /root/uaa/*/build/reports/tests/integrationTest/
+      - name: Check Tomcat job result
+        run: exit 1
+        if: steps.tomcat_testrun.outcome == 'failure'

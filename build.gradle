@@ -45,6 +45,11 @@ allprojects {
 
 
 subprojects {
+    /** Log each test PASSED/SKIPPED/FAILED unless disabled (-PverboseTests=false or UAA_VERBOSE_TESTS=0/off). */
+    def uaaVerboseTestRaw = (findProperty('verboseTests') ?: System.getenv('UAA_VERBOSE_TESTS') ?: 'true')
+            .toString().trim().toLowerCase()
+    def uaaVerboseTestEvents = !['false', '0', 'off', 'no'].contains(uaaVerboseTestRaw)
+
     apply(plugin: "java")
     java {
         sourceCompatibility = JavaVersion.VERSION_21
@@ -120,7 +125,11 @@ subprojects {
         }
 
         testLogging {
-            events("failed")
+            if (uaaVerboseTestEvents) {
+                events("passed", "skipped", "failed")
+            } else {
+                events("failed")
+            }
             exceptionFormat = "full"
             // Set showStandardStreams=true to see all standard output from tests (there's a ton of it!)
             showStandardStreams = false
@@ -172,7 +181,11 @@ subprojects {
         }
 
         testLogging {
-            events("failed")
+            if (uaaVerboseTestEvents) {
+                events("passed", "skipped", "failed")
+            } else {
+                events("failed")
+            }
             exceptionFormat = "full"
             // Set showStandardStreams=true to see all standard output from tests (there's a ton of it!)
             showStandardStreams = false
@@ -294,6 +307,37 @@ tasks.register('bootWarRun', JavaExec) {
 tasks.register('killUaa', Exec) {
     workingDir './'
     executable = 'scripts/kill_uaa.sh'
+}
+
+/**
+ * Writes the resolved tomcat-embed-core version (from the Spring Boot BOM) to
+ * {@code build/tomcat-distribution.version} for scripts that download a matching
+ * Apache Tomcat binary distribution (standalone integration tests).
+ */
+tasks.register('writeTomcatDistributionVersion') {
+    group = 'build'
+    description = 'Writes build/tomcat-distribution.version from tomcat-embed-core on cloudfoundry-identity-uaa runtimeClasspath'
+    def uaaProject = project(':cloudfoundry-identity-uaa')
+    def outFile = layout.buildDirectory.file('tomcat-distribution.version')
+    outputs.file(outFile)
+    doLast {
+        def cfg = uaaProject.configurations.named('runtimeClasspath').get()
+        def artifact = cfg.resolvedConfiguration.resolvedArtifacts.find { it.name == 'tomcat-embed-core' }
+        if (artifact == null) {
+            throw new GradleException('Could not resolve tomcat-embed-core version from :cloudfoundry-identity-uaa runtimeClasspath')
+        }
+        outFile.get().asFile.parentFile.mkdirs()
+        outFile.get().asFile.text = artifact.moduleVersion.id.version
+    }
+}
+
+tasks.register('printTomcatDistributionVersion') {
+    group = 'help'
+    description = 'Prints the Apache Tomcat version matching Spring Boot embedded tomcat-embed-core'
+    dependsOn('writeTomcatDistributionVersion')
+    doLast {
+        println file("${layout.buildDirectory.get().asFile}/tomcat-distribution.version").text.trim()
+    }
 }
 
 tasks.register('run') {
