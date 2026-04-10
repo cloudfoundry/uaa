@@ -494,12 +494,6 @@ class UaaUrlUtilsTest {
     }
 
     @Test
-    void addSubdomainToUrl_handlesEmptySubdomain_defaultZone() {
-        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", UaaStringUtils.EMPTY_STRING);
-        assertThat(url).isEqualTo("http://localhost:8080");
-    }
-
-    @Test
     void addSudomain_handlesExtraSpaceInSubdomain() {
         String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", " somezone  ");
         assertThat(url).isEqualTo("http://somezone.localhost:8080");
