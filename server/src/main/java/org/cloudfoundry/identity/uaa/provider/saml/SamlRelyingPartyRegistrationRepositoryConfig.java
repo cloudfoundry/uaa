@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID;
 
+@DependsOn({"setUpBouncyCastle", "setupOpenSaml"})
 @Configuration
 @Slf4j
 public class SamlRelyingPartyRegistrationRepositoryConfig {
@@ -43,7 +44,6 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         this.signatureAlgorithms = signatureAlgorithms;
     }
 
-    @DependsOn({"setUpBouncyCastle", "setupOpenSaml"})
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) {
         SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl samlKeyManager = new SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl(samlConfigProps);
