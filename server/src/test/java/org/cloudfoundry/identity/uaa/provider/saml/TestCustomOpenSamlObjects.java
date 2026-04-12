@@ -40,8 +40,6 @@ import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.AttributeValue;
 import org.w3c.dom.Element;
 
-import org.springframework.security.saml2.core.OpenSamlInitializationService;
-
 /**
  * This was copied from Spring Security Test Classes
  * <p/>
@@ -51,7 +49,7 @@ import org.springframework.security.saml2.core.OpenSamlInitializationService;
 public final class TestCustomOpenSamlObjects {
 
     static {
-        OpenSamlInitializationService.initialize();
+        SamlConfiguration.setupOpenSaml();
         XMLObjectProviderRegistrySupport.getMarshallerFactory()
                 .registerMarshaller(CustomOpenSamlObject.TYPE_NAME,
                         new TestCustomOpenSamlObjects.CustomSamlObjectMarshaller());

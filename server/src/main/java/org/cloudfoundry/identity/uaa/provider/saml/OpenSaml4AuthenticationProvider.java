@@ -69,7 +69,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.saml2.Saml2Exception;
-import org.springframework.security.saml2.core.OpenSamlInitializationService;
 import org.springframework.security.saml2.core.Saml2Error;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
 import org.springframework.security.saml2.core.Saml2ResponseValidatorResult;
@@ -113,7 +112,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUrlForPort
 public final class OpenSaml4AuthenticationProvider implements AuthenticationProvider, ZoneAware {
 
     static {
-        OpenSamlInitializationService.initialize();
+        SamlConfiguration.setupOpenSaml();
     }
 
     private final Log logger = LogFactory.getLog(this.getClass());

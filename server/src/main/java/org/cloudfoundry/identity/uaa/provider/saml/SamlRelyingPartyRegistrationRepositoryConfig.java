@@ -13,7 +13,6 @@ import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +20,7 @@ import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID;
 
+@DependsOn({"setUpBouncyCastle", "setupOpenSaml"})
 @Configuration
 @Slf4j
 public class SamlRelyingPartyRegistrationRepositoryConfig {
@@ -44,7 +44,6 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         this.signatureAlgorithms = signatureAlgorithms;
     }
 
-    @DependsOn({"setUpBouncyCastle"})
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) {
         SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl samlKeyManager = new SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl(samlConfigProps);
