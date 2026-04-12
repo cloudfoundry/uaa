@@ -72,7 +72,7 @@ import static org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4Authenticatio
 public final class Saml2BearerGrantAuthenticationConverter implements AuthenticationConverter {
 
     static {
-        IdentityZoneConfig.setupOpenSaml();
+        SamlConfiguration.setupOpenSaml();
     }
 
     private static final AssertionUnmarshaller assertionUnmarshaller;

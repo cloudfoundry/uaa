@@ -112,7 +112,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUrlForPort
 public final class OpenSaml4AuthenticationProvider implements AuthenticationProvider, ZoneAware {
 
     static {
-        IdentityZoneConfig.setupOpenSaml();
+        SamlConfiguration.setupOpenSaml();
     }
 
     private final Log logger = LogFactory.getLog(this.getClass());

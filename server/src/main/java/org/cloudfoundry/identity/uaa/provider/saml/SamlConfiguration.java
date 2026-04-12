@@ -8,6 +8,11 @@ import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
+import org.opensaml.core.config.ConfigurationService;
+import org.opensaml.core.config.InitializationException;
+import org.opensaml.core.config.Initializer;
+import org.opensaml.security.config.GlobalNamedCurveRegistryInitializer;
+import org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,7 +20,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.security.saml2.Saml2Exception;
+import org.springframework.security.saml2.core.OpenSamlInitializationService;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Properties;
+import java.util.ServiceLoader;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap.CONFIG_PROPERTY_ECDH_DEFAULT_KDF;
 
 @Slf4j
 @EnableConfigurationProperties({SamlConfigProps.class})
@@ -56,6 +69,31 @@ public class SamlConfiguration {
     @Value("${login.saml.socket.soTimeout:10000}")
     private int socketReadTimeout = 10_000;
 
+    private static final AtomicBoolean samlInitialized = new AtomicBoolean(false);
+
+    @Bean
+    public static Boolean setupOpenSaml() {
+        if (samlInitialized.compareAndSet(false, true)) {
+            Properties props = ConfigurationService.getConfigurationProperties();
+            props.put(CONFIG_PROPERTY_ECDH_DEFAULT_KDF, DefaultSecurityConfigurationBootstrap.PBKDF2);
+            Class<?> toSkip = GlobalNamedCurveRegistryInitializer.class;
+            ServiceLoader.load(Initializer.class).stream().filter((provider) -> provider.type() != toSkip).forEach((provider) -> init(provider));
+            try {
+                OpenSamlInitializationService.initialize();
+            } catch (NoClassDefFoundError | NoSuchMethodError e) {
+                // ignore
+            }
+        }
+        return Boolean.TRUE;
+    }
+
+    private static void init(ServiceLoader.Provider<Initializer> provider) {
+        try {
+            provider.get().init();
+        } catch (InitializationException ex) {
+            throw new Saml2Exception(ex);
+        }
+    }
     @Bean
     public String samlEntityID() {
         return samlEntityID;

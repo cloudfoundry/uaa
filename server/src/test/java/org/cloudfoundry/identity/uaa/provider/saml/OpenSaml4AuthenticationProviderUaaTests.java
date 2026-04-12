@@ -182,7 +182,7 @@ class OpenSaml4AuthenticationProviderUaaTests {
         RequestContextHolder.setRequestAttributes(servletWebRequest);
         DbUtils dbUtils = new DbUtils();
 
-        IdentityZoneConfig.setupOpenSaml();
+        SamlConfiguration.setupOpenSaml();
 
         ScimGroupProvisioning groupProvisioning = new JdbcScimGroupProvisioning(
                 namedJdbcTemplate, new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter),

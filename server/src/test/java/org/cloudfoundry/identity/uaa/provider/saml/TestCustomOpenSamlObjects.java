@@ -49,7 +49,7 @@ import org.w3c.dom.Element;
 public final class TestCustomOpenSamlObjects {
 
     static {
-        IdentityZoneConfig.setupOpenSaml();
+        SamlConfiguration.setupOpenSaml();
         XMLObjectProviderRegistrySupport.getMarshallerFactory()
                 .registerMarshaller(CustomOpenSamlObject.TYPE_NAME,
                         new TestCustomOpenSamlObjects.CustomSamlObjectMarshaller());
