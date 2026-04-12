@@ -319,7 +319,7 @@ public final class OAuth2ContextExtension implements BeforeAllCallback, BeforeEa
 
     private void setupConnectionFactory(OAuth2RestTemplate client) {
         if (Boolean.getBoolean("http.components.enabled")
-                && ClassUtils.isPresent("org.apache.http.client.config.RequestConfig",
+                && ClassUtils.isPresent("org.apache.hc.client5.http.config.RequestConfig",
                 null)) {
             client.setRequestFactory(new HttpComponentsClientHttpRequestFactory() {
                 @Override
