@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.Statement;
 
 /**
  * Simple controller that just returns "ok" in a request body for the purposes
  * of monitoring health of the application. It also registers a shutdown hook
  * and returns "stopping" and a 503 when the process is shutting down.
+ * The background database check only establishes a connection from the pool
+ * without executing an additional query. The configured DataSource already
+ * runs a validation query on every connection borrow ({@code testOnBorrow=true}),
+ * so obtaining a connection is sufficient to verify database connectivity.
  */
 @Controller
 public class HealthzEndpoint {
@@ -24,14 +27,12 @@ public class HealthzEndpoint {
     private volatile boolean stopping;
     private volatile Boolean wasLastConnectionSuccessful = null;
     private DataSource dataSource;
-    private String healthCheckStatement;
 
 
     public HealthzEndpoint(
             @Value("${uaa.shutdown.sleep:10000}") final long sleepTime,
             final Runtime runtime,
-            final DataSource dataSource,
-            @Value("${uaa.health.db.statement:SELECT 1 from identity_zone;}") final String healthCheckStatement) {
+            final DataSource dataSource) {
         Thread shutdownHook = new Thread(() -> {
             stopping = true;
             logger.warn("Shutdown hook received, future requests to this endpoint will return 503");
@@ -46,7 +47,6 @@ public class HealthzEndpoint {
         });
         runtime.addShutdownHook(shutdownHook);
         this.dataSource = dataSource;
-        this.healthCheckStatement = healthCheckStatement;
     }
 
     @GetMapping({"/healthz", "/healthz/**"})
@@ -75,8 +75,7 @@ public class HealthzEndpoint {
 
     @Scheduled(fixedRateString = "${uaa.health.db.rate:10000}")
     void isDataSourceConnectionAvailable() {
-        try (Connection c = dataSource.getConnection(); Statement statement = c.createStatement()) {
-            statement.execute(healthCheckStatement);
+        try (Connection c = dataSource.getConnection()) {
             wasLastConnectionSuccessful = true;
             return;
         } catch (Exception ex) {
