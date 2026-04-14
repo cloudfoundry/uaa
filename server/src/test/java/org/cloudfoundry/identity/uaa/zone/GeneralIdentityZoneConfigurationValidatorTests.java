@@ -316,6 +316,43 @@ class GeneralIdentityZoneConfigurationValidatorTests {
                 .hasMessageContaining("You cannot set issuer value unless you have set your own signing key for this identity zone.");
     }
 
+    // Tests for: if (!zone.isUaa() && isNotEmpty(issuer) && (tokenPolicy == null || isNullOrEmpty(activeKeyId)))
+    @MethodSource("parameters")
+    @ParameterizedTest
+    void validate_nonUaaZone_withIssuer_andNoTokenPolicy_throwsException(IdentityZoneValidator.Mode mode) {
+        // non-UAA zone with issuer set but no token policy -> should fail
+        zone.setId("custom-zone");
+        zone.getConfig().setIssuer("http://custom.example.com/issuer");
+        zone.getConfig().setTokenPolicy(null);
+        assertThatThrownBy(() -> validator.validate(zone, mode))
+                .isInstanceOf(InvalidIdentityZoneConfigurationException.class)
+                .hasMessageContaining("You cannot set issuer value unless you have set your own signing key for this identity zone.");
+    }
+
+    @MethodSource("parameters")
+    @ParameterizedTest
+    void validate_nonUaaZone_withoutIssuer_andNoActiveKey_succeeds(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+        // non-UAA zone without issuer -> condition not triggered, should pass
+        zone.setId("custom-zone");
+        zone.getConfig().setIssuer("http://localhost:8080/uaa");
+        zone.getConfig().setTokenPolicy(null);
+        // validate should not throw
+        assertThatThrownBy(() -> validator.validate(zone, mode))
+            .isInstanceOf(InvalidIdentityZoneConfigurationException.class)
+            .hasMessageContaining("You cannot set issuer value unless you have set your own signing key for this identity zone.");
+    }
+
+    @MethodSource("parameters")
+    @ParameterizedTest
+    void validate_uaaZone_withIssuer_andNoActiveKey_succeeds(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+        // UAA zone is exempt from the issuer check -> should pass even without an active key
+        zone.setId(IdentityZone.getUaaZoneId());
+        zone.getConfig().setIssuer("http://uaa.example.com/issuer");
+        zone.getConfig().setTokenPolicy(null);
+        // validate should not throw
+        validator.validate(zone, mode);
+    }
+
     @MethodSource("parameters")
     @ParameterizedTest
     void validate_invalid_corsPolicy_xhrConfiguration_allowedUris(IdentityZoneValidator.Mode mode) {
