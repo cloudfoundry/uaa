@@ -79,10 +79,10 @@ public class SpringServletXmlBeansConfiguration {
     Collection<String> defaultAuthorities;
 
     @Autowired
-    UaaProperties.GlobalClientSecretPolicy globalClientSecretPolicy;
+    UaaProperties.GlobalClientSecretPolicy globalClientSecretPolicyConfig;
 
     @Autowired
-    UaaProperties.DefaultClientSecretPolicy defaultClientSecretPolicy;
+    UaaProperties.DefaultClientSecretPolicy defaultClientSecretPolicyConfig;
 
     @Autowired
     UaaProperties.Login loginProps;
@@ -365,26 +365,26 @@ public class SpringServletXmlBeansConfiguration {
     @Bean
     ClientSecretPolicy globalClientSecretPolicy() {
         return new ClientSecretPolicy(
-                globalClientSecretPolicy.minLength(),
-                globalClientSecretPolicy.maxLength(),
-                globalClientSecretPolicy.requireUpperCaseCharacter(),
-                globalClientSecretPolicy.requireLowerCaseCharacter(),
-                globalClientSecretPolicy.requireDigit(),
-                globalClientSecretPolicy.requireSpecialCharacter(),
-                globalClientSecretPolicy.expireSecretInMonths()
+                globalClientSecretPolicyConfig.minLength(),
+                globalClientSecretPolicyConfig.maxLength(),
+                globalClientSecretPolicyConfig.requireUpperCaseCharacter(),
+                globalClientSecretPolicyConfig.requireLowerCaseCharacter(),
+                globalClientSecretPolicyConfig.requireDigit(),
+                globalClientSecretPolicyConfig.requireSpecialCharacter(),
+                globalClientSecretPolicyConfig.expireSecretInMonths()
         );
     }
 
     @Bean
     ClientSecretPolicy defaultUaaClientSecretPolicy() {
         return new ClientSecretPolicy(
-                defaultClientSecretPolicy.minLength(),
-                defaultClientSecretPolicy.maxLength(),
-                defaultClientSecretPolicy.requireUpperCaseCharacter(),
-                defaultClientSecretPolicy.requireLowerCaseCharacter(),
-                defaultClientSecretPolicy.requireDigit(),
-                defaultClientSecretPolicy.requireSpecialCharacter(),
-                defaultClientSecretPolicy.expireSecretInMonths()
+                defaultClientSecretPolicyConfig.minLength(),
+                defaultClientSecretPolicyConfig.maxLength(),
+                defaultClientSecretPolicyConfig.requireUpperCaseCharacter(),
+                defaultClientSecretPolicyConfig.requireLowerCaseCharacter(),
+                defaultClientSecretPolicyConfig.requireDigit(),
+                defaultClientSecretPolicyConfig.requireSpecialCharacter(),
+                defaultClientSecretPolicyConfig.expireSecretInMonths()
         );
     }
 
