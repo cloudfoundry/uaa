@@ -62,7 +62,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     }
                 }
             }
-            if (UaaStringUtils.isNotEmpty(config.getIssuer()) && (tokenPolicy == null || UaaStringUtils.isNullOrEmpty(tokenPolicy.getActiveKeyId()))) {
+            if (!zone.isUaa() && UaaStringUtils.isNotEmpty(config.getIssuer()) && (tokenPolicy == null || UaaStringUtils.isNullOrEmpty(tokenPolicy.getActiveKeyId()))) {
                 throw new InvalidIdentityZoneConfigurationException("You cannot set issuer value unless you have set your own signing key for this identity zone.");
             }
 
