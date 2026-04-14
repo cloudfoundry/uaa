@@ -36,9 +36,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven {
-            url = uri("https://build.shibboleth.net/nexus/content/repositories/releases/")
-        }
         maven { url = uri("https://repository.mulesoft.org/releases/") }
     }
 }
