@@ -17,7 +17,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.extern.slf4j.Slf4j;
-import net.shibboleth.utilities.java.support.xml.ParserPool;
+import net.shibboleth.shared.xml.ParserPool;
 import org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -61,7 +61,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import static org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4AuthenticationProvider.createDefaultAssertionValidatorWithParameters;
+import static org.cloudfoundry.identity.uaa.provider.saml.OpenSaml5AuthenticationProvider.createDefaultAssertionValidatorWithParameters;
 
 /**
  * This {@link AuthenticationConverter} is used in the SAML2 Bearer Grant exchange in {@link BackwardsCompatibleTokenEndpointAuthenticationFilter}
@@ -89,13 +89,13 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         parserPool = registry.getParserPool();
     }
 
-    private final Converter<OpenSaml4AuthenticationProvider.AssertionToken, Saml2ResponseValidatorResult> assertionSignatureValidator = OpenSaml4AuthenticationProvider.createDefaultAssertionSignatureValidator();
+    private final Converter<OpenSaml5AuthenticationProvider.AssertionToken, Saml2ResponseValidatorResult> assertionSignatureValidator = OpenSaml5AuthenticationProvider.createDefaultAssertionSignatureValidator();
 
-    private final Consumer<OpenSaml4AuthenticationProvider.AssertionToken> assertionElementsDecrypter = OpenSaml4AuthenticationProvider.createDefaultAssertionElementsDecrypter();
+    private final Consumer<OpenSaml5AuthenticationProvider.AssertionToken> assertionElementsDecrypter = OpenSaml5AuthenticationProvider.createDefaultAssertionElementsDecrypter();
 
-    private final Converter<OpenSaml4AuthenticationProvider.AssertionToken, Saml2ResponseValidatorResult> assertionValidator = createDefaultAssertionValidator();
+    private final Converter<OpenSaml5AuthenticationProvider.AssertionToken, Saml2ResponseValidatorResult> assertionValidator = createDefaultAssertionValidator();
 
-    private final Converter<OpenSaml4AuthenticationProvider.AssertionToken, AbstractAuthenticationToken> assertionTokenAuthenticationConverter = createDefaultAssertionAuthenticationConverter();
+    private final Converter<OpenSaml5AuthenticationProvider.AssertionToken, AbstractAuthenticationToken> assertionTokenAuthenticationConverter = createDefaultAssertionAuthenticationConverter();
 
     private final RelyingPartyRegistrationResolver relyingPartyRegistrationResolver;
     private final IdentityZoneManager identityZoneManager;
@@ -120,7 +120,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
      *
      * @return the default assertion validator strategy
      */
-    public static Converter<OpenSaml4AuthenticationProvider.AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidator() {
+    public static Converter<OpenSaml5AuthenticationProvider.AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidator() {
 
         return createDefaultAssertionValidatorWithParameters(
                 params -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)), true);
@@ -132,13 +132,13 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
      *
      * @return the default response authentication converter strategy
      */
-    static Converter<OpenSaml4AuthenticationProvider.AssertionToken, AbstractAuthenticationToken> createDefaultAssertionAuthenticationConverter() {
+    static Converter<OpenSaml5AuthenticationProvider.AssertionToken, AbstractAuthenticationToken> createDefaultAssertionAuthenticationConverter() {
         return assertionToken -> {
             Assertion assertion = assertionToken.getAssertion();
             Saml2AuthenticationToken token = assertionToken.getToken();
             String username = assertion.getSubject().getNameID().getValue();
-            Map<String, List<Object>> attributes = OpenSaml4AuthenticationProvider.getAssertionAttributes(assertion);
-            List<String> sessionIndexes = OpenSaml4AuthenticationProvider.getSessionIndexes(assertion);
+            Map<String, List<Object>> attributes = OpenSaml5AuthenticationProvider.getAssertionAttributes(assertion);
+            List<String> sessionIndexes = OpenSaml5AuthenticationProvider.getSessionIndexes(assertion);
             DefaultSaml2AuthenticatedPrincipal principal = new DefaultSaml2AuthenticatedPrincipal(username, attributes,
                     sessionIndexes);
             String registrationId = token.getRelyingPartyRegistration().getRegistrationId();
@@ -192,7 +192,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
             Assertion assertion = parseAssertion(serializedAssertion);
             process(token, assertion);
             AbstractAuthenticationToken authenticationResponse = this.assertionTokenAuthenticationConverter
-                    .convert(new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token));
+                    .convert(new OpenSaml5AuthenticationProvider.AssertionToken(assertion, token));
             if (authenticationResponse != null) {
                 authenticationResponse.setDetails(authentication.getDetails());
             }
@@ -200,7 +200,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         } catch (Saml2AuthenticationException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INTERNAL_VALIDATION_ERROR, ex.getMessage(), ex);
+            throw OpenSaml5AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INTERNAL_VALIDATION_ERROR, ex.getMessage(), ex);
         }
     }
 
@@ -211,7 +211,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
             Element element = document.getDocumentElement();
             return (Assertion) assertionUnmarshaller.unmarshall(element);
         } catch (Exception ex) {
-            throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_ASSERTION, "Unable to parse bearer assertion", ex);
+            throw OpenSaml5AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_ASSERTION, "Unable to parse bearer assertion", ex);
         }
     }
 
@@ -222,7 +222,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
             Element element = document.getDocumentElement();
             return (Response) responseUnMarshaller.unmarshall(element);
         } catch (Exception ex) {
-            throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_RESPONSE, "Unable to parse saml response", ex);
+            throw OpenSaml5AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_RESPONSE, "Unable to parse saml response", ex);
         }
     }
 
@@ -252,14 +252,14 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         String issuer = getIssuer(assertion);
         log.debug("Processing SAML response from {}", issuer);
 
-        OpenSaml4AuthenticationProvider.AssertionToken assertionToken = new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token);
+        OpenSaml5AuthenticationProvider.AssertionToken assertionToken = new OpenSaml5AuthenticationProvider.AssertionToken(assertion, token);
         Saml2ResponseValidatorResult result = this.assertionSignatureValidator.convert(assertionToken);
         if (assertion.isSigned()) {
-            this.assertionElementsDecrypter.accept(new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token));
+            this.assertionElementsDecrypter.accept(new OpenSaml5AuthenticationProvider.AssertionToken(assertion, token));
         } else if (hasEncryptedElements(assertion)) {
-            this.assertionElementsDecrypter.accept(new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token));
+            this.assertionElementsDecrypter.accept(new OpenSaml5AuthenticationProvider.AssertionToken(assertion, token));
         } else {
-            throw OpenSaml4AuthenticationProvider.createAuthenticationException(
+            throw OpenSaml5AuthenticationProvider.createAuthenticationException(
                     Saml2ErrorCodes.INVALID_SIGNATURE,
                     "Assertion is missing a signature.",
                     null
@@ -267,7 +267,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         }
         result = result.concat(this.assertionValidator.convert(assertionToken));
 
-        if (!OpenSaml4AuthenticationProvider.hasName(assertion)) {
+        if (!OpenSaml5AuthenticationProvider.hasName(assertion)) {
             Saml2Error error = new Saml2Error(Saml2ErrorCodes.SUBJECT_NOT_FOUND,
                     "Assertion [" + assertion.getID() + "] is missing a subject");
             result = result.concat(error);
@@ -281,7 +281,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
                 log.debug("Found {} validation errors in SAML assertion [{}}]", errors.size(), assertion.getID());
             }
             Saml2Error first = errors.iterator().next();
-            throw OpenSaml4AuthenticationProvider.createAuthenticationException(first.getErrorCode(), first.getDescription(), null);
+            throw OpenSaml5AuthenticationProvider.createAuthenticationException(first.getErrorCode(), first.getDescription(), null);
         } else {
             log.debug("Successfully processed SAML Assertion [{}]", assertion.getID());
         }

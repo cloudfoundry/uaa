@@ -16,7 +16,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import net.shibboleth.utilities.java.support.xml.SerializeSupport;
+import net.shibboleth.shared.xml.SerializeSupport;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;

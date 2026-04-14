@@ -16,7 +16,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
+import net.shibboleth.shared.resolver.CriteriaSet;
 import org.opensaml.core.criterion.EntityIdCriterion;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.criterion.ProtocolCriterion;
@@ -48,8 +48,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * This class was copied from Spring Security 5.6.0 to get the OpenSaml4AuthenticationProvider to work.
- * It should be removed once we are able to more to the spring-security version of OpenSaml4AuthenticationProvider.
+ * This class was copied from Spring Security 5.6.0 to get the OpenSaml5AuthenticationProvider to work.
+ * It should be removed once we are able to more to the spring-security version of OpenSaml5AuthenticationProvider.
  * <p/>
  * Utility methods for verifying SAML component signatures with OpenSAML
  * <p>

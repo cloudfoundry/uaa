@@ -18,7 +18,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import jakarta.annotation.Nonnull;
 import lombok.Getter;
-import net.shibboleth.utilities.java.support.xml.ParserPool;
+import net.shibboleth.shared.xml.ParserPool;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -34,6 +34,7 @@ import org.opensaml.core.xml.schema.XSDateTime;
 import org.opensaml.core.xml.schema.XSInteger;
 import org.opensaml.core.xml.schema.XSString;
 import org.opensaml.core.xml.schema.XSURI;
+import org.opensaml.saml.common.assertion.AssertionValidationException;
 import org.opensaml.saml.common.assertion.ValidationContext;
 import org.opensaml.saml.common.assertion.ValidationResult;
 import org.opensaml.saml.saml2.assertion.ConditionValidator;
@@ -103,13 +104,17 @@ import java.util.function.Consumer;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUrlForPortComparison;
 
 /**
- * This was copied from Spring Security, and modified to work with Open SAML 4.0.x
- * The original class only works with Open SAML 4.1.x+
+ * This was originally copied from Spring Security, and modified to work with Open SAML 4.0.x,
+ * then further updated for Open SAML 5.x compatibility.
  * <p/>
- * Once we can move to the spring-security version of OpenSaml4AuthenticationProvider,
- * this class should be removed, along with OpenSamlDecryptionUtils and OpenSamlVerificationUtils.
+ * Key changes from OpenSAML 4 to 5:
+ * - {@code net.shibboleth.utilities.java.support} packages moved to {@code net.shibboleth.shared}
+ * - {@code SAML20AssertionValidator} constructor gains a 4th {@code AssertionValidator} parameter
+ * - {@code ValidationContext.getValidationFailureMessage()} renamed to {@code getValidationFailureMessages()}
+ * - {@code ConditionValidator.validate()} now throws {@code AssertionValidationException}
+ * - {@code BearerSubjectConfirmationValidator.validateAddress()} removed (address validation dropped)
  */
-public final class OpenSaml4AuthenticationProvider implements AuthenticationProvider, ZoneAware {
+public final class OpenSaml5AuthenticationProvider implements AuthenticationProvider, ZoneAware {
 
     static {
         SamlConfiguration.setupOpenSaml();
@@ -144,9 +149,9 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     private Converter<ResponseToken, ? extends AbstractAuthenticationToken> responseAuthenticationConverter = createDefaultResponseAuthenticationConverter();
 
     /**
-     * Creates an {@link OpenSaml4AuthenticationProvider}
+     * Creates an {@link OpenSaml5AuthenticationProvider}
      */
-    public OpenSaml4AuthenticationProvider() {
+    public OpenSaml5AuthenticationProvider() {
         XMLObjectProviderRegistry registry = ConfigurationService.get(XMLObjectProviderRegistry.class);
         this.responseUnmarshaller = (ResponseUnmarshaller) registry.getUnmarshallerFactory()
                 .getUnmarshaller(Response.DEFAULT_ELEMENT_NAME);
@@ -160,7 +165,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
      * {@link #createDefaultResponseValidator()}, like so:
      *
      * <pre>
-     * OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
+     * OpenSaml5AuthenticationProvider provider = new OpenSaml5AuthenticationProvider();
      * provider.setResponseValidator(responseToken -&gt; {
      * 		Saml2ResponseValidatorResult result = createDefaultResponseValidator()
      * 			.convert(responseToken)
@@ -574,7 +579,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             }
             String message = "Invalid assertion [%s] for SAML response [%s]: %s".formatted(assertion.getID(),
                     assertion.getParent() != null ? ((Response) assertion.getParent()).getID() : assertion.getID(),
-                    context.getValidationFailureMessage());
+                    String.join("; ", context.getValidationFailureMessages()));
             return Saml2ResponseValidatorResult.failure(new Saml2Error(errorCode, message));
         };
     }
@@ -601,6 +606,8 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         params.put(SAML2AssertionValidationParameters.COND_VALID_AUDIENCES, Collections.singleton(audience));
         params.put(SAML2AssertionValidationParameters.SC_VALID_RECIPIENTS, Collections.singleton(recipient));
         params.put(SAML2AssertionValidationParameters.VALID_ISSUERS, Collections.singleton(assertingPartyEntityId));
+        // Disable address checking - we don't track valid client addresses
+        params.put(SAML2AssertionValidationParameters.SC_CHECK_ADDRESS, false);
         paramsConsumer.accept(params);
         return new ValidationContext(params);
     }
@@ -675,54 +682,53 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
 
                 @Nonnull
                 @Override
-                public ValidationResult validate(Condition condition, Assertion assertion, ValidationContext context) {
+                public ValidationResult validate(Condition condition, Assertion assertion, ValidationContext context)
+                        throws AssertionValidationException {
                     // applications should validate their own OneTimeUse conditions
                     return ValidationResult.VALID;
                 }
             });
             conditions.add(new ProxyRestrictionConditionValidator());
-            subjects.add(new BearerSubjectConfirmationValidator() {
-                @Override
-                protected ValidationResult validateAddress(SubjectConfirmation confirmation, Assertion assertion,
-                        ValidationContext context, boolean required) {
-                    // applications should validate their own addresses - gh-7514
-                    return ValidationResult.VALID;
-                }
-            });
+            subjects.add(new BearerSubjectConfirmationValidator());
         }
 
         private static final SAML20AssertionValidator attributeValidator = new SAML20AssertionValidator(conditions,
-                subjects, statements, null, null) {
+                subjects, statements, null, null, null) {
             @Nonnull
             @Override
-            protected ValidationResult validateSignature(Assertion token, ValidationContext context) {
+            protected ValidationResult validateSignature(Assertion token, ValidationContext context)
+                    throws AssertionValidationException {
                 return ValidationResult.VALID;
             }
         };
 
         static SAML20AssertionValidator createSignatureValidator(SignatureTrustEngine engine) {
-            return new SAML20AssertionValidator(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), engine,
+            return new SAML20AssertionValidator(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), null, engine,
                     validator) {
                 @Nonnull
                 @Override
-                protected ValidationResult validateConditions(Assertion assertion, ValidationContext context) {
+                protected ValidationResult validateConditions(Assertion assertion, ValidationContext context)
+                        throws AssertionValidationException {
                     return ValidationResult.VALID;
                 }
 
                 @Nonnull
                 @Override
-                protected ValidationResult validateSubjectConfirmation(Assertion assertion, ValidationContext context) {
+                protected ValidationResult validateSubjectConfirmation(Assertion assertion, ValidationContext context)
+                        throws AssertionValidationException {
                     return ValidationResult.VALID;
                 }
 
                 @Nonnull
                 @Override
-                protected ValidationResult validateStatements(Assertion assertion, ValidationContext context) {
+                protected ValidationResult validateStatements(Assertion assertion, ValidationContext context)
+                        throws AssertionValidationException {
                     return ValidationResult.VALID;
                 }
 
                 @Override
-                protected ValidationResult validateIssuer(Assertion assertion, ValidationContext context) {
+                protected ValidationResult validateIssuer(Assertion assertion, ValidationContext context)
+                        throws AssertionValidationException {
                     return ValidationResult.VALID;
                 }
             };

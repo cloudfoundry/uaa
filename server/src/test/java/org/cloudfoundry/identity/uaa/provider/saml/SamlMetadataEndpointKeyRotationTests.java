@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -18,7 +17,6 @@ import org.springframework.security.saml2.provider.service.web.RelyingPartyRegis
 import org.xmlunit.assertj.MultipleNodeAssert;
 import org.xmlunit.assertj.XmlAssert;
 
-import java.security.Security;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +49,7 @@ public class SamlMetadataEndpointKeyRotationTests {
 
     @BeforeAll
     static void beforeAll() {
-        Security.addProvider(new BouncyCastleFipsProvider());
+        SamlConfiguration.setupOpenSaml();
 
         SamlConfigProps samlConfigProps = new SamlConfigProps();
         samlConfigProps.setKeys(Map.of(legacyKeyName(), legacySamlKey()));

@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
+import net.shibboleth.shared.resolver.CriteriaSet;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.opensaml.core.xml.XMLObjectBuilder;

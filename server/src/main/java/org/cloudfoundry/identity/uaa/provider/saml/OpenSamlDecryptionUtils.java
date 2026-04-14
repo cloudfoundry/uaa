@@ -42,8 +42,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 /**
- * This class was copied from Spring Security 5.6.0 to get the OpenSaml4AuthenticationProvider to work.
- * It should be removed once we are able to more to the spring-security version of OpenSaml4AuthenticationProvider.
+ * This class was copied from Spring Security 5.6.0 to get the OpenSaml5AuthenticationProvider to work.
+ * It should be removed once we are able to more to the spring-security version of OpenSaml5AuthenticationProvider.
  * <p/>
  * Utility methods for decrypting SAML components with OpenSAML
  *
