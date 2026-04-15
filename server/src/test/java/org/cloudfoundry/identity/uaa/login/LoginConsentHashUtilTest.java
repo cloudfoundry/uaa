@@ -140,4 +140,19 @@ class LoginConsentHashUtilTest {
         assertThat(LoginConsentHashUtil.parseDurationToSeconds("1W")).isEqualTo(7 * 24 * 60 * 60);
         assertThat(LoginConsentHashUtil.parseDurationToSeconds("1Y")).isEqualTo(365 * 24 * 60 * 60);
     }
+
+    @Test
+    void testHashCollision() {
+        // Case 1: title contains pipe, short text
+        LoginConsent consent1 = new LoginConsent(true, "abc|def", "ghi", "Accept", "Decline", null, "12h");
+        
+        // Case 2: short title, text contains pipe  
+        LoginConsent consent2 = new LoginConsent(true, "abc", "def|ghi", "Accept", "Decline", null, "12h");
+        
+        String hash1 = LoginConsentHashUtil.calculateConsentHash(consent1);
+        String hash2 = LoginConsentHashUtil.calculateConsentHash(consent2);
+
+        assertThat(hash1).as("Different title/text combinations should produce different hashes")
+                          .isNotEqualTo(hash2);
+    }
 }

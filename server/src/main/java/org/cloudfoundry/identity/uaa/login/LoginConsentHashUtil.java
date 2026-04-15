@@ -37,7 +37,8 @@ public class LoginConsentHashUtil {
         String title = StringUtils.hasText(consent.getTitle()) ? consent.getTitle() : "";
         String text = StringUtils.hasText(consent.getText()) ? consent.getText() : "";
         
-        String content = title + "|" + text;
+        // Format: <title_length>:<title>|<text_length>:<text>
+        String content = title.length() + ":" + title + "|" + text.length() + ":" + text;
 
         return consentHashCache.computeIfAbsent(content, c -> {
             try {
