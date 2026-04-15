@@ -2,11 +2,14 @@
 
 The Login Consent feature displays a mandatory modal on the UAA login page. Users must accept the displayed terms/notice (or follow a decline link) before they can interact with the login form. This is **separate from** the OAuth approval/consent flow; it is a pre-login notice (e.g., terms of use or acceptable use policy) configured per identity zone.
 
+**Important**: This is a **UI-only verified consent** mechanism. The consent acceptance is tracked client-side via cookies and is not verified or enforced on the server side during authentication. It serves as a notice/acknowledgment interface rather than a security control.
+
 ## Overview
 
 - **Scope**: Configured per identity zone under `branding.loginConsent`.
 - **Behavior**: When enabled, the login page shows a modal with a configurable title, HTML body text, an “Accept” button, and an optional “Decline” link. Consent state is remembered in a cookie for a configurable duration; if the consent text changes or the duration expires, the modal is shown again.
 - **Implementation**: Server provides config and a content hash; the browser shows/hides the modal and sets a cookie (`UAA-Login-Consent`) with format `hash:timestamp` to avoid re-prompting until content or duration changes.
+- **Verification Level**: **Client-side only** - consent acceptance is tracked via browser cookies and is not validated during server-side authentication flows.
 
 ---
 
@@ -153,6 +156,7 @@ So the modal is blocking until the user either accepts (and optionally gets a co
 
 ## Security and UX Notes
 
+- **Client-side verification only**: This feature provides UI-level consent tracking but does not enforce consent at the server authentication level. Do not rely on this mechanism for security-critical consent verification.
 - Consent text is rendered as HTML (`th:utext`); only trusted, zone-controlled content should be used to avoid XSS.
 - The cookie is used only to avoid re-prompting; it does not by itself grant access. Authentication still requires successful login.
 - Decline link should point to a safe, zone-approved URL (e.g. exit or policy page).
