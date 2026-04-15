@@ -322,14 +322,14 @@ The tests that run this are located in [`uaa/tests`](file:./uaa/src/test/java) f
 
 The formatting of the output documentation is done by using Ruby and [Slate](https://github.com/slatedocs/slate).
 
-To be able to run the command `./gradlew generateDocs` having Ruby 3.3.5 and bundler installed is key.
+To be able to run the command `./gradlew generateDocs` having Ruby 3.3.8 (see `uaa/slate/.ruby-version`) and bundler installed is key.
 
 ### Installing Ruby using brew and rbenv
 
 ```shell
 brew install rbenv
-rbenv install 3.3.5
-rbenv global 3.3.5 # or use rbenv local 3.3.5
+rbenv install 3.3.8
+rbenv global 3.3.8 # or use rbenv local 3.3.8
 gem install bundler
 ./gradlew generateDocs
 ```

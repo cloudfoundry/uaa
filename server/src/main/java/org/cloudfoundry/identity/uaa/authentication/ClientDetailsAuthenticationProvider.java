@@ -38,6 +38,15 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AU
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_PRIVATE_KEY_JWT;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getSafeParameterValue;
 
+/**
+ * Authenticates OAuth clients for token and related endpoints. Spring Security populates
+ * {@link org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails#getRequestPath()} from the servlet;
+ * SAML2 bearer and similar flows may post to {@code /oauth/token/alias/...} rather than the literal path
+ * {@code /oauth/token}. Prior logic treated only the exact {@code /oauth/token} path as the token endpoint for
+ * {@link #isPublicTokenRequest}, which incorrectly skipped {@code private_key_jwt} validation and PKCE/refresh
+ * handling for those subpaths. Matching any path under {@code /oauth/token/} aligns client authentication with
+ * the actual request URI.
+ */
 public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvider {
 
     private final JwtClientAuthentication jwtClientAuthentication;
@@ -109,8 +118,17 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         return isPublicTokenRequest(authenticationDetails) && (isAuthorizationWithPkce(requestParameters) || isRefreshFlow(requestParameters));
     }
 
+    /**
+     * Token requests use {@code /oauth/token}; SAML2 bearer and other grants may post to subpaths such as
+     * {@code /oauth/token/alias/{registrationId}}. Treat those as the same endpoint for client authentication
+     * (e.g. private_key_jwt) and PKCE/refresh public-client handling.
+     */
     private static boolean isPublicTokenRequest(UaaAuthenticationDetails authenticationDetails) {
-        return !authenticationDetails.isAuthorizationSet() && "/oauth/token".equals(authenticationDetails.getRequestPath());
+        if (authenticationDetails.isAuthorizationSet()) {
+            return false;
+        }
+        String path = authenticationDetails.getRequestPath();
+        return "/oauth/token".equals(path) || (path != null && path.startsWith("/oauth/token/alias/"));
     }
 
     private static boolean isAuthorizationWithPkce(Map<String, String[]> requestParameters) {
