@@ -529,6 +529,7 @@ login:
 #             interception, and search, and may be disclosed or used for any purpose.</li>
 #        </ul>
 #      acceptButtonText: "I Accept"
+#      declineButtonText: "Decline"
 #      declineLink: http://example.com/
 #      consentValidDuration: "12h"
 #    companyName: My Company

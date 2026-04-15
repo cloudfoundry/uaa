@@ -16,17 +16,19 @@ public class LoginConsent {
     private String title = "Terms and Conditions";
     private String text;
     private String acceptButtonText = "I Agree";
+    private String declineButtonText = "Decline";
     private String declineLink;
     private String consentValidDuration = "1d";
 
     public LoginConsent() {
     }
 
-    public LoginConsent(boolean enabled, String title, String text, String acceptButtonText, String declineLink, String consentValidDuration) {
+    public LoginConsent(boolean enabled, String title, String text, String acceptButtonText, String declineButtonText, String declineLink, String consentValidDuration) {
         this.enabled = enabled;
         this.title = title;
         this.text = text;
         this.acceptButtonText = acceptButtonText;
+        this.declineButtonText = declineButtonText;
         this.declineLink = declineLink;
         this.consentValidDuration = consentValidDuration;
     }

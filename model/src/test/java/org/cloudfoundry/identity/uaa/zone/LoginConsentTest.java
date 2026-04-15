@@ -16,6 +16,7 @@ class LoginConsentTest {
         assertThat(consent.getTitle()).isNotNull();
         assertThat(consent.getText()).isNull();
         assertThat(consent.getAcceptButtonText()).isNotNull();
+        assertThat(consent.getDeclineButtonText()).isNotNull();
         assertThat(consent.getDeclineLink()).isNull();
         assertThat(consent.getConsentValidDuration()).isNotNull();
     }
@@ -27,6 +28,7 @@ class LoginConsentTest {
             "Test Title",
             "Test Text",
             "Accept",
+            "Decline",
             "https://example.com",
             "12h"
         );
@@ -35,6 +37,7 @@ class LoginConsentTest {
         assertThat(consent.getTitle()).isEqualTo("Test Title");
         assertThat(consent.getText()).isEqualTo("Test Text");
         assertThat(consent.getAcceptButtonText()).isEqualTo("Accept");
+        assertThat(consent.getDeclineButtonText()).isEqualTo("Decline");
         assertThat(consent.getDeclineLink()).isEqualTo("https://example.com");
         assertThat(consent.getConsentValidDuration()).isEqualTo("12h");
     }
@@ -47,6 +50,7 @@ class LoginConsentTest {
         consent.setTitle("Notice");
         consent.setText("You are accessing a system for authorized use only");
         consent.setAcceptButtonText("I Accept");
+        consent.setDeclineButtonText("No Thanks");
         consent.setDeclineLink("https://www.cloudfoundry.org");
         consent.setConsentValidDuration("24h");
 
@@ -54,6 +58,7 @@ class LoginConsentTest {
         assertThat(consent.getTitle()).isEqualTo("Notice");
         assertThat(consent.getText()).isEqualTo("You are accessing a system for authorized use only");
         assertThat(consent.getAcceptButtonText()).isEqualTo("I Accept");
+        assertThat(consent.getDeclineButtonText()).isEqualTo("No Thanks");
         assertThat(consent.getDeclineLink()).isEqualTo("https://www.cloudfoundry.org");
         assertThat(consent.getConsentValidDuration()).isEqualTo("24h");
     }
@@ -65,6 +70,7 @@ class LoginConsentTest {
                 "Test Title",
                 "Test Text",
                 "Accept",
+                "Decline",
                 "https://example.com",
                 "12h"
         );
@@ -84,6 +90,7 @@ class LoginConsentTest {
                 "title": "Test Title",
                 "text": "Test Text",
                 "acceptButtonText": "Accept",
+                "declineButtonText": "Decline",
                 "declineLink": "https://example.com",
                 "consentValidDuration": "12h"
             }
@@ -95,6 +102,7 @@ class LoginConsentTest {
         assertThat(consent.getTitle()).isEqualTo("Test Title");
         assertThat(consent.getText()).isEqualTo("Test Text");
         assertThat(consent.getAcceptButtonText()).isEqualTo("Accept");
+        assertThat(consent.getDeclineButtonText()).isEqualTo("Decline");
         assertThat(consent.getDeclineLink()).isEqualTo("https://example.com");
         assertThat(consent.getConsentValidDuration()).isEqualTo("12h");
     }
@@ -117,9 +125,9 @@ class LoginConsentTest {
 
     @Test
     void testEquals() {
-        LoginConsent consent1 = new LoginConsent(true, "Title", "Text", "Accept", "https://example.com", "12h");
-        LoginConsent consent2 = new LoginConsent(true, "Title", "Text", "Accept", "https://example.com", "12h");
-        LoginConsent consent3 = new LoginConsent(true, "Different", "Text", "Accept", "https://example.com", "12h");
+        LoginConsent consent1 = new LoginConsent(true, "Title", "Text", "Accept", "Decline", "https://example.com", "12h");
+        LoginConsent consent2 = new LoginConsent(true, "Title", "Text", "Accept", "Decline", "https://example.com", "12h");
+        LoginConsent consent3 = new LoginConsent(true, "Different", "Text", "Accept", "Decline", "https://example.com", "12h");
 
         assertThat(consent1).isNotNull()
                 .isEqualTo(consent2)
@@ -129,15 +137,15 @@ class LoginConsentTest {
 
     @Test
     void testHashCode() {
-        LoginConsent consent1 = new LoginConsent(true, "Title", "Text", "Accept", "https://example.com", "12h");
-        LoginConsent consent2 = new LoginConsent(true, "Title", "Text", "Accept", "https://example.com", "12h");
+        LoginConsent consent1 = new LoginConsent(true, "Title", "Text", "Accept", "Decline", "https://example.com", "12h");
+        LoginConsent consent2 = new LoginConsent(true, "Title", "Text", "Accept", "Decline", "https://example.com", "12h");
 
         assertThat(consent2).hasSameHashCodeAs(consent1);
     }
 
     @Test
     void testToString() {
-        LoginConsent consent = new LoginConsent(true, "Title", "Test Text", "Accept", "https://example.com", "12h");
+        LoginConsent consent = new LoginConsent(true, "Title", "Test Text", "Accept", "Decline", "https://example.com", "12h");
         String toString = consent.toString();
 
         assertThat(toString).isNotNull()

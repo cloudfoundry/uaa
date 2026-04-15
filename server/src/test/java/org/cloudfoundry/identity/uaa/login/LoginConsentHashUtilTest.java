@@ -9,7 +9,7 @@ class LoginConsentHashUtilTest {
 
     @Test
     void testCalculateConsentHash() {
-        LoginConsent consent = new LoginConsent(true, "Title", "Text", "Accept", null, "12h");
+        LoginConsent consent = new LoginConsent(true, "Title", "Text", "Accept", "Decline", null, "12h");
         String hash = LoginConsentHashUtil.calculateConsentHash(consent);
 
         assertThat(hash).hasSize(64); // SHA-256 produces 64 hex characters
@@ -17,8 +17,8 @@ class LoginConsentHashUtilTest {
 
     @Test
     void testCalculateConsentHashConsistency() {
-        LoginConsent consent1 = new LoginConsent(true, "Title", "Text", "Accept", null, "12h");
-        LoginConsent consent2 = new LoginConsent(true, "Title", "Text", "Accept", null, "24h");
+        LoginConsent consent1 = new LoginConsent(true, "Title", "Text", "Accept", "Decline", null, "12h");
+        LoginConsent consent2 = new LoginConsent(true, "Title", "Text", "Accept", "Decline", null, "24h");
         
         String hash1 = LoginConsentHashUtil.calculateConsentHash(consent1);
         String hash2 = LoginConsentHashUtil.calculateConsentHash(consent2);
@@ -29,8 +29,8 @@ class LoginConsentHashUtilTest {
 
     @Test
     void testCalculateConsentHashChangesWithTitle() {
-        LoginConsent consent1 = new LoginConsent(true, "Title1", "Text", "Accept", null, "12h");
-        LoginConsent consent2 = new LoginConsent(true, "Title2", "Text", "Accept", null, "12h");
+        LoginConsent consent1 = new LoginConsent(true, "Title1", "Text", "Accept", "Decline", null, "12h");
+        LoginConsent consent2 = new LoginConsent(true, "Title2", "Text", "Accept", "Decline", null, "12h");
         
         String hash1 = LoginConsentHashUtil.calculateConsentHash(consent1);
         String hash2 = LoginConsentHashUtil.calculateConsentHash(consent2);
@@ -41,8 +41,8 @@ class LoginConsentHashUtilTest {
 
     @Test
     void testCalculateConsentHashChangesWithText() {
-        LoginConsent consent1 = new LoginConsent(true, "Title", "Text1", "Accept", null, "12h");
-        LoginConsent consent2 = new LoginConsent(true, "Title", "Text2", "Accept", null, "12h");
+        LoginConsent consent1 = new LoginConsent(true, "Title", "Text1", "Accept", "Decline", null, "12h");
+        LoginConsent consent2 = new LoginConsent(true, "Title", "Text2", "Accept", "Decline", null, "12h");
         
         String hash1 = LoginConsentHashUtil.calculateConsentHash(consent1);
         String hash2 = LoginConsentHashUtil.calculateConsentHash(consent2);
@@ -59,14 +59,14 @@ class LoginConsentHashUtilTest {
 
     @Test
     void testCalculateConsentHashWithDisabledConsent() {
-        LoginConsent consent = new LoginConsent(false, "Title", "Text", "Accept", null, "12h");
+        LoginConsent consent = new LoginConsent(false, "Title", "Text", "Accept", "Decline", null, "12h");
         String hash = LoginConsentHashUtil.calculateConsentHash(consent);
         assertThat(hash).isNull();
     }
 
     @Test
     void testCalculateConsentHashWithEmptyFields() {
-        LoginConsent consent = new LoginConsent(true, "", "", "Accept", null, "12h");
+        LoginConsent consent = new LoginConsent(true, "", "", "Accept", "Decline", null, "12h");
         String hash = LoginConsentHashUtil.calculateConsentHash(consent);
 
         assertThat(hash)

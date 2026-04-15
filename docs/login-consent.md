@@ -27,6 +27,7 @@ branding:
         <li>All communications are subject to routine monitoring and may be disclosed.</li>
       </ul>
     acceptButtonText: "I Accept"
+    declineButtonText: "Decline"               # text for decline button when declineLink is provided
     declineLink: https://example.com/decline   # optional; if absent, a Cancel button is shown
     consentValidDuration: "15m"                # how long acceptance is remembered
 ```
@@ -36,9 +37,10 @@ branding:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `enabled` | boolean | `false` | When `true`, the login consent modal is active for the zone. |
-| `title` | string | `"Terms and Conditions"` | Modal heading. |
+| `title` | string | `"Terms and Conditions"` | Modal heading. Has default value but must not be empty if explicitly set. |
 | `text` | string | — | Body content; **HTML is allowed** (rendered with `th:utext`). Required when enabled. |
-| `acceptButtonText` | string | `"I Agree"` | Label for the accept button. Required when enabled. |
+| `acceptButtonText` | string | `"I Agree"` | Label for the accept button. Has default value but must not be empty if explicitly set. |
+| `declineButtonText` | string | `"Decline"` | Label for the decline button when `declineLink` is provided. Has default value but must not be empty if explicitly set. |
 | `declineLink` | string | — | Optional. If set, must be a valid `http` or `https` URL; shown as a “Decline” link. If unset, a “Cancel” button is shown (modal can be re-shown on next load). |
 | `consentValidDuration` | string | `"1d"` | How long acceptance is remembered. After this period, or if consent text changes, the modal is shown again. |
 
@@ -61,7 +63,8 @@ Invalid or missing duration falls back to 24 hours.
 
 - If `loginConsent` is `null` or `enabled` is `false`, no validation is applied.
 - When **enabled**:
-  - `title`, `text`, and `acceptButtonText` are **required**.
+  - `text` is **required** (no default value).
+  - `title`, `acceptButtonText`, and `declineButtonText` must not be empty if explicitly set (they have default values).
   - If present, `declineLink` must be a valid HTTP/HTTPS URL.
   - If present, `consentValidDuration` must be `0` or a positive number followed by `m`, `h`, `d`, or `w`.
 
@@ -108,7 +111,7 @@ These attributes are used by the login template and the client-side script.
 - A modal element `#loginConsentModal` is rendered with:
   - `data-consent-hash`: current consent hash
   - `data-consent-duration`: duration in seconds (for cookie `max-age`)
-  - Title from `loginConsent.title`, body from `loginConsent.text` (HTML), and buttons from `acceptButtonText` and either `declineLink` (Decline link) or a Cancel button.
+  - Title from `loginConsent.title`, body from `loginConsent.text` (HTML), and buttons from `acceptButtonText` and `declineButtonText` (when `declineLink` is provided) or a Cancel button.
 
 ### Cookie
 

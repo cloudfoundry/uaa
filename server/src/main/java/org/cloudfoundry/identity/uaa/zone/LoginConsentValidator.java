@@ -48,6 +48,10 @@ public class LoginConsentValidator {
             errors.add("loginConsent.acceptButtonText is required when loginConsent is enabled");
         }
 
+        if (!StringUtils.hasText(loginConsent.getDeclineButtonText())) {
+            errors.add("loginConsent.declineButtonText is required when loginConsent is enabled");
+        }
+
         // Validate declineLink if provided
         if (StringUtils.hasText(loginConsent.getDeclineLink())) {
             if (!isValidUrl(loginConsent.getDeclineLink())) {

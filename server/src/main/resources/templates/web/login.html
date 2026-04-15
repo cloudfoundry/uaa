@@ -98,7 +98,8 @@
                         th:text="${loginConsent.acceptButtonText}">I Accept</button>
                 <a th:if="${loginConsent.declineLink != null}" 
                    th:href="${loginConsent.declineLink}" 
-                   class="consent-button consent-button-decline">Decline</a>
+                   class="consent-button consent-button-decline" 
+                   th:text="${loginConsent.declineButtonText}">Decline</a>
                 <button th:if="${loginConsent.declineLink == null}"
                         type="button" 
                         id="consentCancelButton" 

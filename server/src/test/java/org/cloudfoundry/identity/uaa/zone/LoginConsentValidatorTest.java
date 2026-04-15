@@ -30,6 +30,7 @@ class LoginConsentValidatorTest {
             "Notice",
             "You are accessing a system that is provided for authorized use only.",
             "I Accept",
+            "Decline",
             "https://www.cloudfoundry.org",
             "12h"
         );
@@ -45,6 +46,7 @@ class LoginConsentValidatorTest {
             "Notice",
             "You are accessing a system that is provided for authorized use only.",
             "I Accept",
+            "Decline",
             null,
             "12h"
         );
@@ -60,6 +62,7 @@ class LoginConsentValidatorTest {
             null,
             "You are accessing a system that is provided for authorized use only.",
             "I Accept",
+            "Decline",
             "https://www.cloudfoundry.org",
             "12h"
         );
@@ -76,6 +79,7 @@ class LoginConsentValidatorTest {
             "   ",
             "You are accessing a system that is provided for authorized use only.",
             "I Accept",
+            "Decline",
             "https://www.cloudfoundry.org",
             "12h"
         );
@@ -92,6 +96,7 @@ class LoginConsentValidatorTest {
             "Notice",
             null,
             "I Accept",
+            "Decline",
             "https://www.cloudfoundry.org",
             "12h"
         );
@@ -108,6 +113,7 @@ class LoginConsentValidatorTest {
             "Notice",
             "You are accessing a system that is provided for authorized use only.",
             null,
+            "Decline",
             "https://www.cloudfoundry.org",
             "12h"
         );
@@ -118,9 +124,27 @@ class LoginConsentValidatorTest {
     }
 
     @Test
+    void testValidateEnabledMissingDeclineButtonText() {
+        LoginConsent consent = new LoginConsent(
+            true,
+            "Notice",
+            "You are accessing a system that is provided for authorized use only.",
+            "I Accept",
+            null,
+            "https://www.cloudfoundry.org",
+            "12h"
+        );
+        
+        List<String> errors = LoginConsentValidator.validate(consent);
+        assertThat(errors).hasSize(1);
+        assertThat(errors.getFirst()).contains("declineButtonText is required");
+    }
+
+    @Test
     void testValidateEnabledMultipleErrors() {
         LoginConsent consent = new LoginConsent(
             true,
+            null,
             null,
             null,
             null,
@@ -129,7 +153,7 @@ class LoginConsentValidatorTest {
         );
         
         List<String> errors = LoginConsentValidator.validate(consent);
-        assertThat(errors).hasSize(5);
+        assertThat(errors).hasSize(6);
     }
 
     @Test
@@ -139,6 +163,7 @@ class LoginConsentValidatorTest {
             "Notice",
             "You are accessing a system that is provided for authorized use only.",
             "I Accept",
+            "Decline",
             "not-a-url",
             "12h"
         );
@@ -155,6 +180,7 @@ class LoginConsentValidatorTest {
             "Notice",
             "Text",
             "Accept",
+            "Decline",
             "https://example.com/path",
             "12h"
         );
@@ -171,6 +197,7 @@ class LoginConsentValidatorTest {
             "Notice",
             "Text",
             "Accept",
+            "Decline",
             "http://example.com",
             "12h"
         );
@@ -186,6 +213,7 @@ class LoginConsentValidatorTest {
             "Notice",
             "Text",
             "Accept",
+            "Decline",
             "ftp://example.com",
             "12h"
         );
@@ -205,6 +233,7 @@ class LoginConsentValidatorTest {
                 "Title",
                 "Text",
                 "Accept",
+                "Decline",
                 null,
                 duration
             );
@@ -224,6 +253,7 @@ class LoginConsentValidatorTest {
                 "Title",
                 "Text",
                 "Accept",
+                "Decline",
                 null,
                 duration
             );
@@ -241,6 +271,7 @@ class LoginConsentValidatorTest {
             "Title",
             "Text",
             "Accept",
+            "Decline",
             null,
             null
         );
