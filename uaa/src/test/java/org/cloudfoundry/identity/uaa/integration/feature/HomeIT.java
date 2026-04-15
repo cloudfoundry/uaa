@@ -89,6 +89,8 @@ class HomeIT {
         } catch (TimeoutException e) {
             webDriver.get(baseUrl + "/profile");
         }
+        WebDriverWait wait = webDriver.createWebDriverWait();
+        wait.until(ExpectedConditions.textToBePresentInElementLocated(By.cssSelector("h1"), "Account Settings"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
     }
 
