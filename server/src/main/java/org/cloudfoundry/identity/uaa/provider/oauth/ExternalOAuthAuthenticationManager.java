@@ -22,7 +22,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.ObjectUtils;
@@ -240,7 +239,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     @Override
     protected AuthenticationData getExternalAuthenticationDetails(final Authentication authentication) {
         final ExternalOAuthCodeToken codeToken = (ExternalOAuthCodeToken) authentication;
-
 
         IdentityProvider provider = null;
         if (!hasLength(codeToken.getOrigin())) {
