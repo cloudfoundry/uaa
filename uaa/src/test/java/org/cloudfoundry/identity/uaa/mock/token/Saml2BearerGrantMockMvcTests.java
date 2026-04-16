@@ -10,7 +10,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.opensaml.saml.saml2.core.NameID;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -46,12 +47,14 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         IdentityZone.getUaa().getConfig().getSamlConfig().setCertificate(legacyCertificate());
     }
 
-    @Test
-    void getTokenUsingSaml2BearerGrant() throws Exception {
-        final String subdomain = "68uexx";
+    @ParameterizedTest
+    @ValueSource(booleans = { true, false } )
+    void getTokenUsingSaml2BearerGrant(boolean useStandardOAuthTokenEndpoiint) throws Exception {
+        final String subdomain = useStandardOAuthTokenEndpoiint ? "72uexx" : "68uexx";
         // all our SAML defaults use `:8080/uaa/` so we have to use that here too
         final String host = "%s.localhost".formatted(subdomain);
-        final String fullPath = "/uaa/oauth/token/alias/%s.integration-saml-entity-id".formatted(subdomain);
+        final String fullPath = useStandardOAuthTokenEndpoiint ? "/uaa/oauth/token"
+            : "/uaa/oauth/token/alias/%s.integration-saml-entity-id".formatted(subdomain);
         final String origin = "%s.integration-saml-entity-id".formatted(subdomain);
         final String entityId = "%s.cloudfoundry-saml-login".formatted(subdomain);
         MockMvcUtils.IdentityZoneCreationResult testZone =
@@ -60,7 +63,7 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                         IdentityZoneHolder.getCurrentZoneId());
 
         //create an IDP in the test zone
-        String idpMetadata = getIdpMetadata(host, origin);
+        String idpMetadata = getIdpMetadata(host, origin, subdomain);
         SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(
                 origin, testZone.getIdentityZone().getId(), idpMetadata);
         idpDef.setIdpEntityId(entityId);
@@ -75,7 +78,8 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         identityProviderProvisioning.create(provider, testZone.getIdentityZone().getId());
         IdentityZoneHolder.clear();
 
-        String spEndpoint = "http://%s:8080/uaa/oauth/token/alias/%s".formatted(host, origin);
+        String spEndpoint = useStandardOAuthTokenEndpoiint ? "http://%s:8080/uaa/oauth/token".formatted(host)
+            : "http://%s:8080/uaa/oauth/token/alias/%s".formatted(host, origin);
         String assertionStr = TestOpenSamlObjects.getEncodedAssertion(entityId, NameID.UNSPECIFIED,
                 "Saml2BearerIntegrationUser", spEndpoint, origin, true);
 
@@ -111,13 +115,13 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 .andExpect(jsonPath("$.scope").value("openid"));
     }
 
-    private String getIdpMetadata(String host, String origin) {
+    private String getIdpMetadata(String host, String origin, String subDomain) {
         // Mock an IDP metadata: %1$s is the host; %2$s is the origin
         // Maps to TestCredentialObjects.legacyCertificate
         return """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" ID="%2$s"
-                                     entityID="68uexx.cloudfoundry-saml-login">
+                                     entityID="%3$s.cloudfoundry-saml-login">
                     <md:IDPSSODescriptor WantAuthnRequestsSigned="false"
                                          protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
                         <md:KeyDescriptor use="signing">
@@ -172,6 +176,6 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                         <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
                                                 Location="http://%1$s:8080/uaa/saml/idp/SSO/alias/%2$s"/>
                     </md:IDPSSODescriptor>
-                </md:EntityDescriptor>""".formatted(host, origin);
+                </md:EntityDescriptor>""".formatted(host, origin, subDomain);
     }
 }

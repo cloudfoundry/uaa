@@ -98,6 +98,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUrlForPortComparison;
@@ -585,11 +586,13 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         Saml2AuthenticationToken token = assertionToken.token;
         RelyingPartyRegistration relyingPartyRegistration = token.getRelyingPartyRegistration();
         String audience = relyingPartyRegistration.getEntityId();
-        String recipient;
+        Set<String> recipientList;
         if (saml2Bearer) {
-            recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation().replace("/saml/SSO/alias/", "/oauth/token/alias/");
+            String recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation().replace("/saml/SSO/alias/", "/oauth/token/alias/");
+            String oauthTokenRecipient = recipient.replaceAll("/oauth/token/alias/(.*)", "/oauth/token");
+            recipientList = Set.of(recipient, oauthTokenRecipient);
         } else {
-            recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation();
+            recipientList = Set.of(relyingPartyRegistration.getAssertionConsumerServiceLocation());
         }
         String assertingPartyEntityId = relyingPartyRegistration.getAssertingPartyDetails().getEntityId();
         Map<String, Object> params = new HashMap<>();
@@ -599,7 +602,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             params.put(SAML2AssertionValidationParameters.SC_VALID_IN_RESPONSE_TO, requestId);
         }
         params.put(SAML2AssertionValidationParameters.COND_VALID_AUDIENCES, Collections.singleton(audience));
-        params.put(SAML2AssertionValidationParameters.SC_VALID_RECIPIENTS, Collections.singleton(recipient));
+        params.put(SAML2AssertionValidationParameters.SC_VALID_RECIPIENTS, recipientList);
         params.put(SAML2AssertionValidationParameters.VALID_ISSUERS, Collections.singleton(assertingPartyEntityId));
         paramsConsumer.accept(params);
         return new ValidationContext(params);
