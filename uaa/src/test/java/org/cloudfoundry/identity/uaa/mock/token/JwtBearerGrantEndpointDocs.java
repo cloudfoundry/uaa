@@ -26,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.restdocs.ManualRestDocumentation;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.web.FilterChainProxy;
@@ -190,6 +192,11 @@ class JwtBearerGrantEndpointDocs extends JwtBearerGrantMockMvcTests {
                 parameterWithName("token_format").type(STRING).optional(null).description("May be set to `opaque` to retrieve revocable and non identifiable access token")
         );
 
+        Snippet requestHeaders = requestHeaders(
+                headerWithName(HttpHeaders.ACCEPT).description("Set to " + MediaType.APPLICATION_JSON_VALUE),
+                headerWithName(HttpHeaders.CONTENT_TYPE).description("Set to " + MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        );
+
         IdentityZone defaultZone = IdentityZone.getUaa();
 
         createProvider(defaultZone, getTokenVerificationKey(originZone.getIdentityZone()));
@@ -201,6 +208,7 @@ class JwtBearerGrantEndpointDocs extends JwtBearerGrantMockMvcTests {
                         document(
                                 "{ClassName}/{methodName}",
                                 preprocessResponse(prettyPrint()),
+                                requestHeaders,
                                 formParameters,
                                 responseFields
                         )
