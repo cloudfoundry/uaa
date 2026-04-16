@@ -23,6 +23,8 @@ import org.springframework.ldap.core.support.AbstractTlsDirContextAuthentication
 import org.springframework.ldap.core.support.DirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
 
+import javax.net.ssl.HttpsURLConnection;
+
 import javax.net.ssl.SSLSocketFactory;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -107,7 +109,13 @@ public class ProcessLdapProperties {
             default:
                 throw new IllegalArgumentException(tlsConfig);
         }
-        tlsStrategy.setHostnameVerifier(new NoopHostnameVerifier());
+        // - When skipSslVerification=false (default): Uses JDK default hostname verification (secure)
+        // - When skipSslVerification=true: Disables hostname verification via NoopHostnameVerifier
+        if (isDisableSslVerification()) {
+            tlsStrategy.setHostnameVerifier(new NoopHostnameVerifier());
+        } else {
+            tlsStrategy.setHostnameVerifier(HttpsURLConnection.getDefaultHostnameVerifier());
+        }
         tlsStrategy.setSslSocketFactory(getSSLSocketFactory());
         return tlsStrategy;
     }
