@@ -78,7 +78,7 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         identityProviderProvisioning.create(provider, testZone.getIdentityZone().getId());
         IdentityZoneHolder.clear();
 
-        String spEndpoint = useStandardOAuthTokenEndpoiint ? "http://%s:8080/uaa/oauth/token".formatted(host)
+        String spEndpoint = useStandardOAuthTokenEndpoint ? "http://%s:8080/uaa/oauth/token".formatted(host)
             : "http://%s:8080/uaa/oauth/token/alias/%s".formatted(host, origin);
         String assertionStr = TestOpenSamlObjects.getEncodedAssertion(entityId, NameID.UNSPECIFIED,
                 "Saml2BearerIntegrationUser", spEndpoint, origin, true);
