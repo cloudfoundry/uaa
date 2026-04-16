@@ -263,6 +263,10 @@ oauth:
       signup_redirect_url: http://localhost:8080/app/
       change_email_redirect_url: http://localhost:8080/app/
       name: The Ultimate Oauth App - Special
+    client_with_spel_chars:
+      id: client_with_spel_chars
+      secret: "pass#{word"
+      authorized-grant-types: client_credentials
     login:
       id: login
       secret: loginsecret
