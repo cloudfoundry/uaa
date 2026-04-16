@@ -116,7 +116,7 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     private String getIdpMetadata(String host, String origin, String subDomain) {
-        // Mock an IDP metadata: %1$s is the host; %2$s is the origin
+        // Mock an IDP metadata: %1$s is the host; %2$s is the origin; %3$s is the subdomain
         // Maps to TestCredentialObjects.legacyCertificate
         return """
                 <?xml version="1.0" encoding="UTF-8"?>
