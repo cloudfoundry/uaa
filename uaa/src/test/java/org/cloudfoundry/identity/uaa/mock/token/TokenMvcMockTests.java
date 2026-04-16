@@ -3015,6 +3015,25 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    void clientCredentials_withSpelCharsInSecret_succeeds() throws Exception {
+        // Regression: a client secret containing "#{" must not be treated as a SpEL expression
+        String spelSecret = "pass#{word}";
+        String clientId = "testclient" + generator.generate();
+        UaaClientDetails client = new UaaClientDetails(clientId, "", "uaa.none", "client_credentials", "uaa.none");
+        client.setClientSecret(spelSecret);
+        clientDetailsService.addClientDetails(client);
+
+        mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param("grant_type", "client_credentials")
+                        .param("client_id", clientId)
+                        .param("client_secret", spelSecret))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").isNotEmpty());
+    }
+
+    @Test
     void validateOldTokenAfterAddClientSecret() throws Exception {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
