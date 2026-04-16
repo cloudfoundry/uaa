@@ -49,11 +49,11 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
     @ParameterizedTest
     @ValueSource(booleans = { true, false } )
-    void getTokenUsingSaml2BearerGrant(boolean useStandardOAuthTokenEndpoiint) throws Exception {
-        final String subdomain = useStandardOAuthTokenEndpoiint ? "72uexx" : "68uexx";
+    void getTokenUsingSaml2BearerGrant(boolean useStandardOAuthTokenEndpoint) throws Exception {
+        final String subdomain = useStandardOAuthTokenEndpoint ? "72uexx" : "68uexx";
         // all our SAML defaults use `:8080/uaa/` so we have to use that here too
         final String host = "%s.localhost".formatted(subdomain);
-        final String fullPath = useStandardOAuthTokenEndpoiint ? "/uaa/oauth/token"
+        final String fullPath = useStandardOAuthTokenEndpoint ? "/uaa/oauth/token"
             : "/uaa/oauth/token/alias/%s.integration-saml-entity-id".formatted(subdomain);
         final String origin = "%s.integration-saml-entity-id".formatted(subdomain);
         final String entityId = "%s.cloudfoundry-saml-login".formatted(subdomain);
