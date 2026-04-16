@@ -293,13 +293,17 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
 
 
     Map<String, Object> performJWTBearerGrantForJWT(IdentityZone theZone, ClientDetails client, String assertion) throws Exception {
+        return performJWTBearerGrantForJWT(theZone, client, assertion, TokenConstants.TokenFormat.JWT.getStringValue());
+    }
+
+    Map<String, Object> performJWTBearerGrantForJWT(IdentityZone theZone, ClientDetails client, String assertion, String tokenFormat) throws Exception {
         MockHttpServletRequestBuilder jwtBearerGrant = post("/oauth/token")
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param("client_id", client.getClientId())
                 .param("client_secret", client.getClientSecret())
                 .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
-                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.JWT.getStringValue())
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, tokenFormat)
                 .param("response_type", "id_token token")
                 .param("scope", "openid")
                 .param("assertion", assertion);
@@ -326,6 +330,21 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
             ClientAuthType clientAuthType,
             String responseTypes
     ) throws Exception {
+        return performTokenExchangeGrant(theZone, subjectToken, subjectTokenType, requestTokenType, audience, scope, client, clientAuthType, responseTypes, TokenConstants.TokenFormat.JWT.getStringValue());
+    }
+
+    ResultActions performTokenExchangeGrant(
+            IdentityZone theZone,
+            String subjectToken,
+            String subjectTokenType,
+            String requestTokenType,
+            String audience,
+            String scope,
+            ClientDetails client,
+            ClientAuthType clientAuthType,
+            String responseTypes,
+            String tokenFormat
+    ) throws Exception {
 
         MockHttpServletRequestBuilder tokenExchange = post("/oauth/token")
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
@@ -337,7 +356,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
                 .param("requested_token_type", requestTokenType)
                 .param("audience", audience)
                 .param("scope", scope)
-                .param("token_format", "jwt")
+                .param("token_format", tokenFormat)
                 ;
         switch (clientAuthType) {
             case BASIC -> {

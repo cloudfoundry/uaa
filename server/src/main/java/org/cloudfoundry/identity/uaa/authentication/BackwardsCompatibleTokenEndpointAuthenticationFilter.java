@@ -31,6 +31,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
@@ -40,6 +42,9 @@ import org.cloudfoundry.identity.uaa.provider.saml.Saml2BearerGrantAuthenticatio
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -102,9 +107,11 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private final AntPathRequestMatcher requestMatcher;
 
+    private final RevocableTokenProvisioning revocableTokenProvisioning;
+
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
             OAuth2RequestFactory oAuth2RequestFactory) {
-        this(DEFAULT_FILTER_PROCESSES_URI, authenticationManager, oAuth2RequestFactory, null, null, null);
+        this(DEFAULT_FILTER_PROCESSES_URI, authenticationManager, oAuth2RequestFactory, null, null, null, null);
     }
 
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(
@@ -119,7 +126,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 oAuth2RequestFactory,
                 saml2BearerGrantAuthenticationConverter,
                 externalOAuthAuthenticationManager,
-                tokenExchangeAuthenticationManager
+                tokenExchangeAuthenticationManager,
+                null
         );
     }
 
@@ -129,7 +137,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             OAuth2RequestFactory oAuth2RequestFactory,
             Saml2BearerGrantAuthenticationConverter saml2BearerGrantAuthenticationConverter,
             ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager,
-            AuthenticationManager tokenExchangeAuthenticationManager) {
+            AuthenticationManager tokenExchangeAuthenticationManager,
+            RevocableTokenProvisioning revocableTokenProvisioning) {
         super();
         Assert.isTrue(requestMatcherUrl.contains("{registrationId}"),
                 "filterProcessesUrl must contain a {registrationId} match variable");
@@ -140,6 +149,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         this.saml2BearerGrantAuthenticationConverter = saml2BearerGrantAuthenticationConverter;
         this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
         this.tokenExchangeAuthenticationManager = tokenExchangeAuthenticationManager;
+        this.revocableTokenProvisioning = revocableTokenProvisioning;
     }
 
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
@@ -318,6 +328,19 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         String idToken = null;
         String accessToken = null;
         if (TOKEN_TYPE_ACCESS.equals(subjectTokenType)) {
+            // If the access token is opaque (not a JWT), resolve it to the backing JWT from the
+            // UAA revocable token store before passing it downstream. If not found in the store,
+            // leave it unchanged - downstream will handle or reject it.
+            if (!UaaTokenUtils.isJwtToken(subjectToken)
+                    && revocableTokenProvisioning != null) {
+                try {
+                    RevocableToken revocableToken = revocableTokenProvisioning.retrieve(
+                            subjectToken, IdentityZoneHolder.get().getId());
+                    subjectToken = revocableToken.getValue();
+                } catch (EmptyResultDataAccessException e) {
+                    log.debug("Opaque subject_token not found in revocable token store, passing through unchanged");
+                }
+            }
             accessToken = subjectToken;
         } else if (TOKEN_TYPE_ID.equals(subjectTokenType)) {
             idToken = subjectToken;
