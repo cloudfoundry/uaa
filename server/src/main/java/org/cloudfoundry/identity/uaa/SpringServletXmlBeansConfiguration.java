@@ -91,7 +91,7 @@ public class SpringServletXmlBeansConfiguration {
     UaaProperties.Logout logoutProps;
 
     @Bean
-    YamlConfigurationValidator uaaConfigValidation(@Value("${environmentYamlKey}") String environmentYamlKey) {
+    YamlConfigurationValidator uaaConfigValidation(@Value("#{environment['environmentYamlKey']}") String environmentYamlKey) {
         YamlConfigurationValidator bean = new YamlConfigurationValidator(new UaaConfiguration.UaaConfigConstructor());
         bean.setYaml(environmentYamlKey);
         return bean;
