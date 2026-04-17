@@ -594,9 +594,16 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                                          IdentityZone clientZone, UaaClientDetails oauthClient) {
     }
 
-    private Saml2BearerDocContext prepareSaml2BearerDocumentationContext(String subdomain) throws Exception {
+    /**
+     * @param useDefaultOAuthTokenPath when {@code true}, the documented HTTP request POSTs to {@code /uaa/oauth/token};
+     *                                 the SAML assertion {@code Recipient} must still be the IdP ACS-derived
+     *                                 {@code .../oauth/token/alias/&lt;registrationId&gt;} URI (same as the alias-path flow).
+     */
+    private Saml2BearerDocContext prepareSaml2BearerDocumentationContext(String subdomain, boolean useDefaultOAuthTokenPath) throws Exception {
         final String host = "%s.localhost".formatted(subdomain);
-        final String fullPath = "/uaa/oauth/token/alias/%s.integration-saml-entity-id".formatted(subdomain);
+        final String fullPath = useDefaultOAuthTokenPath
+                ? "/uaa/oauth/token"
+                : "/uaa/oauth/token/alias/%s.integration-saml-entity-id".formatted(subdomain);
         final String origin = "%s.integration-saml-entity-id".formatted(subdomain);
         MockMvcUtils.IdentityZoneCreationResult testZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                 subdomain, mockMvc, this.webApplicationContext, null,
@@ -636,8 +643,150 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    void getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath() throws Exception {
+        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues4", true);
+
+        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(ctx.fullPath())
+                .with(request -> {
+                    request.setServerPort(8080);
+                    request.setRequestURI(ctx.fullPath());
+                    request.setServerName(ctx.host());
+                    return request;
+                })
+                .contextPath("/uaa")
+                .accept(APPLICATION_JSON)
+                .header(HOST, ctx.host())
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("grant_type", TokenConstants.GRANT_TYPE_SAML2_BEARER)
+                .param("client_id", ctx.clientId())
+                .param("client_secret", "secret")
+                .param("assertion", ctx.encodedSamlAssertion())
+                .param("scope", "openid");
+
+        final ParameterDescriptor assertionFormatParameter = parameterWithName("assertion").required().type(STRING).description("An XML based SAML 2.0 bearer assertion, which is Base64URl encoded.");
+        Snippet formParameters = formParameters(
+                clientIdParameter.description("The client ID of the receiving client, this client must have `urn:ietf:params:oauth:grant-type:saml2-bearer` grant type"),
+                clientSecretParameter,
+                grantTypeParameter.description("The type of token grant requested, in this case `" + GRANT_TYPE_SAML2_BEARER + "`"),
+                assertionFormatParameter,
+                scopeParameter
+        );
+
+        Snippet responseFields = responseFields(
+                accessTokenFieldDescriptor,
+                fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
+                fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
+                scopeFieldDescriptorWhenUserToken,
+                refreshTokenFieldDescriptor,
+                jtiFieldDescriptor
+        );
+
+        mockMvc.perform(post)
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), formParameters, responseFields))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").exists())
+                .andExpect(jsonPath("$.scope").value("openid"));
+    }
+
+    @Test
+    void getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath() throws Exception {
+        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues5", true);
+
+        String clientAuthorization = new String(ENCODER.encode((ctx.clientId() + ":secret").getBytes()));
+
+        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(ctx.fullPath())
+                .with(request -> {
+                    request.setServerPort(8080);
+                    request.setRequestURI(ctx.fullPath());
+                    request.setServerName(ctx.host());
+                    return request;
+                })
+                .contextPath("/uaa")
+                .accept(APPLICATION_JSON)
+                .header(HOST, ctx.host())
+                .header(AUTHORIZATION, "Basic " + clientAuthorization)
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("grant_type", TokenConstants.GRANT_TYPE_SAML2_BEARER)
+                .param("client_id", ctx.clientId())
+                .param("assertion", ctx.encodedSamlAssertion())
+                .param("scope", "openid");
+
+        final ParameterDescriptor assertionFormatParameter = parameterWithName("assertion").required().type(STRING).description("An XML based SAML 2.0 bearer assertion, which is Base64URl encoded.");
+        Snippet requestHeaders = requestHeaders(CLIENT_BASIC_AUTH_HEADER);
+        Snippet formParameters = formParameters(
+                clientIdParameter.description("The client ID of the receiving client, this client must have `urn:ietf:params:oauth:grant-type:saml2-bearer` grant type"),
+                grantTypeParameter.description("The type of token grant requested, in this case `" + GRANT_TYPE_SAML2_BEARER + "`"),
+                assertionFormatParameter,
+                scopeParameter
+        );
+
+        Snippet responseFields = responseFields(
+                accessTokenFieldDescriptor,
+                fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
+                fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
+                scopeFieldDescriptorWhenUserToken,
+                refreshTokenFieldDescriptor,
+                jtiFieldDescriptor
+        );
+
+        mockMvc.perform(post)
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, formParameters, responseFields))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").exists())
+                .andExpect(jsonPath("$.scope").value("openid"));
+    }
+
+    @Test
+    void getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath() throws Exception {
+        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues6", true);
+
+        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(ctx.fullPath())
+                .with(request -> {
+                    request.setServerPort(8080);
+                    request.setRequestURI(ctx.fullPath());
+                    request.setServerName(ctx.host());
+                    return request;
+                })
+                .contextPath("/uaa")
+                .accept(APPLICATION_JSON)
+                .header(HOST, ctx.host())
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("grant_type", TokenConstants.GRANT_TYPE_SAML2_BEARER)
+                .param("client_id", ctx.clientId())
+                .param("client_assertion", getClientAssertionJwt(ctx.clientZone(), ctx.oauthClient()))
+                .param("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+                .param("assertion", ctx.encodedSamlAssertion())
+                .param("scope", "openid");
+
+        final ParameterDescriptor assertionFormatParameter = parameterWithName("assertion").required().type(STRING).description("An XML based SAML 2.0 bearer assertion, which is Base64URl encoded.");
+        Snippet formParameters = formParameters(
+                clientIdParameter.description("The client ID of the receiving client, this client must have `urn:ietf:params:oauth:grant-type:saml2-bearer` grant type"),
+                clientAssertion,
+                clientAssertionType,
+                grantTypeParameter.description("The type of token grant requested, in this case `" + GRANT_TYPE_SAML2_BEARER + "`"),
+                assertionFormatParameter,
+                scopeParameter
+        );
+
+        Snippet responseFields = responseFields(
+                accessTokenFieldDescriptor,
+                fieldWithPath("token_type").description("The type of the access token issued, always `bearer`"),
+                fieldWithPath("expires_in").description("Number of seconds of lifetime for an access_token, when retrieved"),
+                scopeFieldDescriptorWhenUserToken,
+                refreshTokenFieldDescriptor,
+                jtiFieldDescriptor
+        );
+
+        mockMvc.perform(post)
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), formParameters, responseFields))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").exists())
+                .andExpect(jsonPath("$.scope").value("openid"));
+    }
+
+    @Test
     void getTokenUsingSaml2BearerGrantWithClientSecret() throws Exception {
-        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues1");
+        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues1", false);
 
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(ctx.fullPath())
                 .with(request -> {
@@ -683,7 +832,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     void getTokenUsingSaml2BearerGrantWithAuthorizationHeader() throws Exception {
-        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues3");
+        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues3", false);
 
         String clientAuthorization = new String(ENCODER.encode((ctx.clientId() + ":secret").getBytes()));
 
@@ -731,7 +880,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     void getTokenUsingSaml2BearerGrantWithClientAssertion() throws Exception {
-        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues2");
+        Saml2BearerDocContext ctx = prepareSaml2BearerDocumentationContext("68ues2", false);
 
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(ctx.fullPath())
                 .with(request -> {
