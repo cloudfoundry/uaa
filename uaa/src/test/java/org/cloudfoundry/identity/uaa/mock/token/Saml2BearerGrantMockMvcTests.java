@@ -63,7 +63,7 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                         IdentityZoneHolder.getCurrentZoneId());
 
         //create an IDP in the test zone
-        String idpMetadata = getIdpMetadata(host, origin, subdomain);
+        String idpMetadata = getIdpMetadata(host, origin, entityId);
         SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(
                 origin, testZone.getIdentityZone().getId(), idpMetadata);
         idpDef.setIdpEntityId(entityId);
