@@ -6,7 +6,7 @@ ext {
 // Versions shared between multiple dependencies
 versions.apacheDsVersion = "2.0.0.AM27"
 versions.bouncyCastleFipsVersion = "2.1.2"
-versions.bouncyCastlePkixFipsVersion = "2.1.10"
+versions.bouncyCastlePkixFipsVersion = "2.1.11"
 versions.bouncyCastleTlsFipsVersion = "2.1.22"
 versions.springBootVersion = "3.5.13"
 versions.guavaVersion = "33.6.0-jre"

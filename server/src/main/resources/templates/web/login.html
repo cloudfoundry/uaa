@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/main}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/main}" lang="en">
 <head>
     <meta http-equiv="refresh" th:content="${@cookieBasedCsrfTokenRepository.getCookieMaxAge()}" />
+    <link th:if="${loginConsent != null}" href="/resources/oss/stylesheets/login-consent.css" th:href="@{${assetBaseUrl}+'/stylesheets/login-consent.css'}" rel="stylesheet"/>
+    <script th:if="${loginConsent != null}" type="text/javascript" src="/resources/javascripts/login_consent/consent.js" th:src="@{'/resources/javascripts/login_consent/consent.js'}"></script>
 </head>
 <div class="island" layout:fragment="page-content">
     <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}">Welcome!</h1>
@@ -70,6 +72,40 @@
             <a href="/forgot_password" th:href="@{${links['forgotPasswordLink']}}" class="link-lowlight">Reset password</a>
         </span>
         </th:block>
+    </div>
+
+    <!-- Optional: Login Consent Modal -->
+    <div th:if="${loginConsent != null}" 
+         id="loginConsentModal" 
+         class="consent-modal-overlay" 
+         role="dialog"
+         aria-labelledby="consentModalTitle"
+         aria-modal="true"
+         th:attr="data-consent-hash=${loginConsentHash},data-consent-duration=${loginConsentDurationSeconds}">
+        <div class="consent-modal">
+            <div class="consent-modal-header">
+                <h2 id="consentModalTitle" th:text="${loginConsent.title}">Notice and Consent</h2>
+            </div>
+            <div class="consent-modal-body">
+                <div class="consent-modal-content" th:utext="${loginConsent.text}">
+                    <!-- Consent text will be inserted here -->
+                </div>
+            </div>
+            <div class="consent-modal-footer">
+                <button type="button" 
+                        id="consentAcceptButton" 
+                        class="consent-button consent-button-accept"
+                        th:text="${loginConsent.acceptButtonText}">I Accept</button>
+                <a th:if="${loginConsent.declineLink != null}" 
+                   th:href="${loginConsent.declineLink}" 
+                   class="consent-button consent-button-decline" 
+                   th:text="${loginConsent.declineButtonText}">Decline</a>
+                <button th:if="${loginConsent.declineLink == null}"
+                        type="button" 
+                        id="consentCancelButton" 
+                        class="consent-button consent-button-cancel">Cancel</button>
+            </div>
+        </div>
     </div>
 </div>
 </html>

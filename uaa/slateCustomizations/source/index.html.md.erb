@@ -165,45 +165,75 @@ client_secret_post and private_key_jwt.
 
 ## Authorization Code Grant
 
-<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/curl-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-response.md') %>
+### Form Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientSecret/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientSecret/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientSecret/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientSecret/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientSecret/response-fields.md') %>
+
+### Basic Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithAuthorizationHeader/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithAuthorizationHeader/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithAuthorizationHeader/http-response.md') %>
 
 _Request Headers_
 
-<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-headers.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithAuthorizationHeader/request-headers.md') %>
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/form-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithAuthorizationHeader/form-parameters.md') %>
 
 _Response Fields_
 
-<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/response-fields.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithAuthorizationHeader/response-fields.md') %>
+
+### Client Assertion
+
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientAssertion/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientAssertion/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientAssertion/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientAssertion/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrantWithClientAssertion/response-fields.md') %>
 
 ## Client Credentials Grant
 
-### Without Authorization
+### Form Authentication
 
-<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-response.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientSecret/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientSecret/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientSecret/http-response.md') %>
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/form-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientSecret/form-parameters.md') %>
 
 _Response Fields_
 
-<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/response-fields.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientSecret/response-fields.md') %>
 
-### With Authorization
+### Basic Authentication
 
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/curl-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-response.md') %>
 
-_Request Header_
+_Request Headers_
 
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-headers.md') %>
 
@@ -215,20 +245,67 @@ _Response Fields_
 
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/response-fields.md') %>
 
+### Client Assertion
 
-## Password Grant
-
-<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/curl-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/http-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/http-response.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientAssertion/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientAssertion/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientAssertion/http-response.md') %>
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/form-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientAssertion/form-parameters.md') %>
 
 _Response Fields_
 
-<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientAssertion/response-fields.md') %>
+
+## Password Grant
+
+### Form Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientSecret/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientSecret/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientSecret/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientSecret/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientSecret/response-fields.md') %>
+
+### Basic Authentication
+
+<%= render('TokenEndpointDocs/getTokenWithClientAuthInHeader/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenWithClientAuthInHeader/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenWithClientAuthInHeader/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenEndpointDocs/getTokenWithClientAuthInHeader/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenWithClientAuthInHeader/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenWithClientAuthInHeader/response-fields.md') %>
+
+### Client Assertion
+
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientAssertion/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientAssertion/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientAssertion/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientAssertion/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrantWithClientAssertion/response-fields.md') %>
 
 
 ### One-time Passcode
@@ -237,7 +314,7 @@ _Response Fields_
 <%= render('TokenEndpointDocs/getTokenUsingPasscode/http-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingPasscode/http-response.md') %>
 
-_Request Header_
+_Request Headers_
 
 <%= render('TokenEndpointDocs/getTokenUsingPasscode/request-headers.md') %>
 
@@ -268,9 +345,17 @@ the approval process when the client needs the access token.
 
 The `refresh_token` that results from this grant, is opaque, and can only be exchanged by the client it was intended for.
 
+This grant is documented with **`Authorization: Bearer`** and a **user** access token (`uaa.user`). The requesting client is the one that issued that token; other token-endpoint client authentication styles (`client_secret_post`, `client_secret_basic`, `private_key_jwt`) are not shown here because they interact awkwardly with the required user bearer (for example, UAA does not apply form-based client authentication when any `Authorization` header is present).
+
+### Bearer user token
+
 <%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/curl-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/http-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/request-headers.md') %>
 
 _Request Parameters_
 
@@ -282,8 +367,6 @@ _Response Fields_
 
 <aside class="notice">
   This grant type is custom to the Cloud Foundry UAA.
-</aside>
-
 </aside>
 
 ## SAML2 Bearer Grant
@@ -298,20 +381,109 @@ In addition, the requesting client must either allow the IDP in `allowedprovider
 The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
 
 This grant enables an App2App mechanism with SSO. Typical scenarios are applications outside of CF, which consume a service within the CF world.
-The endpoint of the bearer assertion is `/oauth/token/alias/<endityid>` so the Recipient attribute in
-the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login.
+The SAML assertion’s `Recipient` (and related audience conditions) must match the URI derived from the IdP registration—the same URI shown on the SAML SP as
+`/oauth/token/alias/<registrationId>` (for example `http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login`), regardless of which HTTP URL you POST to below.
+Zone resolution uses the `Host` header (for example `mysubdomain.localhost`).
 
-<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/curl-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-response.md') %>
+### SAML Bearer Grant (preferred)
+
+POST to **`/oauth/token`**. Use this path for new integrations.
+
+#### Form Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/http-response.md') %>
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/form-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/form-parameters.md') %>
 
 _Response Fields_
 
-<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/response-fields.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/response-fields.md') %>
+
+#### Basic Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/response-fields.md') %>
+
+#### Client Assertion
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/response-fields.md') %>
+
+### SAML Bearer Grant (legacy)
+
+POST to **`/oauth/token/alias/<registrationId>`** (the same path as the SAML assertion `Recipient`). Retained for older clients that already target this URL.
+
+#### Form Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecret/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecret/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecret/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecret/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecret/response-fields.md') %>
+
+#### Basic Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/response-fields.md') %>
+
+#### Client Assertion
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertion/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertion/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertion/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertion/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertion/response-fields.md') %>
 
 ## JWT Bearer Token Grant
 
@@ -326,21 +498,55 @@ In addition, the requesting client must either allow the IDP in `allowedprovider
 The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the
 UAA database. If multiple providers exists that have the same issuer, the grant will fail.
 
-<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/curl-request.md') %>
-<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/http-request.md') %>
-<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/http-response.md') %>
+### Form Authentication
 
-_Request Headers_
-
-<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/request-headers.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_secret/curl-request.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_secret/http-request.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_secret/http-response.md') %>
 
 _Request Parameters_
 
-<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/form-parameters.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_secret/form-parameters.md') %>
 
 _Response Fields_
 
-<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/response-fields.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_secret/response-fields.md') %>
+
+### Basic Authentication
+
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_basic_authentication/curl-request.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_basic_authentication/http-request.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_basic_authentication/http-response.md') %>
+
+_Request Headers_
+
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_basic_authentication/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_basic_authentication/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_basic_authentication/response-fields.md') %>
+
+### Client Assertion
+
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_assertion/curl-request.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_assertion/http-request.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_assertion/http-response.md') %>
+
+_Request Headers_
+
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_assertion/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_assertion/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant_with_client_assertion/response-fields.md') %>
 
 ## Token Exchange Grant
 
@@ -416,33 +622,101 @@ _Response Fields_
 
 ## Refresh Token
 
-<%= render('TokenEndpointDocs/refreshToken/curl-request.md') %>
-<%= render('TokenEndpointDocs/refreshToken/http-request.md') %>
-<%= render('TokenEndpointDocs/refreshToken/http-response.md') %>
+### Form Authentication
+
+<%= render('TokenEndpointDocs/refreshTokenWithClientSecret/curl-request.md') %>
+<%= render('TokenEndpointDocs/refreshTokenWithClientSecret/http-request.md') %>
+<%= render('TokenEndpointDocs/refreshTokenWithClientSecret/http-response.md') %>
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/refreshToken/form-parameters.md') %>
+<%= render('TokenEndpointDocs/refreshTokenWithClientSecret/form-parameters.md') %>
 
 _Response Fields_
 
-<%= render('TokenEndpointDocs/refreshToken/response-fields.md') %>
+<%= render('TokenEndpointDocs/refreshTokenWithClientSecret/response-fields.md') %>
+
+### Basic Authentication
+
+<%= render('TokenEndpointDocs/refreshTokenWithAuthorizationHeader/curl-request.md') %>
+<%= render('TokenEndpointDocs/refreshTokenWithAuthorizationHeader/http-request.md') %>
+<%= render('TokenEndpointDocs/refreshTokenWithAuthorizationHeader/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenEndpointDocs/refreshTokenWithAuthorizationHeader/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/refreshTokenWithAuthorizationHeader/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/refreshTokenWithAuthorizationHeader/response-fields.md') %>
+
+### Client Assertion
+
+<%= render('TokenEndpointDocs/refreshTokenWithClientAssertion/curl-request.md') %>
+<%= render('TokenEndpointDocs/refreshTokenWithClientAssertion/http-request.md') %>
+<%= render('TokenEndpointDocs/refreshTokenWithClientAssertion/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/refreshTokenWithClientAssertion/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/refreshTokenWithClientAssertion/response-fields.md') %>
 
 ## OpenID Connect
 
 The token endpoint can provide an ID token as defined by OpenID Connect.
 
-<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/curl-request.md') %>
-<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/http-request.md') %>
-<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/http-response.md') %>
+### Form Authentication
+
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientSecret/curl-request.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientSecret/http-request.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientSecret/http-response.md') %>
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/form-parameters.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientSecret/form-parameters.md') %>
 
 _Response Fields_
 
-<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/response-fields.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientSecret/response-fields.md') %>
+
+### Basic Authentication
+
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithAuthorizationHeader/curl-request.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithAuthorizationHeader/http-request.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithAuthorizationHeader/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithAuthorizationHeader/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithAuthorizationHeader/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithAuthorizationHeader/response-fields.md') %>
+
+### Client Assertion
+
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientAssertion/curl-request.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientAssertion/http-request.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientAssertion/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientAssertion/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrantWithClientAssertion/response-fields.md') %>
 
 ## Revoke tokens
 

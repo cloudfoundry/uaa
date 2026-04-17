@@ -25,7 +25,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             String currentKeyId = null;
             try {
                 SamlConfig samlConfig;
-                if ((samlConfig = config.getSamlConfig()) != null && samlConfig.getKeys().size() > 0) {
+                if ((samlConfig = config.getSamlConfig()) != null && !samlConfig.getKeys().isEmpty()) {
                     String activeKeyId = samlConfig.getActiveKeyId();
                     if (activeKeyId == null || samlConfig.getKeys().get(activeKeyId) == null) {
 
@@ -80,6 +80,13 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
 
         if (config.getBranding() != null && config.getBranding().getBanner() != null) {
             BannerValidator.validate(config.getBranding().getBanner());
+        }
+
+        if (config.getBranding() != null && config.getBranding().getLoginConsent() != null) {
+            List<String> errors = LoginConsentValidator.validate(config.getBranding().getLoginConsent());
+            if (!errors.isEmpty()) {
+                throw new InvalidIdentityZoneConfigurationException("Invalid login consent configuration: " + String.join(", ", errors), null);
+            }
         }
 
         return config;

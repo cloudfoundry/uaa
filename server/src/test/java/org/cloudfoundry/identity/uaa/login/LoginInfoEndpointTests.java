@@ -20,11 +20,13 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.LoginConsent;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -1787,7 +1789,7 @@ class LoginInfoEndpointTests {
                 .doesNotContainKey("passcode");
         assertThat(returnedPrompts.get("username")[1]).isEqualTo("Email");
         assertThat(returnedPrompts.get("password")[1]).isEqualTo("Password");
-        assertThat(returnedPrompts.get("passcode")).isNull();
+        assertThat(returnedPrompts).doesNotContainKey("passcode");
     }
 
     private IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> mockOauthProvider(
@@ -1806,5 +1808,81 @@ class LoginInfoEndpointTests {
                     .thenReturn(singletonList(identityProvider));
         }
         return identityProvider;
+    }
+
+    @Test
+    void testLoginConsentAddedToModelWhenEnabled() throws Exception {
+        // Set up login consent configuration
+        BrandingInformation branding = new BrandingInformation();
+        LoginConsent loginConsent = new LoginConsent();
+        loginConsent.setEnabled(true);
+        loginConsent.setTitle("Notice and Consent");
+        loginConsent.setText("You are accessing a System that is provided for authorized use only.");
+        loginConsent.setAcceptButtonText("I Accept");
+        loginConsent.setDeclineLink("https://www.cloudfoundry.org");
+        loginConsent.setConsentValidDuration("12h");
+        branding.setLoginConsent(loginConsent);
+
+        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+        config.setBranding(branding);
+        IdentityZoneHolder.get().setConfig(config);
+
+        // Create endpoint and call login
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        Model model = new ExtendedModelMap();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Accept", "text/html");
+
+        endpoint.loginForHtml(model, null, request, List.of(MediaType.TEXT_HTML));
+
+        // Verify consent is in model
+        assertThat(model.containsAttribute("loginConsent")).isTrue();
+        assertThat(model.getAttribute("loginConsent")).isEqualTo(loginConsent);
+        assertThat(model.containsAttribute("loginConsentHash")).isTrue();
+        assertThat(model.containsAttribute("loginConsentDurationSeconds")).isTrue();
+        assertThat(model.getAttribute("loginConsentDurationSeconds")).isEqualTo(12L * 60 * 60);
+    }
+
+    @Test
+    void testLoginConsentNotAddedWhenDisabled() throws Exception {
+        // Set up login consent configuration (disabled)
+        BrandingInformation branding = new BrandingInformation();
+        LoginConsent loginConsent = new LoginConsent();
+        loginConsent.setEnabled(false);
+        branding.setLoginConsent(loginConsent);
+
+        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+        config.setBranding(branding);
+        IdentityZoneHolder.get().setConfig(config);
+
+        // Create endpoint and call login
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        Model model = new ExtendedModelMap();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Accept", "text/html");
+
+        endpoint.loginForHtml(model, null, request, List.of(MediaType.TEXT_HTML));
+
+        // Verify consent is NOT in model when disabled
+        assertThat(model.containsAttribute("loginConsent")).isFalse();
+    }
+
+    @Test
+    void testLoginConsentNotAddedWhenNull() throws Exception {
+        // No branding configuration
+        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+        config.setBranding(null);
+        IdentityZoneHolder.get().setConfig(config);
+
+        // Create endpoint and call login
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        Model model = new ExtendedModelMap();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Accept", "text/html");
+
+        endpoint.loginForHtml(model, null, request, List.of(MediaType.TEXT_HTML));
+
+        // Verify consent is NOT in model
+        assertThat(model.containsAttribute("loginConsent")).isFalse();
     }
 }

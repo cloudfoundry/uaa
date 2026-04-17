@@ -37,6 +37,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -232,7 +234,60 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param("client_id", client.getClientId())
                 .param("client_secret", client.getClientSecret())
-                .param("client_assertion", "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjU4ZDU1YzUwMGNjNmI1ODM3OTYxN2UwNmU3ZGVjNmNhIn0.eyJzdWIiOiJsb2dpbiIsImlzcyI6ImxvZ2luIiwianRpIjoiNThkNTVjNTAwY2M2YjU4Mzc5NjE3ZTA2ZTdhZmZlZSIsImV4cCI6MTIzNDU2NzgsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC91YWEvb2F1dGgvdG9rZW4ifQ.jwWw0OKZecd4ZjtwQ_ievqBVrh2SieqMF6vY74Oo5H6v-Ibcmumq96NLNtoUEwaAEQQOHb8MWcC8Gwi9dVQdCrtpomC86b_LKkihRBSKuqpw0udL9RMH5kgtC04ctsN0yZNifUWMP85VHn97Ual5eZ2miaBFob3H5jUe98CcBj1TSRehr64qBFYuwt9vD19q6U-ONhRt0RXBPB7ayHAOMYtb1LFIzGAiKvqWEy9f-TBPXSsETjKkAtSuM-WVWi4EhACMtSvI6iJN15f7qlverRSkGIdh1j2vPXpKKBJoRhoLw6YqbgcUC9vAr17wfa_POxaRHvh9JPty0ZXLA4XPtA")
+                .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.OPAQUE.getStringValue())
+                .param("response_type", "token id_token")
+                .param("scope", "openid")
+                .param("login_hint", "%7B%22origin%22%3A%22idp%22%7D")
+                .param("assertion", assertion);
+
+        if (hasText(theZone.getSubdomain())) {
+            jwtBearerGrant = jwtBearerGrant.header("Host", theZone.getSubdomain() + ".localhost");
+        }
+
+        return mockMvc.perform(jwtBearerGrant)
+                .andDo(print());
+    }
+
+    /**
+     * JWT bearer grant with {@code client_secret} sent as HTTP Basic ({@code Authorization: Basic}) instead of form fields.
+     */
+    protected ResultActions perform_grant_in_zone_with_basic_authentication(IdentityZone theZone, String assertion) throws Exception {
+        ClientDetails client = createJwtBearerClient(theZone);
+        String basic = Base64.getEncoder().encodeToString(
+                (client.getClientId() + ":" + client.getClientSecret()).getBytes(StandardCharsets.UTF_8));
+        MockHttpServletRequestBuilder jwtBearerGrant = post("/oauth/token")
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, "Basic " + basic)
+                .param("client_id", client.getClientId())
+                .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.OPAQUE.getStringValue())
+                .param("response_type", "token id_token")
+                .param("scope", "openid")
+                .param("login_hint", "%7B%22origin%22%3A%22idp%22%7D")
+                .param("assertion", assertion);
+
+        if (hasText(theZone.getSubdomain())) {
+            jwtBearerGrant = jwtBearerGrant.header("Host", theZone.getSubdomain() + ".localhost");
+        }
+
+        return mockMvc.perform(jwtBearerGrant)
+                .andDo(print());
+    }
+
+    ResultActions perform_grant_in_zone_with_client_assertion(IdentityZone theZone, String assertion) throws Exception {
+
+        UaaClientDetails client = (UaaClientDetails) createJwtBearerClient(theZone);
+        mergeSampleJwtClientConfiguration(theZone, client);
+        client = (UaaClientDetails) clientDetailsService.loadClientByClientId(client.getClientId(), theZone.getId());
+        String clientAssertionJwt = getClientAssertionJwt(theZone, client);
+
+        MockHttpServletRequestBuilder jwtBearerGrant = post("/oauth/token")
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param("client_id", client.getClientId())
+                .param("client_assertion", clientAssertionJwt)
                 .param("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
                 .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
                 .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.OPAQUE.getStringValue())
@@ -257,8 +312,6 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param("client_id", client.getClientId())
                 .param("client_secret", client.getClientSecret())
-                .param("client_assertion", "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjU4ZDU1YzUwMGNjNmI1ODM3OTYxN2UwNmU3ZGVjNmNhIn0.eyJzdWIiOiJsb2dpbiIsImlzcyI6ImxvZ2luIiwianRpIjoiNThkNTVjNTAwY2M2YjU4Mzc5NjE3ZTA2ZTdhZmZlZSIsImV4cCI6MTIzNDU2NzgsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC91YWEvb2F1dGgvdG9rZW4ifQ.jwWw0OKZecd4ZjtwQ_ievqBVrh2SieqMF6vY74Oo5H6v-Ibcmumq96NLNtoUEwaAEQQOHb8MWcC8Gwi9dVQdCrtpomC86b_LKkihRBSKuqpw0udL9RMH5kgtC04ctsN0yZNifUWMP85VHn97Ual5eZ2miaBFob3H5jUe98CcBj1TSRehr64qBFYuwt9vD19q6U-ONhRt0RXBPB7ayHAOMYtb1LFIzGAiKvqWEy9f-TBPXSsETjKkAtSuM-WVWi4EhACMtSvI6iJN15f7qlverRSkGIdh1j2vPXpKKBJoRhoLw6YqbgcUC9vAr17wfa_POxaRHvh9JPty0ZXLA4XPtA")
-                .param("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
                 .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
                 .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.JWT.getStringValue())
                 .param("response_type", "token id_token")
