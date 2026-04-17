@@ -31,7 +31,7 @@ import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureSupport;
 import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.core.Saml2X509Credential;
-import org.springframework.security.saml2.provider.service.metadata.OpenSamlMetadataResolver;
+import org.springframework.security.saml2.provider.service.metadata.OpenSaml5MetadataResolver;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.util.Assert;
 
@@ -54,11 +54,11 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAME
 
 /**
  * This class is used to customize the EntityDescriptor used in the Metadata call,
- * it is called as part of the {@link OpenSamlMetadataResolver} after basic creation is completed.
+ * it is called as part of the {@link OpenSaml5MetadataResolver} after basic creation is completed.
  */
 @Slf4j
 @Value
-public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSamlMetadataResolver.EntityDescriptorParameters> {
+public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSaml5MetadataResolver.EntityDescriptorParameters> {
     private static final Set<String> NAME_ID_FORMATS = new HashSet<>();
     private static final String URI_BINDING = "urn:oasis:names:tc:SAML:2.0:bindings:URI";
     private static final UnaryOperator<String> assertionConsumerServiceLocationMutationFunction = o -> o.replace("/saml/SSO/alias/", "/oauth/token/alias/");
@@ -76,7 +76,7 @@ public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSaml
     boolean signMetaData;
 
     @Override
-    public void accept(OpenSamlMetadataResolver.EntityDescriptorParameters entityDescriptorParameters) {
+    public void accept(OpenSaml5MetadataResolver.EntityDescriptorParameters entityDescriptorParameters) {
         SamlConfig samlConfig = identityZoneManager.getCurrentIdentityZone().getConfig().getSamlConfig();
 
         EntityDescriptor entityDescriptor = entityDescriptorParameters.getEntityDescriptor();
@@ -140,7 +140,7 @@ public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSaml
      *
      * @param entityDescriptorParameters the entity descriptor parameters
      */
-    private void signMetadata(OpenSamlMetadataResolver.EntityDescriptorParameters entityDescriptorParameters) {
+    private void signMetadata(OpenSaml5MetadataResolver.EntityDescriptorParameters entityDescriptorParameters) {
 
         EntityDescriptor entityDescriptor = entityDescriptorParameters.getEntityDescriptor();
         RelyingPartyRegistration registration = entityDescriptorParameters.getRelyingPartyRegistration();
