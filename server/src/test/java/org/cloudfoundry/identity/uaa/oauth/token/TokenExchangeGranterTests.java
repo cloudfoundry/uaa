@@ -35,7 +35,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TOKEN_TYPE_ACCESS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TOKEN_TYPE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TOKEN_TYPE_REFRESH;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -233,12 +232,11 @@ class TokenExchangeGranterTests {
 
         // getTokenActor will call revocableTokenProvisioning.retrieve() for the opaque token
         // then decode the backing JWT — verify the provisioning was called
-        try {
-            granter.getTokenActor(tokenRequest);
-        } catch (Exception ignored) {
-            // JWT decode may fail on a fake signature; what matters is the DB lookup occurred
-        }
+        TokenActor actor = granter.getTokenActor(tokenRequest);
+
         verify(revocableTokenProvisioning, times(1)).retrieve(eq(opaqueTokenId), anyString());
+        assertThat(actor.getSubject()).isEqualTo("user123");
+        assertThat(actor.getIssuer()).isEqualTo("https://uaa.example.com");
     }
 
     @Test
@@ -253,6 +251,6 @@ class TokenExchangeGranterTests {
 
         assertThatThrownBy(() -> granter.getTokenActor(tokenRequest))
                 .isInstanceOf(InvalidGrantException.class)
-                .hasMessageContaining("subject_token is not a JWT and is not found in the revocable tokens");
+                .hasMessageContaining("Invalid subject_token: not a JWT and not found in the revocable token store");
     }
 }

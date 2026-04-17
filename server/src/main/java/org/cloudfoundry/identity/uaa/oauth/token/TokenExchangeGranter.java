@@ -140,7 +140,7 @@ public class TokenExchangeGranter extends AbstractTokenGranter {
                 RevocableToken revocableToken = revocableTokenProvisioning.retrieve(subjectToken, IdentityZoneHolder.get().getId());
                 subjectToken = revocableToken.getValue();
             } catch (EmptyResultDataAccessException e) {
-                throw new InvalidGrantException("subject_token is not a JWT and is not found in the revocable tokens");
+                throw new InvalidGrantException("Invalid subject_token: not a JWT and not found in the revocable token store");
             }
         }
         JWTClaimsSet claims = JwtHelper.decode(subjectToken).getClaimSet();
