@@ -7,7 +7,7 @@ ext {
 versions.apacheDsVersion = "2.0.0.AM27"
 versions.bouncyCastleFipsVersion = "2.1.2"
 versions.bouncyCastlePkixFipsVersion = "2.1.11"
-versions.bouncyCastleTlsFipsVersion = "2.1.22"
+versions.bouncyCastleTlsFipsVersion = "2.1.23"
 versions.springBootVersion = "3.5.13"
 versions.guavaVersion = "33.6.0-jre"
 versions.seleniumVersion = "4.43.0"
