@@ -582,7 +582,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         };
     }
 
-    private static String toOauthTokenRecipient(String recipient) {
+    static String toOauthTokenRecipient(String recipient) {
         URI recipientUri = URI.create(recipient);
         String path = recipientUri.getPath();
         String aliasPathPrefix = "/oauth/token/alias/";
