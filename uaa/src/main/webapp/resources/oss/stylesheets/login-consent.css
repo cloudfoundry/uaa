@@ -1,0 +1,245 @@
+
+/* ==========================================================================
+   Login Consent Modal
+   ========================================================================== */
+
+/* Modal overlay - when shown (display:flex from JS) centers the modal so it doesn't stretch */
+.consent-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    padding: 20px;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+/* Modal container - shrink to content height instead of filling overlay */
+.consent-modal {
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 100%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    align-self: center;
+    animation: consentModalFadeIn 0.3s ease-out;
+    text-align: left;
+}
+
+@keyframes consentModalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modal header */
+.consent-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
+    text-align: center;
+}
+
+.consent-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #212121;
+}
+
+/* Modal body */
+.consent-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    max-height: 50vh;
+    background-color: #ffffff;
+}
+
+.consent-modal-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #424242;
+}
+
+.consent-modal-content p {
+    margin: 0 0 12px 0;
+}
+
+.consent-modal-content p:last-child {
+    margin-bottom: 0;
+}
+
+.consent-modal-content ul,
+.consent-modal-content ol {
+    margin: 0 0 12px 20px;
+    padding: 0;
+}
+
+.consent-modal-content li {
+    margin-bottom: 8px;
+}
+
+.consent-modal-content a {
+    color: #0066cc;
+    text-decoration: underline;
+}
+
+.consent-modal-content a:hover {
+    color: #0052a3;
+}
+
+/* Scrollbar styling */
+.consent-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.consent-modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.consent-modal-body::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.consent-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Modal footer - compact, only as tall as the buttons */
+.consent-modal-footer {
+    padding: 10px 24px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    background-color: #f5f5f5;
+    min-height: 0;
+    line-height: 1;
+}
+
+.consent-modal-footer .consent-button {
+    margin: 0;
+}
+
+/* Consent buttons */
+.consent-button {
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    min-width: 100px;
+}
+
+.consent-button:active {
+    transform: scale(0.98);
+}
+
+.consent-button-accept {
+    background-color: #4CAF50;
+    color: #ffffff;
+}
+
+.consent-button-accept:hover {
+    background-color: #45a049;
+}
+
+.consent-button-accept:focus {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+.consent-button-decline,
+.consent-button-cancel {
+    background-color: #f44336;
+    color: #ffffff;
+}
+
+.consent-button-decline:hover,
+.consent-button-cancel:hover {
+    background-color: #da190b;
+}
+
+.consent-button-decline:focus,
+.consent-button-cancel:focus {
+    outline: 2px solid #f44336;
+    outline-offset: 2px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .consent-modal-overlay {
+        padding: 0;
+    }
+
+    .consent-modal {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        height: 100%;
+    }
+
+    .consent-modal-body {
+        max-height: none;
+    }
+
+    .consent-modal-footer {
+        flex-direction: column;
+    }
+
+    .consent-button {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
+/* Accessibility - high contrast mode */
+@media (prefers-contrast: high) {
+    .consent-modal {
+        border: 2px solid #000000;
+    }
+
+    .consent-button-accept {
+        border: 2px solid #000000;
+    }
+
+    .consent-button-decline,
+    .consent-button-cancel {
+        border: 2px solid #000000;
+    }
+}
+
+/* Accessibility - reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .consent-modal {
+        animation: none;
+    }
+
+    .consent-button {
+        transition: none;
+    }
+}

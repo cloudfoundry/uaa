@@ -385,8 +385,63 @@ The bearer assertion can be sent to either `/oauth/token` or `/oauth/token/alias
 When using `/oauth/token`, the IdP is resolved from the SAML2 assertion's `<Issuer>` element.
 When using `/oauth/token/alias/<entityid>`, the `Recipient` attribute in the bearer assertion may point either to `/oauth/token`
 or to the corresponding alias URI, e.g. http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login.
+Zone resolution uses the `Host` header (for example `mysubdomain.localhost`).
 
-### Form Authentication
+### SAML Bearer Grant (preferred)
+
+POST to **`/oauth/token`**. Use this path for new integrations.
+
+#### Form Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecretOnDefaultTokenPath/response-fields.md') %>
+
+#### Basic Authentication
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeaderOnDefaultTokenPath/response-fields.md') %>
+
+#### Client Assertion
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertionOnDefaultTokenPath/response-fields.md') %>
+
+### SAML Bearer Grant (legacy)
+
+POST to **`/oauth/token/alias/<registrationId>`** (the same path as the SAML assertion `Recipient`). Retained for older clients that already target this URL.
+
+#### Form Authentication
 
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecret/curl-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecret/http-request.md') %>
@@ -400,7 +455,7 @@ _Response Fields_
 
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientSecret/response-fields.md') %>
 
-### Basic Authentication
+#### Basic Authentication
 
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/curl-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/http-request.md') %>
@@ -418,7 +473,7 @@ _Response Fields_
 
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithAuthorizationHeader/response-fields.md') %>
 
-### Client Assertion
+#### Client Assertion
 
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertion/curl-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrantWithClientAssertion/http-request.md') %>

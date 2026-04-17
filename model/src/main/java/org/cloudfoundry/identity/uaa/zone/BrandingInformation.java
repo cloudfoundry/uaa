@@ -15,6 +15,7 @@ public class BrandingInformation implements BrandingInformationSource {
     private Map<String, String> footerLinks;
     private Banner banner;
     private Consent consent;
+    private LoginConsent loginConsent;
 
     public Banner getBanner() {
         return banner;
@@ -75,6 +76,14 @@ public class BrandingInformation implements BrandingInformationSource {
 
     public Consent getConsent() {
         return consent;
+    }
+
+    public void setLoginConsent(LoginConsent loginConsent) {
+        this.loginConsent = loginConsent;
+    }
+
+    public LoginConsent getLoginConsent() {
+        return loginConsent;
     }
 
     public static class Banner {

@@ -1777,6 +1777,16 @@ Customizes the visual branding of the login UI. Supports the following sub-keys:
 - `banner.textColor` — Banner text color (hex)
 - `banner.backgroundColor` — Banner background color (hex)
 - `banner.link` — Banner link URL
+- `loginConsent` — Login consent modal configuration (see sub-properties below)
+
+**Login Consent Configuration (`loginConsent`):**
+- `enabled` — (boolean, default: `false`) When `true`, displays a mandatory consent modal on login
+- `title` — (string, default: `"Terms and Conditions"`) Modal heading text
+- `text` — (string, required when enabled) Body content; HTML is allowed
+- `acceptButtonText` — (string, default: `"I Agree"`) Text for the accept button
+- `declineButtonText` — (string, default: `"Decline"`) Text for the decline button when `declineLink` is provided
+- `declineLink` — (string, optional) If set, must be a valid HTTP/HTTPS URL; displays as a decline link
+- `consentValidDuration` — (string, default: `"1d"`) How long acceptance is remembered (e.g., `"12h"`, `"7d"`, `"0"` for always prompt)
 
 [Back to table](#login--branding)
 
