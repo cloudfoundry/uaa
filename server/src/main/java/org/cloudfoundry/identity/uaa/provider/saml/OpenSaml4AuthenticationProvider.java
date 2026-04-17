@@ -17,11 +17,11 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import jakarta.annotation.Nonnull;
-import jakarta.ws.rs.core.UriBuilder;
 import lombok.Getter;
 import net.shibboleth.utilities.java.support.xml.ParserPool;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.opensaml.core.config.ConfigurationService;
@@ -591,7 +591,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             return recipient;
         }
         String oauthTokenPath = path.substring(0, aliasPathIndex) + "/oauth/token";
-        return UriBuilder.fromUri(recipient).replacePath(oauthTokenPath).toString();
+        return UaaUrlUtils.fromUriString(recipient).replacePath(oauthTokenPath).toUriString();
     }
 
     private static ValidationContext createValidationContext(AssertionToken assertionToken,
