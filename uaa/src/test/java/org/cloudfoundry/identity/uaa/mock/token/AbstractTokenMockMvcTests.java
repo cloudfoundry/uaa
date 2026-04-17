@@ -1,10 +1,18 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
+import com.nimbusds.jose.jwk.JWK;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
@@ -24,6 +32,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -41,6 +50,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.text.ParseException;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +64,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.oauth.jwk.RsaJsonWebKeyTestUtils.SAMPLE_RSA_PRIVATE_KEY;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.springframework.util.StringUtils.hasText;
@@ -76,6 +89,8 @@ public abstract class AbstractTokenMockMvcTests {
     protected JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
     @Autowired
     protected UaaTokenServices tokenServices;
+    @Autowired
+    protected KeyInfoService keyInfoService;
     @Autowired
     protected IdentityZoneProvisioning identityZoneProvisioning;
     @Autowired
@@ -393,6 +408,79 @@ public abstract class AbstractTokenMockMvcTests {
             } catch (NoSuchClientException e) {
                 Thread.sleep(500);
             }
+        }
+    }
+
+    protected String resolveTokenEndpointUrl(IdentityZone zone) {
+        IdentityZone previous = IdentityZoneHolder.get();
+        IdentityZoneHolder.set(zone);
+        try {
+            return keyInfoService.getTokenEndpointUrl();
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            IdentityZoneHolder.set(previous);
+        }
+    }
+
+    protected KeyInfo privateKeyInfoForJwtClientAssertion(String issuerUri) {
+        return KeyInfoBuilder.build("id", SAMPLE_RSA_PRIVATE_KEY, issuerUri);
+    }
+
+    protected JsonWebKey jsonWebKeyForClientJwtConfig(IdentityZone zone) {
+        String issuerUri = resolveTokenEndpointUrl(zone);
+        try {
+            // Round-trip through Nimbus so stored JWKS matches what JwtClientAuthentication verifies (see JwtClientAuthenticationTest).
+            JWK jwk = JWK.parse(privateKeyInfoForJwtClientAssertion(issuerUri).getJwkMap());
+            return JsonUtils.readValue(jwk.toJSONString(), JsonWebKey.class).setKid("id");
+        } catch (ParseException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Stores a JWT trust configuration on the client so private_key_jwt client authentication can be used in MockMvc tests.
+     */
+    protected void mergeSampleJwtClientConfiguration(IdentityZone zone, UaaClientDetails client) throws Exception {
+        IdentityZone resolvedZone = identityZoneProvisioning.retrieve(zone.getId());
+        IdentityZone previous = IdentityZoneHolder.get();
+        IdentityZoneHolder.set(resolvedZone);
+        try {
+            JsonWebKeySet<JsonWebKey> jwkKeySet = new JsonWebKeySet<>(List.of(jsonWebKeyForClientJwtConfig(resolvedZone)));
+            ClientJwtConfiguration jwtConfiguration = new ClientJwtConfiguration(null, jwkKeySet);
+            String jwtConfigJson = JsonUtils.writeValueAsString(jwtConfiguration);
+            client.setClientJwtConfig(jwtConfigJson);
+            // updateClientDetails() does not persist client_jwt_config (see MultitenantJdbcClientDetailsService.DEFAULT_UPDATE_STATEMENT).
+            clientDetailsService.updateClientJwtConfig(client.getClientId(), jwtConfigJson, resolvedZone.getId());
+        } finally {
+            IdentityZoneHolder.set(previous);
+        }
+    }
+
+    /**
+     * RFC 7523 private_key_jwt client assertion for the given client (must have {@link ClientJwtConfiguration} set).
+     */
+    protected String getClientAssertionJwt(IdentityZone zone, UaaClientDetails client) {
+        IdentityZone resolvedZone = identityZoneProvisioning.retrieve(zone.getId());
+        IdentityZone previous = IdentityZoneHolder.get();
+        IdentityZoneHolder.set(resolvedZone);
+        try {
+            String issuerUri = keyInfoService.getTokenEndpointUrl();
+            KeyInfo signingKeyInfo = privateKeyInfoForJwtClientAssertion(issuerUri);
+            Claims claims = new Claims();
+            claims.setAud(Collections.singletonList(issuerUri));
+            claims.setSub(client.getClientId());
+            claims.setIss(client.getClientId());
+            claims.setJti(UUID.randomUUID().toString().replace("-", ""));
+            claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
+            claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
+            return signingKeyInfo.verifierCertificate().isPresent() ?
+                    JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
+                    JwtHelper.encode(claims.getClaimMap(), signingKeyInfo).getEncoded();
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            IdentityZoneHolder.set(previous);
         }
     }
 

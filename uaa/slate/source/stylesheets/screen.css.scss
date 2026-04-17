@@ -177,6 +177,11 @@ html, body {
     background-color: $nav-subitem-bg;
   }
 
+  .toc-list-h4 {
+    display: none;
+    background-color: $nav-subitem-bg;
+  }
+
   .toc-h2 {
     padding-left: $nav-padding + $nav-indent;
     font-size: 12px;
@@ -184,6 +189,11 @@ html, body {
 
   .toc-h3 {
     padding-left: $nav-padding + 2 * $nav-indent;
+    font-size: 12px;
+  }
+
+  .toc-h4 {
+    padding-left: $nav-padding + 3 * $nav-indent;
     font-size: 12px;
   }
 

@@ -30,6 +30,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -252,14 +254,15 @@ class LoginIT {
 
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
 
+        WebDriverWait wait = webDriver.createWebDriverWait();
+        wait.until(ExpectedConditions.textToBePresentInElementLocated(By.cssSelector("h1"), "Temporary Authentication Code"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Temporary Authentication Code");
 
-        // Verify that the CopyToClipboard function can be executed
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("passcode")));
         String passcode = webDriver.findElement(By.id("passcode")).getText();
         (webDriver.getJavascriptExecutor()).executeScript("CopyToClipboard",
                 passcode);
-        // Verify that the copybutton can be clicked
-        webDriver.findElement(By.id("copybutton")).click();
+        wait.until(ExpectedConditions.elementToBeClickable(By.id("copybutton"))).click();
     }
 
     @Test
@@ -335,6 +338,8 @@ class LoginIT {
     @Test
     void loginPageReloadBasedOnCsrf() {
         webDriver.get(baseUrl + "/login");
+        webDriver.createWebDriverWait()
+                .until(driver -> driver.getPageSource().contains("http-equiv=\"refresh\""));
         assertThat(webDriver.getPageSource()).contains("http-equiv=\"refresh\"");
     }
 

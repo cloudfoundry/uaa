@@ -279,4 +279,23 @@ class UaaClientAuthenticationProviderTest {
                 new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a);
         assertThat(a).isNotNull();
     }
+
+    /**
+     * Ensures {@code private_key_jwt} is recognized when the token endpoint is a subpath such as
+     * {@code /oauth/token/alias/...} (e.g. SAML2 bearer). Without treating that path like {@code /oauth/token},
+     * {@code isPrivateKeyJwt} would be false and client authentication would fail.
+     */
+    @Test
+    void clientJwt_authenticate_client_valid_on_oauth_token_alias_path() {
+        when(jwtClientAuthentication.validateClientJwt(any(), any(), any())).thenReturn(true);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token/alias/saml-registration");
+        request.setContextPath("");
+        request.addParameter("client_assertion", "assertion");
+        request.addParameter("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+        request.addParameter("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer");
+        UsernamePasswordAuthenticationToken a = getAuthenticationToken(request);
+        authenticationProvider.additionalAuthenticationChecks(
+                new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a);
+        assertThat(a).isNotNull();
+    }
 }
