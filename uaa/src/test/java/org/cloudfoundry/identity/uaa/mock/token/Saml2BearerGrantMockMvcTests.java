@@ -115,7 +115,7 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 .andExpect(jsonPath("$.scope").value("openid"));
     }
 
-    private String getIdpMetadata(String host, String origin, String subDomain) {
+    private String getIdpMetadata(String host, String origin, String subdomain) {
         // Mock an IDP metadata: %1$s is the host; %2$s is the origin; %3$s is the subdomain
         // Maps to TestCredentialObjects.legacyCertificate
         return """
@@ -176,6 +176,6 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                         <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
                                                 Location="http://%1$s:8080/uaa/saml/idp/SSO/alias/%2$s"/>
                     </md:IDPSSODescriptor>
-                </md:EntityDescriptor>""".formatted(host, origin, subDomain);
+                </md:EntityDescriptor>""".formatted(host, origin, subdomain);
     }
 }
