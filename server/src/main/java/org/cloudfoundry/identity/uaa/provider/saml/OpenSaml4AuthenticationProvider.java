@@ -17,6 +17,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import jakarta.annotation.Nonnull;
+import jakarta.ws.rs.core.UriBuilder;
 import lombok.Getter;
 import net.shibboleth.utilities.java.support.xml.ParserPool;
 import org.apache.commons.logging.Log;
@@ -89,6 +90,7 @@ import org.w3c.dom.Element;
 
 import javax.xml.namespace.QName;
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -580,6 +582,18 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         };
     }
 
+    private static String toOauthTokenRecipient(String recipient) {
+        URI recipientUri = URI.create(recipient);
+        String path = recipientUri.getPath();
+        String aliasPathPrefix = "/oauth/token/alias/";
+        int aliasPathIndex = path.indexOf(aliasPathPrefix);
+        if (aliasPathIndex < 0) {
+            return recipient;
+        }
+        String oauthTokenPath = path.substring(0, aliasPathIndex) + "/oauth/token";
+        return UriBuilder.fromUri(recipient).replacePath(oauthTokenPath).toString();
+    }
+
     private static ValidationContext createValidationContext(AssertionToken assertionToken,
             Consumer<Map<String, Object>> paramsConsumer,
             boolean saml2Bearer) {
@@ -589,8 +603,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         Set<String> recipientList;
         if (saml2Bearer) {
             String recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation().replace("/saml/SSO/alias/", "/oauth/token/alias/");
-            String oauthTokenRecipient = recipient.replaceAll("/oauth/token/alias/(.*)", "/oauth/token");
-            recipientList = Set.of(recipient, oauthTokenRecipient);
+            recipientList = Set.of(recipient, toOauthTokenRecipient(recipient));
         } else {
             recipientList = Set.of(relyingPartyRegistration.getAssertionConsumerServiceLocation());
         }
