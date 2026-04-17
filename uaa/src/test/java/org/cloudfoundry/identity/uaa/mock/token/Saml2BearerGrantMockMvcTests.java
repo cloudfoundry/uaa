@@ -115,13 +115,13 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 .andExpect(jsonPath("$.scope").value("openid"));
     }
 
-    private String getIdpMetadata(String host, String origin, String subdomain) {
-        // Mock an IDP metadata: %1$s is the host; %2$s is the origin; %3$s is the subdomain
+    private String getIdpMetadata(String host, String origin, String entityId) {
+        // Mock an IDP metadata: %1$s is the host; %2$s is the origin; %3$s is the entity ID
         // Maps to TestCredentialObjects.legacyCertificate
         return """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" ID="%2$s"
-                                     entityID="%3$s.cloudfoundry-saml-login">
+                                     entityID="%3$s">
                     <md:IDPSSODescriptor WantAuthnRequestsSigned="false"
                                          protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
                         <md:KeyDescriptor use="signing">
@@ -176,6 +176,6 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                         <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
                                                 Location="http://%1$s:8080/uaa/saml/idp/SSO/alias/%2$s"/>
                     </md:IDPSSODescriptor>
-                </md:EntityDescriptor>""".formatted(host, origin, subdomain);
+                </md:EntityDescriptor>""".formatted(host, origin, entityId);
     }
 }
