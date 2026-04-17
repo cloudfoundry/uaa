@@ -205,7 +205,7 @@ public class SamlAuthenticationFilterConfig {
                 logoutRequestValidator, logoutResponseResolver,
                 authenticationFailureHandler, securityContextLogoutHandlerWithHandler, csrfLogoutHandler,
                 cookieClearingLogoutHandlerWithHandler);
-        filter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/*"));
+        filter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/{registrationId}"));
         FilterRegistrationBean<Saml2LogoutRequestFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
         return bean;
