@@ -65,7 +65,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 /**
- * This is based on OpenSaml4AuthenticationProviderTest from Spring Security
+ * This is based on OpenSaml5AuthenticationProviderTest from Spring Security
  */
 class Saml2BearerGrantAuthenticationConverterTest {
 

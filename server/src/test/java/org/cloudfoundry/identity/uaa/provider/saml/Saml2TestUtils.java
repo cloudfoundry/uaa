@@ -58,7 +58,7 @@ import static org.mockito.Mockito.mock;
  * @see TestOpenSamlObjects
  * <p>
  * The Functions in here were copied from Spring-Security Test Classes and made static:
- * - spring-security/saml2/saml2-service-provider/src/opensaml4Test/java/org/springframework/security/saml2/provider/service/authentication/OpenSaml4AuthenticationProviderTests
+ * - spring-security/saml2/saml2-service-provider/src/opensaml5Test/java/org/springframework/security/saml2/provider/service/authentication/OpenSaml5AuthenticationProviderTests
  */
 public final class Saml2TestUtils {
 

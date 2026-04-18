@@ -32,7 +32,7 @@ import java.util.Optional;
 
 /**
  * Strategy for validating the SAML 2.0 Response used with
- * {@link org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider}
+ * {@link org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider}
  * Handles the property `login.saml.disableInResponseToCheck` when set to true
  * we will ignore errors on the InResponseTo check of the SAML Response.
  * <p>
