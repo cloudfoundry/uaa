@@ -202,6 +202,7 @@ public final class TestCustomOpenSamlObjects {
         protected void processChildElement(@Nonnull XMLObject parentXMLObject, @Nonnull XMLObject childXMLObject)
                 throws UnmarshallingException {
             final CustomOpenSamlObject customSamlObject = (CustomOpenSamlObject) parentXMLObject;
+            // OpenSAML 5: super no longer handles unknown elements; add them directly
             customSamlObject.getUnknownXMLObjects().add(childXMLObject);
         }
 

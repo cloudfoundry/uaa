@@ -38,11 +38,6 @@ allprojects {
         mavenCentral()
         maven {
             url = uri("https://build.shibboleth.net/nexus/content/repositories/releases/")
-            content {
-                includeGroup("org.opensaml")
-                includeGroup("net.shibboleth")
-                includeGroupByRegex("net\\.shibboleth\\..*")
-            }
         }
         maven { url = uri("https://repository.mulesoft.org/releases/") }
     }

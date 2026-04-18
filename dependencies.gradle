@@ -12,6 +12,7 @@ versions.springBootVersion = "3.5.13"
 versions.guavaVersion = "33.6.0-jre"
 versions.seleniumVersion = "4.43.0"
 versions.braveVersion = "6.3.1"
+// OpenSAML 5.2.x pulls non-FIPS classes; stay on 5.1.x until resolved
 versions.opensaml = "5.1.6"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
