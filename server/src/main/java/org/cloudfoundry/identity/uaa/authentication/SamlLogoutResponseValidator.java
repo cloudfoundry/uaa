@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.springframework.security.saml2.core.Saml2Error;
-import org.springframework.security.saml2.provider.service.authentication.logout.OpenSamlLogoutResponseValidator;
+import org.springframework.security.saml2.provider.service.authentication.logout.OpenSaml5LogoutResponseValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutResponseValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutResponseValidatorParameters;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutValidatorResult;
@@ -18,7 +18,7 @@ public class SamlLogoutResponseValidator implements Saml2LogoutResponseValidator
     private final Saml2LogoutResponseValidator delegate;
 
     public SamlLogoutResponseValidator() {
-        this.delegate = new OpenSamlLogoutResponseValidator();
+        this.delegate = new OpenSaml5LogoutResponseValidator();
     }
 
     public SamlLogoutResponseValidator(Saml2LogoutResponseValidator delegate) {
