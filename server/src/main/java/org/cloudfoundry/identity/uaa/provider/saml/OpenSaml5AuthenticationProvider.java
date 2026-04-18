@@ -35,7 +35,6 @@ import org.opensaml.core.xml.schema.XSDateTime;
 import org.opensaml.core.xml.schema.XSInteger;
 import org.opensaml.core.xml.schema.XSString;
 import org.opensaml.core.xml.schema.XSURI;
-import org.opensaml.saml.common.assertion.AssertionValidationException;
 import org.opensaml.saml.common.assertion.ValidationContext;
 import org.opensaml.saml.common.assertion.ValidationResult;
 import org.opensaml.saml.saml2.assertion.ConditionValidator;
@@ -682,8 +681,7 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
 
                 @Nonnull
                 @Override
-                public ValidationResult validate(Condition condition, Assertion assertion, ValidationContext context)
-                        throws AssertionValidationException {
+                public ValidationResult validate(Condition condition, Assertion assertion, ValidationContext context) {
                     // applications should validate their own OneTimeUse conditions
                     return ValidationResult.VALID;
                 }
@@ -696,8 +694,7 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
                 subjects, statements, null, null, null) {
             @Nonnull
             @Override
-            protected ValidationResult validateSignature(Assertion token, ValidationContext context)
-                    throws AssertionValidationException {
+            protected ValidationResult validateSignature(Assertion token, ValidationContext context) {
                 return ValidationResult.VALID;
             }
         };
@@ -707,28 +704,24 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
                     validator) {
                 @Nonnull
                 @Override
-                protected ValidationResult validateConditions(Assertion assertion, ValidationContext context)
-                        throws AssertionValidationException {
+                protected ValidationResult validateConditions(Assertion assertion, ValidationContext context) {
                     return ValidationResult.VALID;
                 }
 
                 @Nonnull
                 @Override
-                protected ValidationResult validateSubjectConfirmation(Assertion assertion, ValidationContext context)
-                        throws AssertionValidationException {
+                protected ValidationResult validateSubjectConfirmation(Assertion assertion, ValidationContext context) {
                     return ValidationResult.VALID;
                 }
 
                 @Nonnull
                 @Override
-                protected ValidationResult validateStatements(Assertion assertion, ValidationContext context)
-                        throws AssertionValidationException {
+                protected ValidationResult validateStatements(Assertion assertion, ValidationContext context) {
                     return ValidationResult.VALID;
                 }
 
                 @Override
-                protected ValidationResult validateIssuer(Assertion assertion, ValidationContext context)
-                        throws AssertionValidationException {
+                protected ValidationResult validateIssuer(Assertion assertion, ValidationContext context) {
                     return ValidationResult.VALID;
                 }
             };
