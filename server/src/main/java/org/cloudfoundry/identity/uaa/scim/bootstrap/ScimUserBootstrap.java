@@ -342,12 +342,13 @@ public class ScimUserBootstrap implements
             return;
         }
         logger.debug("Removing membership of group: {}", gName);
-        List<ScimGroup> g = scimGroupProvisioning.query("displayName eq \"%s\"".formatted(gName), identityZoneManager.getCurrentIdentityZoneId());
         ScimGroup group;
-        if (g == null || g.isEmpty()) {
+        try {
+            group = scimGroupProvisioning.getByName(gName, identityZoneManager.getCurrentIdentityZoneId());
+        } catch (IncorrectResultSizeDataAccessException ex) {
+            // Group not found or multiple groups found - silently skip as per previous behavior
+            logger.debug("Group '{}' not found or multiple groups found, skipping removal", gName);
             return;
-        } else {
-            group = g.getFirst();
         }
         try {
             membershipManager.removeMemberById(group.getId(), scimUserId, identityZoneManager.getCurrentIdentityZoneId());

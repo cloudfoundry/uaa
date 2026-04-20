@@ -39,6 +39,9 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -68,10 +71,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -691,7 +697,7 @@ class ScimUserBootstrapTests {
         String externalId = null;
         String userId = new RandomValueStringGenerator().generate();
         String username = new RandomValueStringGenerator().generate();
-        UaaUser user = getUaaUser(new String[] {}, origin, email, firstName, lastName, password, externalId, userId, username);
+        UaaUser user = getUaaUser(new String[]{}, origin, email, firstName, lastName, password, externalId, userId, username);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(
                 jdbcScimUserProvisioning,
                 scimUserService,
@@ -1065,4 +1071,89 @@ class ScimUserBootstrapTests {
         return result;
     }
 
+    static Stream<Arguments> provideGroupNames() {
+        return List.of("group-with-dashes",
+                        "group.with.dots",
+                        "group_with_underscores",
+                        "group with spaces",
+                        "group\twith\ttabs",
+                        "group\nwith\nnewlines",
+                        "group\"with\"quotes",
+                        "group'with'apostrophes",
+                        "group\\with\\backslashes",
+                        "group|with|pipes",
+                        "group&with&ampersands",
+                        "group=with=equals")
+                .stream()
+                .map(Arguments::of);
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideGroupNames")
+    void addToGroup_withSpecialCharactersInGroupName_addsUserToExactGroup(String groupNameWithSpecialChars) {
+        // Given
+        UaaUser testUser = new UaaUser("specialcharuser", "password", "test@test.org", "Test", "User");
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService,
+                jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager,
+                Collections.singletonList(testUser), false, Collections.emptyList(), false);
+        bootstrap.afterPropertiesSet();
+
+        List<ScimUser> users = jdbcScimUserProvisioning.query("userName eq \"specialcharuser\"", IdentityZone.getUaaZoneId());
+        ScimUser user = users.getFirst();
+
+        // Create group with special characters
+        ScimGroup specialGroup = new ScimGroup(null, groupNameWithSpecialChars, IdentityZone.getUaaZoneId());
+        jdbcScimGroupProvisioning.create(specialGroup, IdentityZone.getUaaZoneId());
+
+        // When
+        UaaUser userWithGroup = testUser.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList(groupNameWithSpecialChars));
+        ScimUserBootstrap groupBootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService,
+                jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager,
+                Collections.singletonList(userWithGroup), true, Collections.emptyList(), false);
+        groupBootstrap.afterPropertiesSet();
+
+        // Then
+        Set<ScimGroup> userGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(user.getId(), true, IdentityZone.getUaaZoneId());
+        Set<String> groupNames = userGroups.stream().map(ScimGroup::getDisplayName).collect(Collectors.toSet());
+
+        assertThat(groupNames).containsExactlyInAnyOrder(groupNameWithSpecialChars, "uaa.user");
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideGroupNames")
+    void removeFromGroup_withSpecialCharactersInGroupName_removesUserFromExactGroupOnly(String groupNameWithSpecialChars) {
+        // Given
+        String userName = "removecharuser" + Math.abs(groupNameWithSpecialChars.hashCode());
+        UaaUser testUser = new UaaUser(userName, "password", "test@test.org", "Test", "User");
+
+        // Create user with the problematic group
+        UaaUser userWithGroup = testUser.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList(groupNameWithSpecialChars));
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService,
+                jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager,
+                Collections.singletonList(userWithGroup), false, emptyList(), false);
+        bootstrap.afterPropertiesSet();
+
+        List<ScimUser> users = jdbcScimUserProvisioning.query("userName eq \"" + userName + "\"", IdentityZone.getUaaZoneId());
+        ScimUser user = users.getFirst();
+
+        // Verify user was initially added to the group
+        Set<ScimGroup> initialGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(user.getId(), true, IdentityZone.getUaaZoneId());
+        Set<String> initialGroupNames = initialGroups.stream().map(ScimGroup::getDisplayName).collect(Collectors.toSet());
+        assertThat(initialGroupNames).contains(groupNameWithSpecialChars);
+
+        // When - update user to different groups (this triggers removeFromGroup for the special char group)
+        UaaUser updatedUser = testUser.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid"));
+        ScimUserBootstrap updateBootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService,
+                jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager,
+                Collections.singletonList(updatedUser), true, emptyList(), false);
+        updateBootstrap.afterPropertiesSet();
+
+        // Then
+        Set<ScimGroup> finalGroups = jdbcScimGroupMembershipManager.getGroupsWithMember(user.getId(), true, IdentityZone.getUaaZoneId());
+        Set<String> finalGroupNames = finalGroups.stream().map(ScimGroup::getDisplayName).collect(Collectors.toSet());
+
+        assertThat(finalGroupNames)
+                .doesNotContain(groupNameWithSpecialChars)
+                .containsExactlyInAnyOrder("openid", "uaa.user");
+    }
 }
