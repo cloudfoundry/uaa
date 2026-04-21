@@ -129,12 +129,12 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
     }
 
     @Override
-    protected <T> T doExecute(URI url, HttpMethod method, RequestCallback requestCallback,
+    protected <T> T doExecute(URI url, String uriTemplate, HttpMethod method, RequestCallback requestCallback,
             ResponseExtractor<T> responseExtractor) throws RestClientException {
         OAuth2AccessToken accessToken = context.getAccessToken();
         RuntimeException rethrow = null;
         try {
-            return super.doExecute(url, method, requestCallback, responseExtractor);
+            return super.doExecute(url, uriTemplate, method, requestCallback, responseExtractor);
         }
         catch (AccessTokenRequiredException | OAuth2AccessDeniedException e) {
             rethrow = e;
@@ -146,7 +146,7 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
         if (accessToken != null && retryBadAccessTokens) {
             context.setAccessToken(null);
             try {
-                return super.doExecute(url, method, requestCallback, responseExtractor);
+                return super.doExecute(url, uriTemplate, method, requestCallback, responseExtractor);
             }
             catch (InvalidTokenException e) {
                 // Don't reveal the token value in case it is logged
