@@ -43,7 +43,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.security.crypto.codec.Base64;
+import java.util.Base64;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
@@ -563,7 +563,7 @@ class ScimGroupEndpointsIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
-                "Basic " + new String(Base64.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
+                "Basic " + new String(Base64.getEncoder().encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
