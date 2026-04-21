@@ -179,6 +179,7 @@ springDocOpenapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui
 springRestdocs = { module = "org.springframework.restdocs:spring-restdocs-mockmvc" }
 
 # Spring Security
+springSecurityAccess = { module = "org.springframework.security:spring-security-access" }
 springSecurityConfig = { module = "org.springframework.security:spring-security-config" }
 springSecurityCore = { module = "org.springframework.security:spring-security-core" }
 springSecurityLdap = { module = "org.springframework.security:spring-security-ldap" }
