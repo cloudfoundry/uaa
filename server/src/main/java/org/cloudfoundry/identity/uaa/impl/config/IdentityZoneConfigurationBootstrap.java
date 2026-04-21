@@ -58,6 +58,12 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpPrivateKeyPassphrase;
     private String samlSpCertificate;
     private boolean disableSamlInResponseToCheck;
+
+    /**
+     * @deprecated Since 78.13.0. Maps to {@link org.cloudfoundry.identity.uaa.zone.SamlConfig#wantAssertionSigned};
+     * see that field. Scheduled for removal in a future release.
+     */
+    @Deprecated(since = "78.13.0", forRemoval = true)
     private boolean samlWantAssertionSigned = true;
     private boolean samlRequestSigned = true;
 
@@ -77,6 +83,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void afterPropertiesSet() throws InvalidIdentityZoneDetailsException {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);

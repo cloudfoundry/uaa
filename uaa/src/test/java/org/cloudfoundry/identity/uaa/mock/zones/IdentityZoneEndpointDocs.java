@@ -71,7 +71,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String REFRESH_TOKEN_ROTATE = "If true, uaa will issue a new refresh token value in grant type refresh_token. Defaults to `false`.";
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
     private static final String ENTITY_ID_DESC = "Unique ID of the SAML2 entity";
-    private static final String WANT_ASSERTION_SIGNED_DESC = "Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.";
+    private static final String WANT_ASSERTION_SIGNED_DESC = "**Deprecated** since 78.13.0; scheduled for removal. Still honored for SP metadata (`WantAssertionsSigned`) and for decrypting an unsigned response that contains only `EncryptedAssertion` elements. Authentication requires a verifiable XML signature on the SAML `Response` or on every `Assertion` after decryption regardless of this flag. Defaults to `true`.";
     private static final String REQUEST_SIGNED_DESC = "Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.";
     private static final String SAML_DISABLE_IN_RESPONSE_TO_DESC = "If `true`, this zone will not validate the `InResponseToField` part of an incoming IDP assertion. Please see https://docs.spring.io/spring-security-saml/docs/current/reference/html/chapter-troubleshooting.html";
     private static final String CERTIFICATE_DESC = "Exposed SAML metadata property. The certificate used to verify the authenticity all communications.";

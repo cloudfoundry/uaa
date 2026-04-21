@@ -389,6 +389,7 @@ public class SpringServletXmlBeansConfiguration {
     }
 
     @Bean
+    @SuppressWarnings("deprecation")
     IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap(
             IdentityZoneProvisioning provisioning,
             IdentityZoneValidator identityZoneValidator,
