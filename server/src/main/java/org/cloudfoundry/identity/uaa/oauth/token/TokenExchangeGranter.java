@@ -14,7 +14,10 @@ import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTok
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.provider.oauth.TokenActor;
 import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -31,13 +34,16 @@ public class TokenExchangeGranter extends AbstractTokenGranter {
     final DefaultSecurityContextAccessor defaultSecurityContextAccessor;
 
     private final MultitenantClientServices clientDetailsService;
+    private final RevocableTokenProvisioning revocableTokenProvisioning;
 
     public TokenExchangeGranter(AuthorizationServerTokenServices tokenServices,
                                 MultitenantClientServices clientDetailsService,
-                                OAuth2RequestFactory requestFactory) {
+                                OAuth2RequestFactory requestFactory,
+                                RevocableTokenProvisioning revocableTokenProvisioning) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_TOKEN_EXCHANGE);
         defaultSecurityContextAccessor = new DefaultSecurityContextAccessor();
         this.clientDetailsService = clientDetailsService;
+        this.revocableTokenProvisioning = revocableTokenProvisioning;
     }
 
     protected Authentication validateRequest(TokenRequest request) {
@@ -129,6 +135,14 @@ public class TokenExchangeGranter extends AbstractTokenGranter {
 
     protected TokenActor getTokenActor(TokenRequest tokenRequest) {
         String subjectToken = tokenRequest.getRequestParameters().get("subject_token");
+        if (!UaaTokenUtils.isJwtToken(subjectToken)) {
+            try {
+                RevocableToken revocableToken = revocableTokenProvisioning.retrieve(subjectToken, IdentityZoneHolder.get().getId());
+                subjectToken = revocableToken.getValue();
+            } catch (EmptyResultDataAccessException e) {
+                throw new InvalidGrantException("Invalid subject_token: not a JWT and not found in the revocable token store");
+            }
+        }
         JWTClaimsSet claims = JwtHelper.decode(subjectToken).getClaimSet();
         String clientId = tokenRequest.getClientId();
         try {

@@ -13,12 +13,14 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.provider.oauth.TokenActor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Collections;
@@ -52,6 +54,7 @@ class TokenExchangeGranterTests {
     private AuthorizationServerTokenServices tokenServices;
     private MultitenantClientServices clientDetailsService;
     private OAuth2RequestFactory requestFactory;
+    private RevocableTokenProvisioning revocableTokenProvisioning;
     private Map<String, String> requestParameters;
 
     @BeforeEach
@@ -59,7 +62,8 @@ class TokenExchangeGranterTests {
         tokenServices = mock(AuthorizationServerTokenServices.class);
         clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
-        granter = spy(new TokenExchangeGranter(tokenServices, clientDetailsService, requestFactory));
+        revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
+        granter = spy(new TokenExchangeGranter(tokenServices, clientDetailsService, requestFactory, revocableTokenProvisioning));
         tokenRequest = new TokenRequest(Collections.emptyMap(), "client_ID", Collections.emptySet(), GRANT_TYPE_TOKEN_EXCHANGE);
 
         authentication = mock(UaaOauth2Authentication.class);
@@ -210,5 +214,43 @@ class TokenExchangeGranterTests {
         assertThatThrownBy(() -> granter.validateRequest(tokenRequest))
                 .isInstanceOf(InvalidGrantException.class)
                 .hasMessageContaining("Invalid requested token type, only urn:ietf:params:oauth:token-type:access_token is supported");
+    }
+
+    @Test
+    void opaque_subject_token_is_resolved_from_db() {
+        // A real JWT signed with a trivial key — three dot-separated parts
+        String jwtValue = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIiwiaXNzIjoiaHR0cHM6Ly91YWEuZXhhbXBsZS5jb20iLCJ1c2VyX25hbWUiOiJqb2huIiwidXNlcl9pZCI6InVzZXIxMjMiLCJvcmlnaW4iOiJ1YWEifQ.signature";
+        String opaqueTokenId = "opaque-token-id-no-dots";
+
+        RevocableToken revocableToken = mock(RevocableToken.class);
+        when(revocableToken.getValue()).thenReturn(jwtValue);
+        when(revocableTokenProvisioning.retrieve(eq(opaqueTokenId), anyString())).thenReturn(revocableToken);
+
+        requestParameters.put("subject_token", opaqueTokenId);
+        requestParameters.put("subject_token_type", TOKEN_TYPE_ACCESS);
+        tokenRequest.setRequestParameters(requestParameters);
+
+        // getTokenActor will call revocableTokenProvisioning.retrieve() for the opaque token
+        // then decode the backing JWT — verify the provisioning was called
+        TokenActor actor = granter.getTokenActor(tokenRequest);
+
+        verify(revocableTokenProvisioning, times(1)).retrieve(eq(opaqueTokenId), anyString());
+        assertThat(actor.getSubject()).isEqualTo("user123");
+        assertThat(actor.getIssuer()).isEqualTo("https://uaa.example.com");
+    }
+
+    @Test
+    void opaque_subject_token_not_found_throws_invalid_grant() {
+        String opaqueTokenId = "expired-or-missing-opaque-token";
+        when(revocableTokenProvisioning.retrieve(eq(opaqueTokenId), anyString()))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        requestParameters.put("subject_token", opaqueTokenId);
+        requestParameters.put("subject_token_type", TOKEN_TYPE_ACCESS);
+        tokenRequest.setRequestParameters(requestParameters);
+
+        assertThatThrownBy(() -> granter.getTokenActor(tokenRequest))
+                .isInstanceOf(InvalidGrantException.class)
+                .hasMessageContaining("Invalid subject_token: not a JWT and not found in the revocable token store");
     }
 }
