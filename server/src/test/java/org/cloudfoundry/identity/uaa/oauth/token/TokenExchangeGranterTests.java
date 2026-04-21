@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
@@ -30,6 +31,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_TOKEN_EXCHANGE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TOKEN_TYPE_ACCESS;
@@ -39,6 +41,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -218,8 +221,8 @@ class TokenExchangeGranterTests {
 
     @Test
     void opaque_subject_token_is_resolved_from_db() {
-        // A real JWT signed with a trivial key — three dot-separated parts
-        String jwtValue = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIiwiaXNzIjoiaHR0cHM6Ly91YWEuZXhhbXBsZS5jb20iLCJ1c2VyX25hbWUiOiJqb2huIiwidXNlcl9pZCI6InVzZXIxMjMiLCJvcmlnaW4iOiJ1YWEifQ.signature";
+        // Three Base64URL segments so JWTParser.parse accepts the fixture (third segment is "signature" encoded)
+        String jwtValue = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIiwiaXNzIjoiaHR0cHM6Ly91YWEuZXhhbXBsZS5jb20iLCJ1c2VyX25hbWUiOiJqb2huIiwidXNlcl9pZCI6InVzZXIxMjMiLCJvcmlnaW4iOiJ1YWEifQ.c2lnbmF0dXJl";
         String opaqueTokenId = "opaque-token-id-no-dots";
 
         RevocableToken revocableToken = mock(RevocableToken.class);
@@ -252,5 +255,22 @@ class TokenExchangeGranterTests {
         assertThatThrownBy(() -> granter.getTokenActor(tokenRequest))
                 .isInstanceOf(InvalidGrantException.class)
                 .hasMessageContaining("Invalid subject_token: not a JWT and not found in the revocable token store");
+    }
+
+    @Test
+    void jwt_subject_token_does_not_query_revocable_store() throws Exception {
+        TokenTestSupport support = new TokenTestSupport(null, null);
+        try {
+            String jwt = support.getIdTokenAsString(Collections.singletonList(OPENID));
+            requestParameters.put("subject_token", jwt);
+            requestParameters.put("subject_token_type", TOKEN_TYPE_ACCESS);
+            tokenRequest.setRequestParameters(requestParameters);
+
+            granter.getTokenActor(tokenRequest);
+
+            verify(revocableTokenProvisioning, never()).retrieve(anyString(), anyString());
+        } finally {
+            support.clear();
+        }
     }
 }

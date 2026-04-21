@@ -187,6 +187,30 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
     }
 
     @Test
+    void token_exchange_unknown_opaque_access_token_returns_unauthorized() throws Exception {
+        ThreeWayUAASetup multiAuthSetup = getThreeWayUaaSetUp();
+        AuthorizationServer workerServer = multiAuthSetup.workerServer();
+
+        String unknownOpaque = "deadbeefdeadbeefdeadbeefdeadbeef";
+
+        ResultActions tokenExchangeResult = performTokenExchangeGrantForJWT(
+                workerServer.zone().getIdentityZone(),
+                unknownOpaque,
+                TOKEN_TYPE_ACCESS,
+                TOKEN_TYPE_ACCESS,
+                null,
+                null,
+                workerServer.client(),
+                ClientAuthType.FORM,
+                null
+        );
+
+        // Opaque token is not in the revocable store; external user authentication fails before the grant runs,
+        // so the token endpoint responds with 401 rather than 400 invalid_grant.
+        tokenExchangeResult.andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void token_exchange_three_idps_using_client_assertion() throws Exception {
 
         ThreeWayUAASetup multiAuthSetup = getThreeWayUaaSetUp();
