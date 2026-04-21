@@ -120,7 +120,7 @@ class ScimGroupEndpointsIntegrationTests {
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) {
+            public void handleError(URI url, HttpMethod method, ClientHttpResponse response) {
                 // pass through
             }
         });

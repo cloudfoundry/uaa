@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,6 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -105,7 +107,7 @@ class OAuth2ErrorHandlerTests {
         HttpHeaders headers = new HttpHeaders();
         headers.set("www-authenticate", "Bearer error=foo");
         ClientHttpResponse response = new TestClientHttpResponse(headers, 401);
-        assertThatThrownBy(() -> handler.handleError(response))
+        assertThatThrownBy(() -> handler.handleError(null, null, response))
                 .isInstanceOf(HttpClientErrorException.class)
                 .hasMessageContaining("401 Unauthorized");
     }
@@ -115,7 +117,7 @@ class OAuth2ErrorHandlerTests {
         HttpHeaders headers = new HttpHeaders();
         headers.set("www-authenticate", "Bearer error=\"invalid_token\", description=\"foo\"");
         ClientHttpResponse response = new TestClientHttpResponse(headers, 401);
-        assertThatThrownBy(() -> handler.handleError(response))
+        assertThatThrownBy(() -> handler.handleError(null, null, response))
                 .isInstanceOf(AccessTokenRequiredException.class)
                 .hasMessageContaining("OAuth2 access denied");
     }
@@ -128,13 +130,13 @@ class OAuth2ErrorHandlerTests {
                 return true;
             }
 
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
                 throw new RuntimeException("planned");
             }
         }, resource);
         HttpHeaders headers = new HttpHeaders();
         ClientHttpResponse response = new TestClientHttpResponse(headers, 401);
-        assertThatThrownBy(() -> handler.handleError(response))
+        assertThatThrownBy(() -> handler.handleError(null, null, response))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("planned");
     }
@@ -144,7 +146,7 @@ class OAuth2ErrorHandlerTests {
         HttpHeaders headers = new HttpHeaders();
         ClientHttpResponse response = new TestClientHttpResponse(headers, 500);
         assertThatExceptionOfType(HttpServerErrorException.class).isThrownBy(() ->
-                handler.handleError(response));
+                handler.handleError(null, null, response));
     }
 
     @Test
@@ -152,7 +154,7 @@ class OAuth2ErrorHandlerTests {
         HttpHeaders headers = new HttpHeaders();
         ClientHttpResponse response = new TestClientHttpResponse(headers, 400);
         assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(response));
+                handler.handleError(null, null, response));
     }
 
     @Test
@@ -160,7 +162,7 @@ class OAuth2ErrorHandlerTests {
         HttpHeaders headers = new HttpHeaders();
         ClientHttpResponse response = new TestClientHttpResponse(headers, 403);
         assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(response));
+                handler.handleError(null, null, response));
     }
 
     // See https://github.com/spring-projects/spring-security-oauth/issues/387
@@ -172,7 +174,7 @@ class OAuth2ErrorHandlerTests {
                 new ByteArrayInputStream("{}".getBytes()));
         handler = new OAuth2ErrorHandler(new DefaultResponseErrorHandler(), resource);
         assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(response));
+                handler.handleError(null, null, response));
     }
 
     @Test
@@ -183,7 +185,7 @@ class OAuth2ErrorHandlerTests {
                 return true;
             }
 
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
                 InputStream body = response.getBody();
                 byte[] buf = new byte[appSpecificBodyContent.length()];
                 int readResponse = body.read(buf);
@@ -197,7 +199,7 @@ class OAuth2ErrorHandlerTests {
         headers.set("Content-Type", "application/json");
         InputStream appSpecificErrorBody = new ByteArrayInputStream(appSpecificBodyContent.getBytes("UTF-8"));
         ClientHttpResponse response = new TestClientHttpResponse(headers, 400, appSpecificErrorBody);
-        assertThatThrownBy(() -> handler.handleError(response))
+        assertThatThrownBy(() -> handler.handleError(null, null, response))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("planned");
     }
@@ -210,7 +212,7 @@ class OAuth2ErrorHandlerTests {
         when(response.getBody()).thenReturn(new ByteArrayInputStream(new byte[0]));
         when(response.getStatusText()).thenReturn(HttpStatus.BAD_REQUEST.toString());
         assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(response));
+                handler.handleError(null, null, response));
     }
 
     // gh-875
@@ -222,7 +224,7 @@ class OAuth2ErrorHandlerTests {
         headers.setContentType(MediaType.APPLICATION_JSON);
         ClientHttpResponse response = new TestClientHttpResponse(headers, 400, messageBody);
         assertThatExceptionOfType(UserDeniedAuthorizationException.class).isThrownBy(() ->
-                handler.handleError(response));
+                handler.handleError(null, null, response));
     }
 
     // gh-875
@@ -234,7 +236,7 @@ class OAuth2ErrorHandlerTests {
         headers.setContentType(MediaType.APPLICATION_JSON);
         ClientHttpResponse response = new TestClientHttpResponse(headers, 403, messageBody);
         assertThatExceptionOfType(OAuth2AccessDeniedException.class).isThrownBy(() ->
-                handler.handleError(response));
+                handler.handleError(null, null, response));
     }
 
     @Test
@@ -273,6 +275,6 @@ class OAuth2ErrorHandlerTests {
         InputStream appSpecificErrorBody = new ByteArrayInputStream(appSpecificBodyContent.getBytes("UTF-8"));
         ClientHttpResponse response = new TestClientHttpResponse(headers, 401, appSpecificErrorBody);
         assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(response));
+                handler.handleError(null, null, response));
     }
 }
