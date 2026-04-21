@@ -9,7 +9,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jmx.export.notification.NotificationPublisher;
 import org.springframework.jmx.export.notification.NotificationPublisherAware;
 import org.springframework.lang.NonNull;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.yaml.snakeyaml.Yaml;
 
@@ -41,7 +42,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     private final TimeService timeService;
     private final IdleTimer inflight;
     private final Map<String, MetricsQueue> perUriMetrics;
-    private final LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
+    private final LinkedHashMap<RequestMatcher, UrlGroup> urlGroups;
     private boolean enabled = true;
     private boolean perRequestMetrics;
 
@@ -60,7 +61,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         this.urlGroups = new LinkedHashMap<>();
         List<UrlGroup> groups = getUrlGroups();
         groups.forEach(
-                group -> urlGroups.put(new AntPathRequestMatcher(group.getPattern()), group)
+                group -> urlGroups.put(PathPatternRequestMatcher.withDefaults().matcher(group.getPattern()), group)
         );
         this.inflight = new IdleTimer();
     }
@@ -115,7 +116,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     protected UrlGroup getUriGroup(final HttpServletRequest request) {
         if (urlGroups != null) {
             String uri = request.getRequestURI();
-            for (Map.Entry<AntPathRequestMatcher, UrlGroup> entry : urlGroups.entrySet()) {
+            for (Map.Entry<RequestMatcher, UrlGroup> entry : urlGroups.entrySet()) {
                 if (entry.getKey().matches(request)) {
                     UrlGroup group = entry.getValue();
                     if (logger.isDebugEnabled()) {

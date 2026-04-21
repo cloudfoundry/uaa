@@ -61,8 +61,8 @@ import org.springframework.security.web.context.SecurityContextPersistenceFilter
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfLogoutHandler;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.session.DisableEncodeUrlFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.io.IOException;
@@ -511,7 +511,7 @@ class LoginSecurityConfiguration {
     ) throws Exception {
         ReAuthenticationRequiredFilter reAuthenticationRequiredFilter = new ReAuthenticationRequiredFilter(samlEntityID);
         var clientRedirectStateCache = new UaaSavedRequestCache();
-        clientRedirectStateCache.setRequestMatcher(new AntPathRequestMatcher("/oauth/authorize**"));
+        clientRedirectStateCache.setRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/oauth/authorize**"));
 
         // See: https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html#migrating-to-spring-security-6
         var csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
@@ -581,7 +581,7 @@ class LoginSecurityConfiguration {
                 csrfLogoutHandler,
                 cookieClearingLogoutHandlerWithHandler
         );
-        logoutFilter.setLogoutRequestMatcher(new AntPathRequestMatcher("/logout.do"));
+        logoutFilter.setLogoutRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/logout.do"));
         FilterRegistrationBean<LogoutFilter> bean = new FilterRegistrationBean<>(logoutFilter);
         bean.setEnabled(false);
         return bean;

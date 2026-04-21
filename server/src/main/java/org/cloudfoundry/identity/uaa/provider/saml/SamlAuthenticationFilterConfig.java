@@ -36,8 +36,7 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfLogoutHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import jakarta.servlet.Filter;
 
 /**
@@ -178,7 +177,7 @@ public class SamlAuthenticationFilterConfig {
         Saml2LogoutResponseValidator openSamlLogoutResponseValidator = new SamlLogoutResponseValidator();
 
         Saml2LogoutResponseFilter filter = new Saml2LogoutResponseFilter(relyingPartyRegistrationResolver, openSamlLogoutResponseValidator, successHandler);
-        filter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/{registrationId}"));
+        filter.setLogoutRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/saml/SingleLogout/alias/{registrationId}"));
 
         FilterRegistrationBean<Saml2LogoutResponseFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
@@ -205,7 +204,7 @@ public class SamlAuthenticationFilterConfig {
                 logoutRequestValidator, logoutResponseResolver,
                 authenticationFailureHandler, securityContextLogoutHandlerWithHandler, csrfLogoutHandler,
                 cookieClearingLogoutHandlerWithHandler);
-        filter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/*"));
+        filter.setLogoutRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/saml/SingleLogout/alias/*"));
         FilterRegistrationBean<Saml2LogoutRequestFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
         return bean;
