@@ -78,9 +78,10 @@ public class DbUtils {
     private QuoteCharacter computeQuoteCharacter(JdbcTemplate jdbcTemplate) throws SQLException {
         try {
             var metaData = metaDataExtractor.extractDatabaseMetaData(jdbcTemplate.getDataSource());
-            if (metaData.getURL().startsWith("jdbc:hsqldb:")) {
-                // HSQL's databasemetadata's getIdentifierQuoteString returns double quotes, which is incorrect
-                // So we override with the value that actually works with HSQL db
+            var databaseUrl = metaData.getURL();
+            if (databaseUrl.startsWith("jdbc:hsqldb:") || databaseUrl.startsWith("jdbc:sap:")) {
+                // HSQL/HANA's databasemetadata's getIdentifierQuoteString returns double quotes, which is incorrect
+                // So we override with the value that actually works with HSQL db and HANA
                 return QuoteCharacter.NONE;
             }
             return QuoteCharacter.valueOf(getIdentifierQuoteChar(metaData));

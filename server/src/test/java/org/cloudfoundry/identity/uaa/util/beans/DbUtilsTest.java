@@ -35,18 +35,20 @@ class DbUtilsTest {
         when(metaDataExtractor.extractDatabaseMetaData(any())).thenReturn(databaseMetaData);
     }
 
-    @Test
-    void canQuoteHsqldbIdentifiers() throws SQLException {
-        when(databaseMetaData.getURL()).thenReturn("jdbc:hsqldb:mem:uaa");
+    @ParameterizedTest
+    @ValueSource(strings = {"jdbc:hsqldb:mem:uaa", "jdbc:sap:mem:uaa"})
+    void canQuoteHsqldbAndHanaIdentifiers(String databaseUrl) throws SQLException {
+        when(databaseMetaData.getURL()).thenReturn(databaseUrl);
 
         String quotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
         assertThat(quotedIdentifier).isEqualTo(IDENTIFIER_NAME);
     }
 
-    @Test
-    void canCacheForHsqldb() throws SQLException {
+    @ParameterizedTest
+    @ValueSource(strings = {"jdbc:hsqldb:mem:uaa", "jdbc:sap:mem:uaa"})
+    void canCacheForHsqldbAndHana(String databaseUrl) throws SQLException {
         when(databaseMetaData.getURL())
-                .thenReturn("jdbc:hsqldb:mem:uaa", "SHOULD NOT SEE THIS");
+                .thenReturn(databaseUrl, "SHOULD NOT SEE THIS");
         dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
 
         String subsequentQuotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
