@@ -382,7 +382,6 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
 
         ResponseToken responseToken = new ResponseToken(response, token);
         Saml2ResponseValidatorResult result = this.responseSignatureValidator.convert(responseToken);
-        boolean encryptedAssertion = false;
         if (responseSigned) {
             this.responseElementsDecrypter.accept(responseToken);
         } else if (!response.getEncryptedAssertions().isEmpty()) {
@@ -390,9 +389,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
                 result = result.concat(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
                         "Did not decrypt response [" + response.getID() + "] since it is not signed"));
             } else {
-                // accept the response if it has at least one encrypted assertion
                 this.responseElementsDecrypter.accept(responseToken);
-                encryptedAssertion = true;
             }
         }
         result = result.concat(this.responseValidator.convert(responseToken));
@@ -406,7 +403,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             }
             result = result.concat(this.assertionValidator.convert(assertionToken));
         }
-        if (!responseSigned && !allAssertionsSigned && !encryptedAssertion) {
+        if (!responseSigned && !allAssertionsSigned) {
             String description = "Either the response or one of the assertions is unsigned. "
                     + "Please either sign the response or all of the assertions.";
             result = result.concat(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE, description));
