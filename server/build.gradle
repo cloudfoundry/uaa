@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.springSecurityWeb)
     implementation(libs.springSecurityConfig)
     implementation(libs.springBootStarterMail)
+    implementation(libs.springBootSql)
     implementation(libs.openSamlApi)
     implementation(libs.springSecuritySamlServiceProvider)
     implementation(libs.xmlSecurity)

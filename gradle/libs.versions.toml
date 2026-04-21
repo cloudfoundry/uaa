@@ -21,7 +21,7 @@ orgJson = "20251224"
 passay = "2.0.0"
 selenium = "4.44.0"
 sonarqube = "7.3.0.8198"
-springBoot = "3.5.14"
+springBoot = "4.0.0"
 springDependencyManagement = "1.1.7"
 springDocOpenapi = "2.8.17"
 statsdClient = "3.1.0"
@@ -161,6 +161,7 @@ springWebMvc = { module = "org.springframework:spring-webmvc" }
 
 # Spring Boot
 springBootBom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
+springBootSql = { module = "org.springframework.boot:spring-boot-sql" }
 springBootStarter = { module = "org.springframework.boot:spring-boot-starter" }
 springBootStarterLog4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2" }
 springBootStarterMail = { module = "org.springframework.boot:spring-boot-starter-mail" }
