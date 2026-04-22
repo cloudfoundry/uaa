@@ -167,11 +167,11 @@ public class NetworkTestUtils {
         public void handle(HttpExchange httpExchange) throws IOException {
             wasInvoked = true;
             HttpsExchange exchange = (HttpsExchange) httpExchange;
-            for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-                for (String value : entry.getValue()) {
-                    exchange.getResponseHeaders().add(entry.getKey(), value);
+            headers.forEach((key, values) -> {
+                for (String value : values) {
+                    exchange.getResponseHeaders().add(key, value);
                 }
-            }
+            });
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, responseBody.length());
             OutputStream os = exchange.getResponseBody();

@@ -1548,7 +1548,7 @@ public class IntegrationTestUtils {
     }
 
     public static void extractCookies(ResponseEntity<?> response, BasicCookieStore cookies) {
-        if (response.getHeaders().containsKey("Set-Cookie")) {
+        if (response.getHeaders().containsHeader("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
                 cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
@@ -1557,7 +1557,7 @@ public class IntegrationTestUtils {
     }
 
     public static void copyCookies(ResponseEntity<?> response, HttpHeaders headers) {
-        if (response.getHeaders().containsKey("Set-Cookie")) {
+        if (response.getHeaders().containsHeader("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 headers.add("Cookie", cookie);
             }

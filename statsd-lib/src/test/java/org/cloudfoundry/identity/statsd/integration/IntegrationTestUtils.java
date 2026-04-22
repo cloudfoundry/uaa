@@ -15,7 +15,7 @@ public class IntegrationTestUtils {
     static final String TEST_PASSWORD = "koala";
 
     static void copyCookies(ResponseEntity<?> response, HttpHeaders headers) {
-        if (response.getHeaders().containsKey("Set-Cookie")) {
+        if (response.getHeaders().containsHeader("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 headers.add("Cookie", cookie);
             }

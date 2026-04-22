@@ -952,10 +952,10 @@ class ExternalOAuthAuthenticationManagerTest {
         }));
         HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
         HttpHeaders httpHeaders = httpEntity.getHeaders();
-        assertThat(httpHeaders).containsKey("Authorization")
-                .containsEntry("Authorization", Collections.singletonList("Basic aWRlbnRpdHk6c2VjcmV0"))
-                .containsKey("Accept")
-                .containsEntry("Content-Type", Collections.singletonList("application/x-www-form-urlencoded"));
+        assertThat(httpHeaders.containsHeader("Authorization")).isTrue();
+        assertThat(httpHeaders.get("Authorization")).isEqualTo(Collections.singletonList("Basic aWRlbnRpdHk6c2VjcmV0"));
+        assertThat(httpHeaders.containsHeader("Accept")).isTrue();
+        assertThat(httpHeaders.get("Content-Type")).isEqualTo(Collections.singletonList("application/x-www-form-urlencoded"));
     }
 
     @Test
@@ -1012,7 +1012,7 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThat(headers.getAccept()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_JSON));
         assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
         assertAuthorizationHeaderIsSetAndStartsWithBasic(headers);
-        assertThat(headers).containsKey("X-Forwarded-For");
+        assertThat(headers.containsHeader("X-Forwarded-For")).isTrue();
         final List<String> xForwardedForHeaders = headers.get("X-Forwarded-For");
         assertThat(xForwardedForHeaders).hasSize(1);
         assertThat(xForwardedForHeaders.getFirst()).isEqualTo("203.0.113.1");
@@ -1117,7 +1117,7 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThat(headers.getAccept()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_JSON));
         assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
         assertAuthorizationHeaderIsSetAndStartsWithBasic(headers);
-        assertThat(headers).doesNotContainKey("X-Forwarded-For");
+        assertThat(headers.containsHeader("X-Forwarded-For")).isFalse();
     }
 
     @Test
@@ -1165,7 +1165,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     private static void assertAuthorizationHeaderIsSetAndStartsWithBasic(final HttpHeaders headers) {
-        assertThat(headers).containsKey("Authorization");
+        assertThat(headers.containsHeader("Authorization")).isTrue();
         final List<String> authorizationHeaders = headers.get("Authorization");
         assertThat(authorizationHeaders).hasSize(1);
         assertThat(authorizationHeaders.getFirst()).startsWith("Basic ");

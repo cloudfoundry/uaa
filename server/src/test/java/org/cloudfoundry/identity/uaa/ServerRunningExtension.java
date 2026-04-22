@@ -271,7 +271,7 @@ public final class ServerRunningExtension implements BeforeAllCallback, RestTemp
         }
 
         headers.remove("Cookie");
-        if (exchange.getHeaders().containsKey("Set-Cookie")) {
+        if (exchange.getHeaders().containsHeader("Set-Cookie")) {
             for (String cookie : exchange.getHeaders().get("Set-Cookie")) {
                 headers.add("Cookie", cookie);
             }

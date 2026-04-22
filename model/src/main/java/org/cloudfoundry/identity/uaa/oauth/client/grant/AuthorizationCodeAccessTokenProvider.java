@@ -80,7 +80,7 @@ public class AuthorizationCodeAccessTokenProvider extends OAuth2AccessTokenSuppo
         ResponseExtractor<ResponseEntity<Void>> extractor = new ResponseExtractor<>() {
             @Override
             public ResponseEntity<Void> extractData(ClientHttpResponse response) throws IOException {
-                if (response.getHeaders().containsKey("Set-Cookie")) {
+                if (response.getHeaders().containsHeader("Set-Cookie")) {
                     copy.setCookie(response.getHeaders().getFirst("Set-Cookie"));
                 }
                 return delegate.extractData(response);
