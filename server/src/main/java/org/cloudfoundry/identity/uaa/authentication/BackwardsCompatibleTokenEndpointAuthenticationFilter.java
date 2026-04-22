@@ -56,7 +56,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.Assert;
 
@@ -81,7 +81,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.hasText;
  */
 @Slf4j
 public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Filter {
-    public static final String DEFAULT_FILTER_PROCESSES_URI = "/oauth/token/alias/{{registrationId}}";
+    public static final String DEFAULT_FILTER_PROCESSES_URI = "/oauth/token/alias/{registrationId}";
     private final AuthenticationManager tokenExchangeAuthenticationManager;
 
     /**
@@ -105,7 +105,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private final ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
 
-    private final AntPathRequestMatcher requestMatcher;
+    private final RequestMatcher requestMatcher;
 
     private final RevocableTokenProvisioning revocableTokenProvisioning;
 
@@ -142,7 +142,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         super();
         Assert.isTrue(requestMatcherUrl.contains("{registrationId}"),
                 "filterProcessesUrl must contain a {registrationId} match variable");
-        requestMatcher = new AntPathRequestMatcher(requestMatcherUrl);
+        requestMatcher = PathPatternRequestMatcher.withDefaults().matcher(requestMatcherUrl);
 
         this.authenticationManager = authenticationManager;
         this.oAuth2RequestFactory = oAuth2RequestFactory;

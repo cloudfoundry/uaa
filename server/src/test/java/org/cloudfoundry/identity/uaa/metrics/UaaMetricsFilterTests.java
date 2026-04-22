@@ -9,7 +9,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.jmx.export.notification.NotificationPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -198,9 +199,7 @@ class UaaMetricsFilterTests {
     @Test
     void url_groups() {
         request.setServerName("localhost:8080");
-        setRequestData("/uaa/authenticate");
-        request.setPathInfo("/authenticate");
-        request.setContextPath("/uaa");
+        setRequestData("/authenticate");
         assertThat(filter.getUriGroup(request).getGroup()).isEqualTo("/api");
     }
 
@@ -251,7 +250,7 @@ class UaaMetricsFilterTests {
     void validate_matcher() {
         //validates that patterns that end with /** still match at parent level
         setRequestData("/some/path");
-        AntPathRequestMatcher matcher = new AntPathRequestMatcher("/some/path/**");
+        RequestMatcher matcher = PathPatternRequestMatcher.withDefaults().matcher("/some/path/**");
         assertThat(matcher.matches(request)).isTrue();
     }
 }
