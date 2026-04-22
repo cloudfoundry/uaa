@@ -37,6 +37,15 @@ public class SamlConfig {
     public static final String LEGACY_KEY_ID = "legacy-saml-key";
 
     private boolean requestSigned = true;
+
+    /**
+     * @deprecated Since 78.13.0. Still honored today for SP metadata ({@code WantAssertionsSigned}) and for
+     * whether an unsigned SAML {@code Response} that only contains {@code EncryptedAssertion} elements is
+     * decrypted before validation. Authentication always requires a verifiable XML signature on the response
+     * or on every assertion after decryption; this flag does not relax that requirement. Scheduled for removal
+     * in a future release; configure the IdP to sign the response or assertions instead of relying on this toggle.
+     */
+    @Deprecated(since = "78.13.0", forRemoval = true)
     private boolean wantAssertionSigned = true;
     private String activeKeyId;
     private Map<String, SamlKey> keys = new HashMap<>();

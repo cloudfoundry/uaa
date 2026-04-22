@@ -39,6 +39,9 @@ public class UaaProperties {
     }
 
 
+    /**
+     * @param wantAssertionSigned Deprecated since 78.13.0; see {@link org.cloudfoundry.identity.uaa.zone.SamlConfig}.
+     */
     public record Saml(
             String activeKeyId,
             @DefaultValue("false") boolean disableInResponseToCheck,
