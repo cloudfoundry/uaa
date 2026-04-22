@@ -158,7 +158,7 @@ public class KeyInfo {
             result.put(JWKParameterNames.RSA_MODULUS, n);
             result.put(JWKParameterNames.RSA_EXPONENT, e);
         } else if (type == EC) {
-            result.putAll(jwk.toJSONObject());
+            result.putAll(jwk.toPublicJWK().toJSONObject());
         }
         return result;
     }

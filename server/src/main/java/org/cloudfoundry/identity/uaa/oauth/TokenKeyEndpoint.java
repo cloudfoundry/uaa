@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.EC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
 /**
@@ -79,7 +80,7 @@ public class TokenKeyEndpoint {
      */
     public VerificationKeyResponse getKey(Principal principal) {
         KeyInfo key = keyInfoService.getActiveKey();
-        if (!includeSymmetricalKeys(principal) && !RSA.name().equals(key.type())) {
+        if (!includeSymmetricalKeys(principal) && !isAsymmetricKey(key.type())) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
         return getVerificationKeyResponse(key);
@@ -110,7 +111,7 @@ public class TokenKeyEndpoint {
         boolean includeSymmetric = includeSymmetricalKeys(principal);
         Map<String, KeyInfo> keys = keyInfoService.getKeys();
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
-                .filter(k -> includeSymmetric || RSA.name().equals(k.type()))
+                .filter(k -> includeSymmetric || isAsymmetricKey(k.type()))
                 .map(TokenKeyEndpoint::getVerificationKeyResponse)
                 .toList();
         return new VerificationKeysListResponse(keyResponses);
@@ -133,4 +134,7 @@ public class TokenKeyEndpoint {
         return false;
     }
 
+    private boolean isAsymmetricKey(String keyType) {
+        return RSA.name().equals(keyType) || EC.name().equals(keyType);
+    }
 }
