@@ -908,28 +908,28 @@ class OpenSaml5AuthenticationProviderUnitTests {
     @Test
     void toOauthTokenRecipient_whenAliasPath_thenReturnsStandardTokenEndpoint() {
         String alias = "http://localhost:8080/uaa/oauth/token/alias/my-idp?query=value";
-        assertThat(OpenSaml4AuthenticationProvider.toOauthTokenRecipient(alias))
+        assertThat(OpenSaml5AuthenticationProvider.toOauthTokenRecipient(alias))
                 .isEqualTo("http://localhost:8080/uaa/oauth/token?query=value");
     }
 
     @Test
     void toOauthTokenRecipient_whenAliasPathWithSubdomain_thenPreservesHost() {
         String alias = "http://myzone.localhost:8080/uaa/oauth/token/alias/myzone.my-idp";
-        assertThat(OpenSaml4AuthenticationProvider.toOauthTokenRecipient(alias))
+        assertThat(OpenSaml5AuthenticationProvider.toOauthTokenRecipient(alias))
                 .isEqualTo("http://myzone.localhost:8080/uaa/oauth/token");
     }
 
     @Test
     void toOauthTokenRecipient_whenNoAliasPath_thenReturnsUnchanged() {
         String plain = "http://localhost:8080/uaa/oauth/token";
-        assertThat(OpenSaml4AuthenticationProvider.toOauthTokenRecipient(plain))
+        assertThat(OpenSaml5AuthenticationProvider.toOauthTokenRecipient(plain))
                 .isEqualTo(plain);
     }
 
     @Test
     void toOauthTokenRecipient_whenSamlSsoPath_thenReturnsUnchanged() {
         String sso = "http://localhost:8080/uaa/saml/SSO/alias/my-idp";
-        assertThat(OpenSaml4AuthenticationProvider.toOauthTokenRecipient(sso))
+        assertThat(OpenSaml5AuthenticationProvider.toOauthTokenRecipient(sso))
                 .isEqualTo(sso);
     }
 
