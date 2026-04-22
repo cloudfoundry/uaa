@@ -22,6 +22,10 @@ public class TokenValidityResolver {
     }
 
     public Date resolve(String clientId) {
+        return resolve(clientId, timeService.getCurrentTimeMillis());
+    }
+
+    public Date resolve(String clientId, long epochMillis) {
         Integer tokenValiditySeconds = ofNullable(
                 clientTokenValidity.getValiditySeconds(clientId)
         ).orElse(
@@ -32,7 +36,7 @@ public class TokenValidityResolver {
             tokenValiditySeconds = globalTokenValiditySeconds;
         }
 
-        return new DateTime(timeService.getCurrentTimeMillis()).plusSeconds(tokenValiditySeconds).toDate();
+        return new DateTime(epochMillis).plusSeconds(tokenValiditySeconds).toDate();
     }
 
     public void setTimeService(TimeService timeService) {

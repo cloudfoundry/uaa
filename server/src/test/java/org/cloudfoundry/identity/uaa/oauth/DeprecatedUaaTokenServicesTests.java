@@ -129,10 +129,12 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -283,6 +285,7 @@ class DeprecatedUaaTokenServicesTests {
 
         TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
         when(tokenValidityResolver.resolve(TokenTestSupport.CLIENT_ID)).thenReturn(new Date());
+        when(tokenValidityResolver.resolve(eq(TokenTestSupport.CLIENT_ID), anyLong())).thenReturn(new Date());
 
         JwtTokenSignedByThisUAA jwtToken = mock(JwtTokenSignedByThisUAA.class);
         TokenValidationService tokenValidationService = mock(TokenValidationService.class);
@@ -1270,7 +1273,7 @@ class DeprecatedUaaTokenServicesTests {
         this.assertCommonUserAccessTokenProperties(accessToken, CLIENT_ID);
         assertThat(accessToken).is(matching(issuerUri(is(ISSUER_URI))))
                 .is(matching(scope(is(scopesThatDontExist))))
-                .is(matching(validFor(greaterThan(60 * 60 * 12))));
+                .is(matching(validFor(greaterThanOrEqualTo(60 * 60 * 12))));
         assertThat(accessToken.getRefreshToken()).isNull();
 
         this.assertCommonEventProperties(accessToken, tokenSupport.userId, buildJsonString(scopesThatDontExist));

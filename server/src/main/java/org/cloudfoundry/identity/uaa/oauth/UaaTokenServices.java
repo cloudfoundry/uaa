@@ -424,7 +424,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             boolean isRevocable,
             UserAuthenticationData userAuthenticationData) throws AuthenticationException {
         CompositeToken compositeToken = new CompositeToken(tokenId);
-        compositeToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
+        long issuedAtMillis = timeService.getCurrentTimeMillis();
+        compositeToken.setExpiration(accessTokenValidityResolver.resolve(clientId, issuedAtMillis));
         compositeToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
 
         Set<String> requestedScopes = userAuthenticationData.scopes;
@@ -469,7 +470,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 grantType,
                 revocableHashSignature,
                 isRevocable,
-                additionalRootClaims);
+                additionalRootClaims,
+                issuedAtMillis);
         String token = JwtHelper.encode(jwtAccessToken, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
         UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
@@ -512,7 +514,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String grantType,
             String revocableHashSignature,
             boolean isRevocable,
-            Map<String, Object> additionalRootClaims) {
+            Map<String, Object> additionalRootClaims,
+            long issuedAtEpochMillis) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
 
@@ -543,7 +546,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
         }
 
-        claims.put(IAT, timeService.getCurrentTimeMillis() / MILLIS_PER_SECOND);
+        claims.put(IAT, issuedAtEpochMillis / MILLIS_PER_SECOND);
         claims.put(EXPIRY_IN_SECONDS, token.getExpiration().getTime() / MILLIS_PER_SECOND);
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()) != null) {

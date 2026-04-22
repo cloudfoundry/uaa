@@ -35,6 +35,13 @@ class TokenValidityResolverTest {
     }
 
     @Test
+    void whenEpochMillisProvided_usesItInsteadOfTimeService() {
+        Date validity = resolver.resolve("clientId", 2000L);
+
+        assertThat(validity.getTime()).isEqualTo(102_000L);
+    }
+
+    @Test
     void whenClientValidityNotConfigured_fallsBackToZoneConfiguration() {
         when(clientTokenValidity.getZoneValiditySeconds()).thenReturn(50);
         when(clientTokenValidity.getValiditySeconds("clientId")).thenReturn(null);
