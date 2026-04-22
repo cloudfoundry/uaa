@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.provider.error;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.util.MediaTypeComparators;
+import org.cloudfoundry.identity.uaa.util.MediaTypeUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -73,7 +73,7 @@ public class DefaultOAuth2ExceptionRenderer implements OAuth2ExceptionRenderer {
         if (acceptedMediaTypes.isEmpty()) {
             acceptedMediaTypes = Collections.singletonList(MediaType.ALL);
         }
-        acceptedMediaTypes.sort(MediaTypeComparators.BY_QUALITY_VALUE);
+        MediaTypeUtils.sortByQualityValue(acceptedMediaTypes);
         Class<?> returnValueType = returnValue.getClass();
         List<MediaType> allSupportedMediaTypes = new ArrayList<>();
         for (MediaType acceptedMediaType : acceptedMediaTypes) {
