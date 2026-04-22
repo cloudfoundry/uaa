@@ -9,10 +9,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,16 +24,13 @@ class HealthzEndpointTests {
     private Thread shutdownHook;
     private DataSource dataSource;
     private Connection connection;
-    private Statement statement;
 
     @BeforeEach
     void setUp() throws SQLException {
         Runtime mockRuntime = mock(Runtime.class);
         dataSource = mock(DataSource.class);
         connection = mock(Connection.class);
-        statement = mock(Statement.class);
         when(dataSource.getConnection()).thenReturn(connection);
-        when(connection.createStatement()).thenReturn(statement);
         endpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN, mockRuntime, dataSource);
         response = new MockHttpServletResponse();
 
@@ -51,14 +46,15 @@ class HealthzEndpointTests {
     }
 
     @Test
-    void getHealthz_connectionSuccess() {
+    void getHealthz_connectionSuccess() throws SQLException {
         endpoint.isDataSourceConnectionAvailable();
         assertThat(endpoint.getHealthz(response)).isEqualTo("ok\n");
+        verify(dataSource).getConnection();
     }
 
     @Test
     void getHealthz_connectionFailed() throws SQLException {
-        when(statement.execute(anyString())).thenThrow(new SQLException());
+        when(dataSource.getConnection()).thenThrow(new SQLException());
         endpoint.isDataSourceConnectionAvailable();
         assertThat(endpoint.getHealthz(response)).isEqualTo("Database Connection failed.\n");
         assertThat(response.getStatus()).isEqualTo(503);

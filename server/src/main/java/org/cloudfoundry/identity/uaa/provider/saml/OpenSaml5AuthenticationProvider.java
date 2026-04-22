@@ -21,6 +21,7 @@ import lombok.Getter;
 import net.shibboleth.shared.xml.ParserPool;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.opensaml.core.config.ConfigurationService;
@@ -89,6 +90,7 @@ import org.w3c.dom.Element;
 
 import javax.xml.namespace.QName;
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -98,6 +100,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUrlForPortComparison;
@@ -583,17 +586,30 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
         };
     }
 
+    static String toOauthTokenRecipient(String recipient) {
+        URI recipientUri = URI.create(recipient);
+        String path = recipientUri.getPath();
+        String aliasPathPrefix = "/oauth/token/alias/";
+        int aliasPathIndex = path.indexOf(aliasPathPrefix);
+        if (aliasPathIndex < 0) {
+            return recipient;
+        }
+        String oauthTokenPath = path.substring(0, aliasPathIndex) + "/oauth/token";
+        return UaaUrlUtils.fromUriString(recipient).replacePath(oauthTokenPath).toUriString();
+    }
+
     private static ValidationContext createValidationContext(AssertionToken assertionToken,
             Consumer<Map<String, Object>> paramsConsumer,
             boolean saml2Bearer) {
         Saml2AuthenticationToken token = assertionToken.token;
         RelyingPartyRegistration relyingPartyRegistration = token.getRelyingPartyRegistration();
         String audience = relyingPartyRegistration.getEntityId();
-        String recipient;
+        Set<String> recipientList;
         if (saml2Bearer) {
-            recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation().replace("/saml/SSO/alias/", "/oauth/token/alias/");
+            String recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation().replace("/saml/SSO/alias/", "/oauth/token/alias/");
+            recipientList = Set.of(recipient, toOauthTokenRecipient(recipient));
         } else {
-            recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation();
+            recipientList = Set.of(relyingPartyRegistration.getAssertionConsumerServiceLocation());
         }
         String assertingPartyEntityId = relyingPartyRegistration.getAssertingPartyDetails().getEntityId();
         Map<String, Object> params = new HashMap<>();
@@ -603,7 +619,7 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
             params.put(SAML2AssertionValidationParameters.SC_VALID_IN_RESPONSE_TO, requestId);
         }
         params.put(SAML2AssertionValidationParameters.COND_VALID_AUDIENCES, Collections.singleton(audience));
-        params.put(SAML2AssertionValidationParameters.SC_VALID_RECIPIENTS, Collections.singleton(recipient));
+        params.put(SAML2AssertionValidationParameters.SC_VALID_RECIPIENTS, recipientList);
         params.put(SAML2AssertionValidationParameters.VALID_ISSUERS, Collections.singleton(assertingPartyEntityId));
         // Disable address checking - we don't track valid client addresses
         params.put(SAML2AssertionValidationParameters.SC_CHECK_ADDRESS, false);

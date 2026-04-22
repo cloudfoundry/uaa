@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.Test;
@@ -124,6 +125,89 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
         assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
         assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
         assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
+    }
+
+    @Test
+    void token_exchange_three_idps_using_opaque_access_token() throws Exception {
+
+        ThreeWayUAASetup multiAuthSetup = getThreeWayUaaSetUp();
+        AuthorizationServer thirdParty = multiAuthSetup.thirdPartyIdp();
+        AuthorizationServer workerServer = multiAuthSetup.workerServer();
+
+        // First, perform a token exchange at the worker server zone requesting an opaque token.
+        // This stores the opaque access token in the worker server's revocable token store.
+        String controlServerAccessToken = (String) multiAuthSetup.controlServerTokens().get("access_token");
+        ResultActions firstExchangeResult = performTokenExchangeGrant(
+                workerServer.zone().getIdentityZone(),
+                controlServerAccessToken,
+                TOKEN_TYPE_ACCESS,
+                TOKEN_TYPE_ACCESS,
+                null,
+                null,
+                workerServer.client(),
+                ClientAuthType.FORM,
+                null,
+                TokenConstants.TokenFormat.OPAQUE.getStringValue()
+        );
+        firstExchangeResult.andExpect(status().isOk());
+        Map<String, Object> firstExchangeTokens = JsonUtils.readValueAsMap(firstExchangeResult.andReturn().getResponse().getContentAsString());
+        String opaqueAccessToken = (String) firstExchangeTokens.get("access_token");
+
+        // The opaque token must not be a JWT (no dots separating header.payload.signature)
+        assertThat(opaqueAccessToken).doesNotContain(".");
+
+        // Now use the opaque access token (stored in the worker zone) as subject_token
+        // in a second token exchange – this exercises the opaque→JWT resolution path
+        ResultActions tokenExchangeResult = performTokenExchangeGrantForJWT(
+                workerServer.zone().getIdentityZone(),
+                opaqueAccessToken,
+                TOKEN_TYPE_ACCESS,
+                TOKEN_TYPE_ACCESS,
+                null,
+                null,
+                workerServer.client(),
+                ClientAuthType.FORM,
+                null
+        );
+
+        tokenExchangeResult
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(".access_token").isNotEmpty());
+        Map<String, Object> tokens = JsonUtils.readValueAsMap(tokenExchangeResult.andReturn().getResponse().getContentAsString());
+
+        assertThat(tokens.get(ISSUED_TOKEN_TYPE)).isEqualTo(TOKEN_TYPE_ACCESS);
+        assertThat(tokens.get(TOKEN_TYPE)).isEqualTo(BEARER_TYPE.toLowerCase());
+
+        Jwt tokenClaims = JwtHelper.decode((String) tokens.get("access_token"));
+        Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
+
+        assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
+        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
+        assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
+    }
+
+    @Test
+    void token_exchange_unknown_opaque_access_token_returns_unauthorized() throws Exception {
+        ThreeWayUAASetup multiAuthSetup = getThreeWayUaaSetUp();
+        AuthorizationServer workerServer = multiAuthSetup.workerServer();
+
+        String unknownOpaque = "deadbeefdeadbeefdeadbeefdeadbeef";
+
+        ResultActions tokenExchangeResult = performTokenExchangeGrantForJWT(
+                workerServer.zone().getIdentityZone(),
+                unknownOpaque,
+                TOKEN_TYPE_ACCESS,
+                TOKEN_TYPE_ACCESS,
+                null,
+                null,
+                workerServer.client(),
+                ClientAuthType.FORM,
+                null
+        );
+
+        // Opaque token is not in the revocable store; external user authentication fails before the grant runs,
+        // so the token endpoint responds with 401 rather than 400 invalid_grant.
+        tokenExchangeResult.andExpect(status().isUnauthorized());
     }
 
     @Test

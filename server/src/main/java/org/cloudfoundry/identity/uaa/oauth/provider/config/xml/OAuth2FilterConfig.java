@@ -39,13 +39,14 @@ public class OAuth2FilterConfig {
             ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager,
             @Qualifier("tokenExchangeAuthenticationManager") AuthenticationManager tokenExchangeAuthenticationManager,
             AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource,
-            AuthenticationEntryPoint basicAuthenticationEntryPoint
+            AuthenticationEntryPoint basicAuthenticationEntryPoint,
+            @Qualifier("revocableTokenProvisioning") RevocableTokenProvisioning revocableTokenProvisioning
     ) {
 
         BackwardsCompatibleTokenEndpointAuthenticationFilter filter =
                 new BackwardsCompatibleTokenEndpointAuthenticationFilter("/oauth/token/alias/{registrationId}",
                         passwordGrantAuthenticationManager, authorizationRequestManager, samlBearerGrantAuthenticationProvider,
-                        externalOAuthAuthenticationManager, tokenExchangeAuthenticationManager);
+                        externalOAuthAuthenticationManager, tokenExchangeAuthenticationManager, revocableTokenProvisioning);
         filter.setAuthenticationDetailsSource(authenticationDetailsSource);
         filter.setAuthenticationEntryPoint(basicAuthenticationEntryPoint);
         FilterRegistrationBean<BackwardsCompatibleTokenEndpointAuthenticationFilter> bean = new FilterRegistrationBean<>(filter);
@@ -96,8 +97,9 @@ public class OAuth2FilterConfig {
             @Qualifier("oauth2TokenGranter") CompositeTokenGranter compositeTokenGranter,
             @Qualifier("tokenServices") AuthorizationServerTokenServices tokenServices,
             @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
-            @Qualifier("authorizationRequestManager") OAuth2RequestFactory requestFactory) {
-        TokenExchangeGranter tokenExchangeGranter = new TokenExchangeGranter(tokenServices, clientDetailsService, requestFactory);
+            @Qualifier("authorizationRequestManager") OAuth2RequestFactory requestFactory,
+            @Qualifier("revocableTokenProvisioning") RevocableTokenProvisioning revocableTokenProvisioning) {
+        TokenExchangeGranter tokenExchangeGranter = new TokenExchangeGranter(tokenServices, clientDetailsService, requestFactory, revocableTokenProvisioning);
         compositeTokenGranter.addTokenGranter(tokenExchangeGranter);
         return tokenExchangeGranter;
     }
