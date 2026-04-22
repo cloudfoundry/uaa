@@ -4,14 +4,16 @@ source 'https://rubygems.org'
 gem 'bundler', '~> 2.2'
 # Middleman
 gem 'middleman', '~> 4.5'
-gem 'middleman-syntax', '~> 3.4'
+gem 'middleman-syntax', '~> 3.6'
 gem 'middleman-autoprefixer', '~> 3.0'
-gem 'middleman-sprockets', '~> 4.1'
+# Explicitly require safe ActiveSupport version
+gem 'activesupport', '~> 7.2.3', '>= 7.2.3.1'
 gem 'rouge', '~> 3.21'
 gem 'redcarpet', '~> 3.6.0'
 gem 'nokogiri', '~> 1.19.1'
-gem 'sass'
+gem 'sassc', '~> 2.0'
 gem 'webrick'
-gem 'sprockets', '~> 3.7'
-
+gem 'sprockets', '~> 4.0'
+# Ruby 3.3+ compatibility
+gem 'ostruct'
 

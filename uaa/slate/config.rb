@@ -26,7 +26,7 @@ ready do
   require './lib/multilang.rb'
 end
 
-activate :sprockets
+# activate :sprockets  # Disabled - using built-in SASS support instead
 
 activate :autoprefixer do |config|
   config.browsers = ['last 2 version', 'Firefox ESR']
