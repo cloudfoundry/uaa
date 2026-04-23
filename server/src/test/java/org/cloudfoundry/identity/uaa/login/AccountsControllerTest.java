@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.core.env.Environment;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
@@ -274,7 +275,7 @@ class AccountsControllerTest {
 
         @Bean
         AccountsController accountsController(AccountCreationService accountCreationService, IdentityProviderProvisioning identityProviderProvisioning) {
-            return new AccountsController(accountCreationService, identityProviderProvisioning);
+            return new AccountsController(accountCreationService, identityProviderProvisioning, mock(Environment.class));
         }
     }
 }
