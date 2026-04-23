@@ -156,6 +156,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @TestPropertySource(properties = {"uaa.url=https://localhost:8080/uaa", "jwt.token.refresh.format=jwt"})
+@DefaultTestContext
 // public for LimitedModeTokenMockMvcTests
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private static final String BAD_SECRET = "badsecret";

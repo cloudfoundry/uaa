@@ -163,6 +163,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {"uaa.url=https://localhost:8080/uaa", "jwt.token.refresh.format=jwt"})
 // public for LimitedModeTokenMockMvcTests
 @EnabledIfZonePathsEnabled
+@DefaultTestContext
 public class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
     private static final String BAD_SECRET = "badsecret";
     protected AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
