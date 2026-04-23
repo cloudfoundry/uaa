@@ -52,6 +52,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -244,6 +245,7 @@ public class InvitationsController {
             @RequestParam("code") String code,
             @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
             Model model,
+            RedirectAttributes redirectAttributes,
             HttpServletResponse response) {
 
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
@@ -268,15 +270,15 @@ public class InvitationsController {
         final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), identityZoneManager.getCurrentIdentityZoneId()).getCode();
         BrandingInformation zoneBranding = identityZoneManager.getCurrentIdentityZone().getConfig().getBranding();
         if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
-            return processErrorReload(newCode, model, response, "error_message_code", "missing_consent");
+            return processErrorReload(newCode, model, redirectAttributes, response, "error_message_code", "missing_consent");
         }
         if (!validation.valid()) {
-            return processErrorReload(newCode, model, response, "error_message_code", validation.getMessageCode());
+            return processErrorReload(newCode, model, redirectAttributes, response, "error_message_code", validation.getMessageCode());
         }
         try {
             passwordValidator.validate(password);
         } catch (InvalidPasswordException e) {
-            return processErrorReload(newCode, model, response, "error_message", e.getMessagesAsOneString());
+            return processErrorReload(newCode, model, redirectAttributes, response, "error_message", e.getMessagesAsOneString());
         }
         AcceptedInvitation invitation;
         try {
@@ -291,15 +293,15 @@ public class InvitationsController {
         return res;
     }
 
-    private String processErrorReload(String code, Model model, HttpServletResponse response, String errorCode, String error) {
+    private String processErrorReload(String code, Model model, RedirectAttributes redirectAttributes, HttpServletResponse response, String errorCode, String error) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
         });
         try {
             String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), identityZoneManager.getCurrentIdentityZoneId()).getCode();
 
-            model.addAttribute(errorCode, error);
-            model.addAttribute("code", newCode);
+            redirectAttributes.addAttribute(errorCode, error);
+            redirectAttributes.addAttribute("code", newCode);
             //return an absolute, within the app, link
             return "redirect:/invitations/accept";
         } catch (EmptyResultDataAccessException noProviderFound) {

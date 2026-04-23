@@ -47,6 +47,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpSession;
@@ -366,9 +367,10 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, null, extendedModelMap, session, request);
+        RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, null, extendedModelMap, redirectAttributes, session, request);
 
-        assertThat(extendedModelMap).containsEntry("email", "testuser@fake.com");
+        verify(redirectAttributes).addAttribute("email", "testuser@fake.com");
     }
 
     @Test
@@ -377,7 +379,8 @@ class LoginInfoEndpointTests {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
         String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", loginHint, null, extendedModelMap, session, request);
+        RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", loginHint, null, extendedModelMap, redirectAttributes, session, request);
 
         assertThat(extendedModelMap).containsEntry("login_hint", loginHint);
     }
@@ -402,7 +405,8 @@ class LoginInfoEndpointTests {
         when(idp.getConfig()).thenReturn(idpConfig);
         when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(Collections.singletonList(idp));
 
-        String redirect = endpoint.discoverIdentityProvider("testuser@fake.com", null, loginHint, "testuser@fake.com", extendedModelMap, session, request);
+        RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
+        String redirect = endpoint.discoverIdentityProvider("testuser@fake.com", null, loginHint, "testuser@fake.com", extendedModelMap, redirectAttributes, session, request);
 
         assertThat(redirect).contains("username=testuser@fake.com");
     }
@@ -418,7 +422,8 @@ class LoginInfoEndpointTests {
         uaaIdentityProvider.setType(OriginKeys.UAA);
         when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(singletonList(uaaIdentityProvider));
 
-        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, null, extendedModelMap, session, request);
+        RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
+        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, null, extendedModelMap, redirectAttributes, session, request);
 
         String loginHint = "{\"origin\":\"uaa\"}";
         assertThat(extendedModelMap).containsEntry("login_hint", loginHint);
