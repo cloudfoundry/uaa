@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.saml2.core.Saml2X509Credential;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
 import java.security.Security;
@@ -81,8 +82,8 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("entityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("entityId", AssertingPartyMetadata::getEntityId);
     }
 
     @Test
@@ -104,10 +105,10 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SSO/alias/testzone.entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/testzone.entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("testzone.entityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("testzone.entityId", AssertingPartyMetadata::getEntityId)
                 // signature algorithm defaults to SHA256
-                .extracting(RelyingPartyRegistration.AssertingPartyDetails::getSigningAlgorithms)
+                .extracting(AssertingPartyMetadata::getSigningAlgorithms)
                 .isEqualTo(List.of(ALGO_ID_SIGNATURE_RSA_SHA256));
     }
 
@@ -204,7 +205,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
         when(identityZoneConfig.getSamlConfig()).thenReturn(samlConfig);
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-        assertThat(registration.getAssertingPartyDetails().getSigningAlgorithms())
+        assertThat(registration.getAssertingPartyMetadata().getSigningAlgorithms())
                 .hasSize(1)
                 .first()
                 .isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA512);

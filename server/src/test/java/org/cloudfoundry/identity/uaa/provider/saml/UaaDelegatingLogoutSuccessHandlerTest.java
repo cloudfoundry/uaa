@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2RelyingPartyInitiatedLogoutSuccessHandler;
@@ -82,8 +83,8 @@ class UaaDelegatingLogoutSuccessHandlerTest {
         when(mockPrincipal.getRelyingPartyRegistrationId()).thenReturn(REG_ID);
         var mockRegistration = mock(RelyingPartyRegistration.class);
         when(relyingPartyRegistrationResolver.resolve(any(), eq(REG_ID))).thenReturn(mockRegistration);
-        var mockAssertingPartyDetails = mock(RelyingPartyRegistration.AssertingPartyDetails.class);
-        when(mockRegistration.getAssertingPartyDetails()).thenReturn(mockAssertingPartyDetails);
+        var mockAssertingPartyDetails = mock(AssertingPartyMetadata.class);
+        when(mockRegistration.getAssertingPartyMetadata()).thenReturn(mockAssertingPartyDetails);
         when(mockAssertingPartyDetails.getSingleLogoutServiceLocation()).thenReturn(URL);
 
         logoutSuccessHandler.onLogoutSuccess(request, response, authentication);
@@ -140,8 +141,8 @@ class UaaDelegatingLogoutSuccessHandlerTest {
         when(mockPrincipal.getRelyingPartyRegistrationId()).thenReturn(REG_ID);
         var mockRegistration = mock(RelyingPartyRegistration.class);
         when(relyingPartyRegistrationResolver.resolve(any(), eq(REG_ID))).thenReturn(mockRegistration);
-        var mockAssertingPartyDetails = mock(RelyingPartyRegistration.AssertingPartyDetails.class);
-        when(mockRegistration.getAssertingPartyDetails()).thenReturn(mockAssertingPartyDetails);
+        var mockAssertingPartyDetails = mock(AssertingPartyMetadata.class);
+        when(mockRegistration.getAssertingPartyMetadata()).thenReturn(mockAssertingPartyDetails);
 
         logoutSuccessHandler.onLogoutSuccess(request, response, authentication);
         verifyCorrectOnLogoutSuccessCalled(false, false, true);

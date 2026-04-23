@@ -87,7 +87,7 @@ public class SamlIdentityProviderConfigurator {
         }
         SamlIdentityProviderDefinition clone = providerDefinition.clone();
         added = getExtendedMetadataDelegate(clone);
-        String entityIDToBeAdded = added.getAssertingPartyDetails().getEntityId();
+        String entityIDToBeAdded = added.getAssertingPartyMetadata().getEntityId();
         if (!hasText(entityIDToBeAdded)) {
             throw new IllegalStateException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
         }
@@ -100,7 +100,7 @@ public class SamlIdentityProviderConfigurator {
                     continue;
                 }
                 RelyingPartyRegistration existingProvider = getExtendedMetadataDelegate(existing);
-                if (entityIDToBeAdded.equals(existingProvider.getAssertingPartyDetails().getEntityId()) && !existing.getUniqueAlias().equals(clone.getUniqueAlias())) {
+                if (entityIDToBeAdded.equals(existingProvider.getAssertingPartyMetadata().getEntityId()) && !existing.getUniqueAlias().equals(clone.getUniqueAlias())) {
                     entityIDexists = true;
                     break;
                 }

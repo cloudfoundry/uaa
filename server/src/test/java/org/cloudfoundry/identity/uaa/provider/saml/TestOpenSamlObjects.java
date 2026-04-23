@@ -503,7 +503,7 @@ public final class TestOpenSamlObjects {
         logoutRequest.setNameID(nameId);
         IssuerBuilder issuerBuilder = new IssuerBuilder();
         Issuer issuer = issuerBuilder.buildObject();
-        issuer.setValue(registration.getAssertingPartyDetails().getEntityId());
+        issuer.setValue(registration.getAssertingPartyMetadata().getEntityId());
         logoutRequest.setIssuer(issuer);
         logoutRequest.setDestination(registration.getSingleLogoutServiceLocation());
         return logoutRequest;
@@ -517,7 +517,7 @@ public final class TestOpenSamlObjects {
         NameID nameId = nameIdBuilder.buildObject();
         nameId.setValue("user");
         logoutRequest.setNameID(null);
-        Saml2X509Credential credential = registration.getAssertingPartyDetails()
+        Saml2X509Credential credential = registration.getAssertingPartyMetadata()
                 .getEncryptionX509Credentials()
                 .iterator()
                 .next();
@@ -525,7 +525,7 @@ public final class TestOpenSamlObjects {
         logoutRequest.setEncryptedID(encrypted);
         IssuerBuilder issuerBuilder = new IssuerBuilder();
         Issuer issuer = issuerBuilder.buildObject();
-        issuer.setValue(registration.getAssertingPartyDetails().getEntityId());
+        issuer.setValue(registration.getAssertingPartyMetadata().getEntityId());
         logoutRequest.setIssuer(issuer);
         logoutRequest.setDestination(registration.getSingleLogoutServiceLocation());
         return logoutRequest;
@@ -544,7 +544,7 @@ public final class TestOpenSamlObjects {
         logoutResponse.setStatus(status);
         IssuerBuilder issuerBuilder = new IssuerBuilder();
         Issuer issuer = issuerBuilder.buildObject();
-        issuer.setValue(registration.getAssertingPartyDetails().getEntityId());
+        issuer.setValue(registration.getAssertingPartyMetadata().getEntityId());
         logoutResponse.setIssuer(issuer);
         logoutResponse.setDestination(registration.getSingleLogoutServiceResponseLocation());
         return logoutResponse;
@@ -561,9 +561,9 @@ public final class TestOpenSamlObjects {
         logoutRequest.setNameID(nameId);
         IssuerBuilder issuerBuilder = new IssuerBuilder();
         Issuer issuer = issuerBuilder.buildObject();
-        issuer.setValue(registration.getAssertingPartyDetails().getEntityId());
+        issuer.setValue(registration.getAssertingPartyMetadata().getEntityId());
         logoutRequest.setIssuer(issuer);
-        logoutRequest.setDestination(registration.getAssertingPartyDetails().getSingleLogoutServiceLocation());
+        logoutRequest.setDestination(registration.getAssertingPartyMetadata().getSingleLogoutServiceLocation());
         return logoutRequest;
     }
 

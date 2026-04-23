@@ -7,6 +7,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.core.Saml2X509Credential;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.util.FileCopyUtils;
 
@@ -54,9 +55,9 @@ class RelyingPartyRegistrationBuilderTest {
                 .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
-                .returns(true, RelyingPartyRegistration.AssertingPartyDetails::getWantAuthnRequestsSigned);
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId)
+                .returns(true, AssertingPartyMetadata::getWantAuthnRequestsSigned);
     }
 
     @Test
@@ -83,9 +84,9 @@ class RelyingPartyRegistrationBuilderTest {
                 .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
-                .returns(false, RelyingPartyRegistration.AssertingPartyDetails::getWantAuthnRequestsSigned);
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId)
+                .returns(false, AssertingPartyMetadata::getWantAuthnRequestsSigned);
     }
 
     @Test
@@ -114,7 +115,7 @@ class RelyingPartyRegistrationBuilderTest {
                 .extracting(Saml2X509Credential::getCertificate)
                 .containsOnly(x509Certificate1());
 
-        assertThat(registration.getAssertingPartyDetails().getSigningAlgorithms())
+        assertThat(registration.getAssertingPartyMetadata().getSigningAlgorithms())
                 .hasSize(2)
                 .containsOnly(SignatureAlgorithm.SHA512.getSignatureAlgorithmURI(), SignatureAlgorithm.SHA256.getSignatureAlgorithmURI());
     }

@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
@@ -104,10 +105,10 @@ class UaaRelyingPartyRegistrationResolverTests {
     void resolveWhenRequestIsWithValiddSamlResponseFromSimplySaml() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         RelyingPartyRegistration newMock = mock(RelyingPartyRegistration.class);
-        RelyingPartyRegistration.AssertingPartyDetails details = mock(RelyingPartyRegistration.AssertingPartyDetails.class);
+        AssertingPartyMetadata details = mock(AssertingPartyMetadata.class);
         doReturn("simpleID").when(newMock).getRegistrationId();
         doReturn("simpleEndityID").when(newMock).getEntityId();
-        doReturn(details).when(newMock).getAssertingPartyDetails();
+        doReturn(details).when(newMock).getAssertingPartyMetadata();
         doReturn("simpleEndityID").when(details).getEntityId();
         doReturn("sso").when(details).getSingleSignOnServiceLocation();
         doReturn("acs").when(newMock).getAssertionConsumerServiceLocation();
