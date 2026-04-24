@@ -10,10 +10,12 @@ import java.util.function.Supplier;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 import org.cloudfoundry.identity.uaa.oauth.provider.expression.OAuth2ExpressionUtils;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
@@ -44,13 +46,13 @@ public class AuthorizationManagersUtils {
         private Set<String> missingScopes = new LinkedHashSet<>();
 
         @Override
-        public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext object) {
+        public AuthorizationResult authorize(Supplier<? extends @Nullable Authentication> authentication, RequestAuthorizationContext object) {
             for (var authorizationManager : this.delegateAuthorizationManagers) {
-                AuthorizationDecision decision = authorizationManager.check(authentication, object);
-                if (decision != null) {
-                    if (decision.isGranted()) {
-                        return decision;
-                    } else if (decision instanceof ScopeTrackingAuthorizationDecision scopeDecision) {
+                AuthorizationResult result = authorizationManager.authorize(authentication, object);
+                if (result != null) {
+                    if (result.isGranted()) {
+                        return result;
+                    } else if (result instanceof ScopeTrackingAuthorizationDecision scopeDecision) {
                         missingScopes.addAll(scopeDecision.getScopes());
                     }
                 }
