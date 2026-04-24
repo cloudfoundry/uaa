@@ -29,7 +29,6 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
@@ -245,7 +244,7 @@ public class ResetPasswordControllerMockMvcTests {
         user = MockMvcUtils.createUser(mockMvc, token, user);
 
         MockHttpSession session = new MockHttpSession();
-        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest()) {
             @Override
             public String getRedirectUrl() {
                 return "http://test/redirect/oauth/authorize";

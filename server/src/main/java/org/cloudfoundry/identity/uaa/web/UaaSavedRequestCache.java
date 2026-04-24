@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.PortResolver;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
@@ -130,7 +129,7 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
         private final Map<String, String[]> parameters;
 
         public ClientRedirectSavedRequest(HttpServletRequest request, String redirectUrl) {
-            super(request, ServletRequest::getServerPort);
+            super(request);
             this.redirectUrl = redirectUrl;
             parameters = Collections.unmodifiableMap(UaaUrlUtils.getParameterMap(redirectUrl));
         }
@@ -180,8 +179,7 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
             return parameters.keySet();
         }
 
-        @Override
-        public boolean doesRequestMatch(HttpServletRequest request, PortResolver portResolver) {
+        public boolean doesRequestMatch(HttpServletRequest request) {
             boolean result = UrlUtils.buildFullRequestUrl(request).equals(redirectUrl);
             String formRedirect = request.getParameter(FORM_REDIRECT_PARAMETER);
             if (!result &&
