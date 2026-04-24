@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
@@ -68,7 +69,14 @@ public class SelfCheckAuthorizationManager  implements AuthorizationManager<Requ
     }
 
     @Override
+    @Deprecated
     public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext context) {
+        AuthorizationResult result = authorize(authentication, context);
+        return (result instanceof AuthorizationDecision) ? (AuthorizationDecision) result : new AuthorizationDecision(result != null && result.isGranted());
+    }
+
+    @Override
+    public AuthorizationResult authorize(Supplier<Authentication> authentication, RequestAuthorizationContext context) {
         HttpServletRequest request = context.getRequest();
         switch (type) {
             case USER -> {
