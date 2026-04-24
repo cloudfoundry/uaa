@@ -348,6 +348,9 @@ public class ClientJwtConfiguration implements Cloneable {
                 result.addJwtCredentials(newConfig.clientJwtCredentials);
             }
         }
+        if (result == null) {
+            return existingConfig;
+        }
         return result;
     }
 
