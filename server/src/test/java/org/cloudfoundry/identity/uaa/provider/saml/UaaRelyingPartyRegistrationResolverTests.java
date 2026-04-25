@@ -35,6 +35,7 @@ import java.security.Security;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -105,6 +106,7 @@ class UaaRelyingPartyRegistrationResolverTests {
     void resolveWhenRequestIsWithValiddSamlResponseFromSimplySaml() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         RelyingPartyRegistration newMock = mock(RelyingPartyRegistration.class);
+        RelyingPartyRegistration.Builder builder = mock(RelyingPartyRegistration.Builder.class);
         AssertingPartyMetadata details = mock(AssertingPartyMetadata.class);
         doReturn("simpleID").when(newMock).getRegistrationId();
         doReturn("simpleEndityID").when(newMock).getEntityId();
@@ -112,9 +114,17 @@ class UaaRelyingPartyRegistrationResolverTests {
         doReturn("simpleEndityID").when(details).getEntityId();
         doReturn("sso").when(details).getSingleSignOnServiceLocation();
         doReturn("acs").when(newMock).getAssertionConsumerServiceLocation();
+        doReturn("sls").when(newMock).getSingleLogoutServiceLocation();
+        doReturn("slsr").when(newMock).getSingleLogoutServiceResponseLocation();
         doReturn(mock(Saml2MessageBinding.class)).when(newMock).getSingleLogoutServiceBinding();
         doReturn(mock(Saml2MessageBinding.class)).when(details).getSingleSignOnServiceBinding();
         doReturn(mock(Saml2MessageBinding.class)).when(newMock).getAssertionConsumerServiceBinding();
+        doReturn(builder).when(newMock).mutate();
+        doReturn(builder).when(builder).entityId(anyString());
+        doReturn(builder).when(builder).assertionConsumerServiceLocation(anyString());
+        doReturn(builder).when(builder).singleLogoutServiceLocation(anyString());
+        doReturn(builder).when(builder).singleLogoutServiceResponseLocation(anyString());
+        doReturn(newMock).when(builder).build();
         doReturn(newMock).when(repository).findByRegistrationId("http://uaa-acceptance.cf-app.com/saml-idp");
         request.setRequestURI("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
