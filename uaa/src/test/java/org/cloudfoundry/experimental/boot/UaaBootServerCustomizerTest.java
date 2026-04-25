@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
@@ -47,7 +47,7 @@ class UaaBootServerCustomizerTest {
     void localhostConnectorAdded() throws UnknownHostException {
         ArgumentCaptor<TomcatServletWebServerFactory> captor = ArgumentCaptor.forClass(TomcatServletWebServerFactory.class);
         Mockito.verify(customizer, Mockito.atMostOnce()).customize(captor.capture());
-        List<Connector> connectors = captor.getValue().getAdditionalTomcatConnectors();
+        List<Connector> connectors = captor.getValue().getAdditionalConnectors();
         assertThat(connectors).isNotEmpty();
         assertThat(connectors).hasSize(1);
         Connector httpConnector = connectors.getFirst();
