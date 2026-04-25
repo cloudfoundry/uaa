@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -161,7 +162,7 @@ class AuthorizationManagersUtilsTests {
         }
 
         @Override
-        public AuthorizationDecision authorize(Supplier<Authentication> authentication, RequestAuthorizationContext object) {
+        public AuthorizationDecision authorize(Supplier<? extends @Nullable Authentication> authentication, RequestAuthorizationContext object) {
             called = true;
             return authorizationDecision;
         }
