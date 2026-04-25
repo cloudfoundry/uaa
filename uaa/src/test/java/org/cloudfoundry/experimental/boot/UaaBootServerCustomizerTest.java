@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {"server.http.port = 8081"})
 class UaaBootServerCustomizerTest {
 
-    @SpyBean
+    @MockitoSpyBean
     UaaBootServerCustomizer customizer;
 
     @Test
