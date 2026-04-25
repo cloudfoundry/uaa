@@ -93,7 +93,20 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                     error = new BadCredentialsException("Missing credentials");
                     break;
                 }
-                super.additionalAuthenticationChecks(uaaClient, authentication);
+                // Spring Security 7 rejects empty passwords before validation.
+                // Handle empty credentials by bypassing parent's empty check
+                if (ObjectUtils.isEmpty(authentication.getCredentials())) {
+                    String presentedPassword = authentication.getCredentials() == null ? "" : authentication.getCredentials().toString();
+                    String storedPassword = uaaClient.getPassword();
+                    // Handle {noop} encoded empty password: "{noop}" means empty password with noop encoding
+                    if ("{noop}".equals(storedPassword) && presentedPassword.isEmpty()) {
+                        error = null;
+                    } else if (!getPasswordEncoder().matches(presentedPassword, storedPassword)) {
+                        throw new BadCredentialsException("Bad credentials");
+                    }
+                } else {
+                    super.additionalAuthenticationChecks(uaaClient, authentication);
+                }
                 error = null;
                 break;
             } catch (AuthenticationException e) {
