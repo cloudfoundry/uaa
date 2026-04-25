@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.RequestTokenFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.io.Serial;
 import java.util.Collection;
@@ -203,7 +204,7 @@ abstract class TokenStoreBaseTests {
         private final String principal;
 
         public TestAuthentication(String name, boolean authenticated) {
-            super(null);
+            super((Collection<? extends GrantedAuthority>) null);
             setAuthenticated(authenticated);
             this.principal = name;
         }
