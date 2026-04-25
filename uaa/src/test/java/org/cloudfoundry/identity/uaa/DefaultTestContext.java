@@ -12,8 +12,6 @@ import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.ldap.LdapAutoConfiguration;
-import org.springframework.boot.autoconfigure.session.SessionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.annotation.Bean;
@@ -58,12 +56,6 @@ import static org.springframework.security.config.BeanIds.SPRING_SECURITY_FILTER
         webEnvironment = SpringBootTest.WebEnvironment.MOCK
 )
 @SpringJUnitConfig(initializers = {TestPropertyInitializer.class, YamlServletProfileInitializer.class})
-@EnableAutoConfiguration(exclude = {
-        // Conflicts with UaaJdbcSessionConfig
-        SessionAutoConfiguration.class,
-        // Conflicts with LdapSearchAndCompareConfig/LdapSearchAndBindConfig/LdapSimpleBindConfig
-        LdapAutoConfiguration.class
-})
 public @interface DefaultTestContext {
 }
 
