@@ -161,13 +161,16 @@ springWebMvc = { module = "org.springframework:spring-webmvc" }
 
 # Spring Boot
 springBootBom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
+springBootJdbc = { module = "org.springframework.boot:spring-boot-jdbc" }
 springBootSql = { module = "org.springframework.boot:spring-boot-sql" }
 springBootStarter = { module = "org.springframework.boot:spring-boot-starter" }
 springBootStarterLog4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2" }
 springBootStarterMail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 springBootStarterTest = { module = "org.springframework.boot:spring-boot-starter-test" }
 springBootStarterTomcat = { module = "org.springframework.boot:spring-boot-starter-tomcat" }
+springBootStarterTomcatRuntime = { module = "org.springframework.boot:spring-boot-starter-tomcat-runtime" }
 springBootStarterWeb = { module = "org.springframework.boot:spring-boot-starter-web" }
+springBootTransaction = { module = "org.springframework.boot:spring-boot-transaction" }
 
 # Spring Data
 springLdapCore = { module = "org.springframework.ldap:spring-ldap-core" }
