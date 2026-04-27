@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.flywayHsqlDb)
     implementation(libs.flywayMySql)
     implementation(libs.flywayPostgresql)
+    implementation(libs.springBootFlyway)
     implementation(libs.hsqldb)
 
     implementation(libs.snakeyaml)

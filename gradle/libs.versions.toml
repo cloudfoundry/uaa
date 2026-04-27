@@ -164,6 +164,7 @@ springWebMvc = { module = "org.springframework:spring-webmvc" }
 
 # Spring Boot
 springBootBom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
+springBootFlyway = { module = "org.springframework.boot:spring-boot-flyway" }
 springBootJackson2 = { module = "org.springframework.boot:spring-boot-jackson2" }
 springBootJdbc = { module = "org.springframework.boot:spring-boot-jdbc" }
 springBootSql = { module = "org.springframework.boot:spring-boot-sql" }
