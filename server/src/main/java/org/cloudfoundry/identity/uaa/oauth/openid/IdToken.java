@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -74,31 +75,33 @@ public class IdToken {
     public final String revSig;
     private Map<String,Object> tokenActor;
 
-    public IdToken(String sub,
-            List<String> aud,
-            String iss,
-            Date exp,
-            Date iat,
-            Date authTime,
-            Set<String> amr,
-            Set<String> acr,
-            String azp,
-            String givenName,
-            String familyName,
-            Long previousLogonTime,
-            String phoneNumber,
-            Set<String> roles,
-            Map<String, List<String>> userAttributes,
-            Boolean emailVerified,
-            String nonce,
-            String email,
-            String clientId,
-            String grantType,
-            String userName,
-            String zid,
-            String origin,
-            String jti,
-            String revSig) {
+    @JsonCreator
+    public IdToken(
+            @JsonProperty("sub") String sub,
+            @JsonProperty("aud") List<String> aud,
+            @JsonProperty("iss") String iss,
+            @JsonProperty("exp") Date exp,
+            @JsonProperty(IAT) Date iat,
+            @JsonProperty(AUTH_TIME) Date authTime,
+            @JsonProperty("amr") Set<String> amr,
+            @JsonProperty(ACR) Set<String> acr,
+            @JsonProperty("azp") String azp,
+            @JsonProperty(GIVEN_NAME) String givenName,
+            @JsonProperty(FAMILY_NAME) String familyName,
+            @JsonProperty(PREVIOUS_LOGON_TIME) Long previousLogonTime,
+            @JsonProperty(PHONE_NUMBER) String phoneNumber,
+            @JsonProperty("roles") Set<String> roles,
+            @JsonProperty(USER_ATTRIBUTES) Map<String, List<String>> userAttributes,
+            @JsonProperty(EMAIL_VERIFIED) Boolean emailVerified,
+            @JsonProperty("nonce") String nonce,
+            @JsonProperty("email") String email,
+            @JsonProperty(CID) String clientId,
+            @JsonProperty(GRANT_TYPE) String grantType,
+            @JsonProperty(USER_NAME) String userName,
+            @JsonProperty("zid") String zid,
+            @JsonProperty("origin") String origin,
+            @JsonProperty("jti") String jti,
+            @JsonProperty(REVOCATION_SIGNATURE) String revSig) {
         this.sub = sub;
         this.aud = aud;
         this.iss = iss;
