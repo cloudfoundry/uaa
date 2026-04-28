@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 import net.shibboleth.shared.xml.SerializeSupport;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
@@ -260,8 +258,8 @@ class Saml2BearerGrantAuthenticationConverterTest {
     // gh-11785
     @Test
     void deserializeWhenAssertionContainsAttributesThenWorks() throws Exception {
-        ObjectMapper mapper = new JsonMapper();
         ClassLoader loader = getClass().getClassLoader();
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         mapper.registerModules(SecurityJackson2Modules.getModules(loader));
         Assertion assertion = assertion();
         List<AttributeStatement> attributes = TestOpenSamlObjects.attributeStatements();

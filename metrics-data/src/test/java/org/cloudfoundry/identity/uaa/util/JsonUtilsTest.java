@@ -139,12 +139,11 @@ class JsonUtilsTest {
     }
 
     @Test
-
     void throwsException_writeValueAsString() throws JacksonException {
         JsonUtils.JsonUtilException exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.writeValueAsString(new Object())
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.databind.exc.InvalidDefinitionException: No serializer found for class java.lang.Object");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.databind.exc.InvalidDefinitionException: No serializer found for class java.lang.Object");
     }
 
     @Test
@@ -152,7 +151,7 @@ class JsonUtilsTest {
         JsonUtils.JsonUtilException exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.writeValueAsBytes(new Object())
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.databind.exc.InvalidDefinitionException: No serializer found for class java.lang.Object");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.databind.exc.InvalidDefinitionException: No serializer found for class java.lang.Object");
     }
 
     @Test
@@ -160,22 +159,22 @@ class JsonUtilsTest {
         JsonUtils.JsonUtilException exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.readValue("invalid json", String.class)
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.core.JsonParseException: Unrecognized token 'invalid'");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.core.exc.StreamReadException: Unrecognized token 'invalid'");
 
         exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.readValue("invalid json".getBytes(), String.class)
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.core.JsonParseException: Unrecognized token 'invalid'");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.core.exc.StreamReadException: Unrecognized token 'invalid'");
 
         exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.readValue("invalid json", new TypeReference<String>() {})
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.core.JsonParseException: Unrecognized token 'invalid'");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.core.exc.StreamReadException: Unrecognized token 'invalid'");
 
         exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.readValue("invalid json".getBytes(), new TypeReference<String>() {})
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.core.JsonParseException: Unrecognized token 'invalid'");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.core.exc.StreamReadException: Unrecognized token 'invalid'");
     }
 
     @Test
@@ -183,7 +182,7 @@ class JsonUtilsTest {
         JsonUtils.JsonUtilException exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.readValueAsMap("invalid json")
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.core.JsonParseException: Unrecognized token 'invalid'");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.core.exc.StreamReadException: Unrecognized token 'invalid'");
     }
 
     @Test
@@ -191,7 +190,7 @@ class JsonUtilsTest {
         JsonUtils.JsonUtilException exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.convertValue(Boolean.TRUE, Integer.class)
         );
-        assertThat(exception.getMessage()).startsWith("java.lang.IllegalArgumentException: Cannot deserialize value of type `java.lang.Integer` from Boolean value");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.databind.exc.MismatchedInputException: Cannot deserialize value of type `java.lang.Integer` from Boolean value");
     }
 
     @Test
@@ -201,7 +200,7 @@ class JsonUtilsTest {
         JsonUtils.JsonUtilException exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.readTree("invalid json")
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.core.JsonParseException: Unrecognized token 'invalid'");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.core.exc.StreamReadException: Unrecognized token 'invalid'");
     }
 
     @Test
@@ -211,7 +210,7 @@ class JsonUtilsTest {
         JsonUtils.JsonUtilException exception = assertThrows(JsonUtils.JsonUtilException.class,
                 () -> JsonUtils.readValue("{'valid':'json'}", SerializerTestObject.class)
         );
-        assertThat(exception.getMessage()).startsWith("com.fasterxml.jackson.core.JsonParseException: Unexpected character");
+        assertThat(exception.getMessage()).startsWith("tools.jackson.core.exc.StreamReadException: Unexpected character");
     }
 
     @Test

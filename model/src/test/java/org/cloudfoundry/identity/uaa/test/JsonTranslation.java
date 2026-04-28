@@ -47,7 +47,9 @@ public abstract class JsonTranslation<T> {
         this.withAllNullFields = withAllNullFields;
 
         this.jsonFileName = subjectClass.getSimpleName() + ".json";
-        this.objectMapper = new JsonMapper();
+        this.objectMapper = JsonMapper.builder()
+                .enable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .build();
     }
 
     protected ObjectMapper getObjectMapper() {

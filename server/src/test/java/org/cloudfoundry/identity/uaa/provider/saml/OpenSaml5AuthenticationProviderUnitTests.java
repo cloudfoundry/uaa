@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 import net.shibboleth.shared.xml.SerializeSupport;
 import org.cloudfoundry.identity.uaa.provider.saml.OpenSaml5AuthenticationProvider.ResponseToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -502,8 +500,8 @@ class OpenSaml5AuthenticationProviderUnitTests {
     // gh-11785
     @Test
     void deserializeWhenAssertionContainsAttributesThenWorks() throws Exception {
-        ObjectMapper mapper = new JsonMapper();
         ClassLoader loader = getClass().getClassLoader();
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         mapper.registerModules(SecurityJackson2Modules.getModules(loader));
         Response response = response();
         Assertion assertion = assertion();

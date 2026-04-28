@@ -5,7 +5,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.DatabindException;
 
 import java.io.IOException;
 
@@ -62,11 +61,11 @@ class OAuth2AccessTokenJackson2SerializerTests extends BaseOAuth2AccessTokenJack
                 accessToken.getScope().add(null);
             } catch (NullPointerException e) {
                 // short circuit NPE from Java 7 (which is correct but only relevant for this test)
-                throw new DatabindException("Scopes cannot be null or empty. Got [null]");
+                throw new IllegalArgumentException("Scopes cannot be null or empty. Got [null]");
             }
             mapper.writeValueAsString(accessToken);
         })
-                .isInstanceOf(DatabindException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Scopes cannot be null or empty. Got [null]");
     }
 
@@ -75,7 +74,7 @@ class OAuth2AccessTokenJackson2SerializerTests extends BaseOAuth2AccessTokenJack
         accessToken.getScope().clear();
         accessToken.getScope().add("");
         assertThatThrownBy(() -> mapper.writeValueAsString(accessToken))
-                .isInstanceOf(DatabindException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Scopes cannot be null or empty. Got []");
     }
 
