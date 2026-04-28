@@ -616,8 +616,8 @@ public class LoginMockMvcZonePathTests {
         scimUserProvisioning.createUser(zoneUser, "koala", zone.getId());
         MockHttpSession session = new MockHttpSession();
         String expectedInvalidRedirect = mode == ZoneResolutionMode.ZONE_PATH
-                ? "http://localhost/z/" + subdomain + "/login?error=invalid_login_request"
-                : "http://" + subdomain + ".localhost/login?error=invalid_login_request";
+                ? "/z/" + subdomain + "/login?error=invalid_login_request"
+                : "/login?error=invalid_login_request";
 
         MockHttpServletRequestBuilder invalidPost = mode.createRequestBuilder(subdomain, HttpMethod.POST, "/login.do")
                 .session(session).param("username", "marissa").param("password", "koala");
@@ -2137,8 +2137,8 @@ public class LoginMockMvcZonePathTests {
         String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String expectedRedirect = mode == ZoneResolutionMode.ZONE_PATH
-                ? "http://localhost/z/" + subdomain + "/login"
-                : "http://" + subdomain + ".localhost/login";
+                ? "/z/" + subdomain + "/login"
+                : "/login";
         mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/change_email").accept(TEXT_HTML))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirect));
@@ -2300,17 +2300,10 @@ public class LoginMockMvcZonePathTests {
         scimUserProvisioning.createUser(marissa, "koala", zone.getId());
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext, zone.getId());
         String expectedLoginRedirect = mode == ZoneResolutionMode.ZONE_PATH
-                ? "http://localhost/z/" + subdomain + "/login"
-                : "http://" + subdomain + ".localhost/login";
+                ? "/z/" + subdomain + "/login"
+                : "/login";
 
         MockHttpServletRequestBuilder changeEmail = mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.POST, "/change_email.do")
-                .accept(TEXT_HTML)
-                .with(cookieCsrf());
-        mockMvc.perform(changeEmail)
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(expectedLoginRedirect));
-
-        changeEmail = mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.POST, "/change_email.do")
                 .accept(TEXT_HTML)
                 .with(cookieCsrf());
         mockMvc.perform(changeEmail)
@@ -2383,8 +2376,8 @@ public class LoginMockMvcZonePathTests {
         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 1000 * 60), null, zone.getId());
 
         String expectedLoginRedirect = mode == ZoneResolutionMode.ZONE_PATH
-                ? "http://localhost/z/" + subdomain + "/login"
-                : "http://" + subdomain + ".localhost/login";
+                ? "/z/" + subdomain + "/login"
+                : "/login";
 
         //logged in with valid CSRF
         MockHttpServletRequestBuilder post = mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.POST, "/invitations/accept.do")

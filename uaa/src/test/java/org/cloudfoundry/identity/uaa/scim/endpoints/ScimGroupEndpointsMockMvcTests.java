@@ -1118,7 +1118,7 @@ class ScimGroupEndpointsMockMvcTests {
                         .header("Authorization", "Bearer " + scimWriteToken)
                         .header("Content-Type", APPLICATION_JSON_VALUE))
                 .andDo(print())
-                .andExpect(header().string("Location", "http://localhost/login?error=invalid_login_request"))
+                .andExpect(header().string("Location", "/login?error=invalid_login_request"))
                 .andExpect(status().isFound()); //gets caught by the ui filter for unknown URIs but wantsJson;
     }
 

@@ -355,7 +355,7 @@ public class ResetPasswordControllerMockMvcZonePathTests {
 
         mockMvc.perform(createChangePasswordRequest(users.getFirst(), code, false))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
+                .andExpect(redirectedUrl("/login?error=invalid_login_request"));
     }
 
     @Test

@@ -324,8 +324,8 @@ class ForcePasswordChangeControllerZonePathMockMvcTest {
                 .param("password_confirmation", "test");
         validPost.with(cookieCsrf());
         String expectedRedirect = mode == ZoneResolutionMode.ZONE_PATH
-                ? "http://localhost/z/" + subdomain + "/login"
-                : "http://" + subdomain + ".localhost/login";
+                ? "/z/" + subdomain + "/login"
+                : "/login";
         mockMvc.perform(validPost)
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirect));

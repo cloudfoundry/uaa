@@ -516,7 +516,7 @@ public class LoginMockMvcTests {
         mockMvc.perform(invalidPost)
                 .andDo(print())
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
+                .andExpect(redirectedUrl("/login?error=invalid_login_request"));
 
         session = new MockHttpSession();
         String csrfValue = "12345";
@@ -529,7 +529,7 @@ public class LoginMockMvcTests {
                 )
                 .andDo(print())
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
+                .andExpect(redirectedUrl("/login?error=invalid_login_request"));
 
         MockHttpServletRequestBuilder validPost = post("/uaa/login.do")
                 .session(session)
@@ -1765,7 +1765,7 @@ public class LoginMockMvcTests {
     void changeEmailWithoutAuthenticationReturnsRedirect() throws Exception {
         mockMvc.perform(get("/change_email").accept(TEXT_HTML))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test
@@ -1888,14 +1888,14 @@ public class LoginMockMvcTests {
                 .with(cookieCsrf());
         mockMvc.perform(changeEmail)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login"));
+                .andExpect(redirectedUrl("/login"));
 
         changeEmail = post("/change_email.do")
                 .accept(TEXT_HTML)
                 .with(cookieCsrf());
         mockMvc.perform(changeEmail)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login"));
+                .andExpect(redirectedUrl("/login"));
 
         changeEmail = post("/change_email.do")
                 .accept(TEXT_HTML)
@@ -1982,7 +1982,7 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(post)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
+                .andExpect(redirectedUrl("/login?error=invalid_login_request"));
 
         //not logged in, valid CSRF(can't happen)
         post = post("/invitations/accept.do")
@@ -1994,7 +1994,7 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(post)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     /**
