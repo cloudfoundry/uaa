@@ -329,7 +329,7 @@ class IdentityZoneEndpointsMockMvcZonePathTests {
     @MethodSource("parameters")
     void readWithoutTokenShouldFail(String url) throws Exception {
         mockMvc.perform(get(url))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @ParameterizedTest
@@ -1645,7 +1645,7 @@ class IdentityZoneEndpointsMockMvcZonePathTests {
                         .contentType(APPLICATION_JSON)
                         .accept(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(client)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         MvcResult result = mockMvc.perform(
                         post("/identity-zones/" + zone.getId() + "/clients")
