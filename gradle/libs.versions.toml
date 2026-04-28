@@ -76,8 +76,8 @@ eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "ecl
 
 # FasterXML Jackson
 jacksonAnnotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
-jacksonDatabind = { module = "com.fasterxml.jackson.core:jackson-databind" }
-jacksonDataformatYaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" }
+jacksonDatabind = { module = "tools.jackson.core:jackson-databind" }
+jacksonDataformatYaml = { module = "tools.jackson.dataformat:jackson-dataformat-yaml" }
 
 # Flyway
 flywayCore = { module = "org.flywaydb:flyway-core" }
@@ -165,7 +165,6 @@ springWebMvc = { module = "org.springframework:spring-webmvc" }
 # Spring Boot
 springBootBom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
 springBootFlyway = { module = "org.springframework.boot:spring-boot-flyway" }
-springBootJackson2 = { module = "org.springframework.boot:spring-boot-jackson2" }
 springBootJdbc = { module = "org.springframework.boot:spring-boot-jdbc" }
 springBootSql = { module = "org.springframework.boot:spring-boot-sql" }
 springBootStarter = { module = "org.springframework.boot:spring-boot-starter" }

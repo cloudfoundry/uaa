@@ -41,7 +41,6 @@ dependencies {
 
     // OpenAPI documentation
     implementation(libs.springdocOpenapi)
-    implementation(libs.springBootJackson2)
 
     implementation(libs.aspectJRt)
     implementation(libs.aspectJWeaver)

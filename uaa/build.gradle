@@ -59,7 +59,6 @@ dependencies {
 
     // OpenAPI documentation
     implementation(libs.springDocOpenapi)
-    implementation(libs.springBootJackson2)
 
     implementation(libs.springWeb)
     implementation(libs.springWebMvc)
