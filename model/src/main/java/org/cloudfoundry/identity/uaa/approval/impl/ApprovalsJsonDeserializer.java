@@ -27,8 +27,8 @@ public class ApprovalsJsonDeserializer extends ValueDeserializer<Approval> {
     public Approval deserialize(JsonParser jp, DeserializationContext ctxt) {
         Approval approval = new Approval();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
-            if (jp.getCurrentToken() == JsonToken.PROPERTY_NAME) {
-                String fieldName = jp.getCurrentName();
+            if (jp.currentToken() == JsonToken.PROPERTY_NAME) {
+                String fieldName = jp.currentName();
                 jp.nextToken();
                 if ("userId".equalsIgnoreCase(fieldName)) {
                     approval.setUserId(jp.readValueAs(String.class));

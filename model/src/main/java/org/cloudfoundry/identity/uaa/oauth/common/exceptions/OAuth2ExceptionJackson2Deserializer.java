@@ -33,14 +33,14 @@ public class OAuth2ExceptionJackson2Deserializer extends StdDeserializer<OAuth2E
     @Override
     public OAuth2Exception deserialize(JsonParser jp, DeserializationContext ctxt) {
 
-        JsonToken t = jp.getCurrentToken();
+        JsonToken t = jp.currentToken();
         if (t == JsonToken.START_OBJECT) {
             t = jp.nextToken();
         }
         Map<String, Object> errorParams = new HashMap<>();
         for (; t == JsonToken.PROPERTY_NAME; t = jp.nextToken()) {
             // Must point to field name
-            String fieldName = jp.getCurrentName();
+            String fieldName = jp.currentName();
             // And then the value...
             t = jp.nextToken();
             // Note: must handle null explicitly here; value deserializers won't

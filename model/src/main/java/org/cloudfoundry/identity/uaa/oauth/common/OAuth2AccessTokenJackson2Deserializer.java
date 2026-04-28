@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import tools.jackson.core.exc.StreamReadException;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -83,9 +82,9 @@ public class OAuth2AccessTokenJackson2Deserializer extends StdDeserializer<OAuth
         return accessToken;
     }
 
-    private Set<String> parseScope(JsonParser jp) throws IOException {
+    private Set<String> parseScope(JsonParser jp) {
         Set<String> scope;
-        if (jp.getCurrentToken() == JsonToken.START_ARRAY) {
+        if (jp.currentToken() == JsonToken.START_ARRAY) {
             scope = new TreeSet<>();
             while (jp.nextToken() != JsonToken.END_ARRAY) {
                 scope.add(jp.getValueAsString());

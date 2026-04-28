@@ -34,8 +34,8 @@ public class ScimUserJsonDeserializer extends ValueDeserializer<ScimUser> {
     public ScimUser deserialize(JsonParser jp, DeserializationContext ctxt) {
         ScimUser user = new ScimUser();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
-            if (jp.getCurrentToken() == JsonToken.PROPERTY_NAME) {
-                String fieldName = jp.getCurrentName();
+            if (jp.currentToken() == JsonToken.PROPERTY_NAME) {
+                String fieldName = jp.currentName();
                 jp.nextToken();
 
                 if ("id".equalsIgnoreCase(fieldName)) {
@@ -95,7 +95,7 @@ public class ScimUserJsonDeserializer extends ValueDeserializer<ScimUser> {
                     user.setSalt(jp.readValueAs(String.class));
                 } else if ("passwordLastModified".equalsIgnoreCase(fieldName)) {
                     if (jp.getValueAsString() != null) {
-                        user.setPasswordLastModified(JsonDateDeserializer.getDate(jp.getValueAsString(), jp.currentLocation()));
+                        user.setPasswordLastModified(JsonDateDeserializer.getDate(jp.getValueAsString(), jp));
                     }
                 } else if ("approvals".equalsIgnoreCase(fieldName)) {
                     user.setApprovals(new HashSet<>(Arrays.asList(jp.readValueAs(Approval[].class))));
@@ -108,7 +108,7 @@ public class ScimUserJsonDeserializer extends ValueDeserializer<ScimUser> {
                         user.setPreviousLogonTime(jp.getValueAsLong());
                     }
                 } else {
-                    throw new UnrecognizedPropertyException("unrecognized field", jp.currentLocation(),
+                    throw UnrecognizedPropertyException.from(jp,
                             ScimUser.class, fieldName, Collections.emptySet());
                 }
             }

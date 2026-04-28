@@ -6,7 +6,6 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.JavaType;
 import tools.jackson.databind.deser.std.StdDeserializer;
-import tools.jackson.databind.type.SimpleType;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
@@ -29,12 +28,17 @@ public class Jackson2ArrayOrStringDeserializer extends StdDeserializer<Set<Strin
 
     @Override
     public JavaType getValueType() {
-        return SimpleType.construct(String.class);
+        return getValueType(null);
+    }
+
+    @Override
+    public JavaType getValueType(DeserializationContext ctxt) {
+        return ctxt != null ? ctxt.constructType(String.class) : super.getValueType(ctxt);
     }
 
     @Override
     public Set<String> deserialize(JsonParser jp, DeserializationContext ctxt) {
-        JsonToken token = jp.getCurrentToken();
+        JsonToken token = jp.currentToken();
         if (token.isScalarValue()) {
             String list = jp.getString();
             list = list.replaceAll("\\s+", ",");

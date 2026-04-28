@@ -57,7 +57,7 @@ public class OAuth2AccessTokenJackson2Serializer extends StdSerializer<OAuth2Acc
         }
         Map<String, Object> additionalInformation = token.getAdditionalInformation();
         for (Map.Entry<String, Object> entry : additionalInformation.entrySet()) {
-            jgen.writeObjectProperty(entry.getKey(), entry.getValue());
+            jgen.writePOJOProperty(entry.getKey(), entry.getValue());
         }
         jgen.writeEndObject();
     }

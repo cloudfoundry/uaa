@@ -29,7 +29,6 @@ import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ValueDeserializer;
 import tools.jackson.databind.ValueSerializer;
 import jakarta.validation.constraints.NotNull;
-import java.io.IOException;
 import java.util.Date;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
@@ -328,7 +327,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
             gen.writeStringProperty(FIELD_TYPE, value.getType());
 
             if (value.isSerializeConfigRaw()) {
-                gen.writeObjectProperty(FIELD_CONFIG, value.getConfig());
+                gen.writePOJOProperty(FIELD_CONFIG, value.getConfig());
             } else {
                 gen.writeStringProperty(FIELD_CONFIG, JsonUtils.writeValueAsString(value.getConfig()));
             }
@@ -345,7 +344,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
             gen.writeEndObject();
         }
 
-        public void writeDateField(String fieldName, Date value, JsonGenerator gen) throws IOException {
+        public void writeDateField(String fieldName, Date value, JsonGenerator gen) {
             if (value != null) {
                 gen.writeNumberProperty(fieldName, value.getTime());
             } else {
@@ -359,7 +358,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) {
             IdentityProvider result = new IdentityProvider();
             //determine the type of IdentityProvider
-            JsonNode node = JsonUtils.readTree(jp);
+            JsonNode node = jp.readValueAsTree();
             String type = getNodeAsString(node, FIELD_TYPE, UNKNOWN);
             //deserialize based on type
             String config;

@@ -22,19 +22,19 @@ public class UaaAuthenticationSerializer extends ValueSerializer<UaaAuthenticati
     public void serialize(UaaAuthentication value, JsonGenerator gen, SerializationContext serializers) {
         gen.writeStartObject();
         if (value.getDetails() instanceof UaaAuthenticationDetails) {
-            gen.writeObjectProperty(DETAILS, value.getDetails());
+            gen.writePOJOProperty(DETAILS, value.getDetails());
         }
-        gen.writeObjectProperty(PRINCIPAL, value.getPrincipal());
-        gen.writeObjectProperty(AUTHORITIES, serializeAuthorites(value.getAuthorities()));
-        gen.writeObjectProperty(EXTERNAL_GROUPS, value.getExternalGroups());
+        gen.writePOJOProperty(PRINCIPAL, value.getPrincipal());
+        gen.writePOJOProperty(AUTHORITIES, serializeAuthorites(value.getAuthorities()));
+        gen.writePOJOProperty(EXTERNAL_GROUPS, value.getExternalGroups());
         gen.writeNumberProperty(EXPIRES_AT, value.getExpiresAt());
         gen.writeNumberProperty(AUTH_TIME, value.getAuthenticatedTime());
         gen.writeBooleanProperty(AUTHENTICATED, value.isAuthenticated());
-        gen.writeObjectProperty(PREVIOIUS_LOGIN_SUCCESS_TIME, value.getLastLoginSuccessTime());
-        gen.writeObjectProperty(USER_ATTRIBUTES, value.getUserAttributesAsMap());
-        gen.writeObjectProperty(AUTHENTICATION_METHODS, value.getAuthenticationMethods());
-        gen.writeObjectProperty(AUTHN_CONTEXT_CLASS_REF, value.getAuthContextClassRef());
-        gen.writeObjectProperty(IDP_ID_TOKEN, value.getIdpIdToken());
+        gen.writePOJOProperty(PREVIOIUS_LOGIN_SUCCESS_TIME, value.getLastLoginSuccessTime());
+        gen.writePOJOProperty(USER_ATTRIBUTES, value.getUserAttributesAsMap());
+        gen.writePOJOProperty(AUTHENTICATION_METHODS, value.getAuthenticationMethods());
+        gen.writePOJOProperty(AUTHN_CONTEXT_CLASS_REF, value.getAuthContextClassRef());
+        gen.writePOJOProperty(IDP_ID_TOKEN, value.getIdpIdToken());
         gen.writeEndObject();
     }
 }

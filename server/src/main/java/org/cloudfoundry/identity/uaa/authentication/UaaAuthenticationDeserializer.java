@@ -45,8 +45,8 @@ public class UaaAuthenticationDeserializer extends ValueDeserializer<UaaAuthenti
         String idpIdToken = null;
         Map<String, List<String>> userAttributes = emptyMap();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
-            if (jp.getCurrentToken() == JsonToken.PROPERTY_NAME) {
-                String fieldName = jp.getCurrentName();
+            if (jp.currentToken() == JsonToken.PROPERTY_NAME) {
+                String fieldName = jp.currentName();
                 jp.nextToken();
                 if (NULL_STRING.equals(jp.getString())) {
                     //do nothing
@@ -84,7 +84,7 @@ public class UaaAuthenticationDeserializer extends ValueDeserializer<UaaAuthenti
             }
         }
         if (princpal == null) {
-            throw new DatabindException("Missing " + UaaPrincipal.class.getName());
+            throw DatabindException.from(jp, "Missing " + UaaPrincipal.class.getName());
         }
         UaaAuthentication uaaAuthentication = new UaaAuthentication(princpal,
                 null,

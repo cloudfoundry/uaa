@@ -16,12 +16,10 @@ package org.cloudfoundry.identity.uaa.impl;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import tools.jackson.core.TokenStreamLocation;
 import tools.jackson.core.exc.StreamReadException;
 import tools.jackson.databind.ValueDeserializer;
 
@@ -35,14 +33,14 @@ public class JsonDateDeserializer extends ValueDeserializer<Date> {
 
     @Override
     public Date deserialize(JsonParser parser, DeserializationContext context) {
-        return getDate(parser.getString(), parser.currentLocation());
+        return getDate(parser.getString(), parser);
     }
 
-    public static Date getDate(String text, TokenStreamLocation loc) throws IOException {
+    public static Date getDate(String text, JsonParser parser) {
         try {
             return new SimpleDateFormat(DATE_FORMATTER).parse(text);
         } catch (ParseException e) {
-            throw new StreamReadException("Could not parse date:" + text, loc, e);
+            throw new StreamReadException(parser, "Could not parse date:" + text, e);
         }
     }
 

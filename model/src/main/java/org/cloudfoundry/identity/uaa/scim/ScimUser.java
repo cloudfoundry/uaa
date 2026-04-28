@@ -588,7 +588,8 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.salt = salt;
     }
 
-    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonSerialize(using = JsonDateSerializer.class)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Date getPasswordLastModified() {
         if (passwordLastModified != null) {
             return passwordLastModified;

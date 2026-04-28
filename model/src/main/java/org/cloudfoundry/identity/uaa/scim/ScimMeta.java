@@ -40,7 +40,7 @@ public class ScimMeta {
         this.version = version;
     }
 
-    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonSerialize(using = JsonDateSerializer.class)
     public Date getCreated() {
         return created;
     }
@@ -50,7 +50,7 @@ public class ScimMeta {
         this.created = created;
     }
 
-    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonSerialize(using = JsonDateSerializer.class)
     public Date getLastModified() {
         return lastModified;
     }
