@@ -1553,6 +1553,8 @@ public class LoginMockMvcTests {
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = mock(DefaultSavedRequest.class);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"example.com"});
+        when(savedRequest.getRedirectUrl()).thenReturn("http://" + identityZone.getSubdomain() + ".localhost/login");
+        when(savedRequest.getMethod()).thenReturn("GET");
         SessionUtils.setSavedRequestSession(MockMvcUtils.getZoneSession(session), savedRequest);
 
         MvcResult mvcResult = mockMvc.perform(get("/login")

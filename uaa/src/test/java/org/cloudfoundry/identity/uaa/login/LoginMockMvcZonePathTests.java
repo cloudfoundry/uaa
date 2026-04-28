@@ -1916,6 +1916,11 @@ public class LoginMockMvcZonePathTests {
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = mock(DefaultSavedRequest.class);
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"example.com"});
+        String redirectUrl = mode == ZoneResolutionMode.ZONE_PATH
+                ? "http://localhost/z/" + identityZone.getSubdomain() + "/login"
+                : "http://" + identityZone.getSubdomain() + ".localhost/login";
+        when(savedRequest.getRedirectUrl()).thenReturn(redirectUrl);
+        when(savedRequest.getMethod()).thenReturn("GET");
         SessionUtils.setSavedRequestSession(MockMvcUtils.getZoneSession(session, mode, identityZone.getSubdomain()), savedRequest);
 
         MvcResult mvcResult = mockMvc.perform(mode.createRequestBuilder(identityZone.getSubdomain(), HttpMethod.GET, "/login")
