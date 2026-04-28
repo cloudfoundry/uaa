@@ -1158,7 +1158,11 @@ class ScimUserEndpointsTests {
         verify(mockPasswordValidator, verificationMode).validate("password");
         jdbcTemplate.query("select password from users where id=?",
                 rs -> {
-                    assertThat(passwordEncoder.matches(expectedPassword, rs.getString(1))).isTrue();
+                    if (expectedPassword.isEmpty()) {
+                        assertThat(rs.getString(1)).isEqualTo("{noop}");
+                    } else {
+                        assertThat(passwordEncoder.matches(expectedPassword, rs.getString(1))).isTrue();
+                    }
                 },
                 created.getId());
     }
