@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.nimbusds.jose.JWSSigner;
 import org.apache.commons.codec.binary.Base64;

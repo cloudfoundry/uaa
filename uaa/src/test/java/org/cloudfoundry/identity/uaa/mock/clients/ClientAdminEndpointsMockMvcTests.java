@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;

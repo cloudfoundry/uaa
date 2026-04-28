@@ -15,20 +15,19 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;
-
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.ValueSerializer;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.Date;
@@ -322,40 +321,40 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         this.serializeConfigRaw = serializeConfigRaw;
     }
 
-    public static class IdentityProviderSerializer extends JsonSerializer<IdentityProvider> {
+    public static class IdentityProviderSerializer extends ValueSerializer<IdentityProvider> {
         @Override
-        public void serialize(IdentityProvider value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        public void serialize(IdentityProvider value, JsonGenerator gen, SerializationContext serializers) {
             gen.writeStartObject();
-            gen.writeStringField(FIELD_TYPE, value.getType());
+            gen.writeStringProperty(FIELD_TYPE, value.getType());
 
             if (value.isSerializeConfigRaw()) {
-                gen.writeObjectField(FIELD_CONFIG, value.getConfig());
+                gen.writeObjectProperty(FIELD_CONFIG, value.getConfig());
             } else {
-                gen.writeStringField(FIELD_CONFIG, JsonUtils.writeValueAsString(value.getConfig()));
+                gen.writeStringProperty(FIELD_CONFIG, JsonUtils.writeValueAsString(value.getConfig()));
             }
-            gen.writeStringField(FIELD_ID, value.getId());
-            gen.writeStringField(FIELD_ORIGIN_KEY, value.getOriginKey());
-            gen.writeStringField(FIELD_NAME, value.getName());
-            gen.writeNumberField(FIELD_VERSION, value.getVersion());
+            gen.writeStringProperty(FIELD_ID, value.getId());
+            gen.writeStringProperty(FIELD_ORIGIN_KEY, value.getOriginKey());
+            gen.writeStringProperty(FIELD_NAME, value.getName());
+            gen.writeNumberProperty(FIELD_VERSION, value.getVersion());
             writeDateField(FIELD_CREATED, value.getCreated(), gen);
             writeDateField(FIELD_LAST_MODIFIED, value.getLastModified(), gen);
-            gen.writeBooleanField(FIELD_ACTIVE, value.isActive());
-            gen.writeStringField(FIELD_IDENTITY_ZONE_ID, value.getIdentityZoneId());
-            gen.writeStringField(FIELD_ALIAS_ID, value.getAliasId());
-            gen.writeStringField(FIELD_ALIAS_ZID, value.getAliasZid());
+            gen.writeBooleanProperty(FIELD_ACTIVE, value.isActive());
+            gen.writeStringProperty(FIELD_IDENTITY_ZONE_ID, value.getIdentityZoneId());
+            gen.writeStringProperty(FIELD_ALIAS_ID, value.getAliasId());
+            gen.writeStringProperty(FIELD_ALIAS_ZID, value.getAliasZid());
             gen.writeEndObject();
         }
 
         public void writeDateField(String fieldName, Date value, JsonGenerator gen) throws IOException {
             if (value != null) {
-                gen.writeNumberField(fieldName, value.getTime());
+                gen.writeNumberProperty(fieldName, value.getTime());
             } else {
-                gen.writeNullField(fieldName);
+                gen.writeNullProperty(fieldName);
             }
         }
     }
 
-    public static class IdentityProviderDeserializer extends JsonDeserializer<IdentityProvider> {
+    public static class IdentityProviderDeserializer extends ValueDeserializer<IdentityProvider> {
         @Override
         public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) {
             IdentityProvider result = new IdentityProvider();
@@ -367,8 +366,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
             JsonNode configNode = node.get("config");
             if (configNode == null) {
                 config = null;
-            } else if (configNode.isTextual()) {
-                config = configNode.textValue();
+            } else if (configNode.isString()) {
+                config = configNode.asString();
             } else {
                 config = configNode.toString();
             }

@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.HttpMethodEnum;
 import org.cloudfoundry.identity.uaa.alias.AliasMockMvcTestBase;

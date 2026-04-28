@@ -1,13 +1,12 @@
 package org.cloudfoundry.identity.uaa.approval.impl;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import tools.jackson.databind.ValueDeserializer;
 
-import java.io.IOException;
 import java.util.Date;
 
 /*******************************************************************************
@@ -22,13 +21,13 @@ import java.util.Date;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-public class ApprovalsJsonDeserializer extends JsonDeserializer<Approval> {
+public class ApprovalsJsonDeserializer extends ValueDeserializer<Approval> {
 
     @Override
-    public Approval deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public Approval deserialize(JsonParser jp, DeserializationContext ctxt) {
         Approval approval = new Approval();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
-            if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
+            if (jp.getCurrentToken() == JsonToken.PROPERTY_NAME) {
                 String fieldName = jp.getCurrentName();
                 jp.nextToken();
                 if ("userId".equalsIgnoreCase(fieldName)) {

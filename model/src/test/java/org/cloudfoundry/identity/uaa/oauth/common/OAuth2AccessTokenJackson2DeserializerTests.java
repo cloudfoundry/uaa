@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.common;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +22,7 @@ class OAuth2AccessTokenJackson2DeserializerTests extends BaseOAuth2AccessTokenJa
 
     @BeforeEach
     void createObjectMapper() {
-        mapper = new ObjectMapper();
+        mapper = new JsonMapper();
     }
 
     @Test

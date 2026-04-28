@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.account.EmailChange;
 import org.cloudfoundry.identity.uaa.account.EmailChangeResponse;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;

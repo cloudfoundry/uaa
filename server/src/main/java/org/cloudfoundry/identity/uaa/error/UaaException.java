@@ -13,8 +13,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.error;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 
 import java.util.Map;

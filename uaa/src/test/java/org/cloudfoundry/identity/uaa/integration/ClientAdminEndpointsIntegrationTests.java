@@ -13,7 +13,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
@@ -137,7 +138,7 @@ public class ClientAdminEndpointsIntegrationTests {
         ResponseEntity<String> result = serverRunning.getForString("/oauth/clients?count=3000", myHeaders);
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        SearchResults searchResults = new ObjectMapper().readValue(result.getBody(), SearchResults.class);
+        SearchResults searchResults = new JsonMapper().readValue(result.getBody(), SearchResults.class);
         assertThat(searchResults.getItemsPerPage()).isEqualTo(500);
         assertThat(searchResults.getResources()).hasSize(500);
         assertThat(searchResults.getTotalResults()).isGreaterThan(500);

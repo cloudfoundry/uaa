@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.common.exception;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
@@ -27,7 +29,7 @@ class OAuth2ExceptionJackson2DeserializerTests {
 
     @BeforeAll
     static void setUpClass() {
-        mapper = new ObjectMapper();
+        mapper = new JsonMapper();
     }
 
     @Test

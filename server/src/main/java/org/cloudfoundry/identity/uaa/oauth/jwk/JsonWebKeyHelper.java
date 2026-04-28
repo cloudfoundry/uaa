@@ -15,7 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWK;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;

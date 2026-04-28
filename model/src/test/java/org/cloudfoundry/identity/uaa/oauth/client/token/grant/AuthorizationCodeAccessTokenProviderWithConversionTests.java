@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.client.token.grant;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.cloudfoundry.identity.uaa.oauth.client.grant.AuthorizationCodeAccessTokenProvider;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedException;
@@ -145,7 +147,7 @@ class AuthorizationCodeAccessTokenProviderWithConversionTests {
         final OAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
         requestFactory = new ClientHttpRequestFactory() {
             public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) throws IOException {
-                return new StubClientHttpRequest(new ObjectMapper().writeValueAsString(token));
+                return new StubClientHttpRequest(new JsonMapper().writeValueAsString(token));
             }
         };
         AccessTokenRequest request = new DefaultAccessTokenRequest();
@@ -162,7 +164,7 @@ class AuthorizationCodeAccessTokenProviderWithConversionTests {
         requestFactory = new ClientHttpRequestFactory() {
             public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) throws IOException {
                 return new StubClientHttpRequest(HttpStatus.BAD_REQUEST,
-                        new ObjectMapper().writeValueAsString(exception));
+                        new JsonMapper().writeValueAsString(exception));
             }
         };
         AccessTokenRequest request = new DefaultAccessTokenRequest();

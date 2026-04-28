@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -152,7 +154,7 @@ class UaaClientDetailsTest {
             UaaClientDetails details = new UaaClientDetails("foo", "", "foo,bar", "authorization_code", "ROLE_USER");
             details.setClientId("foo");
             details.setClientSecret("bar");
-            String value = new ObjectMapper().writeValueAsString(details);
+            String value = new JsonMapper().writeValueAsString(details);
             assertThat(value).contains("client_id")
                     .contains("client_secret")
                     .contains("authorized_grant_types")
@@ -164,14 +166,14 @@ class UaaClientDetailsTest {
             UaaClientDetails details = new UaaClientDetails("foo", "", "foo,bar", "authorization_code", "ROLE_USER");
             details.setClientId("foo");
             details.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
-            String value = new ObjectMapper().writeValueAsString(details);
+            String value = new JsonMapper().writeValueAsString(details);
             assertThat(value).contains("\"foo\":\"bar\"");
         }
 
         @Test
         void jsonDeserialize() throws Exception {
             String value = "{\"foo\":\"bar\",\"client_id\":\"foo\",\"scope\":[\"bar\",\"foo\"],\"authorized_grant_types\":[\"authorization_code\"],\"authorities\":[\"ROLE_USER\"]}";
-            UaaClientDetails details = new ObjectMapper().readValue(value, UaaClientDetails.class);
+            UaaClientDetails details = new JsonMapper().readValue(value, UaaClientDetails.class);
             UaaClientDetails expected = new UaaClientDetails("foo", "", "foo,bar", "authorization_code", "ROLE_USER");
             expected.setAdditionalInformation(Collections.singletonMap("foo", (Object) "bar"));
             assertThat(details).isEqualTo(expected);
@@ -181,7 +183,7 @@ class UaaClientDetailsTest {
         void jsonDeserializeWithArraysAsStrings() throws Exception {
             // Collection values can be deserialized from space or comma-separated lists
             String value = "{\"foo\":\"bar\",\"client_id\":\"foo\",\"scope\":\"bar  foo\",\"authorized_grant_types\":\"authorization_code\",\"authorities\":\"ROLE_USER,ROLE_ADMIN\"}";
-            UaaClientDetails details = new ObjectMapper().readValue(value, UaaClientDetails.class);
+            UaaClientDetails details = new JsonMapper().readValue(value, UaaClientDetails.class);
             UaaClientDetails expected = new UaaClientDetails("foo", "", "foo,bar", "authorization_code", "ROLE_USER,ROLE_ADMIN");
             expected.setAdditionalInformation(Collections.singletonMap("foo", (Object) "bar"));
             assertThat(details).isEqualTo(expected);

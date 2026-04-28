@@ -14,8 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.impl;
 
-import com.fasterxml.jackson.core.JsonLocation;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.TokenStreamLocation;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -31,7 +31,7 @@ class JsonDateDeserializerTest {
 
     @Test
     void parsing() throws IOException, ParseException {
-        Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
+        Date d = JsonDateDeserializer.getDate(testDateString, new TokenStreamLocation(null, 22, 0, 0));
         assertThat((long) d.getTime()).isEqualTo(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime());
     }
 
@@ -42,7 +42,7 @@ class JsonDateDeserializerTest {
 
             threadArray[i] = new Thread(() -> {
                 try {
-                    Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
+                    Date d = JsonDateDeserializer.getDate(testDateString, new TokenStreamLocation(null, 22, 0, 0));
                     if (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime() != d.getTime()) {
                         throw new Exception("Unexpected date");
                     }

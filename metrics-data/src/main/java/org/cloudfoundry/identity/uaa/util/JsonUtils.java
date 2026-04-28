@@ -15,19 +15,19 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.core.JacksonException;
 
-import java.io.IOException;
 import java.io.Serial;
 import java.util.Date;
 import java.util.Map;
 
 public class JsonUtils {
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new JsonMapper();
 
     private JsonUtils() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
@@ -36,7 +36,7 @@ public class JsonUtils {
     public static String writeValueAsString(Object object) throws JsonUtilException {
         try {
             return objectMapper.writeValueAsString(object);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -44,7 +44,7 @@ public class JsonUtils {
     public static byte[] writeValueAsBytes(Object object) throws JsonUtilException {
         try {
             return objectMapper.writeValueAsBytes(object);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -56,7 +56,7 @@ public class JsonUtils {
             } else {
                 return null;
             }
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -65,7 +65,7 @@ public class JsonUtils {
         try {
             final JsonNode rootNode = objectMapper.readTree(input);
             return getNodeAsMap(rootNode);
-        } catch (final JsonProcessingException e) {
+        } catch (final JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -77,7 +77,7 @@ public class JsonUtils {
             } else {
                 return null;
             }
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -89,7 +89,7 @@ public class JsonUtils {
             } else {
                 return null;
             }
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -101,7 +101,7 @@ public class JsonUtils {
             } else {
                 return null;
             }
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -121,7 +121,7 @@ public class JsonUtils {
     public static JsonNode readTree(JsonParser p) {
         try {
             return objectMapper.readTree(p);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -133,7 +133,7 @@ public class JsonUtils {
             } else {
                 return null;
             }
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new JsonUtilException(e);
         }
     }
@@ -170,7 +170,7 @@ public class JsonUtils {
 
     public static String getNodeAsString(JsonNode node, String fieldName, String defaultValue) {
         JsonNode typeNode = node.get(fieldName);
-        return typeNode == null ? defaultValue : typeNode.asText(defaultValue);
+        return typeNode == null ? defaultValue : typeNode.asString(defaultValue);
     }
 
     public static int getNodeAsInt(JsonNode node, String fieldName, int defaultValue) {

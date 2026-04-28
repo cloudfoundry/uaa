@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedException;
 import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
@@ -51,7 +53,7 @@ class OAuth2AccessTokenSupportTests {
 
     private final AccessTokenRequest request = new DefaultAccessTokenRequest();
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new JsonMapper();
 
     private final OAuth2AccessTokenSupport support = new OAuth2AccessTokenSupport() {
     };

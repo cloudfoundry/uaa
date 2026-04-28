@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.account;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.cloudfoundry.identity.uaa.test.JsonTranslation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.json.BasicJsonTester;
 import org.springframework.test.util.ReflectionTestUtils;
+import tools.jackson.core.JacksonException;
 
 import java.lang.reflect.Field;
 
@@ -51,7 +51,7 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
     }
 
     @Test
-    void allNulls() throws JsonProcessingException {
+    void allNulls() throws JacksonException {
         OpenIdConfiguration openIdConfiguration = new OpenIdConfiguration(null, null);
 
         for (Field field : OpenIdConfiguration.class.getDeclaredFields()) {

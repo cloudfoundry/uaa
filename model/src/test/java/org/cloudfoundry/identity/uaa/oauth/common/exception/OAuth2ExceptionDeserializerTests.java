@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.common.exception;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.BadClientCredentialsException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
@@ -28,7 +30,7 @@ class OAuth2ExceptionDeserializerTests {
 
     @BeforeAll
     static void setUpClass() {
-        mapper = new ObjectMapper();
+        mapper = new JsonMapper();
     }
 
     @Test

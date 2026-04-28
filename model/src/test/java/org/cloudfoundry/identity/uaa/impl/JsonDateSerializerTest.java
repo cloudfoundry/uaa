@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.impl;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonGenerator;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.TokenStreamFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,7 +19,7 @@ class JsonDateSerializerTest {
     void formatting() throws IOException {
         Date now = new Date();
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        JsonGenerator gen = new JsonFactory().createGenerator(bos);
+        JsonGenerator gen = new TokenStreamFactory().createGenerator(bos);
         new JsonDateSerializer().serialize(now, gen, null);
         gen.close();
         assertThat(bos).hasToString("\"%s\"".formatted(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(now)));
@@ -34,7 +34,7 @@ class JsonDateSerializerTest {
                 try {
                     Date now = new Date();
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    JsonGenerator gen = new JsonFactory().createGenerator(bos);
+                    JsonGenerator gen = new TokenStreamFactory().createGenerator(bos);
                     new JsonDateSerializer().serialize(now, gen, null);
                     gen.close();
                     if (!"\"%s\"".formatted(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(now))

@@ -15,7 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.util.BigIntegerUtils;
 import org.apache.commons.collections4.map.HashedMap;

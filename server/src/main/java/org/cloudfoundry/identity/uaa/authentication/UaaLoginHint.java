@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.core.JacksonException;
 
-import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
 import java.net.URLDecoder;
@@ -13,7 +13,7 @@ public class UaaLoginHint implements Serializable {
     @Serial
     private static final long serialVersionUID = 4021539346161285037L;
     private String origin;
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static ObjectMapper mapper = new JsonMapper();
 
     public static UaaLoginHint parseRequestParameter(String loginHint) {
         if (loginHint == null) {
@@ -22,7 +22,7 @@ public class UaaLoginHint implements Serializable {
         try {
             loginHint = URLDecoder.decode(loginHint, StandardCharsets.UTF_8);
             return mapper.readValue(loginHint, UaaLoginHint.class);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }
@@ -46,7 +46,7 @@ public class UaaLoginHint implements Serializable {
     public String toString() {
         try {
             return mapper.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return super.toString();
         }
     }

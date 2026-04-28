@@ -1,12 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +31,14 @@ public class OAuth2ExceptionJackson2Deserializer extends StdDeserializer<OAuth2E
     }
 
     @Override
-    public OAuth2Exception deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public OAuth2Exception deserialize(JsonParser jp, DeserializationContext ctxt) {
 
         JsonToken t = jp.getCurrentToken();
         if (t == JsonToken.START_OBJECT) {
             t = jp.nextToken();
         }
         Map<String, Object> errorParams = new HashMap<>();
-        for (; t == JsonToken.FIELD_NAME; t = jp.nextToken()) {
+        for (; t == JsonToken.PROPERTY_NAME; t = jp.nextToken()) {
             // Must point to field name
             String fieldName = jp.getCurrentName();
             // And then the value...
@@ -53,7 +52,7 @@ public class OAuth2ExceptionJackson2Deserializer extends StdDeserializer<OAuth2E
             } else if (t == JsonToken.START_OBJECT) {
                 value = jp.readValueAs(Map.class);
             } else {
-                value = jp.getText();
+                value = jp.getString();
             }
             errorParams.put(fieldName, value);
         }

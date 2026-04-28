@@ -1,10 +1,12 @@
 package org.cloudfoundry.identity.uaa.test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
+import tools.jackson.core.JacksonException;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 
@@ -22,12 +24,12 @@ public final class JsonMatcher extends BaseMatcher<String> {
     }
 
     private final String expectedJson;
-    private JsonProcessingException jsonException;
+    private JacksonException jsonException;
 
     private JsonMatcher(String expectedJson) {
         this.expectedJson = expectedJson;
         this.jsonException = null;
-        this.mapper = new ObjectMapper();
+        this.mapper = new JsonMapper();
     }
 
     @Override
@@ -40,7 +42,7 @@ public final class JsonMatcher extends BaseMatcher<String> {
             final JsonNode expectedTree = mapper.readTree(expectedJson);
 
             return expectedTree.equals(actualTree);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             jsonException = e;
             return false;
         }

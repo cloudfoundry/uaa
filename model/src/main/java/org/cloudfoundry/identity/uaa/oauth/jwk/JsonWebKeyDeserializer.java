@@ -15,23 +15,23 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
 import com.nimbusds.jose.jwk.JWKParameterNames;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import tools.jackson.databind.ValueDeserializer;
 
 import java.util.Arrays;
 
 /**
  * See https://tools.ietf.org/html/rfc7517
  */
-public class JsonWebKeyDeserializer extends JsonDeserializer<JsonWebKey> {
+public class JsonWebKeyDeserializer extends ValueDeserializer<JsonWebKey> {
     @Override
     public JsonWebKey deserialize(JsonParser p, DeserializationContext ctxt) {
         JsonNode node = JsonUtils.readTree(p);
-        String kty = node.get(JWKParameterNames.KEY_TYPE).asText("Unknown");
+        String kty = node.get(JWKParameterNames.KEY_TYPE).asString("Unknown");
         if (Arrays.stream(JsonWebKey.KeyType.values()).noneMatch(knownKeyType -> knownKeyType.name().equals(kty))) {
             return null;
         }

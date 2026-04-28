@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -52,6 +53,7 @@ public class HeaderParameters {
 
     }
 
+    @JsonCreator
     HeaderParameters(String alg,
             String kid,
             String jku) {

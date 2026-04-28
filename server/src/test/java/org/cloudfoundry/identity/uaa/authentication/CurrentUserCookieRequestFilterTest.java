@@ -99,8 +99,8 @@ class CurrentUserCookieRequestFilterTest {
 
         assertThat(res.getStatus()).isEqualTo(500);
         assertThat(res.getContentType()).isEqualTo("application/json");
-        assertThat(JsonUtils.readTree(res.getContentAsString()).get("error").textValue()).isEqualTo("current_user_cookie_error");
-        assertThat(JsonUtils.readTree(res.getContentAsString()).get("error_description").textValue()).isEqualTo("There was a problem while creating the Current-User cookie for user id user-guid");
+        assertThat(JsonUtils.readTree(res.getContentAsString()).get("error").asString()).isEqualTo("current_user_cookie_error");
+        assertThat(JsonUtils.readTree(res.getContentAsString()).get("error_description").asString()).isEqualTo("There was a problem while creating the Current-User cookie for user id user-guid");
         verifyNoInteractions(filterChain);
     }
 }

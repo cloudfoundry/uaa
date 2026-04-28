@@ -51,6 +51,7 @@ public enum UaaAuthority implements GrantedAuthority {
     @Getter
     private final String userType;
 
+    @JsonCreator
     UaaAuthority(String userType, int value) {
         this.userType = userType;
         this.value = value;

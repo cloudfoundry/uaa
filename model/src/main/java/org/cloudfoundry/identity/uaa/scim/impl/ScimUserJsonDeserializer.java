@@ -13,29 +13,28 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.impl;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import tools.jackson.databind.ValueDeserializer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
-public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
+public class ScimUserJsonDeserializer extends ValueDeserializer<ScimUser> {
     @Override
-    public ScimUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public ScimUser deserialize(JsonParser jp, DeserializationContext ctxt) {
         ScimUser user = new ScimUser();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
-            if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
+            if (jp.getCurrentToken() == JsonToken.PROPERTY_NAME) {
                 String fieldName = jp.getCurrentName();
                 jp.nextToken();
 
@@ -96,7 +95,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     user.setSalt(jp.readValueAs(String.class));
                 } else if ("passwordLastModified".equalsIgnoreCase(fieldName)) {
                     if (jp.getValueAsString() != null) {
-                        user.setPasswordLastModified(JsonDateDeserializer.getDate(jp.getValueAsString(), jp.getCurrentLocation()));
+                        user.setPasswordLastModified(JsonDateDeserializer.getDate(jp.getValueAsString(), jp.currentLocation()));
                     }
                 } else if ("approvals".equalsIgnoreCase(fieldName)) {
                     user.setApprovals(new HashSet<>(Arrays.asList(jp.readValueAs(Approval[].class))));
@@ -109,7 +108,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                         user.setPreviousLogonTime(jp.getValueAsLong());
                     }
                 } else {
-                    throw new UnrecognizedPropertyException("unrecognized field", jp.getCurrentLocation(),
+                    throw new UnrecognizedPropertyException("unrecognized field", jp.currentLocation(),
                             ScimUser.class, fieldName, Collections.emptySet());
                 }
             }
