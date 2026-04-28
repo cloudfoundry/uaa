@@ -1,9 +1,19 @@
-//= require ./lib/_energize
-//= require ./app/_toc
-//= require ./app/_lang
-//= require ./app/_version_dropdown
-//= require ./lib/_dropdown
-
+<%
+  # Bundle helper: reads each JS file relative to this manifest, stripping Sprockets directives.
+  # Uses current_resource.source_file (Middleman API) for correct path resolution at build time.
+  js_dir = File.dirname(current_resource.source_file)
+  bundle = ->(path) {
+    File.read(File.join(js_dir, path)).gsub(/^\/\/= require[^\n]*\n?/, '')
+  }
+%>
+<%= bundle.('lib/_jquery.js') %>
+<%= bundle.('lib/_imagesloaded.min.js') %>
+<%= bundle.('lib/_energize.js') %>
+<%= bundle.('lib/_lunr.js') %>
+<%= bundle.('app/_toc.js') %>
+<%= bundle.('app/_lang.js') %>
+<%= bundle.('app/_version_dropdown.js') %>
+<%= bundle.('lib/_dropdown.js') %>
 $(function() {
   loadToc($('#toc'), '.toc-link', '.toc-list-h2, .toc-list-h3, .toc-list-h4', 10);
   setupLanguages($('body').data('languages'));
@@ -12,7 +22,6 @@ $(function() {
     window.refreshToc();
   });
 });
-
 window.onpopstate = function() {
   activateLanguage(getLanguageFromQueryString());
 };
