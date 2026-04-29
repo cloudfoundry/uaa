@@ -23,3 +23,19 @@ See [`ai/README.md`](ai/README.md) for full documentation on the AI setup.
 - **Configuration reference:** `docs/UAA-Configuration-Reference.md`
 - **API test/doc sources:** `uaa/src/test/java/**/*Docs.java`
 - **Feature docs:** `docs/*.md`
+
+## Codebase quick reference
+
+UAA is a multi-module Gradle project. `server/` holds virtually all business logic;
+`uaa/` is the thin Spring Boot entry point. See `AGENTS.md` for the full architecture
+overview, build commands, database migration conventions, and testing patterns.
+
+Key points:
+
+- Every request runs in an **IdentityZone** context — always use
+  `identityZoneManager.getCurrentIdentityZoneId()`, never hardcode the `uaa` zone.
+- DB migrations (Flyway) must be added to all three directories:
+  `hsqldb/`, `mysql/`, `postgresql/`.
+- Dependencies are declared centrally in `dependencies.gradle` as named aliases; use
+  those aliases in `build.gradle` files.
+- Use **AssertJ** for assertions, **JUnit 5** only (no JUnit 4 vintage engine).
