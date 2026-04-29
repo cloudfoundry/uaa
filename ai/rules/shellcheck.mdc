@@ -90,16 +90,44 @@ main "$@"
 - **Files:** `lower_snake_case.sh`
 - **Functions:** `lower_snake_case`
 - **Local variables:** `lower_snake_case`, declared with `local`
-- **Constants / globals:** `UPPER_SNAKE_CASE`, declared with `readonly`
+- **Script-level constants:** `lower_snake_case`, declared with `readonly`
+- **Environment variables** (exported or inherited from the shell): `UPPER_SNAKE_CASE`
+
+`UPPER_SNAKE_CASE` is only valid for true environment variables (e.g. `PATH`, `HOME`,
+`JAVA_HOME`). Script-internal variables — even `readonly` ones — use `lower_snake_case`.
 
 ```bash
-readonly MAX_RETRIES=3
+# Script-level constants — lowercase + readonly
+readonly max_retries=3
+readonly config_file="${HOME}/.config/app.conf"
+
+# Environment variable passed in by the caller — uppercase is correct
+: "${JAVA_HOME:?JAVA_HOME must be set}"
 
 process_file() {
   local -r input_file="$1"
   local result
   result="$(parse "${input_file}")"
   echo "${result}"
+}
+```
+
+### Function comments
+
+Every function must have a comment block immediately before it describing its
+purpose, arguments, outputs, and return value:
+
+```bash
+# Short description of what the function does.
+# Arguments:
+#   $1 - name : description
+#   $2 - path : absolute path to ...
+# Outputs:
+#   Writes progress lines to stdout.
+# Returns:
+#   0 on success; non-zero if ... fails.
+my_function() {
+  ...
 }
 ```
 
