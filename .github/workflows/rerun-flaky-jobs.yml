@@ -65,6 +65,9 @@ jobs:
           # Build job list for summary (one line per job: name, conclusion)
           JOB_LIST=$(echo "$JOBS_JSON" | jq -r '.jobs[] | "- **\(.name)**: \(.conclusion // "pending")"')
 
+          # Always defined so the summary block can reference it unconditionally
+          FAILED_DETAILS=""
+
           # Decision: rerun only if some failed and at least one passed (flakiness)
           if [ "$FAILED_COUNT" -gt 0 ] && [ "$SUCCESS_COUNT" -gt 0 ]; then
             CONCLUSION_MSG="Flakiness detected. Rerunning failed jobs..."
@@ -81,6 +84,81 @@ jobs:
             else
               RERUN_ERROR_MSG=""
             fi
+
+            # For each failed matrix job, fetch its log and extract FAILED-block excerpts.
+            # Each block starts at a line containing FAILED and ends at the next line
+            # containing PASSED, a Gradle test-count summary, or BUILD SUCCESSFUL/FAILED —
+            # whichever comes first.  Blocks are capped at 50 lines to keep the summary
+            # readable; any remaining lines are replaced with a truncation notice.
+            while IFS=$'\t' read -r JOB_ID JOB_NAME; do
+              echo "Fetching logs for failed job: ${JOB_NAME} (id=${JOB_ID})"
+              set +e
+              # curl -L follows the 302 redirect that the logs API returns;
+              # head -c caps the download at 2 MB to guard against huge logs.
+              LOG_CONTENT=$(curl -fsL \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                "https://api.github.com/repos/${{ github.repository }}/actions/jobs/${JOB_ID}/logs" \
+                2>/dev/null | head -c 2097152)
+              CURL_STATUS=$?
+              set -e
+
+              if [ "$CURL_STATUS" -ne 0 ] || [ -z "$LOG_CONTENT" ]; then
+                EXCERPTS="_Could not fetch logs for this job (curl exit ${CURL_STATUS})._"
+              else
+                EXCERPTS=$(printf '%s' "$LOG_CONTENT" | awk '
+                  BEGIN { capturing=0; block=""; lines=0 }
+
+                  # A new FAILED line: flush any open block, then start a fresh one
+                  /FAILED/ {
+                    if (capturing && block != "") { printf "%s\n", block }
+                    block = $0 "\n"; lines = 1; capturing = 1; next
+                  }
+
+                  # Terminal line while capturing: flush block including this line
+                  capturing && (/PASSED/ || /[0-9]+ tests completed/ || /BUILD SUCCESSFUL/ || /BUILD FAILED/) {
+                    block = block $0 "\n"
+                    printf "%s\n", block
+                    block = ""; lines = 0; capturing = 0; next
+                  }
+
+                  # Still capturing and within the 50-line cap: accumulate
+                  capturing && lines < 50 { block = block $0 "\n"; lines++; next }
+
+                  # Hit the cap without finding a terminal line: truncate and flush
+                  capturing && lines >= 50 {
+                    block = block "...(truncated)\n"
+                    printf "%s\n", block
+                    block = ""; lines = 0; capturing = 0; next
+                  }
+
+                  # Flush any open block at end of file
+                  END { if (capturing && block != "") { printf "%s\n", block } }
+                ')
+
+                if [ -z "$EXCERPTS" ]; then
+                  EXCERPTS="_No FAILED output found in logs._"
+                fi
+              fi
+
+              FAILED_DETAILS="${FAILED_DETAILS}
+<details>
+<summary><b>${JOB_NAME}</b></summary>
+
+\`\`\`
+${EXCERPTS}
+\`\`\`
+
+</details>
+"
+            done < <(echo "$JOBS_JSON" | jq -r '
+              .jobs[]
+              | select(.conclusion != null and
+                  (.conclusion == "failure" or
+                   .conclusion == "cancelled" or
+                   .conclusion == "timed_out"))
+              | [(.id | tostring), .name]
+              | @tsv')
+
           else
             CONCLUSION_MSG="Flakiness not detected. Skipping auto-rerun."
             echo "$CONCLUSION_MSG"
@@ -114,5 +192,11 @@ jobs:
               echo ""
               echo "### Rerun error details"
               echo "${RERUN_ERROR_MSG}"
+            fi
+            if [ -n "${FAILED_DETAILS}" ]; then
+              echo ""
+              echo "### Failed test details"
+              echo ""
+              echo "${FAILED_DETAILS}"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
