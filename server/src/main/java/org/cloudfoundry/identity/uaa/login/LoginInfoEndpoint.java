@@ -867,17 +867,16 @@ public class LoginInfoEndpoint {
             }
         }
 
-        redirectAttributes.addAttribute("discoveryPerformed", true);
+        if (StringUtils.hasText(loginHint)) {
+            redirectAttributes.addAttribute(LOGIN_HINT_ATTRIBUTE, loginHint);
+        }
         if (StringUtils.hasText(email)) {
             redirectAttributes.addAttribute(EMAIL_ATTRIBUTE, email);
         }
         if (StringUtils.hasText(username)) {
             redirectAttributes.addAttribute(USERNAME_PARAMETER, username);
         }
-        if (StringUtils.hasText(loginHint)) {
-            redirectAttributes.addAttribute(LOGIN_HINT_ATTRIBUTE, loginHint);
-        }
-        return "redirect:/login";
+        return "redirect:/login?discoveryPerformed=true";
     }
 
     private String goToPasswordPage(String email, Model model) {
