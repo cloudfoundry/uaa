@@ -89,7 +89,7 @@ dependencies {
 
     implementation(libraries.apacheHttpClient)
 
-    testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
+    testImplementation(project(path: ":cloudfoundry-identity-model", configuration: "testArtifacts"))
 
     testImplementation(libraries.springTest)
 
