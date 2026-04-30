@@ -47,7 +47,7 @@ class ClientAdminSecurityConfiguration {
                     auth.requestMatchers(HttpMethod.PUT, "/oauth/clients/tx/**").access(isAdminOrHasScopes());
                     auth.requestMatchers(HttpMethod.DELETE, "/oauth/clients/tx/**").access(isAdminOrHasScopes());
 
-                    auth.requestMatchers(HttpMethod.GET, "oauth/clients/meta", "/oauth/clients/*/meta").fullyAuthenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/oauth/clients/meta", "/oauth/clients/*/meta").fullyAuthenticated();
 
                     auth.requestMatchers(HttpMethod.GET, "/oauth/clients/**").access(isAdminOrHasScopes("clients.read"));
 
