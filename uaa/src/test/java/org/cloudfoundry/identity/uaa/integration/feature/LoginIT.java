@@ -13,7 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.dumbster.smtp.SimpleSmtpServer;
+import com.icegreen.greenmail.util.GreenMail;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
@@ -78,7 +78,7 @@ class LoginIT {
     TestClient testClient;
 
     @Autowired
-    SimpleSmtpServer simpleSmtpServer;
+    GreenMail greenMail;
 
     @BeforeEach
     @AfterEach
@@ -466,7 +466,7 @@ class LoginIT {
     }
 
     private String createAnotherUser(String url) {
-        return IntegrationTestUtils.createAnotherUser(webDriver, USER_PASSWORD, simpleSmtpServer, url, testClient);
+        return IntegrationTestUtils.createAnotherUser(webDriver, USER_PASSWORD, greenMail, url, testClient);
     }
 
     private String createDiscoveryZone() {
