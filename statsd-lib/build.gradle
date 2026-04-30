@@ -13,7 +13,6 @@ dependencies {
     testImplementation(libraries.mockitoJunit5)
     testImplementation(libraries.bytebuddy)
     testImplementation(libraries.bytebuddyagent)
-    implementation(libraries.jacksonDataformatYaml)
     implementation(libraries.jacksonDatabind)
 }
 

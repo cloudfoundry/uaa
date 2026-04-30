@@ -51,8 +51,6 @@ dependencies {
     implementation(libraries.thymeleafExtrasSpringSecurity) {
         exclude(module: "ognl")
     }
-    runtimeOnly(libraries.springSecurityConfig)
-    runtimeOnly(libraries.springRetry)
     runtimeOnly(libraries.aspectJWeaver)
     runtimeOnly(libraries.postgresql)
     runtimeOnly(libraries.mariaJdbcDriver)

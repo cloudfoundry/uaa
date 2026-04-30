@@ -34,10 +34,6 @@ dependencies {
 
     implementation(libraries.guava)
 
-    // OpenAPI documentation
-    implementation(libraries.springdocOpenapi)
-
-    implementation(libraries.aspectJRt)
     implementation(libraries.aspectJWeaver)
 
     implementation(libraries.thymeLeaf) {
@@ -104,7 +100,6 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
 
     testImplementation(libraries.jsonPathAssert)
-    testImplementation(libraries.guavaTestLib)
     testImplementation(libraries.xmlUnit)
     testImplementation(libraries.awaitility)
 
