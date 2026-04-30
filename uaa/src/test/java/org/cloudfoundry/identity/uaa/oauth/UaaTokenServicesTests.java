@@ -34,7 +34,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -56,6 +55,7 @@ import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -237,7 +237,7 @@ class UaaTokenServicesTests {
             void setupRequest() {
                 clientId = "jku_test_without_autoapprove";
 
-                Approval approvedNonOpenIdScope = new Approval().setUserId("admin").setScope("oauth.approvals").setClientId(clientId).setExpiresAt(DateTime.now().plusDays(1).toDate()).setStatus(Approval.ApprovalStatus.APPROVED);
+                Approval approvedNonOpenIdScope = new Approval().setUserId("admin").setScope("oauth.approvals").setClientId(clientId).setExpiresAt(Date.from(Instant.now().plus(1, ChronoUnit.DAYS))).setStatus(Approval.ApprovalStatus.APPROVED);
                 jdbcApprovalStore.addApproval(approvedNonOpenIdScope, "uaa");
             }
 

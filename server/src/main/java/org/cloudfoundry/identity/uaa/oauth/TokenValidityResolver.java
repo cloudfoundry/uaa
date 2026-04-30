@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.joda.time.DateTime;
 
 import java.util.Date;
+import java.time.Instant;
 
 import static java.util.Optional.ofNullable;
 
@@ -32,7 +32,7 @@ public class TokenValidityResolver {
             tokenValiditySeconds = globalTokenValiditySeconds;
         }
 
-        return new DateTime(timeService.getCurrentTimeMillis()).plusSeconds(tokenValiditySeconds).toDate();
+        return Date.from(Instant.ofEpochMilli(timeService.getCurrentTimeMillis()).plusSeconds(tokenValiditySeconds));
     }
 
     public void setTimeService(TimeService timeService) {

@@ -1,14 +1,13 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.json.BasicJsonTester;
 import org.springframework.boot.test.json.JsonContentAssert;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,15 +30,13 @@ class IdTokenSerializationTest {
         acr.add("acr1");
         acr.add("acr2");
 
-        DateTimeUtils.setCurrentMillisFixed(1000L);
-
         idToken = new IdToken(
                 "sub",
                 List.of("aud"),
                 "iss",
-                DateTime.now().toDate(),
-                DateTime.now().toDate(),
-                DateTime.now().toDate(),
+                new Date(1000L),
+                new Date(1000L),
+                new Date(1000L),
                 amr,
                 acr,
                 "azp",
@@ -63,7 +60,6 @@ class IdTokenSerializationTest {
 
     @AfterEach
     void teardown() {
-        DateTimeUtils.setCurrentMillisSystem();
     }
 
     @Test
@@ -105,8 +101,8 @@ class IdTokenSerializationTest {
                 "sub",
                 List.of("aud"),
                 "iss",
-                DateTime.now().toDate(),
-                DateTime.now().toDate(),
+                new Date(),
+                new Date(),
                 null,
                 null,
                 null,

@@ -25,7 +25,6 @@ dependencies {
     implementation(libraries.springBootStarterMail)
     implementation(libraries.openSamlApi)
     implementation(libraries.springSecuritySamlServiceProvider)
-    implementation(libraries.jodaTime)
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 

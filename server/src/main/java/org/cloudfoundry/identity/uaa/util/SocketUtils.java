@@ -22,7 +22,6 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.joda.time.DateTime;
 
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
@@ -35,6 +34,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.time.Instant;
 
 public class SocketUtils {
     private static final String BC = BouncyCastleFipsProvider.PROVIDER_NAME;
@@ -57,7 +57,7 @@ public class SocketUtils {
 
             BigInteger serial = BigInteger.valueOf(System.currentTimeMillis());
 
-            Date notAfter = new DateTime(issueDate).plusSeconds((int) validForSeconds).toDate();
+            Date notAfter = Date.from(issueDate.toInstant().plusSeconds((int) validForSeconds));
             X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(builder.build(),
                     serial, issueDate, notAfter, builder.build(), keyPair.getPublic());
             ContentSigner sigGen = new JcaContentSignerBuilder(signatureAlgorithm)

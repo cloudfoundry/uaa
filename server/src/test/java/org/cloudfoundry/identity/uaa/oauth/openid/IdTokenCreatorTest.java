@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -181,11 +180,6 @@ class IdTokenCreatorTest {
                 mockMultitenantClientServices,
                 excludedClaims,
                 mockIdentityZoneManager);
-    }
-
-    @AfterEach
-    void teardown() {
-        DateTimeUtils.setCurrentMillisSystem();
     }
 
     @Test
