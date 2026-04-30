@@ -81,7 +81,7 @@ dependencies {
     implementation(libraries.log4jCore)
 
     implementation(libraries.nimbusJwt)
-    implementation(libraries.orgJson)
+    testImplementation(libraries.orgJson)
 
     implementation(libraries.apacheHttpClient)
 
