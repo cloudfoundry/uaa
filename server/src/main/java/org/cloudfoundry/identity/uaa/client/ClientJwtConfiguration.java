@@ -90,15 +90,19 @@ public class ClientJwtConfiguration implements Cloneable {
     public void addJwtCredentials(final List<ClientJwtCredential> additionalCredentials) {
         HashMap<String, ClientJwtCredential> clientJwtCredentialHashMap = new HashMap<>();
         if (this.clientJwtCredentials != null) {
-            this.clientJwtCredentials.forEach(jwtEntry -> clientJwtCredentialHashMap.putIfAbsent(jwtEntry.getSubject() + jwtEntry.getIssuer(), jwtEntry));
+            this.clientJwtCredentials.forEach(jwtEntry -> clientJwtCredentialHashMap.putIfAbsent(credKey(jwtEntry), jwtEntry));
         }
         validateClientJwtCredentials(additionalCredentials, clientJwtCredentialHashMap);
         setClientJwtCredentials(clientJwtCredentialHashMap.values().stream().toList());
     }
 
+    private static String credKey(ClientJwtCredential entry) {
+        return entry.getSubject() + '\0' + entry.getIssuer();
+    }
+
     private static void validateClientJwtCredentials(List<ClientJwtCredential> additionalCredentials, HashMap<String, ClientJwtCredential> clientJwtCredentialHashMap) {
         additionalCredentials.forEach(jwtEntry ->
-                clientJwtCredentialHashMap.putIfAbsent(jwtEntry.getSubject() + jwtEntry.getIssuer(), jwtEntry));
+                clientJwtCredentialHashMap.putIfAbsent(credKey(jwtEntry), jwtEntry));
         if (clientJwtCredentialHashMap.isEmpty() || clientJwtCredentialHashMap.size() > MAX_KEY_SIZE) {
             throw new InvalidClientDetailsException("Invalid private_key_jwt: federated jwt credentials exceeds the maximum of keys. max: + " + MAX_KEY_SIZE);
         }
