@@ -56,7 +56,7 @@ public class SocketUtils {
 
             BigInteger serial = BigInteger.valueOf(System.currentTimeMillis());
 
-            Date notAfter = Date.from(issueDate.toInstant().plusSeconds((int) validForSeconds));
+            Date notAfter = Date.from(issueDate.toInstant().plusSeconds(validForSeconds));
             X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(builder.build(),
                     serial, issueDate, notAfter, builder.build(), keyPair.getPublic());
             ContentSigner sigGen = new JcaContentSignerBuilder(signatureAlgorithm)

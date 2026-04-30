@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.json.BasicJsonTester;
@@ -56,10 +55,6 @@ class IdTokenSerializationTest {
                 "origin",
                 "some-uuid",
                 "revSig");
-    }
-
-    @AfterEach
-    void teardown() {
     }
 
     @Test
