@@ -15,10 +15,9 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -35,7 +34,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -268,24 +266,12 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             
             // Fold jwt_creds and client_jwt_config from additional information into the persisted client_jwt_config string
             Object jwtCredsValue = client.getAdditionalInformation().get(ClientJwtConfiguration.JWT_CREDS);
-            if (jwtCredsValue instanceof String jwtCredential) {
-                try {
-                    ClientJwtConfiguration newKeyConfig = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
+            if (jwtCredsValue != null) {
+                ClientJwtConfiguration extra = ClientJwtConfiguration.fromJwtCredsValue(jwtCredsValue);
+                if (extra != null) {
+                    ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
                             .orElseGet(ClientJwtConfiguration::new);
-                    newKeyConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredential));
-                    newKeyConfig.writeValue(client);
-                } catch (Exception e) {
-                    throw new InvalidClientDetailsException("Invalid jwt_creds format in additionalInformation", e);
-                }
-            } else if (jwtCredsValue instanceof List<?> jwtCredsList) {
-                try {
-                    String jwtCredsJson = JsonUtils.writeValueAsString(jwtCredsList);
-                    ClientJwtConfiguration newKeyConfig = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
-                            .orElseGet(ClientJwtConfiguration::new);
-                    newKeyConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredsJson));
-                    newKeyConfig.writeValue(client);
-                } catch (Exception e) {
-                    throw new InvalidClientDetailsException("Invalid jwt_creds format in additionalInformation", e);
+                    ClientJwtConfiguration.merge(current, extra, false).writeValue(client);
                 }
             }
 
@@ -296,13 +282,17 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     if (cjc instanceof String s) {
                         fromNested = ClientJwtConfiguration.readValue(s);
                     } else {
-                        fromNested = JsonUtils.readValue(JsonUtils.writeValueAsString(cjc), ClientJwtConfiguration.class);
+                        fromNested = ClientJwtConfiguration.fromJwtCredsValue(
+                                ((Map<?, ?>) cjc).get(ClientJwtConfiguration.JWT_CREDS));
+                        if (fromNested == null) {
+                            fromNested = ClientJwtConfiguration.readValue(
+                                    JsonUtils.writeValueAsString(cjc));
+                        }
                     }
                     if (fromNested != null) {
                         ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
                                 .orElseGet(ClientJwtConfiguration::new);
-                        current = ClientJwtConfiguration.merge(current, fromNested, false);
-                        current.writeValue(client);
+                        ClientJwtConfiguration.merge(current, fromNested, false).writeValue(client);
                     }
                 } catch (Exception e) {
                     throw new InvalidClientDetailsException("Invalid client_jwt_config in additionalInformation", e);

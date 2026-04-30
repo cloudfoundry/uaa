@@ -349,9 +349,36 @@ public class ClientJwtConfiguration implements Cloneable {
             }
         }
         if (result == null) {
-            return existingConfig;
+            return Objects.requireNonNullElseGet(existingConfig, ClientJwtConfiguration::new);
         }
         return result;
+    }
+
+    /**
+     * Builds a {@code ClientJwtConfiguration} carrying only the credentials parsed from a raw
+     * {@code jwt_creds} value that may arrive as a JSON string or a pre-parsed {@code List}.
+     * Returns {@code null} when {@code value} is neither a {@code String} nor a {@code List}.
+     */
+    @JsonIgnore
+    public static ClientJwtConfiguration fromJwtCredsValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            String json;
+            if (value instanceof String s) {
+                json = s;
+            } else if (value instanceof List<?> list) {
+                json = JsonUtils.writeValueAsString(list);
+            } else {
+                return null;
+            }
+            ClientJwtConfiguration cfg = new ClientJwtConfiguration();
+            cfg.addJwtCredentials(ClientJwtCredential.parse(json));
+            return cfg;
+        } catch (Exception e) {
+            throw new InvalidClientDetailsException("Invalid jwt_creds format", e);
+        }
     }
 
     @JsonIgnore

@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.SpringSecurityCoreVersion;
 import org.springframework.security.core.userdetails.User;
@@ -11,7 +11,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.io.Serial;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -19,6 +18,7 @@ public class UaaClient extends User {
 
     @Serial
     private static final long serialVersionUID = SpringSecurityCoreVersion.SERIAL_VERSION_UID;
+    private static final Logger logger = LoggerFactory.getLogger(UaaClient.class);
     private transient Map<String, Object> additionalInformation;
 
     private final String secret;
@@ -54,52 +54,42 @@ public class UaaClient extends User {
     }
 
     public ClientJwtConfiguration getClientJwtConfiguration() {
-        // Start with configuration from clientJwtConfig field
         ClientJwtConfiguration result = Optional.ofNullable(clientJwtConfig)
                 .map(ClientJwtConfiguration::readValue)
                 .orElse(new ClientJwtConfiguration());
-        
-        // For backward compatibility, also check for JWT credentials in additionalInformation
+
         if (additionalInformation != null) {
-            // Check for top-level jwt_creds in additionalInformation
+            // top-level jwt_creds in additionalInformation (backward compatibility)
             Object jwtCredsValue = additionalInformation.get(ClientJwtConfiguration.JWT_CREDS);
             if (jwtCredsValue != null) {
                 try {
-                    ClientJwtConfiguration additionalConfig = new ClientJwtConfiguration();
-                    if (jwtCredsValue instanceof String jwtCredential) {
-                        additionalConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredential));
-                    } else if (jwtCredsValue instanceof List<?> jwtCredsList) {
-                        String jwtCredsJson = JsonUtils.writeValueAsString(jwtCredsList);
-                        additionalConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredsJson));
+                    ClientJwtConfiguration additionalConfig = ClientJwtConfiguration.fromJwtCredsValue(jwtCredsValue);
+                    if (additionalConfig != null) {
+                        result = ClientJwtConfiguration.merge(result, additionalConfig, false);
                     }
-                    result = ClientJwtConfiguration.merge(result, additionalConfig, false);
                 } catch (Exception e) {
-                    // Log but don't fail - graceful degradation for backward compatibility
+                    logger.warn("Ignoring malformed jwt_creds in additionalInformation for client {}", getUsername(), e);
                 }
             }
-            
-            // Check for nested client_jwt_config.jwt_creds in additionalInformation
+
+            // nested jwt_creds under additionalInformation["client_jwt_config"] map (backward compatibility)
             Object clientJwtCredsValue = additionalInformation.get("client_jwt_config");
-            if (clientJwtCredsValue instanceof Map clientJwtCredsMap) {
+            if (clientJwtCredsValue instanceof Map<?, ?> clientJwtCredsMap) {
                 Object nestedJwtCreds = clientJwtCredsMap.get(ClientJwtConfiguration.JWT_CREDS);
                 if (nestedJwtCreds != null) {
                     try {
-                        ClientJwtConfiguration nestedConfig = new ClientJwtConfiguration();
-                        if (nestedJwtCreds instanceof String jwtCredential) {
-                            nestedConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredential));
-                        } else if (nestedJwtCreds instanceof List<?> jwtCredsList) {
-                            String jwtCredsJson = JsonUtils.writeValueAsString(jwtCredsList);
-                            nestedConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredsJson));
+                        ClientJwtConfiguration nestedConfig = ClientJwtConfiguration.fromJwtCredsValue(nestedJwtCreds);
+                        if (nestedConfig != null) {
+                            result = ClientJwtConfiguration.merge(result, nestedConfig, false);
                         }
-                        result = ClientJwtConfiguration.merge(result, nestedConfig, false);
                     } catch (Exception e) {
-                        // Log but don't fail - graceful degradation for backward compatibility
+                        logger.warn("Ignoring malformed nested client_jwt_config.jwt_creds in additionalInformation for client {}", getUsername(), e);
                     }
                 }
             }
         }
-        
-        return result != null ? result : new ClientJwtConfiguration();
+
+        return result;
     }
 
     /**

@@ -93,6 +93,42 @@ class ClientJwtCredentialsEndpointMockMvcTests {
     }
 
     @Test
+    void updateAddsNewJwtCredToExistingOne() throws Exception {
+        String clientId = "jwt-add-" + UUID.randomUUID().toString().substring(0, 8);
+
+        UaaClientDetails create = new UaaClientDetails();
+        create.setClientId(clientId);
+        create.setClientSecret("secret");
+        create.setAuthorizedGrantTypes(List.of("client_credentials"));
+        create.setAuthorities(Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority("uaa.none")));
+        create.setClientJwtConfig("{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"first-" + clientId + "\"}]}");
+
+        mockMvc.perform(post("/oauth/clients")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(create)))
+                .andExpect(status().isCreated());
+
+        // PUT with only the second credential — the first should survive via merge with existing DB state
+        UaaClientDetails update = new UaaClientDetails();
+        update.setClientId(clientId);
+        update.setClientSecret("secret");
+        update.setAuthorizedGrantTypes(List.of("client_credentials"));
+        update.setAuthorities(Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority("uaa.none")));
+        update.addAdditionalInformation(ClientJwtConfiguration.JWT_CREDS,
+                JsonUtils.readValue("[{\"iss\":\"" + ISSUER + "\",\"sub\":\"second-" + clientId + "\"}]", List.class));
+
+        mockMvc.perform(put("/oauth/clients/" + clientId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(update)))
+                .andExpect(status().isOk());
+
+        ClientDetailsModification after = getClient(clientId);
+        assertThat(after.getClientJwtCredentials()).isNotNull().hasSize(2);
+    }
+
+    @Test
     void updateReplacesClientJwtConfigWithFullMergedString() throws Exception {
         String clientId = "jwt-upd-" + UUID.randomUUID().toString().substring(0, 8);
         String first = "[{\"iss\":\"" + ISSUER + "\",\"sub\":\"first-" + clientId + "\"}]";

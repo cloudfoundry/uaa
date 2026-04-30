@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
@@ -33,7 +32,6 @@ import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -784,12 +782,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             return inputJwt;
         }
         try {
-            ClientJwtConfiguration extra = new ClientJwtConfiguration();
-            if (v instanceof String s) {
-                extra.addJwtCredentials(ClientJwtCredential.parse(s));
-            } else if (v instanceof List<?> list) {
-                extra.addJwtCredentials(ClientJwtCredential.parse(JsonUtils.writeValueAsString(list)));
-            } else {
+            ClientJwtConfiguration extra = ClientJwtConfiguration.fromJwtCredsValue(v);
+            if (extra == null) {
                 return inputJwt;
             }
             return ClientJwtConfiguration.merge(inputJwt, extra, false);
