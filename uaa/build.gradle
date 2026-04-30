@@ -73,11 +73,6 @@ dependencies {
 
     testImplementation(project(":cloudfoundry-identity-model"))
     testImplementation(project(":cloudfoundry-identity-metrics-data"))
-    testImplementation(libraries.apacheDsProtocolLdap) {
-        exclude(module: "bcprov-jdk15")
-        exclude(module: "slf4j-api")
-        exclude(module: "slf4j-log4j12")
-    }
     testImplementation(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
     }

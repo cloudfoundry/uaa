@@ -4,7 +4,6 @@ ext {
 }
 
 // Versions shared between multiple dependencies
-versions.apacheDsVersion = "2.0.0.AM27"
 versions.bouncyCastleFipsVersion = "2.1.2"
 versions.bouncyCastlePkixFipsVersion = "2.1.11"
 versions.bouncyCastleTlsFipsVersion = "2.1.23"
@@ -18,7 +17,6 @@ versions.opensaml = "4.3.2"
 ext["selenium.version"] = "${versions.seleniumVersion}" // Selenium for integration tests only
 
 // Dependencies (some rely on shared versions, some are shared between projects)
-libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
 libraries.apacheHttpClient = "org.apache.httpcomponents.client5:httpclient5"
 libraries.aspectJRt = "org.aspectj:aspectjrt"
 libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.7"
