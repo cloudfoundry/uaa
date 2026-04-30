@@ -78,10 +78,6 @@ dependencies {
     testImplementation(libraries.hibernateValidator)
     testImplementation(libraries.selenium)
     testImplementation(libraries.seleniumRemoteDriver)
-    testImplementation(libraries.dumbster) {
-        exclude(module: "mail")
-        exclude(module: "activation")
-    }
     testImplementation(libraries.orgJson)
     testImplementation(libraries.jsonAssert)
     testImplementation(libraries.jsonPathAssert)

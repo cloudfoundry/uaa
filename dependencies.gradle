@@ -28,7 +28,6 @@ libraries.braveInstrumentation = "io.zipkin.brave:brave-instrumentation-servlet-
 libraries.braveContextSlf4j = "io.zipkin.brave:brave-context-slf4j:${versions.braveVersion}"
 libraries.commonsCodec = "commons-codec:commons-codec:1.22.0"
 libraries.commonsIo = "commons-io:commons-io:2.22.0"
-libraries.dumbster = "dumbster:dumbster:1.6"
 libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:7.6.0.202603022253-r"
 libraries.flywayCore = "org.flywaydb:flyway-core"
 libraries.flywayHsqlDb = "org.flywaydb:flyway-database-hsqldb"

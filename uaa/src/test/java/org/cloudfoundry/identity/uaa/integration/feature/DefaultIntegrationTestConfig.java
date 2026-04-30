@@ -13,7 +13,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.dumbster.smtp.SimpleSmtpServer;
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.ServerSetup;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
@@ -116,8 +117,10 @@ public class DefaultIntegrationTestConfig {
     }
 
     @Bean(destroyMethod = "stop")
-    public SimpleSmtpServer simpleSmtpServer(@Value("${smtp.port}") int port) {
-        return SimpleSmtpServer.start(port);
+    public GreenMail greenMail(@Value("${smtp.port}") int port) {
+        GreenMail greenMail = new GreenMail(new ServerSetup(port, null, ServerSetup.PROTOCOL_SMTP));
+        greenMail.start();
+        return greenMail;
     }
 
     @Bean
