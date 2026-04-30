@@ -109,7 +109,7 @@ class UaaTokenServicesTests {
         private String requestedScope;
 
         @BeforeEach
-        void setupRequest() throws InterruptedException {
+        void setupRequest() {
             requestedScope = "openid";
             assumeTrue(waitForClient(clientId, 3), "Test client jku_test not up yet");
         }
@@ -138,7 +138,7 @@ class UaaTokenServicesTests {
         private String requestedScope;
 
         @BeforeEach
-        void setupRequest() throws InterruptedException {
+        void setupRequest() {
             requestedScope = "openid";
             assumeTrue(waitForClient(clientId, 3), "Test client jku_test not up yet");
         }
@@ -175,7 +175,7 @@ class UaaTokenServicesTests {
         @DefaultTestContext
         @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
         class WhenUserDoesntRequestOpenIdScope {
-            private List<String> logEvents = new ArrayList<>();
+            private final List<String> logEvents = new ArrayList<>();
             private AbstractAppender appender;
             private Level originalLevel;
 
@@ -591,7 +591,6 @@ class UaaTokenServicesTests {
     @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
     @DirtiesContext
     class WhenRefreshTokenValidityIsSpecified {
-        private RefreshTokenCreator refreshTokenCreator;
         private RefreshTokenRequestData refreshTokenRequestData;
         private UaaUser uaaUser;
         private TokenRequest tokenRequest;
