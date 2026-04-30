@@ -20,7 +20,6 @@ ext["selenium.version"] = "${versions.seleniumVersion}" // Selenium for integrat
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
 libraries.apacheHttpClient = "org.apache.httpcomponents.client5:httpclient5"
-libraries.aspectJRt = "org.aspectj:aspectjrt"
 libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.7"
 libraries.aspectJWeaver = "org.aspectj:aspectjweaver"
 libraries.awaitility = "org.awaitility:awaitility"
