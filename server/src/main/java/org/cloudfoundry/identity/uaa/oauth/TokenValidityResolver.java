@@ -1,15 +1,17 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import lombok.Setter;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.joda.time.DateTime;
 
 import java.util.Date;
+import java.time.Instant;
 
 import static java.util.Optional.ofNullable;
 
 public class TokenValidityResolver {
     public static final int DEFAULT_TO_GLOBAL_POLICY = -1;
     private final int globalTokenValiditySeconds;
+    @Setter
     private TimeService timeService;
     private final ClientTokenValidity clientTokenValidity;
 
@@ -32,10 +34,6 @@ public class TokenValidityResolver {
             tokenValiditySeconds = globalTokenValiditySeconds;
         }
 
-        return new DateTime(timeService.getCurrentTimeMillis()).plusSeconds(tokenValiditySeconds).toDate();
-    }
-
-    public void setTimeService(TimeService timeService) {
-        this.timeService = timeService;
+        return Date.from(Instant.ofEpochMilli(timeService.getCurrentTimeMillis()).plusSeconds(tokenValiditySeconds));
     }
 }
