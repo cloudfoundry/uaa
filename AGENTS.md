@@ -18,7 +18,7 @@ starting work.
 | [`documentation.mdc`](ai/rules/documentation.mdc) | All code changes | Keep `docs/` in sync; update config reference, API docs, and feature docs |
 | [`java-testing.mdc`](ai/rules/java-testing.mdc) | `**/*Test*.java` | AssertJ, Awaitility, `@ParameterizedTest`, `@Nested`, UAA-specific patterns |
 | [`shellcheck.mdc`](ai/rules/shellcheck.mdc) | `**/*.sh` | Run `shellcheck <file>` after every shell script create/edit |
-| [`ai-instructions.mdc`](ai/rules/ai-instructions.mdc) | Changing `ai/rules/` | Keep `AGENTS.md`, `CLAUDE.md`, and `copilot-instructions.md` in sync |
+| [`ai-instructions.mdc`](ai/rules/ai-instructions.mdc) | Changing `ai/rules/` | Keep `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` in sync |
 
 See [`ai/README.md`](ai/README.md) for full documentation on the AI setup.
 

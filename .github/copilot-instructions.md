@@ -12,8 +12,7 @@ This repository uses a single source of truth for AI agent rules and skills loca
   `*Docs.java` files and require `./gradlew generateDocs`.
 - **`ai/rules/java-testing.mdc`** — Use AssertJ for assertions, Awaitility for async
   waits, `@ParameterizedTest` instead of loops, `@Nested` for grouped tests, and
-  `@DefaultTestContext` for UAA integration tests.
-  (PRs, issues, workflows).
+  `@DefaultTestContext` for UAA integration tests. (PRs, issues, workflows).
 - **`ai/rules/shellcheck.mdc`** — Run `shellcheck <file>` after every shell script
   create/edit.
 - **`ai/rules/ai-instructions.mdc`** — When changing `ai/rules/`, update the summary

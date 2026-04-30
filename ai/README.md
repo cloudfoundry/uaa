@@ -41,15 +41,15 @@ After cloning, run once to wire Cursor:
 | [`documentation.mdc`](rules/documentation.mdc) | Any code change | Keep `docs/`, config reference, and API docs in sync |
 | [`java-testing.mdc`](rules/java-testing.mdc) | `*Test*.java`, `*IT.java` | AssertJ, Awaitility, `@ParameterizedTest`, `@Nested` |
 | [`shellcheck.mdc`](rules/shellcheck.mdc) | `**/*.sh` | Run `shellcheck <file>` after every shell script edit |
-| [`ai-instructions.mdc`](rules/ai-instructions.mdc) | Changing `ai/rules/` | Keep `AGENTS.md`, `CLAUDE.md`, and `copilot-instructions.md` in sync |
+| [`ai-instructions.mdc`](rules/ai-instructions.mdc) | Changing `ai/rules/` | Keep `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` in sync |
 
 ## Working Plans
 
 Agents may write task plans to `ai/plans/` before implementing. These files are gitignored
 and are never committed — they are ephemeral working notes only.
-``
+
 If you want to preserve a significant architectural decision, write an ADR in `docs/adrs` instead.
-``
+
 
 ## Adding a New Shared Rule
 
