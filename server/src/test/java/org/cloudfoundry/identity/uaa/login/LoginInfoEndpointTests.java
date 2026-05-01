@@ -386,6 +386,29 @@ class LoginInfoEndpointTests {
     }
 
     @Test
+    void discoverIdentityProvider_addsAllRedirectAttributesOnFallthrough() {
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
+        String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
+
+        String redirect = endpoint.discoverIdentityProvider(
+                "testuser@fake.com",
+                "true",
+                loginHint,
+                "testuser",
+                extendedModelMap,
+                redirectAttributes,
+                new MockHttpSession(),
+                new MockHttpServletRequest()
+        );
+
+        assertThat(redirect).isEqualTo("redirect:/login?discoveryPerformed=true");
+        verify(redirectAttributes).addAttribute("email", "testuser@fake.com");
+        verify(redirectAttributes).addAttribute("username", "testuser");
+        verify(redirectAttributes).addAttribute("login_hint", loginHint);
+    }
+
+    @Test
     void discoverIdentityProviderCarriesUsername() throws MalformedURLException {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
