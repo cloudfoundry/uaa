@@ -554,6 +554,56 @@ class JwtClientAuthenticationTest {
         ).isFalse();
     }
 
+    /**
+     * When a client is configured with multiple {@code jwt_creds} (e.g. merged trust from column + legacy
+     * additional information), a {@code private_key_jwt} assertion is accepted if it successfully verifies
+     * and its iss/sub/aud <strong>match</strong> <em>one</em> of those entries (RFC 7523 federated path, not
+     * OIDC client_id=iss=sub). UAA then resolves signing keys for that entry’s issuer and performs signature
+     * verification. This is the predictable behavior for “two configurations”: evaluate each known trust
+     * until one matches, then validate.
+     */
+    @Test
+    void privateKeyJwt_federatedAcceptsAssertionForEachOfMultipleConfiguredJwtCreds() throws Exception {
+        jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
+        mockKeyInfoService(KEY_ID, JwtHelperX5tTest.CERTIFICATE_1, JwtHelperX5tTest.SIGNING_KEY_1);
+        ClientJwtCredential c1 = new ClientJwtCredential("assertion-one", issuer, "aud-one");
+        ClientJwtCredential c2 = new ClientJwtCredential("assertion-two", issuer, "aud-two");
+        ClientJwtConfiguration withBothCreds = new ClientJwtConfiguration(List.of(c1, c2));
+        when(externalOAuthAuthenticationManager.idTokenWasIssuedByTheUaa(issuer)).thenReturn(true);
+        mockOIDCDefinition(c1);
+        String assertion1 = jwtClientAuthentication.getClientAssertion(config);
+        assertThat(jwtClientAuthentication.validateClientJwt(
+                getMockedRequestParameter(null, assertion1), withBothCreds, "own_client_id_1")
+        ).isTrue();
+        mockOIDCDefinition(c2);
+        String assertion2 = jwtClientAuthentication.getClientAssertion(config);
+        assertThat(jwtClientAuthentication.validateClientJwt(
+                getMockedRequestParameter(null, assertion2), withBothCreds, "own_client_id_2")
+        ).isTrue();
+    }
+
+    /**
+     * A presentation that does not match <em>any</em> configured trust entry must fail, even if other
+     * entries are configured, so a wrong (unregistered) key / subject is never accepted in place of a
+     * registered one.
+     */
+    @Test
+    void privateKeyJwt_federatedRejectsWhenAssertionSubjectDoesNotMatchAnyJwtCred() throws Exception {
+        jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
+        mockKeyInfoService(KEY_ID, JwtHelperX5tTest.CERTIFICATE_1, JwtHelperX5tTest.SIGNING_KEY_1);
+        ClientJwtCredential c1 = new ClientJwtCredential("allowed-one", issuer, "a");
+        ClientJwtCredential c2 = new ClientJwtCredential("allowed-two", issuer, "b");
+        ClientJwtConfiguration withBothCreds = new ClientJwtConfiguration(List.of(c1, c2));
+        when(externalOAuthAuthenticationManager.idTokenWasIssuedByTheUaa(issuer)).thenReturn(true);
+        ClientJwtCredential notListed = new ClientJwtCredential("not-listed", issuer, "a");
+        mockOIDCDefinition(notListed);
+        String untrusted = jwtClientAuthentication.getClientAssertion(config);
+        assertThatThrownBy(() -> jwtClientAuthentication.validateClientJwt(
+                getMockedRequestParameter(null, untrusted), withBothCreds, "x"))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Wrong client_assertion");
+    }
+
     private void mockKeyInfoService(String keyId, String x509Certificate) throws JOSEException {
         mockKeyInfoService(keyId, x509Certificate, null);
     }

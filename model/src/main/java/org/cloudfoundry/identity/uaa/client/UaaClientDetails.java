@@ -99,6 +99,9 @@ public class UaaClientDetails implements ClientDetails {
         this.setScope(prototype.getScope());
         this.setResourceIds(prototype.getResourceIds());
         this.setAdditionalInformation(prototype.getAdditionalInformation());
+        if (prototype instanceof UaaClientDetails uaa) {
+            this.setClientJwtConfig(uaa.getClientJwtConfig());
+        }
     }
 
     public UaaClientDetails(String clientId, String resourceIds,

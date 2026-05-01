@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.client;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -31,8 +32,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
@@ -278,5 +281,40 @@ class ClientAdminEndpointsValidatorTests {
         }
 
         return httpsUrls;
+    }
+
+    @Test
+    void validate_create_foldsTopLevelJwtCredsListIntoClientJwtConfigAndStripsAdditional() {
+        client.setScope(Collections.singletonList(caller.getClientId() + ".read"));
+        client.addAdditionalInformation(ClientJwtConfiguration.JWT_CREDS,
+                JsonUtils.readValue("[{\"iss\":\"http://localhost/uaa/oauth/token\",\"sub\":\"subj\",\"aud\":\"aud\"}]", List.class));
+
+        UaaClientDetails result = (UaaClientDetails) validator.validate(client, true, true);
+
+        assertThat(result.getClientJwtConfig()).isNotBlank();
+        assertThat(ClientJwtConfiguration.readValue(result).getClientJwtCredentials()).hasSize(1);
+        assertThat(result.getAdditionalInformation()).doesNotContainKey(ClientJwtConfiguration.JWT_CREDS);
+    }
+
+    @Test
+    void validate_create_foldsNestedClientJwtConfigMapAndStripsFromAdditional() {
+        client.setScope(Collections.singletonList(caller.getClientId() + ".read"));
+        Map<String, Object> nested = new java.util.HashMap<>();
+        nested.put(ClientJwtConfiguration.JWT_CREDS, JsonUtils.readValue("[{\"iss\":\"http://issuer\",\"sub\":\"subj\"}]", List.class));
+        client.addAdditionalInformation("client_jwt_config", nested);
+
+        UaaClientDetails result = (UaaClientDetails) validator.validate(client, true, true);
+
+        assertThat(result.getClientJwtConfig()).isNotBlank();
+        assertThat(result.getAdditionalInformation()).doesNotContainKey("client_jwt_config");
+    }
+
+    @Test
+    void validate_create_invalidJwtCredsList_throws() {
+        client.setScope(Collections.singletonList(caller.getClientId() + ".read"));
+        client.addAdditionalInformation(ClientJwtConfiguration.JWT_CREDS, List.of(Map.of("not", "valid")));
+
+        assertThatThrownBy(() -> validator.validate(client, true, true))
+                .isInstanceOf(InvalidClientDetailsException.class);
     }
 }

@@ -450,7 +450,7 @@ public abstract class AbstractTokenMockMvcTests {
             ClientJwtConfiguration jwtConfiguration = new ClientJwtConfiguration(null, jwkKeySet);
             String jwtConfigJson = JsonUtils.writeValueAsString(jwtConfiguration);
             client.setClientJwtConfig(jwtConfigJson);
-            // updateClientDetails() does not persist client_jwt_config (see MultitenantJdbcClientDetailsService.DEFAULT_UPDATE_STATEMENT).
+            // Persist the column for DB-backed client loads (dedicated method; updateClientDetails also sets client_jwt_config now).
             clientDetailsService.updateClientJwtConfig(client.getClientId(), jwtConfigJson, resolvedZone.getId());
         } finally {
             IdentityZoneHolder.set(previous);

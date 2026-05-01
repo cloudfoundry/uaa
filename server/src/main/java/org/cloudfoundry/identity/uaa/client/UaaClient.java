@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.SpringSecurityCoreVersion;
 import org.springframework.security.core.userdetails.User;
@@ -9,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.io.Serial;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -51,7 +54,52 @@ public class UaaClient extends User {
     }
 
     public ClientJwtConfiguration getClientJwtConfiguration() {
-        return Optional.ofNullable(clientJwtConfig).map(ClientJwtConfiguration::readValue).orElse(new ClientJwtConfiguration());
+        // Start with configuration from clientJwtConfig field
+        ClientJwtConfiguration result = Optional.ofNullable(clientJwtConfig)
+                .map(ClientJwtConfiguration::readValue)
+                .orElse(new ClientJwtConfiguration());
+        
+        // For backward compatibility, also check for JWT credentials in additionalInformation
+        if (additionalInformation != null) {
+            // Check for top-level jwt_creds in additionalInformation
+            Object jwtCredsValue = additionalInformation.get(ClientJwtConfiguration.JWT_CREDS);
+            if (jwtCredsValue != null) {
+                try {
+                    ClientJwtConfiguration additionalConfig = new ClientJwtConfiguration();
+                    if (jwtCredsValue instanceof String jwtCredential) {
+                        additionalConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredential));
+                    } else if (jwtCredsValue instanceof List<?> jwtCredsList) {
+                        String jwtCredsJson = JsonUtils.writeValueAsString(jwtCredsList);
+                        additionalConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredsJson));
+                    }
+                    result = ClientJwtConfiguration.merge(result, additionalConfig, false);
+                } catch (Exception e) {
+                    // Log but don't fail - graceful degradation for backward compatibility
+                }
+            }
+            
+            // Check for nested client_jwt_config.jwt_creds in additionalInformation
+            Object clientJwtCredsValue = additionalInformation.get("client_jwt_config");
+            if (clientJwtCredsValue instanceof Map clientJwtCredsMap) {
+                Object nestedJwtCreds = clientJwtCredsMap.get(ClientJwtConfiguration.JWT_CREDS);
+                if (nestedJwtCreds != null) {
+                    try {
+                        ClientJwtConfiguration nestedConfig = new ClientJwtConfiguration();
+                        if (nestedJwtCreds instanceof String jwtCredential) {
+                            nestedConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredential));
+                        } else if (nestedJwtCreds instanceof List<?> jwtCredsList) {
+                            String jwtCredsJson = JsonUtils.writeValueAsString(jwtCredsList);
+                            nestedConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredsJson));
+                        }
+                        result = ClientJwtConfiguration.merge(result, nestedConfig, false);
+                    } catch (Exception e) {
+                        // Log but don't fail - graceful degradation for backward compatibility
+                    }
+                }
+            }
+        }
+        
+        return result != null ? result : new ClientJwtConfiguration();
     }
 
     /**

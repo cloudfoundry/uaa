@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -32,6 +34,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -259,10 +265,57 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
             }
+            
+            // Fold jwt_creds and client_jwt_config from additional information into the persisted client_jwt_config string
+            Object jwtCredsValue = client.getAdditionalInformation().get(ClientJwtConfiguration.JWT_CREDS);
+            if (jwtCredsValue instanceof String jwtCredential) {
+                try {
+                    ClientJwtConfiguration newKeyConfig = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
+                            .orElseGet(ClientJwtConfiguration::new);
+                    newKeyConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredential));
+                    newKeyConfig.writeValue(client);
+                } catch (Exception e) {
+                    throw new InvalidClientDetailsException("Invalid jwt_creds format in additionalInformation", e);
+                }
+            } else if (jwtCredsValue instanceof List<?> jwtCredsList) {
+                try {
+                    String jwtCredsJson = JsonUtils.writeValueAsString(jwtCredsList);
+                    ClientJwtConfiguration newKeyConfig = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
+                            .orElseGet(ClientJwtConfiguration::new);
+                    newKeyConfig.addJwtCredentials(ClientJwtCredential.parse(jwtCredsJson));
+                    newKeyConfig.writeValue(client);
+                } catch (Exception e) {
+                    throw new InvalidClientDetailsException("Invalid jwt_creds format in additionalInformation", e);
+                }
+            }
+
+            Object cjc = client.getAdditionalInformation().get("client_jwt_config");
+            if (cjc != null) {
+                try {
+                    ClientJwtConfiguration fromNested;
+                    if (cjc instanceof String s) {
+                        fromNested = ClientJwtConfiguration.readValue(s);
+                    } else {
+                        fromNested = JsonUtils.readValue(JsonUtils.writeValueAsString(cjc), ClientJwtConfiguration.class);
+                    }
+                    if (fromNested != null) {
+                        ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
+                                .orElseGet(ClientJwtConfiguration::new);
+                        current = ClientJwtConfiguration.merge(current, fromNested, false);
+                        current.writeValue(client);
+                    }
+                } catch (Exception e) {
+                    throw new InvalidClientDetailsException("Invalid client_jwt_config in additionalInformation", e);
+                }
+            }
+
+            LinkedHashMap<String, Object> withoutDuplicateJwt = new LinkedHashMap<>(client.getAdditionalInformation());
+            withoutDuplicateJwt.remove(ClientJwtConfiguration.JWT_CREDS);
+            withoutDuplicateJwt.remove("client_jwt_config");
+            client.setAdditionalInformation(withoutDuplicateJwt);
         }
 
         return client;
-
     }
 
     public void validateClientRedirectUri(ClientDetails client) {
