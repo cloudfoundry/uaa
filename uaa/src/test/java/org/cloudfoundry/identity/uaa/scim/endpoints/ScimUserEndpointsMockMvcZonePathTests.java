@@ -80,7 +80,6 @@ import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEA
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -100,6 +99,7 @@ import static org.springframework.util.StringUtils.hasText;
 @DefaultTestContext
 @EnabledIfZonePathsEnabled
 class ScimUserEndpointsMockMvcZonePathTests {
+    private static final MediaType APPLICATION_JSON_UTF8 = new MediaType("application", "json", java.nio.charset.StandardCharsets.UTF_8);
     private static final String HTTP_REDIRECT_EXAMPLE_COM = "http://redirect.example.com";
     private static final String USER_PASSWORD = "pas5Word";
     private String scimReadWriteToken;
