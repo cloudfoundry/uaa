@@ -122,6 +122,7 @@ jobs:
 
       - name: Summarize failed test logs
         if: steps.check-and-rerun.outputs.flaky == 'true'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
@@ -203,16 +204,8 @@ jobs:
             # break the <summary> tag rendering.
             ESCAPED_JOB_NAME="$(printf '%s' "$JOB_NAME" | python3 -c 'import html, sys; print(html.escape(sys.stdin.read()), end="")')"
 
-            JOB_BLOCK="
-<details>
-<summary><b>${ESCAPED_JOB_NAME}</b></summary>
-
-\`\`\`
-${EXCERPTS}
-\`\`\`
-
-</details>
-"
+            JOB_BLOCK="$(printf '\n<details>\n<summary><b>%s</b></summary>\n\n```\n%s\n```\n\n</details>\n' \
+              "${ESCAPED_JOB_NAME}" "${EXCERPTS}")"
 
             # Global size cap: keep FAILED_DETAILS under 400 KB so the overall
             # step summary stays well within GitHub's 1 MB limit.
@@ -222,14 +215,8 @@ ${EXCERPTS}
             if [ $((CURRENT_SIZE + BLOCK_SIZE)) -le $MAX_DETAILS_BYTES ]; then
               FAILED_DETAILS="${FAILED_DETAILS}${JOB_BLOCK}"
             else
-              FAILED_DETAILS="${FAILED_DETAILS}
-<details>
-<summary><b>${ESCAPED_JOB_NAME}</b> _(truncated — global size cap reached)_</summary>
-
-_Output omitted: the combined log excerpts have exceeded the 400 KB limit._
-
-</details>
-"
+              FAILED_DETAILS="${FAILED_DETAILS}$(printf '\n<details>\n<summary><b>%s</b> _(truncated — global size cap reached)_</summary>\n\n_Output omitted: the combined log excerpts have exceeded the 400 KB limit._\n\n</details>\n' \
+                "${ESCAPED_JOB_NAME}")"
               break
             fi
           done < <(echo "$JOBS_JSON" | jq -r '
