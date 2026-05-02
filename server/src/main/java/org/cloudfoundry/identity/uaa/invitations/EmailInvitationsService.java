@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
@@ -24,6 +23,7 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.CREATED_NEW_USER;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.REDIRECT_URI;
 
@@ -68,9 +68,10 @@ public class EmailInvitationsService implements InvitationsService {
         if (UAA.equals(user.getOrigin())) {
             user = scimUserProvisioning.verifyUser(userId, user.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
 
-            if (StringUtils.hasText(password)) {
-                PasswordChangeRequest request = new PasswordChangeRequest();
-                request.setPassword(password);
+            // Only reset the password for newly created users
+            boolean createdNewUser = Boolean.parseBoolean(
+                    userData.getOrDefault(CREATED_NEW_USER, "true")); // default true for in-flight codes
+            if (StringUtils.hasText(password) && createdNewUser) {
                 scimUserProvisioning.changePassword(userId, null, password, identityZoneManager.getCurrentIdentityZoneId());
             }
         }

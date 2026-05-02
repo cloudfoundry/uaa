@@ -52,6 +52,7 @@ public class InvitationsEndpoint {
     private static final int INVITATION_EXPIRY_DAYS = 7;
     public static final String USER_ID = "user_id";
     public static final String EMAIL = "email";
+    public static final String CREATED_NEW_USER = "created_new_user";
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final IdentityProviderProvisioning identityProviderProvisioning;
@@ -100,7 +101,8 @@ public class InvitationsEndpoint {
                 if (email != null && validateEmail(email)) {
                     List<IdentityProvider> providers = filter(activeProviders, client, email);
                     if (providers.size() == 1) {
-                        ScimUser user = findOrCreateUser(email, providers.getFirst().getOriginKey());
+                        FindResult findResult = findOrCreateUser(email, providers.getFirst().getOriginKey());
+                        ScimUser user = findResult.user();
                         String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", !IdentityZoneHolder.isUaa(), IdentityZoneHolder.get());
 
                         Map<String, String> data = new HashMap<>();
@@ -109,6 +111,7 @@ public class InvitationsEndpoint {
                         data.put(CLIENT_ID, clientId);
                         data.put(REDIRECT_URI, redirectUri);
                         data.put(ORIGIN, user.getOrigin());
+                        data.put(CREATED_NEW_USER, String.valueOf(findResult.newUser()));
                         Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
                         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name(), IdentityZoneHolder.get().getId());
 
@@ -137,7 +140,7 @@ public class InvitationsEndpoint {
         return new ResponseEntity<>(invitationsResponse, HttpStatus.OK);
     }
 
-    private ScimUser findOrCreateUser(String email, String origin) {
+    private FindResult findOrCreateUser(String email, String origin) {
         email = email.trim().toLowerCase();
         List<ScimUser> results = scimUserProvisioning.retrieveByEmailAndZone(email, origin, IdentityZoneHolder.get().getId());
         if (results == null || results.isEmpty()) {
@@ -146,13 +149,15 @@ public class InvitationsEndpoint {
             user.setOrigin(origin);
             user.setVerified(false);
             user.setActive(true);
-            return scimUserProvisioning.createUser(user, new RandomValueStringGenerator(12).generate(), IdentityZoneHolder.get().getId());
+            return new FindResult(scimUserProvisioning.createUser(user, new RandomValueStringGenerator(12).generate(), IdentityZoneHolder.get().getId()), true);
         } else if (results.size() == 1) {
-            return results.getFirst();
+            return new FindResult(results.getFirst(), false);
         } else {
             throw new ScimResourceConflictException("Ambiguous users found for email:%s with origin:%s".formatted(email, origin));
         }
     }
+
+    record FindResult(ScimUser user, boolean newUser) {}
 
     private boolean validateEmail(String email) {
         boolean valid = true;
