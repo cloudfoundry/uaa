@@ -4,7 +4,7 @@
 name: Rerun flaky tests
 on:
   workflow_run:
-    workflows: [ "Integration tests on database", "JUnit tests on database" ]
+    workflows: [ "Integration tests on database", "JUnit tests on database", "Java CI with Gradle" ]
     types: [ completed ]
 
 permissions:
