@@ -2351,6 +2351,25 @@ The redirect_uri will be validated against allowed redirect_uri for the client.
         "failed_invites":[]
     }
 
+.. note::
+
+   **Existing unverified UAA-origin users and password handling**
+
+   When ``POST /invite_users`` is called for an email address that already belongs
+   to an *unverified* ``uaa``-origin user, the response shape is unchanged — the
+   invite link is still returned in ``new_invites[].inviteLink``.
+
+   However, when that invitation is accepted via ``POST /invitations/accept.do``
+   with a ``password`` parameter, the password is **ignored** for that user — only
+   the ``verified`` flag is set.  This is intentional: the ``scim.invite`` scope
+   does not grant credential-management rights over pre-existing accounts.
+
+   To reset an existing user's password use ``POST /password_resets``
+   (requires the ``password.write`` scope).
+
+   Newly created users (first-time invitations where the account did not exist
+   before) are unaffected: the supplied password is set normally.
+
 
 
 Group Management APIs
