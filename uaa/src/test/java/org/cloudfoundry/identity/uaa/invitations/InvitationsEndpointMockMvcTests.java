@@ -389,6 +389,45 @@ class InvitationsEndpointMockMvcTests {
     }
 
     @Test
+    void inviteNewUser_codeContainsCreatedNewUserTrue() throws Exception {
+        String email = "brand-new-" + generator.generate().toLowerCase() + "@" + emailDomain;
+        String redirectUrl = "example.com";
+
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                webApplicationContext, mockMvc, scimInviteToken, null, clientId, redirectUrl, email);
+        assertThat(response.getNewInvites()).hasSize(1);
+
+        String code = response.getNewInvites().getFirst().getInviteLink().getQuery().split("=")[1];
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+        Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<>() {});
+
+        assertThat(data).containsEntry("created_new_user", "true");
+    }
+
+    @Test
+    void inviteExistingUnverifiedUaaUser_codeContainsCreatedNewUserFalse(@Autowired JdbcTemplate jdbcTemplate) throws Exception {
+        String email = "pre-existing-" + generator.generate().toLowerCase() + "@" + emailDomain;
+        String redirectUrl = "example.com";
+
+        // First invite creates the user
+        sendRequestWithTokenAndReturnResponse(
+                webApplicationContext, mockMvc, scimInviteToken, null, clientId, redirectUrl, email);
+
+        // Second invite targets the now-existing unverified user
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                webApplicationContext, mockMvc, scimInviteToken, null, clientId, redirectUrl, email);
+        assertThat(response.getNewInvites()).hasSize(1);
+
+        String code = response.getNewInvites().getFirst().getInviteLink().getQuery().split("=")[1];
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+        Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<>() {});
+
+        assertThat(data).containsEntry("created_new_user", "false");
+
+        jdbcTemplate.update("DELETE FROM users WHERE username = ?", email);
+    }
+
+    @Test
     void acceptInvitationEmailWithDefaultCompanyName() throws Exception {
         mockMvc.perform(get(getAcceptInvitationLink(webApplicationContext, mockMvc, clientId, clientSecret, generator, emailDomain, null, "admin", "adminsecret")))
                 .andExpect(content().string(containsString("Create your account")))

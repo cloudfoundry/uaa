@@ -34,6 +34,7 @@ import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -212,5 +213,51 @@ class EmailInvitationsServiceTests {
         verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
         verify(mockScimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
         assertThat(redirectLocation).isEqualTo("/home");
+    }
+
+    @Test
+    void acceptInvitation_existingUser_withPassword_doesNotChangePassword() {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        user.setOrigin(UAA);
+        when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        doThrow(NoSuchClientException.class).when(mockClientDetailsService).loadClientByClientId(null, zoneId);
+
+        Map<String, String> userData = new HashMap<>();
+        userData.put(USER_ID, "user-id-001");
+        userData.put(EMAIL, "user@example.com");
+        userData.put(CLIENT_ID, null);
+        userData.put("created_new_user", "false");
+        when(mockExpiringCodeStore.retrieveCode(anyString(), eq(zoneId)))
+                .thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
+                        JsonUtils.writeValueAsString(userData), INVITATION.name()));
+
+        emailInvitationsService.acceptInvitation("code", "attackerChosenPassword");
+
+        verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
+        verify(mockScimUserProvisioning, never()).changePassword(any(), any(), any(), any());
+    }
+
+    @Test
+    void acceptInvitation_newUser_withPassword_stillChangesPassword() {
+        ScimUser user = new ScimUser("user-id-002", "newuser@example.com", "first", "last");
+        user.setOrigin(UAA);
+        when(mockScimUserProvisioning.retrieve(eq("user-id-002"), eq(zoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        doThrow(NoSuchClientException.class).when(mockClientDetailsService).loadClientByClientId(null, zoneId);
+
+        Map<String, String> userData = new HashMap<>();
+        userData.put(USER_ID, "user-id-002");
+        userData.put(EMAIL, "newuser@example.com");
+        userData.put(CLIENT_ID, null);
+        userData.put("created_new_user", "true");
+        when(mockExpiringCodeStore.retrieveCode(anyString(), eq(zoneId)))
+                .thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
+                        JsonUtils.writeValueAsString(userData), INVITATION.name()));
+
+        emailInvitationsService.acceptInvitation("code", "newUserPassword");
+
+        verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
+        verify(mockScimUserProvisioning).changePassword(user.getId(), null, "newUserPassword", zoneId);
     }
 }
