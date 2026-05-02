@@ -112,7 +112,7 @@ class PasswordGrantIntegrationTests {
         HttpEntity<String> request = new HttpEntity<>(JsonUtils.writeValueAsString(client), headers);
 
         ResponseEntity<String> response = new RestTemplate().postForEntity(serverRunning.getUrl("/oauth/clients"), request, String.class);
-        assertThat(response.getStatusCodeValue()).isEqualTo(201);
+        assertThat(response.getStatusCode().value()).isEqualTo(201);
 
         return JsonUtils.readValue(response.getBody(), UaaClientDetails.class);
     }
