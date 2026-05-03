@@ -134,7 +134,7 @@ class PasswordChangeEndpointIntegrationTests {
                 .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
                         HttpMethod.PUT, new HttpEntity<>(change, headers),
                         Void.class, joe.getId());
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
     }
 
     @Test

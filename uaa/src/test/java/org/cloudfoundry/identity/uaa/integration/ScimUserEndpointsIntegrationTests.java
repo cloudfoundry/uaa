@@ -277,7 +277,7 @@ class ScimUserEndpointsIntegrationTests {
         ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
                 new HttpEntity<Map>(map, headers), Map.class, joe.getId());
         Map<String, Object> joe1 = response.getBody();
-        assertThat(((String) joe1.get("message")).toLowerCase()).as("Wrong message: " + joe1).contains("unrecognized field");
+        assertThat(((String) joe1.get("message")).toLowerCase()).as("Wrong message: " + joe1).contains("unrecognized property");
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
