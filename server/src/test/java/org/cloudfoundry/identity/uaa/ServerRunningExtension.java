@@ -34,9 +34,15 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.HttpAccessor;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.cfg.ConstructorDetector;
+import tools.jackson.databind.json.JsonMapper;
 import org.springframework.web.util.UriUtils;
 
 import java.io.IOException;
@@ -44,6 +50,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -300,6 +307,18 @@ public final class ServerRunningExtension implements BeforeAllCallback, RestTemp
 
     public RestTemplate createRestTemplate() {
         RestTemplate newClient = new RestTemplate();
+        JsonMapper mapper = JsonMapper.builder()
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                .constructorDetector(ConstructorDetector.DEFAULT.withAllowImplicitWithDefaultConstructor(false))
+                .build();
+        List<HttpMessageConverter<?>> converters = newClient.getMessageConverters();
+        for (int i = 0; i < converters.size(); i++) {
+            if (converters.get(i) instanceof JacksonJsonHttpMessageConverter) {
+                converters.set(i, new JacksonJsonHttpMessageConverter(mapper));
+                break;
+            }
+        }
         newClient.setRequestFactory(new StatelessRequestFactory());
         newClient.setErrorHandler(new ResponseErrorHandler() {
             // Pass errors through in response entity for status code analysis

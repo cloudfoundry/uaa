@@ -406,12 +406,12 @@ public class ClientAdminEndpointsIntegrationTests {
                     Collections.singletonList("bar")));
         }
         clients[clients.length - 1].setClientSecret(null);
-        ResponseEntity<UaaException> result =
+        ResponseEntity<UaaClientDetails[]> result =
                 serverRunning.getRestTemplate().exchange(
                         serverRunning.getUrl("/oauth/clients/tx"),
                         HttpMethod.POST,
                         new HttpEntity<>(clients, headers),
-                        UaaException.class);
+                        UaaClientDetails[].class);
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         for (String id : ids) {
             ClientDetails client = getClient(id);
