@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.cloudfoundry.identity.uaa.authentication.GenericPasswordPolicy;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonIgnoreProperties(ignoreUnknown = true, value = {"expireSecretInMonths"})
 public class ClientSecretPolicy extends GenericPasswordPolicy<ClientSecretPolicy> {
 
     @Override
@@ -68,10 +68,12 @@ public class ClientSecretPolicy extends GenericPasswordPolicy<ClientSecretPolicy
         this.setExpireSecretInMonths(expireSecretInMonths);
     }
 
+    @JsonIgnore
     public int getExpireSecretInMonths() {
         return expireSecretInMonths;
     }
 
+    @JsonIgnore
     public ClientSecretPolicy setExpireSecretInMonths(int expireSecretInMonths) {
         this.expireSecretInMonths = expireSecretInMonths;
         return this;
