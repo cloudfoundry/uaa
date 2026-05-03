@@ -1,8 +1,11 @@
 package org.cloudfoundry.identity.uaa.security.web;
 
+import org.apache.tomcat.util.http.InvalidParameterException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.web.SecurityFilterChain;
 
 import jakarta.servlet.Filter;
@@ -145,5 +148,23 @@ class SecurityFilterChainPostProcessorTests {
     }
 
     public static class BeforeFilter extends TestFilter1 {
+    }
+
+    @Test
+    void uaaLoggingFilter_invalidParameterException_returns400JsonAndDoesNotPropagate() throws Exception {
+        processor.postProcessAfterInitialization(fc, "");
+        Filter loggingFilter = fc.getFilters().getFirst();
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/oauth/token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = (req, res) -> {
+            throw new InvalidParameterException("bad encoding");
+        };
+
+        loggingFilter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(400);
+        assertThat(response.getContentType()).contains("application/json");
+        assertThat(response.getContentAsString()).contains("parameter_parsing_error");
     }
 }
