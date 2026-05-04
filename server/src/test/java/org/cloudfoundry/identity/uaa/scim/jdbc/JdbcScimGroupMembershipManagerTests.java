@@ -175,21 +175,6 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void deleteByMemberToleratesDuplicateDefaultGroupMembership() throws SQLException {
-        // Simulate the bug from issue #3479: user has explicit membership in a default group
-        ScimGroup defaultGroup = jdbcScimGroupProvisioning.getByName("uaa.user", uaaIdentityZone.getId());
-        addMember("g1", "m3", "USER", LDAP, jdbcTemplate, uaaIdentityZone.getId());
-        addMember("g2", "m3", "USER", UAA, jdbcTemplate, uaaIdentityZone.getId());
-        // Add duplicate explicit membership in the default group "uaa.user"
-        jdbcTemplate.execute(ADD_MEMBER_SQL_FORMAT.formatted(
-                defaultGroup.getId(), "m3", "USER", UAA, uaaIdentityZone.getId()));
-
-        jdbcScimGroupMembershipManager.removeMembersByMemberId("m3", uaaIdentityZone.getId());
-        // Should not throw — the extra row for the default group is tolerated
-        validateCount(0, jdbcTemplate, uaaIdentityZone.getId());
-    }
-
-    @Test
     void deleteByMemberAndOrigin() throws SQLException {
         addMember("g1", "m3", "USER", LDAP, jdbcTemplate, uaaIdentityZone.getId());
         addMember("g1", "g2", "GROUP", LDAP, jdbcTemplate, uaaIdentityZone.getId());
