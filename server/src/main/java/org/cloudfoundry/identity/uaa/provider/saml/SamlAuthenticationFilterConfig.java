@@ -96,7 +96,7 @@ public class SamlAuthenticationFilterConfig {
         OpenSaml5AuthenticationProvider samlResponseAuthenticationProvider = new OpenSaml5AuthenticationProvider();
         samlResponseAuthenticationProvider.setResponseAuthenticationConverter(samlResponseAuthenticationConverter);
 
-        // This validator ignores wraps the default validator and ignores InResponseTo errors, if configured
+        // This validator wraps the default validator and ignores InResponseTo errors, if configured
         UaaInResponseToHandlingResponseValidator uaaInResponseToHandlingResponseValidator =
                 new UaaInResponseToHandlingResponseValidator(OpenSaml5AuthenticationProvider.createDefaultResponseValidator(), samlConfigProps.getDisableInResponseToCheck());
         samlResponseAuthenticationProvider.setResponseValidator(uaaInResponseToHandlingResponseValidator);

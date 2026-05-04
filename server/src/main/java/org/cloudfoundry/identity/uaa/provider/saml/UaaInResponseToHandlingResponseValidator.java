@@ -16,7 +16,6 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -32,13 +31,12 @@ import java.util.Optional;
 
 /**
  * Strategy for validating the SAML 2.0 Response used with
- * {@link org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider}
+ * {@link OpenSaml5AuthenticationProvider}
  * Handles the property `login.saml.disableInResponseToCheck` when set to true
  * we will ignore errors on the InResponseTo check of the SAML Response.
  * <p>
  * The InResponseTo attribute is optional, but if it is present, the default validator checks against the ID of the request.
  */
-@Slf4j
 public final class UaaInResponseToHandlingResponseValidator implements Converter<OpenSaml5AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> {
 
     private final boolean uaaWideDisableInResponseToCheck;

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -21,8 +22,6 @@ import java.security.Security;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate1;
