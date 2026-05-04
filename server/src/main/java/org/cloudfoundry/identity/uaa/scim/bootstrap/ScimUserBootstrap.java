@@ -291,7 +291,7 @@ public class ScimUserBootstrap implements
             return;
         }
         if (isDefaultGroup(gName)) {
-            logger.debug("Skipping explicit membership for default group: {}", gName);
+            logger.debug("Skipping explicit membership for default group: {}", gName.replaceAll("[\\r\\n\\t]", "_"));
             return;
         }
         logger.debug("Adding to group: {}", gName);
@@ -318,8 +318,11 @@ public class ScimUserBootstrap implements
     }
 
     private boolean isDefaultGroup(String groupName) {
-        List<String> defaultGroups = identityZoneManager.getCurrentIdentityZone()
-                .getConfig().getUserConfig().getDefaultGroups();
+        var zone = identityZoneManager.getCurrentIdentityZone();
+        if (zone == null || zone.getConfig() == null || zone.getConfig().getUserConfig() == null) {
+            return false;
+        }
+        List<String> defaultGroups = zone.getConfig().getUserConfig().getDefaultGroups();
         return defaultGroups != null && defaultGroups.contains(groupName);
     }
 
