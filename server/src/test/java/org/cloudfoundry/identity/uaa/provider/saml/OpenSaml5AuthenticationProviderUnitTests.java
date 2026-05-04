@@ -547,7 +547,7 @@ class OpenSaml5AuthenticationProviderUnitTests {
     }
 
     @Test
-    void authenticateWhenEncryptedAssertionWithoutSignatureThenAllowItIfSamlConfigurationAllowsIt() {
+    void authenticateWhenEncryptedAssertionWithoutSignatureThenFailsEvenIfWantAssertionSignedFalse() {
         IdentityZone identityZone = IdentityZoneHolder.getUaaZone();
         identityZone.getConfig().getSamlConfig().setWantAssertionSigned(false);
         IdentityZoneHolder.set(identityZone);
@@ -556,7 +556,9 @@ class OpenSaml5AuthenticationProviderUnitTests {
                 TestSaml2X509Credentials.assertingPartyEncryptingCredential());
         response.getEncryptedAssertions().add(encryptedAssertion);
         Saml2AuthenticationToken token = token(response, decrypting(verifying(registration())));
-        assertThatNoException().isThrownBy(() -> this.provider.authenticate(token));
+        assertThatExceptionOfType(Saml2AuthenticationException.class)
+                .isThrownBy(() -> this.provider.authenticate(token))
+                .satisfies(errorOf(Saml2ErrorCodes.INVALID_SIGNATURE, "Either the response or one of the assertions is unsigned."));
     }
 
     @Test

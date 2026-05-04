@@ -63,12 +63,15 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     private static final String GET_CREATED_BY_SQL =
             "select created_by from oauth_client_details where client_id=? and identity_zone_id=?";
 
-    private static final String CLIENT_FIELDS_FOR_UPDATE =
+    /** DB columns for client row after {@code client_jwt_config} (insert/update share this tail). */
+    private static final String CLIENT_DATA_FIELDS =
             "resource_ids, scope, " +
                     "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, " +
                     "refresh_token_validity, additional_information, autoapprove, lastmodified, required_user_groups";
 
-    private static final String CLIENT_FIELDS = "client_secret, client_jwt_config, " + CLIENT_FIELDS_FOR_UPDATE;
+    private static final String CLIENT_FIELDS_FOR_UPDATE = "client_jwt_config, " + CLIENT_DATA_FIELDS;
+
+    private static final String CLIENT_FIELDS = "client_secret, client_jwt_config, " + CLIENT_DATA_FIELDS;
 
     private static final String BASE_FIND_STATEMENT =
             "select client_id, " + CLIENT_FIELDS + " from oauth_client_details";
@@ -186,9 +189,9 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     }
 
     private Object[] getInsertClientDetailsFields(ClientDetails clientDetails, String zoneId) {
-        Object[] fieldsForUpdate = getFieldsForUpdate(clientDetails, zoneId);
-        Object[] clientDetailFieldsForUpdate = new Object[fieldsForUpdate.length + 3];
-        System.arraycopy(fieldsForUpdate, 0, clientDetailFieldsForUpdate, 2, fieldsForUpdate.length);
+        Object[] fieldValues = getClientRowFieldValues(clientDetails, zoneId);
+        Object[] clientDetailFieldsForUpdate = new Object[fieldValues.length + 3];
+        System.arraycopy(fieldValues, 0, clientDetailFieldsForUpdate, 2, fieldValues.length);
         clientDetailFieldsForUpdate[0] =
                 clientDetails.getClientSecret() != null ?
                         passwordEncoder.encode(clientDetails.getClientSecret()) :
@@ -199,6 +202,16 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     }
 
     private Object[] getFieldsForUpdate(ClientDetails clientDetails, String zoneId) {
+        String clientJwt = clientDetails instanceof UaaClientDetails ucd ? ucd.getClientJwtConfig() : null;
+        Object[] withoutJwt = getClientRowFieldValues(clientDetails, zoneId);
+        Object[] withClientJwt = new Object[withoutJwt.length + 1];
+        withClientJwt[0] = clientJwt;
+        System.arraycopy(withoutJwt, 0, withClientJwt, 1, withoutJwt.length);
+        return withClientJwt;
+    }
+
+    /** resource_ids through required_user_groups plus client_id, zone_id (update prepends client_jwt_config). */
+    private Object[] getClientRowFieldValues(ClientDetails clientDetails, String zoneId) {
 
         Map<String, Object> additionalInformation = new HashMap<>(clientDetails.getAdditionalInformation());
         Collection<String> requiredGroups = (Collection<String>) additionalInformation.remove(REQUIRED_USER_GROUPS);

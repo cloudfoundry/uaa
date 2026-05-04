@@ -1,0 +1,158 @@
+---
+alwaysApply: false
+description: "Documentation Requirements"
+version: "1.2.0"
+---
+# Documentation Requirements
+
+## When Documentation Must Be Updated
+
+When making changes to UAA code, you MUST ensure related documentation is updated:
+
+### 1. Configuration Changes
+
+When adding, removing, or modifying configuration properties:
+
+- **MUST** update `docs/UAA-Configuration-Reference.md` with:
+  - New property descriptions
+  - Updated default values
+  - Examples and usage notes
+  - Deprecation warnings for removed properties
+
+### 2. API Changes
+
+When modifying REST endpoints, request/response formats, or API behavior:
+
+- **MUST** update corresponding `*Docs.java` files in `uaa/src/test/java/**/*Docs.java`
+- **MUST** regenerate API documentation to ensure examples are current
+- **MUST** update any affected documentation in `docs/` directory
+
+### 3. Feature Documentation
+
+When adding new features or significantly changing existing ones:
+
+- **MUST** update relevant documentation in `docs/` directory
+- **MUST** consider if changes affect:
+  - `docs/UAA-Tokens.md` (token-related changes)
+  - `docs/UAA-LDAP.md` (LDAP integration changes)
+  - `docs/UAA-Rate-Limiting.md` (rate limiting changes)
+  - `docs/testing.md` (test setup or procedures)
+  - Provider-specific docs in `docs/OIDC-Provider-Examples/`
+
+### 4. AI Rule and Instruction Files
+
+When adding, removing, or changing a rule in `ai/rules/`:
+
+- **MUST** update the rules summary table in all three AI instruction files:
+  - `AGENTS.md` (OpenAI Codex / general agents)
+  - `CLAUDE.md` (Claude Code)
+  - `.github/copilot-instructions.md` (GitHub Copilot)
+- These files must stay equivalent in content; only formatting may differ per tool.
+- See [`ai-instructions.mdc`](ai-instructions.mdc) for the full sync rule.
+
+## Documentation Quality Standards
+
+### Configuration Reference Content Requirements
+
+All configuration properties must include:
+
+- Purpose and behavior description
+- Data type and format
+- Default value (if any)
+- Example usage
+- Related properties or dependencies
+
+### API Documentation Content Requirements
+
+API documentation must include:
+
+- Complete request/response examples
+- Error scenarios and status codes
+- Authentication/authorization requirements
+- Parameter descriptions and constraints
+
+### Cross-Reference Validation
+
+- Ensure internal links use correct paths
+- Verify external links are accessible
+- Update version numbers and compatibility notes
+- Check code examples for syntax and accuracy
+
+## API Documentation Generation
+
+To regenerate API documentation after making changes to `*Docs.java` files:
+
+```bash
+# Setup Ruby environment (one-time setup)
+brew install rbenv
+rbenv install 3.3.5
+rbenv global 3.3.5
+gem install bundler
+
+# Generate API documentation
+./gradlew generateDocs
+```
+
+**Note:** The `generateDocs` task processes the `*Docs.java` test files and generates the
+corresponding API documentation.
+
+## Common Documentation Patterns
+
+### Configuration Reference Format
+
+````markdown
+## property.name
+
+**Type:** `string` | **Default:** `value` | **Required:** No
+
+Description of what this property controls and its behavior.
+
+**Example:**
+
+```yaml
+property:
+  name: example-value
+```
+
+**Related Properties:** `other.property`, `another.setting`
+````
+
+### API Documentation Updates
+
+- Update corresponding `*Docs.java` test files in `uaa/src/test/java/**/*Docs.java`
+- Ensure request/response examples are complete and accurate
+- Include error scenarios with proper HTTP status codes
+- Run `./gradlew generateDocs` to update generated documentation
+
+## Documentation Update Workflow
+
+1. **Identify affected documentation** based on code changes
+2. **Update content** following quality standards above
+3. **Apply markdownlint** to ensure formatting consistency
+   (`npx markdownlint-cli2 --fix <file>`)
+4. **Regenerate API docs** if `*Docs.java` files were modified
+5. **Verify links and references** are still valid
+6. **Test code examples** for accuracy
+
+## Checklist for Documentation Updates
+
+Before completing any change that affects documentation:
+
+- [ ] Configuration reference updated (if config properties changed)
+- [ ] API documentation updated (if endpoints/formats changed)
+- [ ] Related feature documentation updated
+- [ ] AI instruction files synced (if `ai/rules/` changed — see `ai-instructions.mdc`)
+- [ ] Markdownlint applied and issues resolved
+- [ ] Internal links verified and working
+- [ ] Code examples tested for accuracy
+- [ ] API documentation regenerated (if `*Docs.java` changed)
+- [ ] Cross-references to related properties/features updated
+
+## Key Documentation Files
+
+- **Configuration:** `docs/UAA-Configuration-Reference.md`
+- **API Tests/Docs:** `uaa/src/test/java/**/*Docs.java`
+- **Feature Docs:** `docs/*.md`
+- **Provider Examples:** `docs/OIDC-Provider-Examples/*.md`
+- **AI Rules:** `ai/rules/*.mdc`
+- **AI Instruction Files:** `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`

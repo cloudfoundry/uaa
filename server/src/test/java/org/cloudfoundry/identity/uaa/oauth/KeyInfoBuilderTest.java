@@ -59,6 +59,11 @@ class KeyInfoBuilderTest {
         KeyInfo keyInfo = KeyInfoBuilder.build("key-id", SAMPLE_EC_KEY_PAIR, "https://localhost");
         assertThat(keyInfo.type()).isEqualTo("EC");
         assertThat(keyInfo.algorithm()).isEqualTo("ES256");
-        assertThat(keyInfo.getJwkMap()).hasSize(8);
+        // Should have size: 7
+        // Base parameters: 4 (alg, use, kid, kty)
+        // EC public parameters: 3 (crv, x, y)
+        assertThat(keyInfo.getJwkMap())
+                .hasSize(7)
+                .doesNotContainKey("d");
     }
 }

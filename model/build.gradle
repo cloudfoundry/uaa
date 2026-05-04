@@ -29,6 +29,20 @@ dependencies {
     implementation(libraries.nimbusJwt)
 }
 
+configurations {
+    testArtifacts
+}
+
+tasks.register('testJar', Jar) {
+    dependsOn(tasks.testClasses)
+    archiveClassifier = 'tests'
+    from(sourceSets.test.output)
+}
+
+artifacts {
+    testArtifacts(testJar)
+}
+
 apply(from: file("build_properties.gradle"))
 
 processResources {

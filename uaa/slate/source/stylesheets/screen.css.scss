@@ -243,7 +243,7 @@ html, body {
     transform: rotate(-90deg) translate(-100%, 0);
     border-radius: 0 0 0 5px;
   }
-  padding: 0 1.5em 5em 0; // increase touch size area
+  padding: 0 1.5em 5em 0; /* increase touch size area */
   display: none;
   position: fixed;
   top: 0;
@@ -277,7 +277,7 @@ html, body {
   background-color: $main-bg;
   min-height: 100%;
 
-  padding-bottom: 1px; // prevent margin overflow
+  padding-bottom: 1px; /* prevent margin overflow */
 
   // The dark box is what gives the code samples their dark background.
   // It sits essentially under the actual content block, which has a
@@ -337,9 +337,9 @@ html, body {
 // This is all the stuff with the light background in the left half of the page
 
 .content {
-  // fixes webkit rendering bug for some: see #538
+  /* fixes webkit rendering bug for some: see #538 */
   -webkit-transform: translateZ(0);
-  // to place content above the dark box
+  /* to place content above the dark box */
   position: relative;
   z-index: 30;
 

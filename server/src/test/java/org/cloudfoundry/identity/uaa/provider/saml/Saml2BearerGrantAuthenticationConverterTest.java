@@ -154,7 +154,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
     }
 
     @Test
-    void authenticateWhenUnsignedButEncryptedAssertionThenSucceeds() {
+    void authenticateWhenUnsignedButEncryptedAssertionThenInvalidSignature() {
         Assertion assertion = assertion();
         EncryptedAttribute attribute = TestOpenSamlObjects.encrypted("name", "value",
                 TestSaml2X509Credentials.assertingPartyEncryptingCredential());
@@ -162,9 +162,9 @@ class Saml2BearerGrantAuthenticationConverterTest {
         statement.getEncryptedAttributes().add(attribute);
         assertion.getAttributeStatements().add(statement);
         Saml2AuthenticationToken token = token(assertion, decrypting(verifying(registration())));
-        Saml2Authentication authentication = (Saml2Authentication) this.provider.authenticate(token);
-        Saml2AuthenticatedPrincipal principal = (Saml2AuthenticatedPrincipal) authentication.getPrincipal();
-        assertThat(principal.getAttribute("name")).containsExactly("value");
+        assertThatExceptionOfType(Saml2AuthenticationException.class)
+                .isThrownBy(() -> this.provider.authenticate(token))
+                .satisfies(errorOf(Saml2ErrorCodes.INVALID_SIGNATURE, "Assertion is missing a signature."));
     }
 
     @Test

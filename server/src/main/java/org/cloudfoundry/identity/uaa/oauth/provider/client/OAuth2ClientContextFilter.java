@@ -8,7 +8,6 @@ import org.springframework.security.web.RedirectStrategy;
 import org.springframework.security.web.util.ThrowableAnalyzer;
 import org.springframework.util.Assert;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.NestedServletException;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -75,7 +74,7 @@ public class OAuth2ClientContextFilter implements Filter, InitializingBean {
                 if (ex instanceof RuntimeException runtimeException) {
                     throw runtimeException;
                 }
-                throw new NestedServletException("Unhandled exception", ex);
+                throw new ServletException("Unhandled exception", ex);
             }
         }
     }
@@ -96,7 +95,7 @@ public class OAuth2ClientContextFilter implements Filter, InitializingBean {
 
         String redirectUri = e.getRedirectUri();
         UriComponentsBuilder builder = UriComponentsBuilder
-                .fromHttpUrl(redirectUri);
+                .fromUriString(redirectUri);
         Map<String, String> requestParams = e.getRequestParams();
         for (Map.Entry<String, String> param : requestParams.entrySet()) {
             builder.queryParam(param.getKey(), param.getValue());

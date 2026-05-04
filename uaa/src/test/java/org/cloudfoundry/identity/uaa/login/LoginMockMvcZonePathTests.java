@@ -67,7 +67,6 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
@@ -2038,7 +2037,7 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.updateClient(webApplicationContext, zoneAdminClient, identityZone);
 
         MockHttpSession session = new MockHttpSession();
-        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest()) {
             @Override
             public String getRedirectUrl() {
                 return "http://test/redirect/oauth/authorize";
@@ -3462,7 +3461,7 @@ public class LoginMockMvcZonePathTests {
     }
 
     private static SavedRequest getSavedRequest(UaaClientDetails client) {
-        return new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+        return new DefaultSavedRequest(new MockHttpServletRequest()) {
             @Override
             public String getRedirectUrl() {
                 return "http://test/redirect/oauth/authorize";

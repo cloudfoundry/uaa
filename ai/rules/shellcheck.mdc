@@ -1,0 +1,202 @@
+---
+alwaysApply: false
+description: "Run ShellCheck and follow Google Shell Style Guide on shell scripts"
+globs: "**/*.sh"
+---
+# ShellCheck and Shell Style Rules
+
+## Automatic ShellCheck Application
+
+After creating or editing any shell script (`.sh` file) you MUST run ShellCheck and fix
+all reported issues before considering the change complete.
+
+## Installation
+
+ShellCheck must be installed on the system:
+
+```bash
+# macOS
+brew install shellcheck
+
+# Ubuntu/Debian
+apt-get install shellcheck
+```
+
+Verify with `shellcheck --version`.
+
+## Workflow
+
+1. Create or edit the `.sh` file
+2. Run `shellcheck <file>` to check for issues
+3. Fix all reported warnings and errors
+4. Re-run until clean
+
+## Example Commands
+
+```bash
+# Check a single script
+shellcheck scripts/setup_cursor.sh
+
+# Check all scripts in the scripts/ directory
+shellcheck scripts/*.sh
+```
+
+## Script Naming Convention
+
+Use **underscores** to separate words in script filenames, not hyphens:
+
+```text
+setup_cursor.sh       ✅
+start_docker_database.sh  ✅
+setup-cursor.sh       ❌
+```
+
+## Google Shell Style Guide
+
+Follow the [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
+with one exception: use `#!/usr/bin/env bash` instead of `#!/bin/bash` for portability.
+
+### Script header
+
+Every script must start with:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+```
+
+### Structure
+
+Wrap all logic in functions; call `main "$@"` at the bottom:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+helper() {
+  local -r name="$1"
+  echo "Hello, ${name}"
+}
+
+main() {
+  helper "world"
+}
+
+main "$@"
+```
+
+### Naming
+
+- **Files:** `lower_snake_case.sh`
+- **Functions:** `lower_snake_case`
+- **Local variables:** `lower_snake_case`, declared with `local`
+- **Script-level constants:** `lower_snake_case`, declared with `readonly`
+- **Environment variables** (exported or inherited from the shell): `UPPER_SNAKE_CASE`
+
+`UPPER_SNAKE_CASE` is only valid for true environment variables (e.g. `PATH`, `HOME`,
+`JAVA_HOME`). Script-internal variables — even `readonly` ones — use `lower_snake_case`.
+
+```bash
+# Script-level constants — lowercase + readonly
+readonly max_retries=3
+readonly config_file="${HOME}/.config/app.conf"
+
+# Environment variable passed in by the caller — uppercase is correct
+: "${JAVA_HOME:?JAVA_HOME must be set}"
+
+process_file() {
+  local -r input_file="$1"
+  local result
+  result="$(parse "${input_file}")"
+  echo "${result}"
+}
+```
+
+### Function comments
+
+Every function must have a comment block immediately before it describing its
+purpose, arguments, outputs, and return value:
+
+```bash
+# Short description of what the function does.
+# Arguments:
+#   $1 - name : description
+#   $2 - path : absolute path to ...
+# Outputs:
+#   Writes progress lines to stdout.
+# Returns:
+#   0 on success; non-zero if ... fails.
+my_function() {
+  ...
+}
+```
+
+### Variables
+
+- Always quote variables: `"${var}"` not `$var`
+- Use `${var}` (braces) consistently
+- Declare and assign `local` variables separately to preserve exit codes:
+
+```bash
+# ❌ Bad — hides exit code of $()
+local result=$(command)
+
+# ✅ Good
+local result
+result=$(command)
+```
+
+### Conditionals
+
+Use `[[ ]]` instead of `[ ]`:
+
+```bash
+# ❌ Bad
+if [ -f "$file" ]; then
+
+# ✅ Good
+if [[ -f "${file}" ]]; then
+```
+
+### Command substitution
+
+Use `$(...)` instead of backticks:
+
+```bash
+# ❌ Bad
+result=`command`
+
+# ✅ Good
+result=$(command)
+```
+
+### Formatting
+
+- Indent with **2 spaces** (no tabs)
+- Maximum line length: **80 characters**
+- `; then` and `; do` on the same line as the condition
+
+```bash
+for file in "${files[@]}"; do
+  process "${file}"
+done
+```
+
+### Error handling
+
+Check exit codes with `if !` rather than `$?`:
+
+```bash
+# ❌ Bad
+command
+if [[ $? -ne 0 ]]; then
+
+# ✅ Good
+if ! command; then
+```
+
+## Things to Remember
+
+- ShellCheck does not auto-fix — all fixes are manual
+- Use `# shellcheck disable=SC2034` only when a suppression is genuinely intentional
+- Use `# shellcheck source=path/to/file` for sourced files ShellCheck cannot find

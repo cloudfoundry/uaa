@@ -63,7 +63,7 @@ class PasswordIT {
                 "/oauth/token?client_id=client_with_bcrypt_prefix&client_secret=password&grant_type=client_credentials");
         ResponseEntity<Void> responseEntity = restTemplate.exchange(requestEntity, Void.class);
 
-        assertThat(responseEntity.getStatusCodeValue()).as("Status 200 expected").isEqualTo(200);
+        assertThat(responseEntity.getStatusCode().value()).as("Status 200 expected").isEqualTo(200);
     }
 
     @Test

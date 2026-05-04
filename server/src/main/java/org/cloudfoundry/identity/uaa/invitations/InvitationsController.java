@@ -40,7 +40,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
@@ -195,7 +194,7 @@ public class InvitationsController {
         RequestContextHolder.getRequestAttributes().setAttribute("user_id", user.getId(), RequestAttributes.SCOPE_SESSION);
         HttpServletRequestWrapper wrapper = getNewCodeWrapper(request, newCode);
 
-        SavedRequest savedRequest = new DefaultSavedRequest(wrapper, new PortResolverImpl());
+        SavedRequest savedRequest = new DefaultSavedRequest(wrapper);
         RequestContextHolder.getRequestAttributes().setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest, RequestAttributes.SCOPE_SESSION);
     }
 

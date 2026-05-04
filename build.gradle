@@ -1,5 +1,8 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
+import java.nio.file.Path
+import java.nio.file.Paths
+
 buildscript {
     apply(from: "dependencies.gradle")
 
@@ -20,8 +23,6 @@ buildscript {
 }
 
 apply(from: "dependencies.gradle")
-
-def applicationPort = project.hasProperty('port') ? project.getProperty('port').toInteger() : 8080
 
 allprojects {
     apply(plugin: "io.spring.dependency-management")
@@ -61,8 +62,6 @@ subprojects {
         exclude(group: "org.hamcrest", module: "hamcrest-core")
         exclude(group: "org.hamcrest", module: "hamcrest-library")
         exclude(group: "org.springframework.boot", module: "spring-boot-starter-logging")
-        exclude(group: "org.apache.directory.server", module: "apacheds-core")
-        exclude(group: "org.apache.directory.server", module: "apacheds-protocol-ldap")
         exclude(group: "org.skyscreamer", module: "jsonassert")
         exclude(group: "com.vaadin.external.google", module: "android-json")
         exclude(group: "com.unboundid.components", module: "json")
@@ -280,10 +279,12 @@ tasks.register('manifests', Copy) {
 }
 
 tasks.register('cleanBootTomcatDir') {
-    String tomcatBase = file("scripts/boot/tomcat/").getAbsolutePath()
-    delete(java.nio.file.Path.of(tomcatBase))
-    new File(tomcatBase+"/work").mkdirs()
-    new File(tomcatBase+"/webapps").mkdirs()
+    doLast {
+        String tomcatBase = file("scripts/boot/tomcat/").getAbsolutePath()
+        delete(Path.of(tomcatBase))
+        Paths.get(tomcatBase, "work").toFile().mkdirs()
+        Paths.get(tomcatBase, "webapps").toFile().mkdirs()
+    }
 }
 
 tasks.register('bootWarRun', JavaExec) {

@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedExc
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.converter.HttpMessageConversionException;
@@ -21,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -70,11 +72,11 @@ public class OAuth2ErrorHandler implements ResponseErrorHandler {
                 || this.errorHandler.hasError(response);
     }
 
-    public void handleError(final ClientHttpResponse response) throws IOException {
+    public void handleError(URI url, HttpMethod method, final ClientHttpResponse response) throws IOException {
         if (!HttpStatus.Series.CLIENT_ERROR.equals(HttpStatus.resolve(response.getStatusCode().value()).series())) {
             // We should only care about 400 level errors. Ex: A 500 server error shouldn't
             // be an oauth related error.
-            errorHandler.handleError(response);
+            errorHandler.handleError(url, method, response);
         } else {
             // Need to use buffered response because input stream may need to be consumed multiple times.
             ClientHttpResponse bufferedResponse = new ClientHttpResponse() {
@@ -141,7 +143,7 @@ public class OAuth2ErrorHandler implements ResponseErrorHandler {
                 }
 
                 // then delegate to the custom handler
-                errorHandler.handleError(bufferedResponse);
+                errorHandler.handleError(url, method, bufferedResponse);
             }
             catch (InvalidTokenException ex) {
                 // Special case: an invalid token can be renewed so tell the caller what to do
@@ -155,7 +157,7 @@ public class OAuth2ErrorHandler implements ResponseErrorHandler {
                 }
                 // This is not an exception that is really understood, so allow our delegate
                 // to handle it in a non-oauth way
-                errorHandler.handleError(bufferedResponse);
+                errorHandler.handleError(url, method, bufferedResponse);
             }
         }
     }

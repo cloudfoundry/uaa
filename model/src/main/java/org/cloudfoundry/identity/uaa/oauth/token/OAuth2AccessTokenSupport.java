@@ -34,6 +34,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -232,7 +233,7 @@ public abstract class OAuth2AccessTokenSupport {
 
         @SuppressWarnings("unchecked")
         @Override
-        public void handleError(ClientHttpResponse response) throws IOException {
+        public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
             for (HttpMessageConverter<?> converter : messageConverters) {
                 if (converter.canRead(OAuth2Exception.class, response.getHeaders().getContentType())) {
                     OAuth2Exception ex;
@@ -246,7 +247,7 @@ public abstract class OAuth2AccessTokenSupport {
                     throw ex;
                 }
             }
-            super.handleError(response);
+            super.handleError(url, method, response);
         }
 
     }

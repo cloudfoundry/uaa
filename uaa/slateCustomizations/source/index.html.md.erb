@@ -2461,6 +2461,8 @@ _Response Fields_
 
 # Clients
 
+A client can carry JWT trust for `private_key_jwt` (client assertion) in several shapes. The **preferred** approach is a single top-level `client_jwt_config` string (one JSON value in the `client_jwt_config` column) that can contain `jwks`, `jwks_uri`, and/or an embedded `jwt_creds` array, as needed. For **backward compatibility**, a separate top-level `jwt_creds` field is still accepted and is **merged** with `client_jwt_config` to form the effective `ClientJwtConfiguration` the UAA uses for `private_key_jwt` and for the admin **GET** response. **At authentication time** (`private_key_jwt`), a client assertion is accepted if it **matches and verifies** against the merged trust (e.g. federated claims match a configured credential, or OIDC-style keys verify against the configured JWKS). A nested `client_jwt_config` object under extra keys may also be merged; **still prefer** one `client_jwt_config` string at the top level for clarity. The **decomposed** top-level `jwks` / `jwks_uri` / `jwt_creds` fields in **responses** (retrieve/list) are a convenience view derived from the stored `client_jwt_config` JSON.
+
 ## Create
 
 <%= render('ClientAdminEndpointDocs/createClient/curl-request.md') %>

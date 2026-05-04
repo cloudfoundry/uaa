@@ -69,6 +69,14 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
             fieldWithPath(ClientConstants.CREATED_WITH).optional(null).type(STRING).description("What scope the bearer token had when client was created"),
             fieldWithPath(ClientConstants.APPROVALS_DELETED).optional(null).type(BOOLEAN).description("Were the approvals deleted for the client, and an audit event sent"),
             fieldWithPath(ClientConstants.REQUIRED_USER_GROUPS).optional(null).type(ARRAY).description("A list of group names. If a user doesn't belong to all the required groups, the user will not be authenticated and no tokens will be issued to this client for that user. If this field is not set, authentication and token issuance will proceed normally."),
+            fieldWithPath("client_jwt_config").optional(null).type(STRING)
+                    .description("**Preferred (top-level).** JSON string of the client's JWT trust for `private_key_jwt` client authentication, using the `ClientJwtConfiguration` shape: optional `jwks` (JWK set), `jwks_uri` (per OpenID `jwks_uri` semantics), and/or `jwt_creds` (array of `iss`/`sub`/`aud` objects for federated RFC 7523). Stored in the `client_jwt_config` column, merged on create/update, and re-read for token validation. For new work, set trust only here, not in duplicate legacy fields."),
+            fieldWithPath("jwt_creds").optional(null).type(ARRAY)
+                    .description("**Not preferred (legacy, backward compatibility).** A `jwt_creds` array in the same JSON object as the other top-level client fields. It is merged with `client_jwt_config` to form the effective `ClientJwtConfiguration` for the client, then normalized for responses. For new work, **prefer** placing `jwt_creds` (if required) only inside the `client_jwt_config` JSON string, with `client_jwt_config` as the only top-level field that carries JWT policy."),
+            fieldWithPath("jwks_uri").optional(null).type(STRING)
+                    .description("**Primarily returned** on get/list/retrieve when the response is a `ClientDetailsModification` with JWT trust: the trust can be decomposed to a top-level `jwks_uri` (OIDC) for readability. It is derived from the stored `client_jwt_config`. For **new write operations**, do not rely on sending a standalone `jwks_uri`; **prefer** the full `client_jwt_config` string or the client-JWT change endpoint, so the column is the source of truth."),
+            fieldWithPath("jwks").optional(null).type(OBJECT)
+                    .description("**Primarily returned** on get/list/retrieve as a decomposed inline JWK set when trust is present. It is derived from `client_jwt_config`. For **new configuration input**, **prefer** `client_jwt_config` over sending raw `jwks` alongside other client data."),
     };
 
     private static final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{

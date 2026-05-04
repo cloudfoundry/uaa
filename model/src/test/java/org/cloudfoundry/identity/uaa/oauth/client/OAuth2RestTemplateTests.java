@@ -165,7 +165,7 @@ class OAuth2RestTemplateTests {
             throw new AccessTokenRequiredException(resource);
         });
         assertThatExceptionOfType(AccessTokenRequiredException.class).isThrownBy(() ->
-                restTemplate.doExecute(new URI("https://foo"), HttpMethod.GET, new NullRequestCallback(),
+                restTemplate.doExecute(new URI("https://foo"), null, HttpMethod.GET, new NullRequestCallback(),
                         new SimpleResponseExtractor()));
     }
 
@@ -183,7 +183,7 @@ class OAuth2RestTemplateTests {
                 return request;
             }
         });
-        Boolean result = restTemplate.doExecute(new URI("https://foo"), HttpMethod.GET, new NullRequestCallback(),
+        Boolean result = restTemplate.doExecute(new URI("https://foo"), null, HttpMethod.GET, new NullRequestCallback(),
                 new SimpleResponseExtractor());
         assertThat(result).isTrue();
     }

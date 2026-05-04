@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
@@ -32,6 +33,7 @@ import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -84,6 +86,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -740,9 +743,60 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         if (Boolean.FALSE.equals(additionalInformation.get(ClientConstants.ALLOW_PUBLIC))) {
             additionalInformation.remove(ClientConstants.ALLOW_PUBLIC);
         }
+
+        if (existing instanceof UaaClientDetails existingUaa && input instanceof UaaClientDetails inputUaa && details instanceof UaaClientDetails detailsUaa) {
+            UaaClient existingAsClient = new UaaClient(
+                    existingUaa.getClientId(),
+                    existingUaa.getClientSecret(),
+                    existingUaa.getAuthorities(),
+                    new HashMap<>(Optional.ofNullable(existingUaa.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
+                    existingUaa.getClientJwtConfig()
+            );
+            UaaClient inputAsClient = new UaaClient(
+                    inputUaa.getClientId(),
+                    inputUaa.getClientSecret(),
+                    inputUaa.getAuthorities(),
+                    new HashMap<>(Optional.ofNullable(inputUaa.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
+                    inputUaa.getClientJwtConfig()
+            );
+            ClientJwtConfiguration existingJwt = existingAsClient.getClientJwtConfiguration();
+            ClientJwtConfiguration inputJwt = inputAsClient.getClientJwtConfiguration();
+            inputJwt = ensureJwtCredsFromAdditionalInfoMap(additionalInformation, inputJwt);
+            ClientJwtConfiguration mergedJwtConfig = ClientJwtConfiguration.merge(existingJwt, inputJwt, false);
+            if (mergedJwtConfig != null && mergedJwtConfig.hasConfiguration()) {
+                mergedJwtConfig.writeValue(detailsUaa);
+            }
+        }
+
+        additionalInformation.remove(ClientJwtConfiguration.JWT_CREDS);
+        additionalInformation.remove("client_jwt_config");
         details.setAdditionalInformation(additionalInformation);
 
         return details;
+    }
+
+    private ClientJwtConfiguration ensureJwtCredsFromAdditionalInfoMap(Map<String, Object> addl, ClientJwtConfiguration inputJwt) {
+        if (addl == null) {
+            return inputJwt;
+        }
+        Object v = addl.get(ClientJwtConfiguration.JWT_CREDS);
+        if (v == null) {
+            return inputJwt;
+        }
+        try {
+            ClientJwtConfiguration extra = new ClientJwtConfiguration();
+            if (v instanceof String s) {
+                extra.addJwtCredentials(ClientJwtCredential.parse(s));
+            } else if (v instanceof List<?> list) {
+                extra.addJwtCredentials(ClientJwtCredential.parse(JsonUtils.writeValueAsString(list)));
+            } else {
+                return inputJwt;
+            }
+            return ClientJwtConfiguration.merge(inputJwt, extra, false);
+        } catch (Exception e) {
+            logger.warn("Failed to read jwt_creds from client update request", e);
+            return inputJwt;
+        }
     }
 
     public void publish(ApplicationEvent event) {

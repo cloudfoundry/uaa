@@ -1,0 +1,247 @@
+---
+description: "Java testing practices for UAA: JUnit 5, AssertJ, Mockito, MockMvc, Awaitility, and Selenium"
+globs: "**/*Test*.java,**/*IT.java,**/*Docs.java"
+alwaysApply: false
+---
+
+# Java Testing Best Practices
+
+## AssertJ Assertions
+
+Use AssertJ for all assertions instead of JUnit's built-in assertions:
+
+```java
+// ❌ BAD - JUnit assertions
+assertEquals(expected, actual);
+assertTrue(condition);
+assertNotNull(value);
+
+// ✅ GOOD - AssertJ assertions
+assertThat(actual).isEqualTo(expected);
+assertThat(condition).isTrue();
+assertThat(value).isNotNull();
+```
+
+### Chain Multiple Assertions
+
+When testing the same object, chain assertions instead of multiple `assertThat()` calls:
+
+```java
+// ❌ BAD - Multiple separate assertions
+assertThat(finalGroupNames).doesNotContain(groupName);
+assertThat(finalGroupNames).contains("openid");
+
+// ✅ GOOD - Chained assertions
+assertThat(finalGroupNames)
+    .doesNotContain(groupName)
+    .contains("openid");
+
+// ✅ GOOD - Use variadic methods when available
+assertThat(groupNames).contains(baseGroupName)
+    .doesNotContain(similarGroupName1, similarGroupName2, similarGroupName3);
+```
+
+### Exception Testing
+
+```java
+// ✅ GOOD - AssertJ exception testing
+assertThatThrownBy(() -> service.processInvalidInput(null))
+    .isInstanceOf(IllegalArgumentException.class)
+    .hasMessage("Input cannot be null")
+    .hasNoCause();
+```
+
+## Awaitility for Async Testing
+
+Use Awaitility instead of `Thread.sleep()` or manual polling:
+
+```java
+// ✅ GOOD - Awaitility with proper timeout and polling
+await()
+    .atMost(Duration.ofSeconds(10))
+    .pollInterval(Duration.ofMillis(100))
+    .until(() -> service.isComplete());
+```
+
+## Parameterized Tests
+
+Use `@ParameterizedTest` instead of loops within test methods:
+
+```java
+// ✅ GOOD - Simple parameterized test
+@ParameterizedTest
+@ValueSource(strings = {"valid1", "valid2", "valid3"})
+void validatesInput(String input) {
+    assertThat(validator.isValid(input)).isTrue();
+}
+
+// ✅ GOOD - Complex scenarios with method source
+@ParameterizedTest
+@MethodSource("provideTestCases")
+void calculatesCorrectly(int input, int expected) {
+    assertThat(calculator.calculate(input)).isEqualTo(expected);
+}
+```
+
+## Test Organization
+
+Use nested test classes when multiple tests share common setup or configuration:
+
+```java
+@Nested
+class WhenSslValidationEnabled {
+    @BeforeEach
+    void setUp() {
+        service.setSslValidationEnabled(true);
+        service.configure(sslProperties);
+    }
+
+    @Test
+    void authenticatesSuccessfully() { }
+
+    @Test
+    void rejectsInvalidCertificates() { }
+}
+```
+
+### Test Method Naming
+
+Use descriptive test method names that explain the scenario. Choose between two naming
+patterns based on context:
+
+#### Pattern 1: CamelCase for Simple Actions
+
+Use camelCase for straightforward test scenarios:
+
+```java
+// ✅ GOOD - Simple action tests
+@Test
+void createsUserWithValidData() { }
+
+@Test
+void throwsExceptionWhenEmailExists() { }
+
+@Test
+void returnsEmptyListWhenNoUsersFound() { }
+```
+
+#### Pattern 2: Underscores for Action_Context_ExpectedResult
+
+Use underscores to clearly separate test components, especially for complex scenarios:
+
+```java
+// ✅ GOOD - Complex scenario tests with clear structure
+@Test
+void process_whenSslValidationIsEnabled_succeeds() { }
+
+@Test
+void getAttribute_returnsValueFromContainerSession() { }
+
+@Test
+void getSession_whenNoContainerSession_returnsNull() { }
+```
+
+**Guidelines:**
+
+- Avoid "should" and "test" — redundant words
+- Use underscores for action_context_result patterns
+- Use camelCase for simpler scenarios
+- Include context that affects behavior
+
+## Selenium WebDriver
+
+Use WebDriverWait with ExpectedConditions instead of Thread.sleep():
+
+```java
+// ✅ GOOD - Explicit waits with conditions
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+WebElement result = wait.until(
+    ExpectedConditions.visibilityOfElementLocated(By.id("result"))
+);
+
+// ✅ GOOD - Custom wait conditions
+wait.until(driver -> driver.getPageSource().contains("Expected Content"));
+```
+
+## MockMvc
+
+Use descriptive matchers and `.andDo(print())` for debugging:
+
+```java
+// ✅ GOOD - Clear, comprehensive expectations
+mockMvc.perform(post("/users")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content("{\"name\":\"John\",\"email\":\"john@example.com\"}"))
+        .andDo(print())
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").exists())
+        .andExpect(jsonPath("$.name").value("John"))
+        .andExpect(header().string("Location", containsString("/users/")));
+```
+
+## Mockito
+
+Use ArgumentCaptor for complex arguments and explicit mock configuration:
+
+```java
+// ✅ GOOD - Capture and verify argument details
+ArgumentCaptor<EntityDeletedEvent<User>> captor =
+    ArgumentCaptor.forClass(EntityDeletedEvent.class);
+service.deleteUser("userId");
+verify(eventPublisher).publishEvent(captor.capture());
+
+// ✅ GOOD - Explicit mock configuration
+when(repository.findById("id")).thenReturn(Optional.of(existingUser));
+verify(repository).save(argThat(user ->
+    user.getId().equals("id") && user.isProcessed()));
+verifyNoMoreInteractions(repository);
+```
+
+## UAA-Specific Patterns
+
+### Integration test setup
+
+Use `@DefaultTestContext` for Spring context, `@ExtendWith(ZoneSeederExtension.class)`
+with `ZoneSeeder` for zone and client/user fixture setup:
+
+```java
+// ✅ GOOD - UAA integration test setup
+@ExtendWith(ZoneSeederExtension.class)
+@DefaultTestContext
+class UserControllerIntegrationTest {
+    @Autowired private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp(ZoneSeeder zoneSeeder) {
+        zoneSeeder.withDefaults()
+                  .withUser("user@example.com")
+                  .withClientWithImplicitAndAuthorizationCodeGrants(
+                      "my-client", "http://redirect.example.com");
+    }
+}
+```
+
+### JSON handling
+
+Use `JsonUtils` rather than raw Jackson for JSON processing in tests:
+
+```java
+// ✅ GOOD - UAA JsonUtils
+Map<String, Object> result = JsonUtils.readValueAsMap(json);
+String json = JsonUtils.writeValueAsString(object);
+```
+
+## Test Data and Lifecycle
+
+```java
+// ✅ GOOD - Test lifecycle management
+@BeforeEach
+void setUp() {
+    // Initialize test state
+}
+
+@AfterEach
+void tearDown() {
+    reset(mockDependency);
+}
+```

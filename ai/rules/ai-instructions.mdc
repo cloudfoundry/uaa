@@ -1,0 +1,58 @@
+---
+alwaysApply: false
+description: "Keep AGENTS.md, CLAUDE.md, and .github/copilot-instructions.md in sync"
+globs: "AGENTS.md,CLAUDE.md,.github/copilot-instructions.md,ai/rules/*.mdc"
+version: "1.1.0"
+---
+# AI Instruction File Sync Rule
+
+## Overview
+
+Three files serve as entry points for different AI agents into this repository's conventions.
+They are thin pointers to `ai/rules/` and must stay equivalent in content.
+
+| File | Read by |
+| --- | --- |
+| `AGENTS.md` | OpenAI Codex, Gemini CLI, and any agent following the Codex AGENTS.md convention |
+| `CLAUDE.md` | Claude Code (Anthropic) — loaded automatically from the repo root |
+| `.github/copilot-instructions.md` | GitHub Copilot in VS Code, JetBrains, and Copilot agent mode |
+
+## When to Update These Files
+
+You **MUST** update all three files when:
+
+- A rule file is added to `ai/rules/`
+- A rule file is removed from `ai/rules/`
+- The summary or scope of an existing rule changes significantly
+- The `scripts/setup_cursor.sh` setup process changes
+
+You do **not** need to duplicate the full rule content — keep the summaries short and
+link to the rule files.
+
+## What Must Stay in Sync
+
+Each file must contain:
+
+1. A pointer to `ai/rules/` and `ai/skills/` as the source of truth
+2. A summary table of all current rules (file, applies-to, one-line summary)
+3. A mention of `ai/plans/` as the ephemeral working-plans location
+4. The `scripts/setup_cursor.sh` first-time setup instruction (where the format allows)
+
+## Format Differences (Allowed)
+
+Minor format differences between the three files are acceptable — each tool has its own
+conventions:
+
+- `AGENTS.md` uses full GitHub Markdown including a setup section
+- `CLAUDE.md` includes a "Key documentation files" section for Claude's benefit
+- `.github/copilot-instructions.md` uses a flat bullet-list style (no heavy tables) since
+  Copilot embeds this as context in every prompt and brevity matters
+
+## Update Checklist
+
+When changing `ai/rules/` in any way:
+
+- [ ] Rule summary table updated in `AGENTS.md`
+- [ ] Rule summary table updated in `CLAUDE.md`
+- [ ] Rule bullet list updated in `.github/copilot-instructions.md`
+- [ ] `markdownlint` run on all three files after editing

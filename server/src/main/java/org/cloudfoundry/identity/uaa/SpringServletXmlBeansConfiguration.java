@@ -101,7 +101,6 @@ public class SpringServletXmlBeansConfiguration {
     @Primary
     ContentNegotiationManagerFactoryBean contentNegotiationManager() {
         ContentNegotiationManagerFactoryBean bean = new ContentNegotiationManagerFactoryBean();
-        bean.setFavorPathExtension(false);
         bean.setFavorParameter(true);
         bean.addMediaType("json", MediaType.APPLICATION_JSON);
         bean.addMediaType("xml", MediaType.APPLICATION_XML);
@@ -115,7 +114,6 @@ public class SpringServletXmlBeansConfiguration {
     ) {
         RequestMappingHandlerMapping bean = new RequestMappingHandlerMapping();
         bean.setContentNegotiationManager(contentNegotiationManagerFactoryBean.build());
-        bean.setUseSuffixPatternMatch(false);
         bean.setOrder(1);
         return bean;
     }
@@ -389,6 +387,7 @@ public class SpringServletXmlBeansConfiguration {
     }
 
     @Bean
+    @SuppressWarnings("deprecation")
     IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap(
             IdentityZoneProvisioning provisioning,
             IdentityZoneValidator identityZoneValidator,
