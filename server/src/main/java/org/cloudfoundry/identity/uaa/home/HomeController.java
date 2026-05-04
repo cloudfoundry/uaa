@@ -122,9 +122,9 @@ public class HomeController {
         Throwable genericException = (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
         logger.error("Internal error", genericException);
 
-        // check for common SAML related exceptions and redirect these to bad_request
-        if (nonNull(genericException) &&
-                (genericException.getCause() instanceof Saml2Exception samlException)) {
+        // check for common SAML related exceptions and redirect these to external_auth_error
+        Saml2Exception samlException = extractSaml2Exception(genericException);
+        if (samlException != null) {
             model.addAttribute("saml_error", samlException.getMessage());
             response.setStatus(400);
             return EXTERNAL_AUTH_ERROR;
@@ -208,5 +208,15 @@ public class HomeController {
     }
 
     public record JsonError(String error) {
+    }
+
+    private static Saml2Exception extractSaml2Exception(Throwable throwable) {
+        if (throwable instanceof Saml2Exception saml2) {
+            return saml2;
+        }
+        if (throwable != null && throwable.getCause() instanceof Saml2Exception saml2) {
+            return saml2;
+        }
+        return null;
     }
 }
