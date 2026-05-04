@@ -379,7 +379,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         });
 
         int expectedDelete = isUser(memberIdRequest) ? groups.size() - getDefaultUserGroups(zoneId).size() : groups.size();
-        if (deleted != expectedDelete) {
+        if (deleted < expectedDelete) {
             throw new IncorrectResultSizeDataAccessException("unexpected number of members removed", expectedDelete,
                     deleted);
         }

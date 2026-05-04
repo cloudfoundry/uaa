@@ -290,6 +290,10 @@ public class ScimUserBootstrap implements
         if (!StringUtils.hasText(gName)) {
             return;
         }
+        if (isDefaultGroup(gName)) {
+            logger.debug("Skipping explicit membership for default group: {}", gName);
+            return;
+        }
         logger.debug("Adding to group: {}", gName);
         ScimGroup group;
         try {
@@ -311,6 +315,12 @@ public class ScimUserBootstrap implements
         } catch (MemberAlreadyExistsException | DuplicateKeyException ex) {
             // do nothing
         }
+    }
+
+    private boolean isDefaultGroup(String groupName) {
+        List<String> defaultGroups = identityZoneManager.getCurrentIdentityZone()
+                .getConfig().getUserConfig().getDefaultGroups();
+        return defaultGroups != null && defaultGroups.contains(groupName);
     }
 
     private ScimGroup getOrCreateGroup(String gName, boolean addGroup) {
