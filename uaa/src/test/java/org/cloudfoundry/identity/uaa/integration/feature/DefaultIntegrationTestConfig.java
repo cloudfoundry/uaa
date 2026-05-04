@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
@@ -125,7 +126,7 @@ public class DefaultIntegrationTestConfig {
 
     @Bean
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        return IntegrationTestUtils.createConfiguredRestTemplate();
     }
 
     @Bean

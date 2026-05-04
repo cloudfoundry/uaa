@@ -37,8 +37,7 @@ public class JsonUtils {
             .enable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
             .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
-            .constructorDetector(ConstructorDetector.DEFAULT
-                    .withAllowImplicitWithDefaultConstructor(false))
+            .constructorDetector(ConstructorDetector.DEFAULT.withAllowImplicitWithDefaultConstructor(false))
             .build();
 
     private JsonUtils() {
