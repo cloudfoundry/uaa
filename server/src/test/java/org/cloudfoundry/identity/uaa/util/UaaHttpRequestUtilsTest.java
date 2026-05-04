@@ -2,13 +2,17 @@ package org.cloudfoundry.identity.uaa.util;
 
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsServer;
+import org.apache.hc.client5.http.HttpRoute;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.routing.HttpRoutePlanner;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.client5.http.HttpRoute;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.client5.http.routing.HttpRoutePlanner;
+import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.util.Timeout;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -128,11 +132,11 @@ class UaaHttpRequestUtilsTest {
     }
 
     public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, 20, 2, 5, 2000, 2, 3000);
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, 20, 2, 5, 2000, 2, 3000, 3000);
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
         builder.setRoutePlanner(routePlanner);
-        RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE, Integer.MAX_VALUE));
+        RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE));
         try {
             template.getForObject(url, String.class);
         } catch (Exception ignored) {
@@ -148,6 +152,17 @@ class UaaHttpRequestUtilsTest {
     void skipSslValidation() {
         RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 10_000));
         assertThat(restTemplate.getForEntity(httpsUrl, String.class).getStatusCode()).isEqualTo(OK);
+    }
+
+    @Test
+    void clientBuilderAppliesConnectionAndSocketTimeouts() {
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false, 10, 5, 0, 2000, 0, 4000, 8000);
+        PoolingHttpClientConnectionManager cm = (PoolingHttpClientConnectionManager) ReflectionTestUtils.getField(builder, "connManager");
+        HttpRoute route = new HttpRoute(new HttpHost("localhost", 80));
+        ConnectionConfig connectionConfig = (ConnectionConfig) ReflectionTestUtils.invokeMethod(cm, "resolveConnectionConfig", route);
+        SocketConfig socketConfig = (SocketConfig) ReflectionTestUtils.invokeMethod(cm, "resolveSocketConfig", route);
+        assertThat(connectionConfig.getConnectTimeout()).isEqualTo(Timeout.ofMilliseconds(4000));
+        assertThat(socketConfig.getSoTimeout()).isEqualTo(Timeout.ofMilliseconds(8000));
     }
 
     @Test
