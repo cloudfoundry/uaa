@@ -289,7 +289,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                                     JsonUtils.writeValueAsString(cjc));
                         }
                     } else {
-                        fromNested = null;
+                        throw new InvalidClientDetailsException(
+                                "Invalid client_jwt_config in additionalInformation: expected String or Map");
                     }
                     if (fromNested != null) {
                         ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
