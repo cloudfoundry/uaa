@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getCleanedUserControlString;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isEmpty;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -291,7 +292,7 @@ public class ScimUserBootstrap implements
             return;
         }
         if (isDefaultGroup(gName)) {
-            logger.debug("Skipping explicit membership for default group: {}", gName.replaceAll("[\\r\\n\\t]", "_"));
+            logger.debug("Skipping explicit membership for default group: {}", getCleanedUserControlString(gName));
             return;
         }
         logger.debug("Adding to group: {}", gName);
