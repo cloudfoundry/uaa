@@ -295,7 +295,7 @@ public class ScimUserBootstrap implements
             logger.debug("Skipping explicit membership for default group: {}", getCleanedUserControlString(gName));
             return;
         }
-        logger.debug("Adding to group: {}", gName);
+        logger.debug("Adding to group: {}", getCleanedUserControlString(gName));
         ScimGroup group;
         try {
             group = getOrCreateGroup(gName, addGroup);
