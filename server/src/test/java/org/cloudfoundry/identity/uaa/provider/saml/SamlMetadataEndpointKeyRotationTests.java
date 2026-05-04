@@ -17,9 +17,12 @@ import org.springframework.security.saml2.provider.service.web.RelyingPartyRegis
 import org.xmlunit.assertj.MultipleNodeAssert;
 import org.xmlunit.assertj.XmlAssert;
 
+import java.security.Security;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate1;
@@ -49,6 +52,7 @@ public class SamlMetadataEndpointKeyRotationTests {
 
     @BeforeAll
     static void beforeAll() {
+        Security.addProvider(new BouncyCastleFipsProvider());
         SamlConfiguration.setupOpenSaml();
 
         SamlConfigProps samlConfigProps = new SamlConfigProps();

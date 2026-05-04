@@ -9,7 +9,7 @@ import org.springframework.security.saml2.provider.service.authentication.logout
 import java.util.Collection;
 
 /**
- * Delegates SAML logout request validation to {@link OpenSamlLogoutRequestValidator},
+ * Delegates SAML logout request validation to {@link OpenSaml5LogoutRequestValidator},
  * but ignores errors due to missing signatures.
  */
 public class SamlLogoutRequestValidator implements Saml2LogoutRequestValidator {

@@ -193,7 +193,7 @@ public class SamlAuthenticationFilterConfig {
             UaaAuthenticationFailureHandler authenticationFailureHandler,
             CookieBasedCsrfTokenRepository loginCookieCsrfRepository) {
 
-        // This validator ignores missing signatures in the SAML2 Logout Response
+        // This validator ignores missing signatures in the SAML2 Logout Request
         Saml2LogoutRequestValidator logoutRequestValidator = new SamlLogoutRequestValidator();
         Saml2LogoutResponseResolver logoutResponseResolver = new OpenSaml5LogoutResponseResolver(relyingPartyRegistrationResolver);
 

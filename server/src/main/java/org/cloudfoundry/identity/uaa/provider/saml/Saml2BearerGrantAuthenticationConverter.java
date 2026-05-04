@@ -261,9 +261,9 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         if (result.hasErrors()) {
             Collection<Saml2Error> errors = result.getErrors();
             if (log.isTraceEnabled()) {
-                log.trace("Found {} validation errors in SAML assertion [{}}]: {}", errors.size(), assertion.getID(), errors);
+                log.trace("Found {} validation errors in SAML assertion [{}]: {}", errors.size(), assertion.getID(), errors);
             } else if (log.isDebugEnabled()) {
-                log.debug("Found {} validation errors in SAML assertion [{}}]", errors.size(), assertion.getID());
+                log.debug("Found {} validation errors in SAML assertion [{}]", errors.size(), assertion.getID());
             }
             Saml2Error first = errors.iterator().next();
             throw OpenSaml5AuthenticationProvider.createAuthenticationException(first.getErrorCode(), first.getDescription(), null);
