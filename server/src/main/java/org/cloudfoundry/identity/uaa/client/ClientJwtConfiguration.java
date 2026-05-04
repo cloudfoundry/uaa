@@ -383,7 +383,10 @@ public class ClientJwtConfiguration implements Cloneable {
         } catch (InvalidClientDetailsException e) {
             throw e;
         } catch (Exception e) {
-            throw new InvalidClientDetailsException("Invalid jwt_creds format", e);
+            throw new InvalidClientDetailsException(
+                    "Invalid jwt_creds format: expected a JSON string containing an array or a pre-parsed List",
+                    e
+            );
         }
     }
 
