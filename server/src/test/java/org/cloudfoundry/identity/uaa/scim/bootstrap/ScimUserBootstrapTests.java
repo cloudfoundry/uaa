@@ -1179,6 +1179,13 @@ class ScimUserBootstrapTests {
         Set<ScimGroup> groups = jdbcScimGroupMembershipManager.getGroupsWithMember(user.getId(), false, IdentityZone.getUaaZoneId());
         assertThat(groups).extracting(ScimGroup::getDisplayName).contains("uaa.user");
 
+        // Verify no explicit DB row exists for the default group
+        ScimGroup uaaUserGroup = jdbcScimGroupProvisioning.getByName("uaa.user", IdentityZone.getUaaZoneId());
+        int membershipCount = jdbcTemplate.queryForObject(
+                "select count(*) from group_membership where member_id=? and group_id=? and identity_zone_id=?",
+                Integer.class, user.getId(), uaaUserGroup.getId(), IdentityZone.getUaaZoneId());
+        assertThat(membershipCount).isZero();
+
         // Deletion should succeed without 422
         assertThatCode(() -> jdbcScimGroupMembershipManager.removeMembersByMemberId(user.getId(), IdentityZone.getUaaZoneId()))
                 .doesNotThrowAnyException();
