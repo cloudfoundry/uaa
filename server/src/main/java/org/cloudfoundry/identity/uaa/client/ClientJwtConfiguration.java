@@ -347,7 +347,7 @@ public class ClientJwtConfiguration implements Cloneable {
         if (newConfig.clientJwtCredentials != null) {
             result = existingConfig;
             if (overwrite) {
-                result.setValidatedCredentials(newConfig.clientJwtCredentials);
+                result.setClientJwtCredentials(newConfig.clientJwtCredentials);
             } else {
                 result.addJwtCredentials(newConfig.clientJwtCredentials);
             }

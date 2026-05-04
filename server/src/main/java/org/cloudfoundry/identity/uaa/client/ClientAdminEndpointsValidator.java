@@ -267,11 +267,16 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             // Fold jwt_creds and client_jwt_config from additional information into the persisted client_jwt_config string
             Object jwtCredsValue = client.getAdditionalInformation().get(ClientJwtConfiguration.JWT_CREDS);
             if (jwtCredsValue != null) {
-                ClientJwtConfiguration extra = ClientJwtConfiguration.fromJwtCredsValue(jwtCredsValue);
-                if (extra != null) {
-                    ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
-                            .orElseGet(ClientJwtConfiguration::new);
-                    ClientJwtConfiguration.merge(current, extra, false).writeValue(client);
+                try {
+                    ClientJwtConfiguration extra = ClientJwtConfiguration.fromJwtCredsValue(jwtCredsValue);
+                    if (extra != null) {
+                        ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
+                                .orElseGet(ClientJwtConfiguration::new);
+                        ClientJwtConfiguration.merge(current, extra, false).writeValue(client);
+                    }
+                } catch (InvalidClientDetailsException e) {
+                    throw new InvalidClientDetailsException(
+                            "Invalid jwt_creds in additionalInformation: " + e.getMessage(), e);
                 }
             }
 
