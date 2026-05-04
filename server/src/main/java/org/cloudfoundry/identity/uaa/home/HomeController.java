@@ -120,16 +120,16 @@ public class HomeController {
     @RequestMapping("/error500")
     public String error500(Model model, HttpServletRequest request, HttpServletResponse response) {
         Throwable genericException = (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
-        logger.error("Internal error", genericException);
 
-        // check for common SAML related exceptions and redirect these to external_auth_error
         Saml2Exception samlException = extractSaml2Exception(genericException);
         if (samlException != null) {
+            logger.warn("SAML authentication error", samlException);
             model.addAttribute("saml_error", samlException.getMessage());
             response.setStatus(400);
             return EXTERNAL_AUTH_ERROR;
         }
 
+        logger.error("Internal error", genericException);
         populateBuildAndLinkInfo(model);
         return ERROR;
     }

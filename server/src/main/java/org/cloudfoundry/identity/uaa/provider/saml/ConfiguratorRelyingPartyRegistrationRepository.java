@@ -33,6 +33,7 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
      *
      * @param registrationId the registration identifier
      * @return the {@link RelyingPartyRegistration} if found, otherwise {@code null}
+     * @throws Saml2Exception if the registration cannot be built due to invalid or unreachable metadata
      */
     @Override
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
