@@ -29,8 +29,9 @@ dependencies {
     implementation(libraries.springSessionJdbc)
 
     implementation(libraries.bouncyCastleFipsProv)
-    implementation(libraries.bouncyCastleTlsFips)
     implementation(libraries.bouncyCastlePkixFips)
+    implementation(libraries.bouncyCastleTlsFips)
+    implementation(libraries.bouncyCastleUtilFips)
 
     implementation(libraries.guava)
 
