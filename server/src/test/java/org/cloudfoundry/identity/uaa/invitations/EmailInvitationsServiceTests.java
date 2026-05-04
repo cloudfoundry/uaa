@@ -227,7 +227,7 @@ class EmailInvitationsServiceTests {
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
         userData.put(CLIENT_ID, null);
-        userData.put("created_new_user", "false");
+        userData.put(InvitationsEndpoint.CREATED_NEW_USER, "false");
         when(mockExpiringCodeStore.retrieveCode(anyString(), eq(zoneId)))
                 .thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
                         JsonUtils.writeValueAsString(userData), INVITATION.name()));
@@ -250,7 +250,7 @@ class EmailInvitationsServiceTests {
         userData.put(USER_ID, "user-id-002");
         userData.put(EMAIL, "newuser@example.com");
         userData.put(CLIENT_ID, null);
-        userData.put("created_new_user", "true");
+        userData.put(InvitationsEndpoint.CREATED_NEW_USER, "true");
         when(mockExpiringCodeStore.retrieveCode(anyString(), eq(zoneId)))
                 .thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
                         JsonUtils.writeValueAsString(userData), INVITATION.name()));

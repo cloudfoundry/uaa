@@ -401,7 +401,7 @@ class InvitationsEndpointMockMvcTests {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<>() {});
 
-        assertThat(data).containsEntry("created_new_user", "true");
+        assertThat(data).containsEntry(InvitationsEndpoint.CREATED_NEW_USER, "true");
     }
 
     @Test
@@ -422,7 +422,7 @@ class InvitationsEndpointMockMvcTests {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<>() {});
 
-        assertThat(data).containsEntry("created_new_user", "false");
+        assertThat(data).containsEntry(InvitationsEndpoint.CREATED_NEW_USER, "false");
 
         jdbcTemplate.update("DELETE FROM users WHERE username = ?", email);
     }
