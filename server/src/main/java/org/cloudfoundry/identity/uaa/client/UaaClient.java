@@ -68,7 +68,7 @@ public class UaaClient extends User {
                         result = ClientJwtConfiguration.merge(result, additionalConfig, false);
                     }
                 } catch (Exception e) {
-                    logger.warn("Ignoring malformed jwt_creds in additionalInformation for client {}", getUsername(), e);
+                    logger.debug("Ignoring malformed jwt_creds in additionalInformation for client {}", getUsername(), e);
                 }
             }
 
@@ -83,7 +83,7 @@ public class UaaClient extends User {
                             result = ClientJwtConfiguration.merge(result, nestedConfig, false);
                         }
                     } catch (Exception e) {
-                        logger.warn("Ignoring malformed nested client_jwt_config.jwt_creds in additionalInformation for client {}", getUsername(), e);
+                        logger.debug("Ignoring malformed nested client_jwt_config.jwt_creds in additionalInformation for client {}", getUsername(), e);
                     }
                 }
             }

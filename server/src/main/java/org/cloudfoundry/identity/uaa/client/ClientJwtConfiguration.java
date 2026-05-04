@@ -214,7 +214,7 @@ public class ClientJwtConfiguration implements Cloneable {
     private boolean validateJwkSet() {
         List<JsonWebKey> keyList = jwkSet.getKeys();
         if (keyList.isEmpty() || keyList.size() > MAX_KEY_SIZE) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwk set is empty of exceeds to maximum of keys. max: + " + MAX_KEY_SIZE);
+            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwk set is empty or exceeds the maximum of keys. max: " + MAX_KEY_SIZE);
         }
         Set<String> keyId = new HashSet<>();
         keyList.forEach((JsonWebKey key) -> {
@@ -380,6 +380,8 @@ public class ClientJwtConfiguration implements Cloneable {
             ClientJwtConfiguration cfg = new ClientJwtConfiguration();
             cfg.addJwtCredentials(ClientJwtCredential.parse(json));
             return cfg;
+        } catch (InvalidClientDetailsException e) {
+            throw e;
         } catch (Exception e) {
             throw new InvalidClientDetailsException("Invalid jwt_creds format", e);
         }

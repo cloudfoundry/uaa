@@ -282,11 +282,14 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     if (cjc instanceof String s) {
                         fromNested = ClientJwtConfiguration.readValue(s);
                     } else if (cjc instanceof Map<?, ?> map) {
-                        fromNested = ClientJwtConfiguration.fromJwtCredsValue(
+                        fromNested = ClientJwtConfiguration.readValue(
+                                JsonUtils.writeValueAsString(cjc));
+                        ClientJwtConfiguration credsOnly = ClientJwtConfiguration.fromJwtCredsValue(
                                 map.get(ClientJwtConfiguration.JWT_CREDS));
-                        if (fromNested == null) {
-                            fromNested = ClientJwtConfiguration.readValue(
-                                    JsonUtils.writeValueAsString(cjc));
+                        if (credsOnly != null) {
+                            fromNested = ClientJwtConfiguration.merge(
+                                    fromNested != null ? fromNested : new ClientJwtConfiguration(),
+                                    credsOnly, false);
                         }
                     } else {
                         throw new InvalidClientDetailsException(
