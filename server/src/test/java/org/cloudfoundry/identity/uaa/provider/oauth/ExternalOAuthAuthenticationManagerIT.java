@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProvi
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager.AuthenticationData;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -303,6 +304,16 @@ class ExternalOAuthAuthenticationManagerIT {
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.getResponseType(idp))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Unknown type for provider.");
+    }
+
+    @Test
+    void isAddNewShadowUser_returnsFalse_whenProviderConfigIsNotExternalOAuth() {
+        IdentityProvider provider = new IdentityProvider();
+        provider.setType(OriginKeys.UAA);
+        provider.setConfig(new UaaIdentityProviderDefinition());
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(provider);
+
+        assertThat(externalOAuthAuthenticationManager.isAddNewShadowUser(ORIGIN)).isFalse();
     }
 
     @Test

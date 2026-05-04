@@ -383,39 +383,6 @@ class ExternalLoginAuthenticationManagerTest {
     }
 
     @Test
-    void shadowUserCreationThrowsClassCastException() {
-        manager = new ExternalLoginAuthenticationManager<>(null) {
-            @Override
-            protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException {
-                return ExternalAuthenticationDetails.builder().origin(origin).build();
-            }
-
-            @Override
-            protected boolean isAddNewShadowUser(String origin) {
-                throw new ClassCastException("Cannot cast UaaIdentityProviderDefinition to AbstractExternalOAuthIdentityProviderDefinition");
-            }
-
-            @Override
-            protected List<String> getExternalUserAuthorities(UserDetails request, ExternalAuthenticationDetails authenticationDetails) {
-                return new LinkedList<>();
-            }
-
-            @Override
-            protected UaaUser userAuthenticated(Authentication request, UaaUser userFromRequest, UaaUser userFromDb, ExternalAuthenticationDetails authenticationDetails) {
-                return userFromDb;
-            }
-        };
-        setupManager();
-        when(uaaUserDatabase.retrieveUserByName(eq(userName), eq(origin))).thenReturn(null);
-
-        assertThatExceptionOfType(AccountNotPreCreatedException.class)
-                .isThrownBy(() -> manager.authenticate(inputAuth))
-                .withMessageContaining("user account must be pre-created");
-
-        verify(applicationEventPublisher, never()).publishEvent(any());
-    }
-
-    @Test
     void authenticateCreateUserWithLdapUserDetailsPrincipal() {
         String dn = "cn=" + userName + ",ou=Users,dc=test,dc=com";
         String origin = LDAP;

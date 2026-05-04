@@ -118,7 +118,7 @@ public abstract class ExternalLoginAuthenticationManager<EAD extends ExternalLog
 
         // Register new users automatically
         if (userFromDb == null) {
-            if (!canAddNewShadowUser(origin)) {
+            if (!isAddNewShadowUser(origin)) {
                 throw new AccountNotPreCreatedException("The user account must be pre-created. Please contact your system administrator.");
             }
             publish(new NewUserAuthenticatedEvent(userFromRequest.authorities(List.of())));
@@ -180,15 +180,6 @@ public abstract class ExternalLoginAuthenticationManager<EAD extends ExternalLog
     protected abstract EAD getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException;
 
     protected abstract boolean isAddNewShadowUser(final String origin);
-
-    private boolean canAddNewShadowUser(final String origin) {
-        try {
-            return isAddNewShadowUser(origin);
-        } catch (ClassCastException e) {
-            logger.warn("Unable to determine shadow user policy for origin: {}", origin, e);
-            return false;
-        }
-    }
 
     protected MultiValueMap<String, String> getUserAttributes(UserDetails request, EAD authenticationData) {
         return new LinkedMultiValueMap<>();
