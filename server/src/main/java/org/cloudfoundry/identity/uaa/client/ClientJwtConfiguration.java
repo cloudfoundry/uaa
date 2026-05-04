@@ -104,7 +104,7 @@ public class ClientJwtConfiguration implements Cloneable {
         additionalCredentials.forEach(jwtEntry ->
                 clientJwtCredentialHashMap.putIfAbsent(credKey(jwtEntry), jwtEntry));
         if (clientJwtCredentialHashMap.isEmpty() || clientJwtCredentialHashMap.size() > MAX_KEY_SIZE) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: federated jwt credentials exceeds the maximum of keys. max: " + MAX_KEY_SIZE);
+            throw new InvalidClientDetailsException("Invalid private_key_jwt: federated JWT credentials are empty or exceed the maximum number of keys. max: " + MAX_KEY_SIZE);
         }
     }
 
