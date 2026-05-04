@@ -208,15 +208,15 @@ class UaaSavedRequestCacheTests {
         request.setQueryString("name=value");
         request.setServerPort(443);
         ClientRedirectSavedRequest saved = new ClientRedirectSavedRequest(request, redirectUrl);
-        assertThat(saved.doesRequestMatch(request, null)).isTrue();
+        assertThat(saved.doesRequestMatch(request)).isTrue();
 
         request.setQueryString("name=value&name2=value2");
-        assertThat(saved.doesRequestMatch(request, null)).isFalse();
+        assertThat(saved.doesRequestMatch(request)).isFalse();
         request.setQueryString("name=value");
 
         request = new MockHttpServletRequest(POST.name(), "/login.do");
         request.setParameter(FORM_REDIRECT_PARAMETER, redirectUrl);
-        assertThat(saved.doesRequestMatch(request, null)).isTrue();
+        assertThat(saved.doesRequestMatch(request)).isTrue();
     }
 
     @Test

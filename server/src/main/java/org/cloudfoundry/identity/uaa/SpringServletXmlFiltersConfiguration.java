@@ -227,7 +227,6 @@ public class SpringServletXmlFiltersConfiguration {
         filter.setHstsEnabled(false);
         filter.setAntiClickJackingEnabled(false);
         filter.setBlockContentTypeSniffingEnabled(true);
-        filter.setXssProtectionEnabled(false);
         FilterRegistrationBean<HttpHeaderSecurityFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
         return bean;

@@ -25,7 +25,6 @@ dependencies {
     implementation(libraries.springBootStarterMail)
     implementation(libraries.openSamlApi)
     implementation(libraries.springSecuritySamlServiceProvider)
-    implementation(libraries.jodaTime)
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 
@@ -35,10 +34,6 @@ dependencies {
 
     implementation(libraries.guava)
 
-    // OpenAPI documentation
-    implementation(libraries.springdocOpenapi)
-
-    implementation(libraries.aspectJRt)
     implementation(libraries.aspectJWeaver)
 
     implementation(libraries.thymeLeaf) {
@@ -89,7 +84,7 @@ dependencies {
 
     implementation(libraries.apacheHttpClient)
 
-    testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
+    testImplementation(project(path: ":cloudfoundry-identity-model", configuration: "testArtifacts"))
 
     testImplementation(libraries.springTest)
 
@@ -105,7 +100,6 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
 
     testImplementation(libraries.jsonPathAssert)
-    testImplementation(libraries.guavaTestLib)
     testImplementation(libraries.xmlUnit)
     testImplementation(libraries.awaitility)
 

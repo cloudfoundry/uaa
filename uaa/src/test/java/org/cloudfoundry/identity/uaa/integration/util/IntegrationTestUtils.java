@@ -1,8 +1,9 @@
 package org.cloudfoundry.identity.uaa.integration.util;
 
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import jakarta.mail.internet.MimeMessage;
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.cookie.BasicCookieStore;
 import org.apache.hc.client5.http.cookie.CookieStore;
@@ -273,7 +274,7 @@ public class IntegrationTestUtils {
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) {
+            public void handleError(URI url, HttpMethod method, ClientHttpResponse response) {
                 // ignore
             }
         });
@@ -1593,7 +1594,7 @@ public class IntegrationTestUtils {
         return webDriver.manage().getCookies().stream().map(Cookie::getName).toList();
     }
 
-    public static String createAnotherUser(UaaWebDriver webDriver, String password, SimpleSmtpServer simpleSmtpServer, String url, TestClient testClient) {
+    public static String createAnotherUser(UaaWebDriver webDriver, String password, GreenMail greenMail, String url, TestClient testClient) {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
 
         webDriver.get(url + "/create_account");
@@ -1602,10 +1603,14 @@ public class IntegrationTestUtils {
         webDriver.findElement(By.name("password_confirmation")).sendKeys(password);
         webDriver.clickAndWait(By.xpath("//input[@value='Send activation link']"));
 
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        receivedEmail.remove();
-        webDriver.get(testClient.extractLink(message.getBody()));
+        greenMail.waitForIncomingEmail(5000, 1);
+        MimeMessage[] messages = greenMail.getReceivedMessages();
+        MimeMessage message = messages[messages.length - 1];
+        try {
+            webDriver.get(testClient.extractLink(GreenMailUtil.getBody(message)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         return userEmail;
     }

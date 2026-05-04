@@ -51,8 +51,6 @@ dependencies {
     implementation(libraries.thymeleafExtrasSpringSecurity) {
         exclude(module: "ognl")
     }
-    runtimeOnly(libraries.springSecurityConfig)
-    runtimeOnly(libraries.springRetry)
     runtimeOnly(libraries.aspectJWeaver)
     runtimeOnly(libraries.postgresql)
     runtimeOnly(libraries.mariaJdbcDriver)
@@ -73,11 +71,6 @@ dependencies {
 
     testImplementation(project(":cloudfoundry-identity-model"))
     testImplementation(project(":cloudfoundry-identity-metrics-data"))
-    testImplementation(libraries.apacheDsProtocolLdap) {
-        exclude(module: "bcprov-jdk15")
-        exclude(module: "slf4j-api")
-        exclude(module: "slf4j-log4j12")
-    }
     testImplementation(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
     }
@@ -85,10 +78,6 @@ dependencies {
     testImplementation(libraries.hibernateValidator)
     testImplementation(libraries.selenium)
     testImplementation(libraries.seleniumRemoteDriver)
-    testImplementation(libraries.dumbster) {
-        exclude(module: "mail")
-        exclude(module: "activation")
-    }
     testImplementation(libraries.orgJson)
     testImplementation(libraries.jsonAssert)
     testImplementation(libraries.jsonPathAssert)
@@ -112,7 +101,6 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
     testImplementation(libraries.springRestdocs)
     testImplementation(libraries.greenmail)
-    testImplementation(libraries.jodaTime)
     testImplementation(libraries.commonsIo)
     testImplementation(libraries.apacheHttpClient)
     testImplementation(libraries.openSamlApi)

@@ -34,6 +34,7 @@ server/logs
 uaa/logs
 
 uaa/node_modules
+node_modules/
 # Docs
 uaa/slate/package-lock.json
 uaa/slate/node_modules
@@ -54,6 +55,10 @@ scripts/boot/tomcat/**
 
 # VS Code and Cursor
 .cursor/
+
+# AI agent working plans (ephemeral, never committed)
+ai/plans/
+
 .ruby-version
 .vscode/
 

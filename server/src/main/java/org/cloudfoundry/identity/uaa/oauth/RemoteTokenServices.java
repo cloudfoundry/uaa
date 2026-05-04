@@ -42,6 +42,7 @@ import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,9 +80,9 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         ((RestTemplate) restTemplate).setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
             // Ignore 400
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
                 if (response.getStatusCode().value() != 400) {
-                    super.handleError(response);
+                    super.handleError(url, method, response);
                 }
             }
         });

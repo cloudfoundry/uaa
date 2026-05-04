@@ -84,7 +84,6 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
@@ -1200,7 +1199,7 @@ public final class MockMvcUtils {
     public static class MockSavedRequest extends DefaultSavedRequest {
 
         public MockSavedRequest() {
-            super(new MockHttpServletRequest(), new PortResolverImpl());
+            super(new MockHttpServletRequest());
         }
 
         @Override
