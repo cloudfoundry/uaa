@@ -308,7 +308,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void isAddNewShadowUser_returnsFalse_whenProviderConfigIsNotExternalOAuth() {
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setType(OriginKeys.UAA);
         provider.setConfig(new UaaIdentityProviderDefinition());
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(provider);
