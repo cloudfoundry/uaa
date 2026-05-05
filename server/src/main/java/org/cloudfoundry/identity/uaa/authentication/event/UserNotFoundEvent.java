@@ -15,11 +15,11 @@ package org.cloudfoundry.identity.uaa.authentication.event;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.springframework.security.core.Authentication;
-import java.util.Base64;
 import org.springframework.security.crypto.codec.Utf8;
 
 /**
