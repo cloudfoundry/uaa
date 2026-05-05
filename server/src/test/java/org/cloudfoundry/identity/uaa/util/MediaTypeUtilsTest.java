@@ -40,7 +40,7 @@ class MediaTypeUtilsTest {
     }
 
     @Test
-    void sortByQualityValueMaintainsStableSortOrder() {
+    void sortByQualityValueProducesCorrectOrder() {
         MediaType audioBasic = new MediaType("audio", "basic");
         MediaType audio = new MediaType("audio");
         MediaType audio03 = new MediaType("audio", "*", 0.3);
@@ -58,7 +58,6 @@ class MediaTypeUtilsTest {
 
         List<MediaType> result = new ArrayList<>(expected);
         Random rnd = new Random();
-        // shuffle & sort 10 times
         for (int i = 0; i < 10; i++) {
             Collections.shuffle(result, rnd);
             MediaTypeUtils.sortByQualityValue(result);
@@ -67,6 +66,18 @@ class MediaTypeUtilsTest {
                 assertThat(result.get(j)).as("Invalid media type at " + j).isSameAs(expected.get(j));
             }
         }
+    }
+
+    @Test
+    void sortByQualityValueIsStableForEquallyRankedTypes() {
+        MediaType audioBasic = new MediaType("audio", "basic");
+        MediaType textHtml = new MediaType("text", "html");
+        MediaType audioWave = new MediaType("audio", "wave");
+
+        List<MediaType> input = new ArrayList<>(List.of(audioBasic, textHtml, audioWave));
+        MediaTypeUtils.sortByQualityValue(input);
+
+        assertThat(input).containsExactly(audioBasic, textHtml, audioWave);
     }
 
     @Test
