@@ -50,6 +50,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -563,7 +564,7 @@ class ScimGroupEndpointsIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
-                "Basic " + new String(Base64.getEncoder().encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
+                "Basic " + new String(Base64.getEncoder().encode("%s:%s".formatted(clientId, clientSecret).getBytes(StandardCharsets.UTF_8))));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
