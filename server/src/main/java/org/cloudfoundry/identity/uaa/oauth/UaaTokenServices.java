@@ -95,8 +95,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.openid.IdToken.ACR_VALUES_KEY;
@@ -143,7 +145,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private final TokenPolicy tokenPolicy;
     private final RevocableTokenProvisioning tokenProvisioning;
     private Set<String> excludedClaims;
-    private UaaTokenEnhancer uaaTokenEnhancer;
+    private List<UaaTokenEnhancer> uaaTokenEnhancers = new ArrayList<>();
     private final IdTokenCreator idTokenCreator;
     private final RefreshTokenCreator refreshTokenCreator;
     private TokenEndpointBuilder tokenEndpointBuilder;
@@ -192,8 +194,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     @Autowired(required = false)
+    public void setUaaTokenEnhancers(List<UaaTokenEnhancer> uaaTokenEnhancers) {
+        this.uaaTokenEnhancers = new ArrayList<>(uaaTokenEnhancers == null ? emptyList() : uaaTokenEnhancers);
+    }
+
+    @Deprecated
     public void setUaaTokenEnhancer(UaaTokenEnhancer uaaTokenEnhancer) {
-        this.uaaTokenEnhancer = uaaTokenEnhancer;
+        this.setUaaTokenEnhancers(uaaTokenEnhancer == null ? emptyList() : singletonList(uaaTokenEnhancer));
     }
 
     @Override
@@ -349,7 +356,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Map<String, Object> getAdditionalRootClaims(Map<String, Object> refreshTokenClaims) {
         Map<String, Object> additionalRootClaims = new HashMap<>();
-        if (uaaTokenEnhancer != null) {
+        if (!uaaTokenEnhancers.isEmpty()) {
             refreshTokenClaims.entrySet()
                     .stream()
                     .filter(entry -> !NON_ADDITIONAL_ROOT_CLAIMS.contains(entry.getKey()))
@@ -625,8 +632,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean isRefreshTokenRevocable = isAccessTokenRevocable || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
 
         Map<String, Object> additionalRootClaims = null;
-        if (uaaTokenEnhancer != null) {
-            additionalRootClaims = new HashMap<>(uaaTokenEnhancer.enhance(emptyMap(), authentication));
+        if (!uaaTokenEnhancers.isEmpty()) {
+            additionalRootClaims = new HashMap<>();
+            for (UaaTokenEnhancer enhancer : uaaTokenEnhancers) {
+                if (enhancer != null) {
+                    Map<String, Object> claims = enhancer.enhance(emptyMap(), authentication);
+                    if (claims != null) {
+                        additionalRootClaims.putAll(claims);
+                    }
+                }
+            }
         }
 
         String clientAuthentication = getAuthenticationMethod(oAuth2Request);

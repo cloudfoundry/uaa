@@ -225,6 +225,60 @@ class UaaTokenServicesTests {
         }
 
         @Nested
+        @DisplayName("when multiple token enhancers are provided")
+        @DefaultTestContext
+        @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
+        class WhenMultipleTokenEnhancersAreProvided {
+
+            @DisplayName("claims from all enhancers are merged into the token")
+            @ParameterizedTest
+            @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
+            void claimsAreMerged(String grantType) {
+                UaaTokenEnhancer enhancer1 = new UaaTokenEnhancer() {
+                    @Override
+                    public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                        return Map.of();
+                    }
+
+                    @Override
+                    public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                        return Map.of("claim1", "value1");
+                    }
+                };
+
+                UaaTokenEnhancer enhancer2 = new UaaTokenEnhancer() {
+                    @Override
+                    public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                        return Map.of();
+                    }
+
+                    @Override
+                    public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                        return Map.of("claim2", "value2");
+                    }
+                };
+
+                tokenServices.setUaaTokenEnhancers(Arrays.asList(enhancer1, enhancer2));
+
+                try {
+                    AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, grantType, "openid", "user_attributes");
+                    OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+
+                    CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
+                    
+                    String jwt = accessToken.getValue();
+                    Jwt parsedToken = JwtHelper.decode(jwt);
+                    Map<String, Object> claims = JsonUtils.readValue(parsedToken.getClaims(), new TypeReference<Map<String, Object>>() {});
+
+                    assertThat(claims).containsEntry("claim1", "value1");
+                    assertThat(claims).containsEntry("claim2", "value2");
+                } finally {
+                    tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+                }
+            }
+        }
+
+        @Nested
         @DisplayName("when the hasn't approved the 'openid' scope")
         @DefaultTestContext
         @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
