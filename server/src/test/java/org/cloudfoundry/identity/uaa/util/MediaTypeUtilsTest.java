@@ -18,109 +18,109 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MediaTypeUtilsTest {
 
-	@Test
-	void sortByQualityValueWithNullThrowsException() {
-		assertThatThrownBy(() -> MediaTypeUtils.sortByQualityValue(null))
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("'mediaTypes' must not be null");
-	}
+    @Test
+    void sortByQualityValueWithNullThrowsException() {
+        assertThatThrownBy(() -> MediaTypeUtils.sortByQualityValue(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("'mediaTypes' must not be null");
+    }
 
-	@ParameterizedTest
-	@MethodSource("listsThatShouldNotBeSorted")
-	void sortByQualityValueWithListsThatDoNotNeedSorting(List<MediaType> mediaTypes, List<MediaType> expected) {
-		MediaTypeUtils.sortByQualityValue(mediaTypes);
-		assertThat(mediaTypes).isEqualTo(expected);
-	}
+    @ParameterizedTest
+    @MethodSource("listsThatShouldNotBeSorted")
+    void sortByQualityValueWithListsThatDoNotNeedSorting(List<MediaType> mediaTypes, List<MediaType> expected) {
+        MediaTypeUtils.sortByQualityValue(mediaTypes);
+        assertThat(mediaTypes).isEqualTo(expected);
+    }
 
-	static Stream<Arguments> listsThatShouldNotBeSorted() {
-		return Stream.of(
-				Arguments.of(Collections.emptyList(), Collections.emptyList()),
-				Arguments.of(Collections.singletonList(MediaType.APPLICATION_JSON), Collections.singletonList(MediaType.APPLICATION_JSON))
-		);
-	}
+    static Stream<Arguments> listsThatShouldNotBeSorted() {
+        return Stream.of(
+                Arguments.of(Collections.emptyList(), Collections.emptyList()),
+                Arguments.of(Collections.singletonList(MediaType.APPLICATION_JSON), Collections.singletonList(MediaType.APPLICATION_JSON))
+        );
+    }
 
-	@Test
-	void sortByQualityValueMaintainsStableSortOrder() {
-		MediaType audioBasic = new MediaType("audio", "basic");
-		MediaType audio = new MediaType("audio");
-		MediaType audio03 = new MediaType("audio", "*", 0.3);
-		MediaType audio07 = new MediaType("audio", "*", 0.7);
-		MediaType audioBasicLevel = new MediaType("audio", "basic", Collections.singletonMap("level", "1"));
-		MediaType all = MediaType.ALL;
+    @Test
+    void sortByQualityValueMaintainsStableSortOrder() {
+        MediaType audioBasic = new MediaType("audio", "basic");
+        MediaType audio = new MediaType("audio");
+        MediaType audio03 = new MediaType("audio", "*", 0.3);
+        MediaType audio07 = new MediaType("audio", "*", 0.7);
+        MediaType audioBasicLevel = new MediaType("audio", "basic", Collections.singletonMap("level", "1"));
+        MediaType all = MediaType.ALL;
 
-		List<MediaType> expected = new ArrayList<>();
-		expected.add(audioBasicLevel);
-		expected.add(audioBasic);
-		expected.add(audio);
-		expected.add(all);
-		expected.add(audio07);
-		expected.add(audio03);
+        List<MediaType> expected = new ArrayList<>();
+        expected.add(audioBasicLevel);
+        expected.add(audioBasic);
+        expected.add(audio);
+        expected.add(all);
+        expected.add(audio07);
+        expected.add(audio03);
 
-		List<MediaType> result = new ArrayList<>(expected);
-		Random rnd = new Random();
-		// shuffle & sort 10 times
-		for (int i = 0; i < 10; i++) {
-			Collections.shuffle(result, rnd);
-			MediaTypeUtils.sortByQualityValue(result);
+        List<MediaType> result = new ArrayList<>(expected);
+        Random rnd = new Random();
+        // shuffle & sort 10 times
+        for (int i = 0; i < 10; i++) {
+            Collections.shuffle(result, rnd);
+            MediaTypeUtils.sortByQualityValue(result);
 
-			for (int j = 0; j < result.size(); j++) {
-				assertThat(result.get(j)).as("Invalid media type at " + j).isSameAs(expected.get(j));
-			}
-		}
-	}
+            for (int j = 0; j < result.size(); j++) {
+                assertThat(result.get(j)).as("Invalid media type at " + j).isSameAs(expected.get(j));
+            }
+        }
+    }
 
-	@Test
-	void byQualityValueComparatorHandlesAllScenarios() {
-		MediaType audioBasic = new MediaType("audio", "basic");
-		MediaType audioWave = new MediaType("audio", "wave");
-		MediaType audio = new MediaType("audio");
-		MediaType audio03 = new MediaType("audio", "*", 0.3);
-		MediaType audio07 = new MediaType("audio", "*", 0.7);
-		MediaType audioBasicLevel = new MediaType("audio", "basic", Collections.singletonMap("level", "1"));
-		MediaType textHtml = new MediaType("text", "html");
-		MediaType allXml = new MediaType("application", "*+xml");
-		MediaType all = MediaType.ALL;
+    @Test
+    void byQualityValueComparatorHandlesAllScenarios() {
+        MediaType audioBasic = new MediaType("audio", "basic");
+        MediaType audioWave = new MediaType("audio", "wave");
+        MediaType audio = new MediaType("audio");
+        MediaType audio03 = new MediaType("audio", "*", 0.3);
+        MediaType audio07 = new MediaType("audio", "*", 0.7);
+        MediaType audioBasicLevel = new MediaType("audio", "basic", Collections.singletonMap("level", "1"));
+        MediaType textHtml = new MediaType("text", "html");
+        MediaType allXml = new MediaType("application", "*+xml");
+        MediaType all = MediaType.ALL;
 
-		Comparator<MediaType> comp = MediaTypeUtils.BY_QUALITY_VALUE;
+        Comparator<MediaType> comp = MediaTypeUtils.BY_QUALITY_VALUE;
 
-		// equal
-		assertThat(comp.compare(audioBasic, audioBasic)).as("Invalid comparison result").isZero();
-		assertThat(comp.compare(audio, audio)).as("Invalid comparison result").isZero();
-		assertThat(comp.compare(audio07, audio07)).as("Invalid comparison result").isZero();
-		assertThat(comp.compare(audio03, audio03)).as("Invalid comparison result").isZero();
-		assertThat(comp.compare(audioBasicLevel, audioBasicLevel)).as("Invalid comparison result").isZero();
+        // equal
+        assertThat(comp.compare(audioBasic, audioBasic)).as("Invalid comparison result").isZero();
+        assertThat(comp.compare(audio, audio)).as("Invalid comparison result").isZero();
+        assertThat(comp.compare(audio07, audio07)).as("Invalid comparison result").isZero();
+        assertThat(comp.compare(audio03, audio03)).as("Invalid comparison result").isZero();
+        assertThat(comp.compare(audioBasicLevel, audioBasicLevel)).as("Invalid comparison result").isZero();
 
-		// specific to unspecific
-		assertThat(comp.compare(audioBasic, audio)).as("Invalid comparison result").isLessThan(0);
-		assertThat(comp.compare(audioBasic, all)).as("Invalid comparison result").isLessThan(0);
-		assertThat(comp.compare(audio, all)).as("Invalid comparison result").isLessThan(0);
-		assertThat(comp.compare(MediaType.APPLICATION_XHTML_XML, allXml)).as("Invalid comparison result").isLessThan(0);
+        // specific to unspecific
+        assertThat(comp.compare(audioBasic, audio)).as("Invalid comparison result").isLessThan(0);
+        assertThat(comp.compare(audioBasic, all)).as("Invalid comparison result").isLessThan(0);
+        assertThat(comp.compare(audio, all)).as("Invalid comparison result").isLessThan(0);
+        assertThat(comp.compare(MediaType.APPLICATION_XHTML_XML, allXml)).as("Invalid comparison result").isLessThan(0);
 
-		// unspecific to specific
-		assertThat(comp.compare(audio, audioBasic)).as("Invalid comparison result").isGreaterThan(0);
-		assertThat(comp.compare(all, audioBasic)).as("Invalid comparison result").isGreaterThan(0);
-		assertThat(comp.compare(all, audio)).as("Invalid comparison result").isGreaterThan(0);
-		assertThat(comp.compare(allXml, MediaType.APPLICATION_XHTML_XML)).as("Invalid comparison result")
-				.isGreaterThan(0);
+        // unspecific to specific
+        assertThat(comp.compare(audio, audioBasic)).as("Invalid comparison result").isGreaterThan(0);
+        assertThat(comp.compare(all, audioBasic)).as("Invalid comparison result").isGreaterThan(0);
+        assertThat(comp.compare(all, audio)).as("Invalid comparison result").isGreaterThan(0);
+        assertThat(comp.compare(allXml, MediaType.APPLICATION_XHTML_XML)).as("Invalid comparison result")
+                .isGreaterThan(0);
 
-		// qualifiers
-		assertThat(comp.compare(audio, audio07)).as("Invalid comparison result").isLessThan(0);
-		assertThat(comp.compare(audio07, audio)).as("Invalid comparison result").isGreaterThan(0);
-		assertThat(comp.compare(audio07, audio03)).as("Invalid comparison result").isLessThan(0);
-		assertThat(comp.compare(audio03, audio07)).as("Invalid comparison result").isGreaterThan(0);
-		assertThat(comp.compare(audio03, all)).as("Invalid comparison result").isGreaterThan(0);
-		assertThat(comp.compare(all, audio03)).as("Invalid comparison result").isLessThan(0);
+        // qualifiers
+        assertThat(comp.compare(audio, audio07)).as("Invalid comparison result").isLessThan(0);
+        assertThat(comp.compare(audio07, audio)).as("Invalid comparison result").isGreaterThan(0);
+        assertThat(comp.compare(audio07, audio03)).as("Invalid comparison result").isLessThan(0);
+        assertThat(comp.compare(audio03, audio07)).as("Invalid comparison result").isGreaterThan(0);
+        assertThat(comp.compare(audio03, all)).as("Invalid comparison result").isGreaterThan(0);
+        assertThat(comp.compare(all, audio03)).as("Invalid comparison result").isLessThan(0);
 
-		// other parameters
-		assertThat(comp.compare(audioBasic, audioBasicLevel)).as("Invalid comparison result").isGreaterThan(0);
-		assertThat(comp.compare(audioBasicLevel, audioBasic)).as("Invalid comparison result").isLessThan(0);
+        // other parameters
+        assertThat(comp.compare(audioBasic, audioBasicLevel)).as("Invalid comparison result").isGreaterThan(0);
+        assertThat(comp.compare(audioBasicLevel, audioBasic)).as("Invalid comparison result").isLessThan(0);
 
-		// different types
-		assertThat(comp.compare(audioBasic, textHtml)).as("Invalid comparison result").isZero();
-		assertThat(comp.compare(textHtml, audioBasic)).as("Invalid comparison result").isZero();
+        // different types
+        assertThat(comp.compare(audioBasic, textHtml)).as("Invalid comparison result").isZero();
+        assertThat(comp.compare(textHtml, audioBasic)).as("Invalid comparison result").isZero();
 
-		// different subtypes
-		assertThat(comp.compare(audioBasic, audioWave)).as("Invalid comparison result").isZero();
-		assertThat(comp.compare(audioWave, audioBasic)).as("Invalid comparison result").isZero();
-	}
+        // different subtypes
+        assertThat(comp.compare(audioBasic, audioWave)).as("Invalid comparison result").isZero();
+        assertThat(comp.compare(audioWave, audioBasic)).as("Invalid comparison result").isZero();
+    }
 }
