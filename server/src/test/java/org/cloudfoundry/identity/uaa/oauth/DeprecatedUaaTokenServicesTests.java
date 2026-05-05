@@ -584,6 +584,51 @@ class DeprecatedUaaTokenServicesTests {
 
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: {0}")
+    void multipleTokenEnhancersAreSupported(TestTokenEnhancer enhancer) {
+        initDeprecatedUaaTokenServicesTests(enhancer);
+        UaaTokenEnhancer enhancer1 = new UaaTokenEnhancer() {
+            @Override
+            public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                return Map.of();
+            }
+
+            @Override
+            public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                return Map.of("claim1", "value1");
+            }
+        };
+
+        UaaTokenEnhancer enhancer2 = new UaaTokenEnhancer() {
+            @Override
+            public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                return Map.of();
+            }
+
+            @Override
+            public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                return Map.of("claim2", "value2");
+            }
+        };
+
+        tokenServices.setUaaTokenEnhancers(java.util.Arrays.asList(enhancer1, enhancer2));
+
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.clientScopes);
+        authorizationRequest.setResourceIds(new java.util.HashSet<>(tokenSupport.resourceIds));
+        authorizationRequest.setRequestParameters(new java.util.HashMap<>());
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        String jwt = accessToken.getValue();
+        org.cloudfoundry.identity.uaa.oauth.jwt.Jwt parsedToken = org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper.decode(jwt);
+        Map<String, Object> claims = org.cloudfoundry.identity.uaa.util.JsonUtils.readValue(parsedToken.getClaims(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+
+        assertThat(claims).containsEntry("claim1", "value1");
+        assertThat(claims).containsEntry("claim2", "value2");
+    }
+
+    @MethodSource("data")
+    @ParameterizedTest(name = "{index}: {0}")
     void createAccessTokenForAClientInAnotherIdentityZone(TestTokenEnhancer enhancer) {
         initDeprecatedUaaTokenServicesTests(enhancer);
         String subdomain = "test-zone-subdomain";

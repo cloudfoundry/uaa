@@ -143,7 +143,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private final TokenPolicy tokenPolicy;
     private final RevocableTokenProvisioning tokenProvisioning;
     private Set<String> excludedClaims;
-    private UaaTokenEnhancer uaaTokenEnhancer;
+    private List<UaaTokenEnhancer> uaaTokenEnhancers = new ArrayList<>();
     private final IdTokenCreator idTokenCreator;
     private final RefreshTokenCreator refreshTokenCreator;
     private TokenEndpointBuilder tokenEndpointBuilder;
@@ -192,8 +192,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     @Autowired(required = false)
+    public void setUaaTokenEnhancers(List<UaaTokenEnhancer> uaaTokenEnhancers) {
+        if (uaaTokenEnhancers != null) {
+            this.uaaTokenEnhancers = new ArrayList<>(uaaTokenEnhancers);
+        }
+    }
+
     public void setUaaTokenEnhancer(UaaTokenEnhancer uaaTokenEnhancer) {
-        this.uaaTokenEnhancer = uaaTokenEnhancer;
+        this.uaaTokenEnhancers.add(uaaTokenEnhancer);
     }
 
     @Override
@@ -349,7 +355,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Map<String, Object> getAdditionalRootClaims(Map<String, Object> refreshTokenClaims) {
         Map<String, Object> additionalRootClaims = new HashMap<>();
-        if (uaaTokenEnhancer != null) {
+        if (!uaaTokenEnhancers.isEmpty()) {
             refreshTokenClaims.entrySet()
                     .stream()
                     .filter(entry -> !NON_ADDITIONAL_ROOT_CLAIMS.contains(entry.getKey()))
@@ -625,8 +631,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean isRefreshTokenRevocable = isAccessTokenRevocable || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
 
         Map<String, Object> additionalRootClaims = null;
-        if (uaaTokenEnhancer != null) {
-            additionalRootClaims = new HashMap<>(uaaTokenEnhancer.enhance(emptyMap(), authentication));
+        if (!uaaTokenEnhancers.isEmpty()) {
+            additionalRootClaims = new HashMap<>();
+            for (UaaTokenEnhancer enhancer : uaaTokenEnhancers) {
+                if (enhancer != null) {
+                    Map<String, Object> claims = enhancer.enhance(emptyMap(), authentication);
+                    if (claims != null) {
+                        additionalRootClaims.putAll(claims);
+                    }
+                }
+            }
         }
 
         String clientAuthentication = getAuthenticationMethod(oAuth2Request);
