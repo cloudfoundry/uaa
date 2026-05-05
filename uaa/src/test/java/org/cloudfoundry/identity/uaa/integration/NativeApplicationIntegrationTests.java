@@ -85,7 +85,7 @@ class NativeApplicationIntegrationTests {
         formData.add("password", resource.getPassword());
         formData.add("scope", "cloud_controller.read");
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Basic " + new String(Base64.getEncoder().encode("no-such-client:".getBytes(StandardCharsets.UTF_8))));
+        headers.set("Authorization", "Basic " + Base64.getEncoder().encodeToString("no-such-client:".getBytes(StandardCharsets.UTF_8)));
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);

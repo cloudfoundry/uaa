@@ -140,7 +140,7 @@ public final class UaaTestAccounts implements TestAccounts {
     public static String getAuthorizationHeader(String username, String password) {
         String credentials =
                 "%s:%s".formatted(URLEncoder.encode(username, StandardCharsets.UTF_8), URLEncoder.encode(password, StandardCharsets.UTF_8));
-        return "Basic %s".formatted(new String(Base64.getEncoder().encode(credentials.getBytes())));
+        return "Basic %s".formatted(Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8)));
     }
 
     public String getJsonCredentials(String prefix, String defaultUsername, String defaultPassword) {

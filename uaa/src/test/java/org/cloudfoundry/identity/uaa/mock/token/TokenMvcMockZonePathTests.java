@@ -2586,7 +2586,7 @@ public class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, userId, userScopes, OriginKeys.LOGIN_SERVER, IdentityZoneHolder.get().getId());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
-        String basicAuthForLoginClient = new String(Base64.getEncoder().encode("%s:%s".formatted("login", "loginsecret").getBytes()));
+        String basicAuthForLoginClient = Base64.getEncoder().encodeToString("%s:%s".formatted("login", "loginsecret").getBytes(StandardCharsets.UTF_8));
 
         //the login server is matched by providing
         //1. Bearer token (will be authenticated for oauth.login scope)
