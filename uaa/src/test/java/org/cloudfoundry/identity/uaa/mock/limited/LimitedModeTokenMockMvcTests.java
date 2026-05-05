@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,7 +74,7 @@ class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
                         post("/check_token")
                                 .param("token", token)
                                 .header(AUTHORIZATION,
-                                        "Basic " + new String(Base64.getEncoder().encode((client.getClientId() + ":" + SECRET).getBytes())))
+                                        "Basic " + new String(Base64.getEncoder().encode((client.getClientId() + ":" + SECRET).getBytes(StandardCharsets.UTF_8))))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scope").value(containsInAnyOrder("clients.read", "uaa.resource")))
