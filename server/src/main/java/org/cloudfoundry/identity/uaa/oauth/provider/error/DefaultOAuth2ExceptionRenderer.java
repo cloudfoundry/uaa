@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpResponse;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.ServletWebRequest;
@@ -62,7 +61,7 @@ public class DefaultOAuth2ExceptionRenderer implements OAuth2ExceptionRenderer {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void writeWithMessageConverters(Object returnValue,
-            HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
+            HttpOutputMessage outputMessage) throws IOException {
         Class<?> returnValueType = returnValue.getClass();
         for (HttpMessageConverter messageConverter : messageConverters) {
             if (messageConverter.canWrite(returnValueType, MediaType.APPLICATION_JSON)) {
@@ -78,7 +77,7 @@ public class DefaultOAuth2ExceptionRenderer implements OAuth2ExceptionRenderer {
                 return;
             }
         }
-        throw new HttpMediaTypeNotAcceptableException(List.of(MediaType.APPLICATION_JSON));
+        throw new IllegalStateException("No JSON message converter available for " + returnValue.getClass());
     }
 
     private List<HttpMessageConverter<?>> geDefaultMessageConverters() {

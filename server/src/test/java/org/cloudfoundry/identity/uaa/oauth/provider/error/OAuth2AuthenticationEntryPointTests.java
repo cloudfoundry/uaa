@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.error;
 
+import com.jayway.jsonpath.JsonPath;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,9 @@ class OAuth2AuthenticationEntryPointTests {
         request.addHeader("Accept", MediaType.APPLICATION_JSON_VALUE);
         entryPoint.commence(request, response, new BadCredentialsException("Bad"));
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
-        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"unauthorized\",\"error_description\":\"Bad\"}");
+        String body = response.getContentAsString();
+        assertThat(JsonPath.<String>read(body, "$.error")).isEqualTo("unauthorized");
+        assertThat(JsonPath.<String>read(body, "$.error_description")).isEqualTo("Bad");
         assertThat(response.getContentType()).contains(MediaType.APPLICATION_JSON_VALUE);
         assertThat(response.getErrorMessage()).isNull();
     }
@@ -49,7 +52,9 @@ class OAuth2AuthenticationEntryPointTests {
         entryPoint.commence(request, response, new BadCredentialsException("Bad", new InvalidClientException(
                 "Bad client")));
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
-        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"invalid_client\",\"error_description\":\"Bad client\"}");
+        String body = response.getContentAsString();
+        assertThat(JsonPath.<String>read(body, "$.error")).isEqualTo("invalid_client");
+        assertThat(JsonPath.<String>read(body, "$.error_description")).isEqualTo("Bad client");
         assertThat(response.getContentType()).contains(MediaType.APPLICATION_JSON_VALUE);
         assertThat(response.getErrorMessage()).isNull();
     }
@@ -59,7 +64,9 @@ class OAuth2AuthenticationEntryPointTests {
         request.addHeader("Accept", MediaType.APPLICATION_XML_VALUE);
         entryPoint.commence(request, response, new BadCredentialsException("Bad"));
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
-        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"unauthorized\",\"error_description\":\"Bad\"}");
+        String body = response.getContentAsString();
+        assertThat(JsonPath.<String>read(body, "$.error")).isEqualTo("unauthorized");
+        assertThat(JsonPath.<String>read(body, "$.error_description")).isEqualTo("Bad");
         assertThat(response.getContentType()).contains(MediaType.APPLICATION_JSON_VALUE);
         assertThat(response.getErrorMessage()).isNull();
     }
@@ -75,7 +82,9 @@ class OAuth2AuthenticationEntryPointTests {
     void commenceWithEmptyAccept() throws Exception {
         entryPoint.commence(request, response, new BadCredentialsException("Bad"));
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
-        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"unauthorized\",\"error_description\":\"Bad\"}");
+        String body = response.getContentAsString();
+        assertThat(JsonPath.<String>read(body, "$.error")).isEqualTo("unauthorized");
+        assertThat(JsonPath.<String>read(body, "$.error_description")).isEqualTo("Bad");
         assertThat(MediaType.APPLICATION_JSON.isCompatibleWith(MediaType.valueOf(response.getContentType()))).isTrue();
         assertThat(response.getErrorMessage()).isNull();
     }
@@ -85,7 +94,9 @@ class OAuth2AuthenticationEntryPointTests {
         request.addHeader("Accept", MediaType.TEXT_HTML_VALUE);
         entryPoint.commence(request, response, new BadCredentialsException("Bad"));
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
-        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"unauthorized\",\"error_description\":\"Bad\"}");
+        String body = response.getContentAsString();
+        assertThat(JsonPath.<String>read(body, "$.error")).isEqualTo("unauthorized");
+        assertThat(JsonPath.<String>read(body, "$.error_description")).isEqualTo("Bad");
         assertThat(response.getContentType()).contains(MediaType.APPLICATION_JSON_VALUE);
         assertThat(response.getErrorMessage()).isNull();
     }

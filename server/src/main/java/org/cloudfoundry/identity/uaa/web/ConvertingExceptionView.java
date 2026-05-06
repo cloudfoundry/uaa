@@ -14,7 +14,6 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,7 +27,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpResponse;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.servlet.View;
 
 /**
@@ -93,7 +91,7 @@ public class ConvertingExceptionView implements View {
 
     @SuppressWarnings("unchecked")
     private void writeWithMessageConverters(Object returnValue,
-            HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
+            HttpOutputMessage outputMessage) throws IOException {
         Class<?> returnValueType = returnValue.getClass();
         if (messageConverters != null) {
             for (@SuppressWarnings("rawtypes")
@@ -111,7 +109,7 @@ public class ConvertingExceptionView implements View {
                 }
             }
         }
-        throw new HttpMediaTypeNotAcceptableException(List.of(MediaType.APPLICATION_JSON));
+        throw new IllegalStateException("No JSON message converter available for " + returnValue.getClass());
     }
 
 }
