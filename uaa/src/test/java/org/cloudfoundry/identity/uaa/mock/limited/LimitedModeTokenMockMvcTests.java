@@ -25,9 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.security.crypto.codec.Base64;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
@@ -73,7 +74,7 @@ class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
                         post("/check_token")
                                 .param("token", token)
                                 .header(AUTHORIZATION,
-                                        "Basic " + new String(Base64.encode((client.getClientId() + ":" + SECRET).getBytes())))
+                                        "Basic " + Base64.getEncoder().encodeToString((client.getClientId() + ":" + SECRET).getBytes(StandardCharsets.UTF_8)))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scope").value(containsInAnyOrder("clients.read", "uaa.resource")))

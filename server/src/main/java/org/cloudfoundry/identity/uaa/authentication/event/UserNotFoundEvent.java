@@ -15,11 +15,11 @@ package org.cloudfoundry.identity.uaa.authentication.event;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.crypto.codec.Utf8;
 
 /**
@@ -42,7 +42,7 @@ public class UserNotFoundEvent extends AbstractUaaAuthenticationEvent {
         try {
             // Store hash of name, to conceal accidental entry of sensitive info
             // (e.g. password)
-            name = Utf8.decode(Base64.encode(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(name))));
+            name = Utf8.decode(Base64.getEncoder().encode(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(name))));
         } catch (NoSuchAlgorithmException shouldNeverHappen) {
             name = "NOSHA";
         }

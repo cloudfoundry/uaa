@@ -30,13 +30,13 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.codec.Base64;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.util.StringUtils;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -140,7 +140,7 @@ public final class UaaTestAccounts implements TestAccounts {
     public static String getAuthorizationHeader(String username, String password) {
         String credentials =
                 "%s:%s".formatted(URLEncoder.encode(username, StandardCharsets.UTF_8), URLEncoder.encode(password, StandardCharsets.UTF_8));
-        return "Basic %s".formatted(new String(Base64.encode(credentials.getBytes())));
+        return "Basic %s".formatted(Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8)));
     }
 
     public String getJsonCredentials(String prefix, String defaultUsername, String defaultPassword) {
