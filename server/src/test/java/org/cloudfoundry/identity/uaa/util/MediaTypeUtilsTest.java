@@ -57,7 +57,7 @@ class MediaTypeUtilsTest {
         expected.add(audio03);
 
         List<MediaType> result = new ArrayList<>(expected);
-        Random rnd = new Random();
+        Random rnd = new Random(0);
         for (int i = 0; i < 10; i++) {
             Collections.shuffle(result, rnd);
             MediaTypeUtils.sortByQualityValue(result);
