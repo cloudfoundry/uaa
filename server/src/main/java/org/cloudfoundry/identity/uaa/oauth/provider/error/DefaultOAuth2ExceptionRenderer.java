@@ -4,20 +4,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpResponse;
-import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.context.request.ServletWebRequest;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -46,7 +43,6 @@ public class DefaultOAuth2ExceptionRenderer implements OAuth2ExceptionRenderer {
         if (responseEntity == null) {
             return;
         }
-        HttpInputMessage inputMessage = createHttpInputMessage(webRequest);
         HttpOutputMessage outputMessage = createHttpOutputMessage(webRequest);
         if (responseEntity instanceof ResponseEntity<?> entity && outputMessage instanceof ServerHttpResponse response) {
             response.setStatusCode(entity.getStatusCode());
@@ -57,7 +53,7 @@ public class DefaultOAuth2ExceptionRenderer implements OAuth2ExceptionRenderer {
         }
         Object body = responseEntity.getBody();
         if (body != null) {
-            writeWithMessageConverters(body, inputMessage, outputMessage);
+            writeWithMessageConverters(body, outputMessage);
         } else {
             // flush headers
             outputMessage.getBody();
@@ -65,7 +61,7 @@ public class DefaultOAuth2ExceptionRenderer implements OAuth2ExceptionRenderer {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void writeWithMessageConverters(Object returnValue, HttpInputMessage inputMessage,
+    private void writeWithMessageConverters(Object returnValue,
             HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
         Class<?> returnValueType = returnValue.getClass();
         for (HttpMessageConverter messageConverter : messageConverters) {
@@ -89,11 +85,6 @@ public class DefaultOAuth2ExceptionRenderer implements OAuth2ExceptionRenderer {
         List<HttpMessageConverter<?>> result = new ArrayList<>();
         result.addAll(new RestTemplate().getMessageConverters());
         return result;
-    }
-
-    private HttpInputMessage createHttpInputMessage(NativeWebRequest webRequest) {
-        HttpServletRequest servletRequest = webRequest.getNativeRequest(HttpServletRequest.class);
-        return new ServletServerHttpRequest(servletRequest);
     }
 
     private HttpOutputMessage createHttpOutputMessage(NativeWebRequest webRequest) {

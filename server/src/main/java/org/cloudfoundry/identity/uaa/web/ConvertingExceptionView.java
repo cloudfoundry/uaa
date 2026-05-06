@@ -22,13 +22,11 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpResponse;
-import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.servlet.View;
@@ -59,26 +57,11 @@ public class ConvertingExceptionView implements View {
     @Override
     public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) {
         try {
-            HttpInputMessage inputMessage = createHttpInputMessage(request);
             HttpOutputMessage outputMessage = createHttpOutputMessage(response);
-            handleHttpEntityResponse(responseEntity, inputMessage, outputMessage);
+            handleHttpEntityResponse(responseEntity, outputMessage);
         } catch (Exception invocationEx) {
             logger.error("Invoking request method resulted in exception", invocationEx);
         }
-    }
-
-    /**
-     * Template method for creating a new HttpInputMessage instance.
-     * <p>
-     * The default implementation creates a standard
-     * {@link ServletServerHttpRequest}. This can be overridden for custom
-     * {@code HttpInputMessage} implementations
-     * 
-     * @param servletRequest current HTTP request
-     * @return the HttpInputMessage instance to use
-     */
-    protected HttpInputMessage createHttpInputMessage(HttpServletRequest servletRequest) {
-        return new ServletServerHttpRequest(servletRequest);
     }
 
     /**
@@ -96,12 +79,12 @@ public class ConvertingExceptionView implements View {
     }
 
     private void handleHttpEntityResponse(ResponseEntity<? extends ExceptionReport> responseEntity,
-            HttpInputMessage inputMessage, HttpOutputMessage outputMessage) throws Exception {
+            HttpOutputMessage outputMessage) throws Exception {
         if (outputMessage instanceof ServerHttpResponse response) {
             response.setStatusCode(responseEntity.getStatusCode());
         }
         if (responseEntity.getBody() != null) {
-            writeWithMessageConverters(responseEntity.getBody(), inputMessage, outputMessage);
+            writeWithMessageConverters(responseEntity.getBody(), outputMessage);
         } else {
             // flush headers
             outputMessage.getBody();
@@ -109,7 +92,7 @@ public class ConvertingExceptionView implements View {
     }
 
     @SuppressWarnings("unchecked")
-    private void writeWithMessageConverters(Object returnValue, HttpInputMessage inputMessage,
+    private void writeWithMessageConverters(Object returnValue,
             HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
         Class<?> returnValueType = returnValue.getClass();
         if (messageConverters != null) {

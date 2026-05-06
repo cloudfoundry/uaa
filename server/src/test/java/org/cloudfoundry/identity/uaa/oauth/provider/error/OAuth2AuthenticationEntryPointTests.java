@@ -61,6 +61,7 @@ class OAuth2AuthenticationEntryPointTests {
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
         assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"unauthorized\",\"error_description\":\"Bad\"}");
         assertThat(response.getContentType()).contains(MediaType.APPLICATION_JSON_VALUE);
+        assertThat(response.getErrorMessage()).isNull();
     }
 
     @Test
