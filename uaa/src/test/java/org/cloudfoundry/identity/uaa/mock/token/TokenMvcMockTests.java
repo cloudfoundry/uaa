@@ -3055,7 +3055,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
         mockMvc.perform(post("/check_token")
-                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("app:appclientsecret".getBytes(StandardCharsets.UTF_8)))
                         .param("token", accessToken))
                 .andDo(print())
                 .andExpect(status().isOk());
@@ -3085,7 +3085,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             assertThat(accessToken).isNotNull();
 
             mockMvc.perform(post("/check_token")
-                            .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
+                            .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("app:appclientsecret".getBytes(StandardCharsets.UTF_8)))
                             .param("token", accessToken))
                     .andExpect(status().isOk());
         }
@@ -3115,7 +3115,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         MockHttpServletResponse response = mockMvc.perform(post("/check_token")
-                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("app:appclientsecret".getBytes(StandardCharsets.UTF_8)))
                         .param("token", accessToken))
                 .andExpect(status().isBadRequest())
                 .andReturn().getResponse();
@@ -3148,7 +3148,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
         mockMvc.perform(post("/check_token")
-                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("app:appclientsecret".getBytes(StandardCharsets.UTF_8)))
                         .param("token", accessToken))
                 .andExpect(status().isOk());
     }
@@ -3163,7 +3163,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = mockMvc.perform(post("/oauth/token")
                         .accept(MediaType.APPLICATION_JSON_VALUE)
-                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode((clientId + ":newSecret").getBytes())))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((clientId + ":newSecret").getBytes(StandardCharsets.UTF_8)))
                         .param("grant_type", "client_credentials")
                         .param("client_id", clientId)
                         .param("client_secret", SECRET))
@@ -3176,7 +3176,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertThat(accessToken).isNotNull();
 
         mockMvc.perform(post("/check_token")
-                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("app:appclientsecret".getBytes(StandardCharsets.UTF_8)))
                         .param("token", accessToken))
                 .andExpect(status().isOk());
     }
