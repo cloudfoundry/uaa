@@ -190,6 +190,14 @@ class HomeControllerViewTests extends TestClassNullifier {
     }
 
     @Test
+    void error500WithDirectSAMLException() throws Exception {
+        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Saml2Exception("metadata fetch failed")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @Test
     void error500WithMetadataProviderNotFoundExceptionCause() throws Exception {
         mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
                 .andExpect(status().isBadRequest())
