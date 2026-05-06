@@ -21,7 +21,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -68,33 +67,22 @@ public class DefaultOAuth2ExceptionRenderer implements OAuth2ExceptionRenderer {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void writeWithMessageConverters(Object returnValue, HttpInputMessage inputMessage,
             HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
-        List<MediaType> acceptedMediaTypes = inputMessage.getHeaders().getAccept();
-        if (acceptedMediaTypes.isEmpty()) {
-            acceptedMediaTypes = Collections.singletonList(MediaType.ALL);
-        }
-        MediaType.sortByQualityValue(acceptedMediaTypes);
         Class<?> returnValueType = returnValue.getClass();
-        List<MediaType> allSupportedMediaTypes = new ArrayList<>();
-        for (MediaType acceptedMediaType : acceptedMediaTypes) {
-            for (HttpMessageConverter messageConverter : messageConverters) {
-                if (messageConverter.canWrite(returnValueType, acceptedMediaType)) {
-                    messageConverter.write(returnValue, acceptedMediaType, outputMessage);
-                    if (logger.isDebugEnabled()) {
-                        MediaType contentType = outputMessage.getHeaders().getContentType();
-                        if (contentType == null) {
-                            contentType = acceptedMediaType;
-                        }
-                        logger.debug("Written [" + returnValue + "] as \"" + contentType + "\" using ["
-                                + messageConverter + "]");
+        for (HttpMessageConverter messageConverter : messageConverters) {
+            if (messageConverter.canWrite(returnValueType, MediaType.APPLICATION_JSON)) {
+                messageConverter.write(returnValue, MediaType.APPLICATION_JSON, outputMessage);
+                if (logger.isDebugEnabled()) {
+                    MediaType contentType = outputMessage.getHeaders().getContentType();
+                    if (contentType == null) {
+                        contentType = MediaType.APPLICATION_JSON;
                     }
-                    return;
+                    logger.debug("Written [" + returnValue + "] as \"" + contentType + "\" using ["
+                            + messageConverter + "]");
                 }
+                return;
             }
         }
-        for (HttpMessageConverter messageConverter : messageConverters) {
-            allSupportedMediaTypes.addAll(messageConverter.getSupportedMediaTypes());
-        }
-        throw new HttpMediaTypeNotAcceptableException(allSupportedMediaTypes);
+        throw new HttpMediaTypeNotAcceptableException(List.of(MediaType.APPLICATION_JSON));
     }
 
     private List<HttpMessageConverter<?>> geDefaultMessageConverters() {

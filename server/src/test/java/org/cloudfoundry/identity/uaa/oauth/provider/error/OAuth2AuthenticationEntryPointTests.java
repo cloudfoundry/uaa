@@ -58,8 +58,9 @@ class OAuth2AuthenticationEntryPointTests {
     void commenceWithXml() throws Exception {
         request.addHeader("Accept", MediaType.APPLICATION_XML_VALUE);
         entryPoint.commence(request, response, new BadCredentialsException("Bad"));
-        //changed with Spring Boot (spring-web)Upgrade
-        assertThat(response.getErrorMessage()).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
+        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"unauthorized\",\"error_description\":\"Bad\"}");
+        assertThat(response.getContentType()).contains(MediaType.APPLICATION_JSON_VALUE);
     }
 
     @Test
@@ -82,11 +83,10 @@ class OAuth2AuthenticationEntryPointTests {
     void commenceWithHtmlAccept() throws Exception {
         request.addHeader("Accept", MediaType.TEXT_HTML_VALUE);
         entryPoint.commence(request, response, new BadCredentialsException("Bad"));
-        // TODO: maybe use forward / redirect for HTML content?
-        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_NOT_ACCEPTABLE);
-        assertThat(response.getContentAsString()).isEmpty();
-        //changed with Spring Boot (spring-web)Upgrade
-        assertThat(response.getErrorMessage()).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
+        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"unauthorized\",\"error_description\":\"Bad\"}");
+        assertThat(response.getContentType()).contains(MediaType.APPLICATION_JSON_VALUE);
+        assertThat(response.getErrorMessage()).isNull();
     }
 
     @Test

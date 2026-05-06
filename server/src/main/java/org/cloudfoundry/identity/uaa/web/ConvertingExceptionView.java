@@ -14,8 +14,6 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -113,39 +111,24 @@ public class ConvertingExceptionView implements View {
     @SuppressWarnings("unchecked")
     private void writeWithMessageConverters(Object returnValue, HttpInputMessage inputMessage,
             HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
-        List<MediaType> acceptedMediaTypes = inputMessage.getHeaders().getAccept();
-        if (acceptedMediaTypes.isEmpty()) {
-            acceptedMediaTypes = Collections.singletonList(MediaType.APPLICATION_JSON);
-        } else {
-            acceptedMediaTypes.add(MediaType.APPLICATION_JSON);
-        }
-        MediaType.sortByQualityValue(acceptedMediaTypes);
         Class<?> returnValueType = returnValue.getClass();
-        List<MediaType> allSupportedMediaTypes = new ArrayList<>();
         if (messageConverters != null) {
-            for (MediaType acceptedMediaType : acceptedMediaTypes) {
-                for (@SuppressWarnings("rawtypes")
-                HttpMessageConverter messageConverter : messageConverters) {
-                    if (messageConverter.canWrite(returnValueType, acceptedMediaType)) {
-                        messageConverter.write(returnValue, acceptedMediaType, outputMessage);
-                        if (logger.isDebugEnabled()) {
-                            MediaType contentType = outputMessage.getHeaders().getContentType();
-                            if (contentType == null) {
-                                contentType = acceptedMediaType;
-                            }
-                            logger.debug("Written [{}] as \"{}\" using [{}]", returnValue, contentType, messageConverter);
-                        }
-                        // this.responseArgumentUsed = true;
-                        return;
-                    }
-                }
-            }
             for (@SuppressWarnings("rawtypes")
             HttpMessageConverter messageConverter : messageConverters) {
-                allSupportedMediaTypes.addAll(messageConverter.getSupportedMediaTypes());
+                if (messageConverter.canWrite(returnValueType, MediaType.APPLICATION_JSON)) {
+                    messageConverter.write(returnValue, MediaType.APPLICATION_JSON, outputMessage);
+                    if (logger.isDebugEnabled()) {
+                        MediaType contentType = outputMessage.getHeaders().getContentType();
+                        if (contentType == null) {
+                            contentType = MediaType.APPLICATION_JSON;
+                        }
+                        logger.debug("Written [{}] as \"{}\" using [{}]", returnValue, contentType, messageConverter);
+                    }
+                    return;
+                }
             }
         }
-        throw new HttpMediaTypeNotAcceptableException(allSupportedMediaTypes);
+        throw new HttpMediaTypeNotAcceptableException(List.of(MediaType.APPLICATION_JSON));
     }
 
 }
