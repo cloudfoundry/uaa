@@ -69,7 +69,7 @@ public abstract class UaaHttpRequestUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
-    public record HttpClientConfig(
+    record HttpClientConfig(
             int poolSize,
             int defaultMaxPerRoute,
             int maxKeepAlive,
@@ -122,10 +122,10 @@ public abstract class UaaHttpRequestUtils {
         cm.setValidateAfterInactivity(TimeValue.of(config.validateAfterInactivity(), TimeUnit.MILLISECONDS));
 
         cm.setDefaultConnectionConfig(ConnectionConfig.custom()
-                .setConnectTimeout(Timeout.ofMilliseconds(config.connectTimeoutInMs()))
+                .setConnectTimeout(toTimeout(config.connectTimeoutInMs()))
                 .build());
         cm.setDefaultSocketConfig(SocketConfig.custom()
-                .setSoTimeout(Timeout.ofMilliseconds(config.readTimeoutInMs()))
+                .setSoTimeout(toTimeout(config.readTimeoutInMs()))
                 .build());
 
         builder.setConnectionManager(cm);
@@ -141,6 +141,10 @@ public abstract class UaaHttpRequestUtils {
         }
 
         return builder;
+    }
+
+    private static Timeout toTimeout(int millis) {
+        return millis <= 0 ? Timeout.DISABLED : Timeout.ofMilliseconds(millis);
     }
 
     private static SSLContext getNonValidatingSslContext() {

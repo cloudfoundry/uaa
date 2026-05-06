@@ -158,27 +158,29 @@ class UaaHttpRequestUtilsTest {
 
     @Test
     void clientBuilderAppliesReadTimeout() throws Exception {
-        // Use a ServerSocket that accepts but never responds to trigger the read timeout,
-        // and verify the socket timeout fires within a reasonable bound.
+        int readTimeoutMs = 300;
+        // Accept the connection but hold it open without writing a response to trigger the read timeout.
         try (ServerSocket ss = new ServerSocket(0)) {
             int port = ss.getLocalPort();
-            // Accept so the TCP handshake completes but send no response (triggers socket/read timeout)
             Thread acceptThread = new Thread(() -> {
-                try (var ignored = ss.accept()) {} catch (Exception ignored) {}
+                try (var socket = ss.accept()) {
+                    // Sleep longer than the read timeout so the client times out first.
+                    Thread.sleep(readTimeoutMs * 10L);
+                } catch (Exception ignored) {}
             });
             acceptThread.setDaemon(true);
             acceptThread.start();
 
             HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false,
-                    new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 4000, 200));
+                    new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 4000, readTimeoutMs));
             RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, 4000));
             long start = System.currentTimeMillis();
             assertThat(catchThrowable(
                     () -> template.getForObject("http://localhost:" + port + "/", String.class)))
                     .isInstanceOf(ResourceAccessException.class);
             long elapsed = System.currentTimeMillis() - start;
-            // Should time out due to 200 ms read timeout, well under 4 seconds
-            assertThat(elapsed).isLessThan(4_000);
+            // Must have waited at least readTimeoutMs, and well under the connect timeout
+            assertThat(elapsed).isGreaterThanOrEqualTo(readTimeoutMs).isLessThan(4_000);
         }
     }
 
@@ -194,7 +196,8 @@ class UaaHttpRequestUtilsTest {
                     var in = clientSocket.getInputStream();
                     // Read until end of HTTP request headers
                     var headerReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.US_ASCII));
-                    while (!headerReader.readLine().isEmpty()) {}
+                    String line;
+                    while ((line = headerReader.readLine()) != null && !line.isEmpty()) {}
                     String response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
                     out.write(response.getBytes(StandardCharsets.US_ASCII));
                     out.flush();
