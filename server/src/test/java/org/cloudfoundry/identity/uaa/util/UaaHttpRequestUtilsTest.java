@@ -159,8 +159,9 @@ class UaaHttpRequestUtilsTest {
     @Test
     void clientBuilderAppliesReadTimeout() throws Exception {
         int readTimeoutMs = 300;
+        var loopback = java.net.InetAddress.getLoopbackAddress();
         // Accept the connection but hold it open without writing a response to trigger the read timeout.
-        try (ServerSocket ss = new ServerSocket(0)) {
+        try (ServerSocket ss = new ServerSocket(0, 1, loopback)) {
             int port = ss.getLocalPort();
             Thread acceptThread = new Thread(() -> {
                 try (var socket = ss.accept()) {
@@ -176,7 +177,7 @@ class UaaHttpRequestUtilsTest {
             RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, 4000));
             long start = System.currentTimeMillis();
             assertThat(catchThrowable(
-                    () -> template.getForObject("http://localhost:" + port + "/", String.class)))
+                    () -> template.getForObject("http://" + loopback.getHostAddress() + ":" + port + "/", String.class)))
                     .isInstanceOf(ResourceAccessException.class);
             long elapsed = System.currentTimeMillis() - start;
             // Must have waited at least readTimeoutMs, and well under the connect timeout
@@ -187,7 +188,8 @@ class UaaHttpRequestUtilsTest {
     @Test
     void clientBuilderWithZeroTimeoutsDoesNotTimeOut() throws Exception {
         // Zero timeouts should disable the timeout — a real request to the local HTTP server must succeed.
-        try (ServerSocket ss = new ServerSocket(0)) {
+        var loopback = java.net.InetAddress.getLoopbackAddress();
+        try (ServerSocket ss = new ServerSocket(0, 1, loopback)) {
             int port = ss.getLocalPort();
             Thread serverThread = new Thread(() -> {
                 try {
@@ -210,7 +212,7 @@ class UaaHttpRequestUtilsTest {
             HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false,
                     new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 0, 0, 0));
             RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, 0));
-            assertThat(template.getForEntity("http://localhost:" + port + "/", String.class).getStatusCode().value()).isEqualTo(200);
+            assertThat(template.getForEntity("http://" + loopback.getHostAddress() + ":" + port + "/", String.class).getStatusCode().value()).isEqualTo(200);
         }
     }
 

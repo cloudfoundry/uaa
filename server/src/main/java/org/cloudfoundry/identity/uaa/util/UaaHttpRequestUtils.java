@@ -100,7 +100,7 @@ public abstract class UaaHttpRequestUtils {
         return factory;
     }
 
-    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, HttpClientConfig config) {
+    static HttpClientBuilder getClientBuilder(boolean skipSslValidation, HttpClientConfig config) {
         HttpClientBuilder builder = HttpClients.custom()
                 .useSystemProperties()
                 .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
