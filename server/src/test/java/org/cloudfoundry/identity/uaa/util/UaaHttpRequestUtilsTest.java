@@ -134,7 +134,7 @@ class UaaHttpRequestUtilsTest {
     }
 
     public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, new UaaHttpRequestUtils.HttpClientConfig(20, 2, 5, 2000, 2, 3000, 3000));
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, new UaaHttpRequestUtils.HttpClientConfig(20, 2, 5, 2000, 2, 3000, 3000, Integer.MAX_VALUE));
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
         builder.setRoutePlanner(routePlanner);
@@ -172,7 +172,7 @@ class UaaHttpRequestUtilsTest {
             acceptThread.start();
 
             HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false,
-                    new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 4000, readTimeoutMs));
+                    new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 4000, readTimeoutMs, 4000));
             RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, 4000));
             long start = System.currentTimeMillis();
             assertThat(catchThrowable(
@@ -208,7 +208,7 @@ class UaaHttpRequestUtilsTest {
             serverThread.start();
 
             HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false,
-                    new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 0, 0));
+                    new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 0, 0, 0));
             RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, 0));
             assertThat(template.getForEntity("http://localhost:" + port + "/", String.class).getStatusCode().value()).isEqualTo(200);
         }

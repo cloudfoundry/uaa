@@ -76,19 +76,22 @@ public abstract class UaaHttpRequestUtils {
             int validateAfterInactivity,
             int retryCount,
             int connectTimeoutInMs,
-            int readTimeoutInMs
+            int readTimeoutInMs,
+            int connectionRequestTimeoutInMs
     ) {
         public static HttpClientConfig defaults(int connectTimeoutInMs, int readTimeoutInMs) {
-            return new HttpClientConfig(10, 5, 0, 2000, 0, connectTimeoutInMs, readTimeoutInMs);
+            return new HttpClientConfig(10, 5, 0, 2000, 0, connectTimeoutInMs, readTimeoutInMs, connectTimeoutInMs);
         }
     }
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, HttpClientConfig.defaults(timeout, timeout)), timeout);
+        HttpClientConfig config = HttpClientConfig.defaults(timeout, timeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, config), config.connectionRequestTimeoutInMs());
     }
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int connectTimeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, new HttpClientConfig(restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount, connectTimeout, readTimeout)), connectTimeout);
+        HttpClientConfig config = new HttpClientConfig(restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount, connectTimeout, readTimeout, connectTimeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, config), config.connectionRequestTimeoutInMs());
     }
 
     protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int connectionRequestTimeoutInMs) {
