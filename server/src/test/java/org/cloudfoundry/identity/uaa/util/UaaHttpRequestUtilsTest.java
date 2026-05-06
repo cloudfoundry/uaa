@@ -166,6 +166,17 @@ class UaaHttpRequestUtilsTest {
     }
 
     @Test
+    void clientBuilderWithZeroTimeoutsDisablesTimeouts() {
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false, 10, 5, 0, 2000, 0, 0, 0);
+        PoolingHttpClientConnectionManager cm = (PoolingHttpClientConnectionManager) ReflectionTestUtils.getField(builder, "connManager");
+        HttpRoute route = new HttpRoute(new HttpHost("localhost", 80));
+        ConnectionConfig connectionConfig = (ConnectionConfig) ReflectionTestUtils.invokeMethod(cm, "resolveConnectionConfig", route);
+        SocketConfig socketConfig = (SocketConfig) ReflectionTestUtils.invokeMethod(cm, "resolveSocketConfig", route);
+        assertThat(connectionConfig.getConnectTimeout()).isEqualTo(Timeout.ofMilliseconds(0));
+        assertThat(socketConfig.getSoTimeout()).isEqualTo(Timeout.ofMilliseconds(0));
+    }
+
+    @Test
     void trustedOnly() {
         RestTemplate restTemplate = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, 10_000));
         try {
