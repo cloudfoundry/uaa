@@ -81,9 +81,9 @@ public abstract class UaaHttpRequestUtils {
         return createRequestFactory(getClientBuilder(skipSslValidation, restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount, timeout, readTimeout), timeout);
     }
 
-    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int timeoutInMs) {
+    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int connectionRequestTimeoutInMs) {
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(builder.build());
-        factory.setConnectionRequestTimeout(timeoutInMs);
+        factory.setConnectionRequestTimeout(connectionRequestTimeoutInMs);
         return factory;
     }
 
@@ -111,16 +111,12 @@ public abstract class UaaHttpRequestUtils {
         cm.setDefaultMaxPerRoute(defaultMaxPerRoute);
         cm.setValidateAfterInactivity(TimeValue.of(validateAfterInactivity, TimeUnit.MILLISECONDS));
 
-        if (connectTimeoutInMs > 0) {
-            cm.setDefaultConnectionConfig(ConnectionConfig.custom()
-                    .setConnectTimeout(Timeout.ofMilliseconds(connectTimeoutInMs))
-                    .build());
-        }
-        if (readTimeoutInMs > 0) {
-            cm.setDefaultSocketConfig(SocketConfig.custom()
-                    .setSoTimeout(Timeout.ofMilliseconds(readTimeoutInMs))
-                    .build());
-        }
+        cm.setDefaultConnectionConfig(ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.ofMilliseconds(connectTimeoutInMs))
+                .build());
+        cm.setDefaultSocketConfig(SocketConfig.custom()
+                .setSoTimeout(Timeout.ofMilliseconds(readTimeoutInMs))
+                .build());
 
         builder.setConnectionManager(cm);
 
