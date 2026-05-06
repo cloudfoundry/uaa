@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.util.Assert;
 
@@ -32,6 +33,7 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
      *
      * @param registrationId the registration identifier
      * @return the {@link RelyingPartyRegistration} if found, otherwise {@code null}
+     * @throws Saml2Exception if the registration cannot be built due to invalid or unreachable metadata
      */
     @Override
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
@@ -51,7 +53,8 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
                 }
             }
         } catch (Exception e) {
-            log.warn("Cannot retrieve SAML trusted party.", e);
+            log.warn("Cannot retrieve SAML trusted party for registrationId: {}", registrationId, e);
+            throw new Saml2Exception("Unable to build SAML relying party registration for: " + registrationId, e);
         }
 
         return null;
