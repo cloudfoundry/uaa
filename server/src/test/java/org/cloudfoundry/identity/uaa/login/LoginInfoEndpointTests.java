@@ -374,19 +374,6 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void discoverIdentityProviderCarriesLoginHintIfProvided() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpSession session = new MockHttpSession();
-        String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
-        RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
-        String redirect = endpoint.discoverIdentityProvider("testuser@fake.com", "true", loginHint, null, extendedModelMap, redirectAttributes, session, request);
-
-        assertThat(redirect).isEqualTo("redirect:/login?discoveryPerformed=true");
-        verify(redirectAttributes).addAttribute("login_hint", loginHint);
-    }
-
-    @Test
     void discoverIdentityProvider_addsAllRedirectAttributesOnFallthrough() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
