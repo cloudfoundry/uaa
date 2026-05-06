@@ -363,7 +363,7 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void discoverIdentityProvider_addsAllRedirectAttributesOnFallthrough() {
+    void discoverIdentityProvider_carriesAllParametersOnRedirect() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
         String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
@@ -386,7 +386,7 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void discoverIdentityProviderCarriesUsername() throws MalformedURLException {
+    void discoverIdentityProvider_propagatesUsernameToExternalOidcProvider() throws MalformedURLException {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("username", "testuser@fake.com");
