@@ -52,8 +52,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     private final JwtClientAuthentication jwtClientAuthentication;
 
     public ClientDetailsAuthenticationProvider(UserDetailsService userDetailsService, PasswordEncoder encoder, JwtClientAuthentication jwtClientAuthentication) {
-        super();
-        setUserDetailsService(userDetailsService);
+        super(userDetailsService);
         setPasswordEncoder(encoder);
         this.jwtClientAuthentication = jwtClientAuthentication;
     }
