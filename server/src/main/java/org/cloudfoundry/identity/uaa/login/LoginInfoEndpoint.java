@@ -854,9 +854,6 @@ public class LoginInfoEndpoint {
         if (!StringUtils.hasText(skipDiscovery) && identityProviders.size() == 1) {
             IdentityProvider matchedIdp = identityProviders.getFirst();
             if (matchedIdp.getType().equals(UAA)) {
-                if (StringUtils.hasText(loginHint)) {
-                    model.addAttribute(LOGIN_HINT_ATTRIBUTE, loginHint);
-                }
                 model.addAttribute(LOGIN_HINT_ATTRIBUTE, new UaaLoginHint("uaa").toString());
                 return goToPasswordPage(email, model);
             } else {
