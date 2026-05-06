@@ -23,8 +23,11 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLHandshakeException;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -161,7 +164,7 @@ class UaaHttpRequestUtilsTest {
             int port = ss.getLocalPort();
             // Accept so the TCP handshake completes but send no response (triggers socket/read timeout)
             Thread acceptThread = new Thread(() -> {
-                try { ss.accept(); } catch (Exception ignored) {}
+                try (var ignored = ss.accept()) {} catch (Exception ignored) {}
             });
             acceptThread.setDaemon(true);
             acceptThread.start();
@@ -188,11 +191,12 @@ class UaaHttpRequestUtilsTest {
                 try {
                     var clientSocket = ss.accept();
                     var out = clientSocket.getOutputStream();
-                    // Drain the request headers
                     var in = clientSocket.getInputStream();
-                    while (in.read() != -1 && in.available() == 0) break;
+                    // Read until end of HTTP request headers
+                    var headerReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.US_ASCII));
+                    while (!headerReader.readLine().isEmpty()) {}
                     String response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-                    out.write(response.getBytes());
+                    out.write(response.getBytes(StandardCharsets.US_ASCII));
                     out.flush();
                     clientSocket.close();
                 } catch (Exception ignored) {}

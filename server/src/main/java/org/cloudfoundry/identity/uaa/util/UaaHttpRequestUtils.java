@@ -69,7 +69,7 @@ public abstract class UaaHttpRequestUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
-    record HttpClientConfig(
+    public record HttpClientConfig(
             int poolSize,
             int defaultMaxPerRoute,
             int maxKeepAlive,
