@@ -69,16 +69,26 @@ public abstract class UaaHttpRequestUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
+    public record HttpClientConfig(
+            int poolSize,
+            int defaultMaxPerRoute,
+            int maxKeepAlive,
+            int validateAfterInactivity,
+            int retryCount,
+            int connectTimeoutInMs,
+            int readTimeoutInMs
+    ) {
+        public static HttpClientConfig defaults(int connectTimeoutInMs, int readTimeoutInMs) {
+            return new HttpClientConfig(10, 5, 0, 2000, 0, connectTimeoutInMs, readTimeoutInMs);
+        }
+    }
+
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, 10, 5, 0, 2000, 0, timeout, timeout), timeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, HttpClientConfig.defaults(timeout, timeout)), timeout);
     }
 
-    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int readTimeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive, int validateAfterInactivity, int retryCount) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, poolSize, defaultMaxPerRoute, maxKeepAlive, validateAfterInactivity, retryCount, timeout, readTimeout), timeout);
-    }
-
-    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount, timeout, readTimeout), timeout);
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int connectTimeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
+        return createRequestFactory(getClientBuilder(skipSslValidation, new HttpClientConfig(restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount, connectTimeout, readTimeout)), connectTimeout);
     }
 
     protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int connectionRequestTimeoutInMs) {
@@ -87,7 +97,7 @@ public abstract class UaaHttpRequestUtils {
         return factory;
     }
 
-    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, int poolSize, int defaultMaxPerRoute, int maxKeepAlive, int validateAfterInactivity, int retryCount, int connectTimeoutInMs, int readTimeoutInMs) {
+    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, HttpClientConfig config) {
         HttpClientBuilder builder = HttpClients.custom()
                 .useSystemProperties()
                 .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
@@ -107,27 +117,27 @@ public abstract class UaaHttpRequestUtils {
         } else {
             cm = new PoolingHttpClientConnectionManager();
         }
-        cm.setMaxTotal(poolSize);
-        cm.setDefaultMaxPerRoute(defaultMaxPerRoute);
-        cm.setValidateAfterInactivity(TimeValue.of(validateAfterInactivity, TimeUnit.MILLISECONDS));
+        cm.setMaxTotal(config.poolSize());
+        cm.setDefaultMaxPerRoute(config.defaultMaxPerRoute());
+        cm.setValidateAfterInactivity(TimeValue.of(config.validateAfterInactivity(), TimeUnit.MILLISECONDS));
 
         cm.setDefaultConnectionConfig(ConnectionConfig.custom()
-                .setConnectTimeout(Timeout.ofMilliseconds(connectTimeoutInMs))
+                .setConnectTimeout(Timeout.ofMilliseconds(config.connectTimeoutInMs()))
                 .build());
         cm.setDefaultSocketConfig(SocketConfig.custom()
-                .setSoTimeout(Timeout.ofMilliseconds(readTimeoutInMs))
+                .setSoTimeout(Timeout.ofMilliseconds(config.readTimeoutInMs()))
                 .build());
 
         builder.setConnectionManager(cm);
 
-        if (maxKeepAlive <= 0) {
+        if (config.maxKeepAlive() <= 0) {
             builder.setConnectionReuseStrategy((request, response, context) -> false);
         } else {
-            builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(maxKeepAlive));
+            builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(config.maxKeepAlive()));
         }
 
-        if (retryCount > 0) {
-            builder.setRetryStrategy(new UaaHttpRequestRetryHandler(retryCount));
+        if (config.retryCount() > 0) {
+            builder.setRetryStrategy(new UaaHttpRequestRetryHandler(config.retryCount()));
         }
 
         return builder;

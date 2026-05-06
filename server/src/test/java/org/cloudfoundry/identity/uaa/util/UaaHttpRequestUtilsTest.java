@@ -132,7 +132,7 @@ class UaaHttpRequestUtilsTest {
     }
 
     public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, 20, 2, 5, 2000, 2, 3000, 3000);
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, new UaaHttpRequestUtils.HttpClientConfig(20, 2, 5, 2000, 2, 3000, 3000));
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
         builder.setRoutePlanner(routePlanner);
@@ -156,7 +156,7 @@ class UaaHttpRequestUtilsTest {
 
     @Test
     void clientBuilderAppliesConnectionAndSocketTimeouts() {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false, 10, 5, 0, 2000, 0, 4000, 8000);
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false, new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 4000, 8000));
         PoolingHttpClientConnectionManager cm = (PoolingHttpClientConnectionManager) ReflectionTestUtils.getField(builder, "connManager");
         HttpRoute route = new HttpRoute(new HttpHost("localhost", 80));
         ConnectionConfig connectionConfig = (ConnectionConfig) ReflectionTestUtils.invokeMethod(cm, "resolveConnectionConfig", route);
@@ -167,7 +167,7 @@ class UaaHttpRequestUtilsTest {
 
     @Test
     void clientBuilderWithZeroTimeoutsDisablesTimeouts() {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false, 10, 5, 0, 2000, 0, 0, 0);
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false, new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 0, 0));
         PoolingHttpClientConnectionManager cm = (PoolingHttpClientConnectionManager) ReflectionTestUtils.getField(builder, "connManager");
         HttpRoute route = new HttpRoute(new HttpHost("localhost", 80));
         ConnectionConfig connectionConfig = (ConnectionConfig) ReflectionTestUtils.invokeMethod(cm, "resolveConnectionConfig", route);
