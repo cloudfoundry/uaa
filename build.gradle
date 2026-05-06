@@ -80,6 +80,10 @@ subprojects {
                     details.useVersion "${versions.opensaml}"
                     details.because 'Spring Security 5.8.x allows OpenSAML 3 or 4. OpenSAML 3 has reached its end-of-life. Spring Security 6 drops support for 3, using 4.'
                 }
+                if (details.requested.group == 'org.cryptacular' && details.requested.name == 'cryptacular') {
+                    details.useVersion "${versions.cryptacular}"
+                    details.because 'Pin cryptacular to 1.2.6 to avoid regressions from newer versions.'
+                }
             }
         }
     }
