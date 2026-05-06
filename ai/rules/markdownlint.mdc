@@ -1,0 +1,49 @@
+---
+globs: "**/*.md,**/*.mdc"
+alwaysApply: true
+version: "1.3.0"
+---
+# Markdownlint Auto-Fix Rules
+
+## Automatic Markdownlint Application
+
+When creating or updating any Markdown or MDC document (`.md` and `.mdc` files), you MUST:
+
+1. **After creating a new file**: Automatically run markdownlint with auto-fix to ensure the
+   file follows best practices
+2. **After updating an existing file**: Automatically run markdownlint with auto-fix to correct
+   any linting issues introduced
+
+## Implementation
+
+Run via `npx` — no `package.json` or local install required:
+
+```bash
+npx markdownlint-cli2 --fix <file>
+```
+
+Lint configuration is in `.markdownlint.json` at the repo root (120-char line limit, tables
+exempt, consistent table-pipe style).
+
+## Workflow
+
+1. Create or edit the `.md` or `.mdc` file
+2. Run `npx markdownlint-cli2 --fix <file>` to auto-fix issues
+3. Review the changes and ensure they don't alter the document's meaning
+4. If markdownlint reports unfixable issues, inform the user about them
+
+## Example Commands
+
+```bash
+# Fix a single file
+npx markdownlint-cli2 --fix path/to/file.md
+
+# Fix a Cursor/AI rule file
+npx markdownlint-cli2 --fix ai/rules/some-rule.mdc
+
+# Fix all markdown and mdc files (excluding node_modules)
+npx markdownlint-cli2 --fix "**/*.md" "**/*.mdc" "#node_modules"
+
+# Fix multiple specific files
+npx markdownlint-cli2 --fix file1.md file2.mdc file3.md
+```

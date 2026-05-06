@@ -84,6 +84,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -740,9 +741,56 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         if (Boolean.FALSE.equals(additionalInformation.get(ClientConstants.ALLOW_PUBLIC))) {
             additionalInformation.remove(ClientConstants.ALLOW_PUBLIC);
         }
+
+        if (existing instanceof UaaClientDetails existingUaa && input instanceof UaaClientDetails inputUaa && details instanceof UaaClientDetails detailsUaa) {
+            UaaClient existingAsClient = new UaaClient(
+                    existingUaa.getClientId(),
+                    existingUaa.getClientSecret(),
+                    existingUaa.getAuthorities(),
+                    new HashMap<>(Optional.ofNullable(existingUaa.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
+                    existingUaa.getClientJwtConfig()
+            );
+            UaaClient inputAsClient = new UaaClient(
+                    inputUaa.getClientId(),
+                    inputUaa.getClientSecret(),
+                    inputUaa.getAuthorities(),
+                    new HashMap<>(Optional.ofNullable(inputUaa.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
+                    inputUaa.getClientJwtConfig()
+            );
+            ClientJwtConfiguration existingJwt = existingAsClient.getClientJwtConfiguration();
+            ClientJwtConfiguration inputJwt = inputAsClient.getClientJwtConfiguration();
+            inputJwt = ensureJwtCredsFromAdditionalInfoMap(additionalInformation, inputJwt);
+            ClientJwtConfiguration mergedJwtConfig = ClientJwtConfiguration.merge(existingJwt, inputJwt, false);
+            if (mergedJwtConfig != null && mergedJwtConfig.hasConfiguration()) {
+                mergedJwtConfig.writeValue(detailsUaa);
+            }
+        }
+
+        additionalInformation.remove(ClientJwtConfiguration.JWT_CREDS);
+        additionalInformation.remove("client_jwt_config");
         details.setAdditionalInformation(additionalInformation);
 
         return details;
+    }
+
+    private ClientJwtConfiguration ensureJwtCredsFromAdditionalInfoMap(Map<String, Object> addl, ClientJwtConfiguration inputJwt) {
+        if (addl == null) {
+            return inputJwt;
+        }
+        Object v = addl.get(ClientJwtConfiguration.JWT_CREDS);
+        if (v == null) {
+            return inputJwt;
+        }
+        try {
+            ClientJwtConfiguration extra = ClientJwtConfiguration.fromJwtCredsValue(v);
+            if (extra == null) {
+                return inputJwt;
+            }
+            return ClientJwtConfiguration.merge(inputJwt, extra, false);
+        } catch (Exception e) {
+            logger.warn("Failed to read jwt_creds from client update request", e);
+            return inputJwt;
+        }
     }
 
     public void publish(ApplicationEvent event) {

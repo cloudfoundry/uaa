@@ -75,8 +75,78 @@ class InvitationsEndpointDocs extends EndpointDocs {
                 fieldWithPath("new_invites[].success").type(BOOLEAN).description("Flag to determine whether the invitation was sent successfully"),
                 fieldWithPath("new_invites[].errorCode").optional().type(STRING).description("Error code in case of failure to send invitation"),
                 fieldWithPath("new_invites[].errorMessage").optional().type(STRING).description("Error message in case of failure to send invitation"),
-                fieldWithPath("new_invites[].inviteLink").type(STRING).description("Invitation link to invite users"),
+                fieldWithPath("new_invites[].inviteLink").type(STRING).description("Invitation link to be sent to the user. " +
+                        "When this link is accepted the user account is verified. " +
+                        "For newly created accounts the password supplied at accept time is set. " +
+                        "For pre-existing unverified uaa-origin accounts the password supplied at accept time is *ignored* " +
+                        "(use POST /password_resets to assign credentials to an existing user)."),
                 fieldWithPath("failed_invites").type(ARRAY).description("List of invites having exception in sending the invitation")
+        );
+
+        mockMvc.perform(post("/invite_users?" + "%s=%s&%s=%s".formatted(CLIENT_ID, clientId, REDIRECT_URI, redirectUri))
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content(requestBody)
+        ).andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        requestHeaders(
+                                headerWithName("Authorization").description("Bearer token containing `scim.invite`"),
+                                headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id."),
+                                headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.")
+                        ),
+                        queryParameters,
+                        requestFields,
+                        responseFields));
+    }
+
+    /**
+     * Documents the behavior when {@code POST /invite_users} targets an email address that already
+     * belongs to an existing unverified {@code uaa}-origin account.
+     * <b>Not included in slate as of now</b>
+     * <p>The response shape is identical to the new-user case (the invite link is returned and
+     * {@code success=true}).  The behavioral difference surfaces at accept time: submitting a
+     * password via {@code POST /invitations/accept.do} will verify the account but will
+     * <em>not</em> reset the password.</p>
+     */
+    @Test
+    void inviteExistingUnverifiedUser() throws Exception {
+        String email = "existing-" + generator.generate().toLowerCase() + "@" + domain;
+        String redirectUri = "example.com";
+
+        // First call creates the user
+        mockMvc.perform(post("/invite_users?" + "%s=%s&%s=%s".formatted(CLIENT_ID, clientId, REDIRECT_URI, redirectUri))
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(new InvitationsRequest(new String[]{email})))
+        ).andExpect(status().isOk());
+
+        // Second call targets the now-existing unverified account — same response shape
+        InvitationsRequest invitationsRequest = new InvitationsRequest(new String[]{email});
+        String requestBody = JsonUtils.writeValueAsString(invitationsRequest);
+
+        Snippet requestFields = requestFields(
+                fieldWithPath("emails").attributes(key("constraints").value("Required")).description("Email address of a pre-existing unverified uaa-origin user.")
+        );
+
+        Snippet queryParameters = queryParameters(
+                parameterWithName("client_id").attributes(key("constraints").value("Optional"), key("type").value(STRING)).description("A unique string representing the registration information provided by the client"),
+                parameterWithName("redirect_uri").attributes(key("constraints").value("Required"), key("type").value(STRING)).description("The user will be redirected to this uri when the invitation is accepted.")
+        );
+
+        Snippet responseFields = responseFields(
+                fieldWithPath("new_invites[].email").type(STRING).description("Primary email of the pre-existing user"),
+                fieldWithPath("new_invites[].userId").type(STRING).description("The pre-existing user's id (unchanged)"),
+                fieldWithPath("new_invites[].origin").type(STRING).description("Origin of the pre-existing user (uaa)"),
+                fieldWithPath("new_invites[].success").type(BOOLEAN).description("`true` — the invite link was generated successfully"),
+                fieldWithPath("new_invites[].errorCode").optional().type(STRING).description("Null on success"),
+                fieldWithPath("new_invites[].errorMessage").optional().type(STRING).description("Null on success"),
+                fieldWithPath("new_invites[].inviteLink").type(STRING).description("Invitation link for the pre-existing user. " +
+                        "Accepting this link verifies the account. " +
+                        "Any password parameter supplied at accept time is *ignored* for pre-existing accounts " +
+                        "to prevent credential takeover by clients holding only the scim.invite scope."),
+                fieldWithPath("failed_invites").type(ARRAY).description("Empty when the invite was generated successfully")
         );
 
         mockMvc.perform(post("/invite_users?" + "%s=%s&%s=%s".formatted(CLIENT_ID, clientId, REDIRECT_URI, redirectUri))

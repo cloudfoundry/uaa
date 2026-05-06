@@ -275,6 +275,53 @@ public class InvitationsServiceMockMvcTests {
     }
 
     @Test
+    void inviteExistingUnverifiedUser_acceptWithPassword_doesNotResetPassword() throws Exception {
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+
+        // First invite creates the user as unverified with a randomly generated password
+        inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).isFalse();
+        String originalPasswordHash = queryUserForField(jdbcTemplate, email, "password", String.class);
+
+        // Clear the code store so only the second invite's code is present
+        jdbcTemplate.update("DELETE FROM expiring_code_store");
+
+        // Second invite for the same pre-existing unverified user
+        URL attackerInviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
+        String inviteCode = extractInvitationCode(attackerInviteLink.toString());
+
+        // Accept page — sets up the UaaPrincipal in security context (peekCode, does not consume)
+        MvcResult result = mockMvc.perform(get("/invitations/accept")
+                        .param("code", inviteCode)
+                        .accept(MediaType.TEXT_HTML))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        MockHttpServletRequestBuilder acceptPost = post("/invitations/accept.do")
+                .param("password", "s3cret")
+                .param("password_confirmation", "s3cret")
+                .param("code", inviteCode)
+                .with(cookieCsrf());
+        if (session != null) {
+            acceptPost = acceptPost.session(session);
+        }
+        mockMvc.perform(acceptPost)
+                .andExpect(status().isFound());
+
+        // The password hash must be unchanged
+        String currentPasswordHash = queryUserForField(jdbcTemplate, email, "password", String.class);
+        assertThat(currentPasswordHash)
+                .as("Invite accept for a pre-existing unverified user must not reset the password")
+                .isEqualTo(originalPasswordHash);
+
+        // The account should still be marked verified (legitimate invite side-effect)
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class))
+                .as("Account should be marked verified after accepting invitation")
+                .isTrue();
+    }
+
+    @Test
     void acceptInvitationSetsYourPassword() throws Exception {
         String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);

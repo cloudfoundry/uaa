@@ -120,7 +120,7 @@ class ScimGroupEndpointsIntegrationTests {
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) {
+            public void handleError(URI url, HttpMethod method, ClientHttpResponse response) {
                 // pass through
             }
         });
@@ -258,7 +258,7 @@ class ScimGroupEndpointsIntegrationTests {
             fail("must fail");
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode().is4xxClientError()).isTrue();
-            assertThat(e.getRawStatusCode()).isEqualTo(400);
+            assertThat(e.getStatusCode().value()).isEqualTo(400);
             assertThat(e.getMessage()).contains("The group with displayName: " + g1.getDisplayName() + " is not allowed in Identity Zone " + testZoneId);
         } finally {
             IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);

@@ -93,7 +93,7 @@ class PasswordChangeUiRequiredFilterTest {
 
     @Test
     void loadingChangePasswordPage() throws Exception {
-        mockHttpServletRequest.setPathInfo("/force_password_change");
+        mockHttpServletRequest.setRequestURI("/force_password_change");
         mockHttpServletRequest.setMethod(HttpMethod.GET.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
@@ -105,7 +105,7 @@ class PasswordChangeUiRequiredFilterTest {
 
     @Test
     void submitChangePassword() throws Exception {
-        mockHttpServletRequest.setPathInfo("/force_password_change");
+        mockHttpServletRequest.setRequestURI("/force_password_change");
         mockHttpServletRequest.setMethod(HttpMethod.POST.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
@@ -117,7 +117,7 @@ class PasswordChangeUiRequiredFilterTest {
 
     @Test
     void followCompletedRedirect() throws Exception {
-        mockHttpServletRequest.setPathInfo("/force_password_change_completed");
+        mockHttpServletRequest.setRequestURI("/force_password_change_completed");
         mockHttpServletRequest.setMethod(HttpMethod.POST.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
@@ -132,7 +132,7 @@ class PasswordChangeUiRequiredFilterTest {
         String location = "/oauth/authorize";
         SavedRequest savedRequest = getSavedRequest(location);
         when(mockRequestCache.getRequest(any(), any())).thenReturn(savedRequest);
-        mockHttpServletRequest.setPathInfo("/force_password_change_completed");
+        mockHttpServletRequest.setRequestURI("/force_password_change_completed");
         mockHttpServletRequest.setMethod(HttpMethod.POST.name());
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
@@ -144,7 +144,7 @@ class PasswordChangeUiRequiredFilterTest {
 
     @Test
     void tryingAccessForcePasswordPage() throws Exception {
-        mockHttpServletRequest.setPathInfo("/force_password_change");
+        mockHttpServletRequest.setRequestURI("/force_password_change");
         SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
         when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
         setRequiresPasswordChange(mockHttpServletRequest, false);

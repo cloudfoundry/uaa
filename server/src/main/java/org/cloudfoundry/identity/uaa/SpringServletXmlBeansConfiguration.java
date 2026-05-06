@@ -79,10 +79,10 @@ public class SpringServletXmlBeansConfiguration {
     Collection<String> defaultAuthorities;
 
     @Autowired
-    UaaProperties.GlobalClientSecretPolicy globalClientSecretPolicy;
+    UaaProperties.GlobalClientSecretPolicy globalClientSecretPolicyConfig;
 
     @Autowired
-    UaaProperties.DefaultClientSecretPolicy defaultClientSecretPolicy;
+    UaaProperties.DefaultClientSecretPolicy defaultClientSecretPolicyConfig;
 
     @Autowired
     UaaProperties.Login loginProps;
@@ -101,7 +101,6 @@ public class SpringServletXmlBeansConfiguration {
     @Primary
     ContentNegotiationManagerFactoryBean contentNegotiationManager() {
         ContentNegotiationManagerFactoryBean bean = new ContentNegotiationManagerFactoryBean();
-        bean.setFavorPathExtension(false);
         bean.setFavorParameter(true);
         bean.addMediaType("json", MediaType.APPLICATION_JSON);
         bean.addMediaType("xml", MediaType.APPLICATION_XML);
@@ -115,7 +114,6 @@ public class SpringServletXmlBeansConfiguration {
     ) {
         RequestMappingHandlerMapping bean = new RequestMappingHandlerMapping();
         bean.setContentNegotiationManager(contentNegotiationManagerFactoryBean.build());
-        bean.setUseSuffixPatternMatch(false);
         bean.setOrder(1);
         return bean;
     }
@@ -365,30 +363,31 @@ public class SpringServletXmlBeansConfiguration {
     @Bean
     ClientSecretPolicy globalClientSecretPolicy() {
         return new ClientSecretPolicy(
-                globalClientSecretPolicy.minLength(),
-                globalClientSecretPolicy.maxLength(),
-                globalClientSecretPolicy.requireUpperCaseCharacter(),
-                globalClientSecretPolicy.requireLowerCaseCharacter(),
-                globalClientSecretPolicy.requireDigit(),
-                globalClientSecretPolicy.requireSpecialCharacter(),
-                globalClientSecretPolicy.expireSecretInMonths()
+                globalClientSecretPolicyConfig.minLength(),
+                globalClientSecretPolicyConfig.maxLength(),
+                globalClientSecretPolicyConfig.requireUpperCaseCharacter(),
+                globalClientSecretPolicyConfig.requireLowerCaseCharacter(),
+                globalClientSecretPolicyConfig.requireDigit(),
+                globalClientSecretPolicyConfig.requireSpecialCharacter(),
+                globalClientSecretPolicyConfig.expireSecretInMonths()
         );
     }
 
     @Bean
     ClientSecretPolicy defaultUaaClientSecretPolicy() {
         return new ClientSecretPolicy(
-                defaultClientSecretPolicy.minLength(),
-                defaultClientSecretPolicy.maxLength(),
-                defaultClientSecretPolicy.requireUpperCaseCharacter(),
-                defaultClientSecretPolicy.requireLowerCaseCharacter(),
-                defaultClientSecretPolicy.requireDigit(),
-                defaultClientSecretPolicy.requireSpecialCharacter(),
-                defaultClientSecretPolicy.expireSecretInMonths()
+                defaultClientSecretPolicyConfig.minLength(),
+                defaultClientSecretPolicyConfig.maxLength(),
+                defaultClientSecretPolicyConfig.requireUpperCaseCharacter(),
+                defaultClientSecretPolicyConfig.requireLowerCaseCharacter(),
+                defaultClientSecretPolicyConfig.requireDigit(),
+                defaultClientSecretPolicyConfig.requireSpecialCharacter(),
+                defaultClientSecretPolicyConfig.expireSecretInMonths()
         );
     }
 
     @Bean
+    @SuppressWarnings("deprecation")
     IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap(
             IdentityZoneProvisioning provisioning,
             IdentityZoneValidator identityZoneValidator,

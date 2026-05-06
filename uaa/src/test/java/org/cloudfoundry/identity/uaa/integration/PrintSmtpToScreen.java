@@ -15,27 +15,28 @@
 
 package org.cloudfoundry.identity.uaa.integration;
 
-import java.util.Iterator;
-
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import com.icegreen.greenmail.util.ServerSetup;
+import jakarta.mail.internet.MimeMessage;
 
 public class PrintSmtpToScreen {
 
     public static void main(String... args) throws Exception {
-        final SimpleSmtpServer server = SimpleSmtpServer.start(2525);
+        GreenMail server = new GreenMail(new ServerSetup(2525, null, ServerSetup.PROTOCOL_SMTP));
+        server.start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Stopping SMTP server");
             server.stop();
         }));
 
-        while (!server.isStopped()) {
-            Iterator iterator = server.getReceivedEmail();
-            while (iterator.hasNext()) {
-                SmtpMessage m = (SmtpMessage) iterator.next();
-                iterator.remove();
-                System.out.println(m.getBody());
+        int lastCount = 0;
+        while (true) {
+            MimeMessage[] messages = server.getReceivedMessages();
+            for (int i = lastCount; i < messages.length; i++) {
+                System.out.println(GreenMailUtil.getBody(messages[i]));
             }
+            lastCount = messages.length;
             Thread.sleep(250);
         }
     }

@@ -7,12 +7,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
+import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -44,16 +47,27 @@ public class ClientDetailsModification extends UaaClientDetails {
     public ClientDetailsModification(ClientDetails prototype) {
         super(prototype);
         if (prototype instanceof UaaClientDetails baseClientDetails) {
-            this.setAdditionalInformation(baseClientDetails.getAdditionalInformation());
+            this.setAdditionalInformation(new LinkedHashMap<>(baseClientDetails.getAdditionalInformation()));
             if (baseClientDetails.getAutoApproveScopes() != null) {
                 this.setAutoApproveScopes(baseClientDetails.getAutoApproveScopes());
             }
-            if (baseClientDetails.getClientJwtConfig() instanceof String ) {
-                ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.readValue(baseClientDetails);
-                this.setJwksUri(clientJwtConfiguration.getJwksUri());
-                this.setJwkSet(clientJwtConfiguration.getJwkSet());
-                this.setClientJwtCredentials(clientJwtConfiguration.getClientJwtCredentials());
+            UaaClient asUaaClient = new UaaClient(
+                    baseClientDetails.getClientId(),
+                    baseClientDetails.getClientSecret(),
+                    baseClientDetails.getAuthorities(),
+                    new LinkedHashMap<>(this.getAdditionalInformation()),
+                    baseClientDetails.getClientJwtConfig()
+            );
+            ClientJwtConfiguration configuration = asUaaClient.getClientJwtConfiguration();
+            if (configuration != null && configuration.hasConfiguration()) {
+                this.setJwksUri(configuration.getJwksUri());
+                this.setJwkSet(configuration.getJwkSet());
+                this.setClientJwtCredentials(configuration.getClientJwtCredentials());
             }
+            Map<String, Object> forResponse = new LinkedHashMap<>(getAdditionalInformation());
+            forResponse.remove(ClientJwtConfiguration.JWT_CREDS);
+            forResponse.remove("client_jwt_config");
+            this.setAdditionalInformation(forResponse);
         }
         if (prototype instanceof ClientDetailsModification modification) {
             this.action = modification.getAction();

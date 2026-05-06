@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -32,6 +33,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -259,10 +263,60 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
             }
+            
+            // Fold jwt_creds and client_jwt_config from additional information into the persisted client_jwt_config string
+            Object jwtCredsValue = client.getAdditionalInformation().get(ClientJwtConfiguration.JWT_CREDS);
+            if (jwtCredsValue != null) {
+                try {
+                    ClientJwtConfiguration extra = ClientJwtConfiguration.fromJwtCredsValue(jwtCredsValue);
+                    if (extra != null) {
+                        ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
+                                .orElseGet(ClientJwtConfiguration::new);
+                        ClientJwtConfiguration.merge(current, extra, false).writeValue(client);
+                    }
+                } catch (InvalidClientDetailsException e) {
+                    throw new InvalidClientDetailsException(
+                            "Invalid jwt_creds in additionalInformation: " + e.getMessage(), e);
+                }
+            }
+
+            Object cjc = client.getAdditionalInformation().get("client_jwt_config");
+            if (cjc != null) {
+                try {
+                    ClientJwtConfiguration fromNested;
+                    if (cjc instanceof String s) {
+                        fromNested = ClientJwtConfiguration.readValue(s);
+                    } else if (cjc instanceof Map<?, ?> map) {
+                        fromNested = ClientJwtConfiguration.readValue(
+                                JsonUtils.writeValueAsString(cjc));
+                        ClientJwtConfiguration credsOnly = ClientJwtConfiguration.fromJwtCredsValue(
+                                map.get(ClientJwtConfiguration.JWT_CREDS));
+                        if (credsOnly != null) {
+                            fromNested = ClientJwtConfiguration.merge(
+                                    fromNested != null ? fromNested : new ClientJwtConfiguration(),
+                                    credsOnly, false);
+                        }
+                    } else {
+                        throw new InvalidClientDetailsException(
+                                "Invalid client_jwt_config in additionalInformation: expected String or Map");
+                    }
+                    if (fromNested != null) {
+                        ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
+                                .orElseGet(ClientJwtConfiguration::new);
+                        ClientJwtConfiguration.merge(current, fromNested, false).writeValue(client);
+                    }
+                } catch (Exception e) {
+                    throw new InvalidClientDetailsException("Invalid client_jwt_config in additionalInformation", e);
+                }
+            }
+
+            LinkedHashMap<String, Object> withoutDuplicateJwt = new LinkedHashMap<>(client.getAdditionalInformation());
+            withoutDuplicateJwt.remove(ClientJwtConfiguration.JWT_CREDS);
+            withoutDuplicateJwt.remove("client_jwt_config");
+            client.setAdditionalInformation(withoutDuplicateJwt);
         }
 
         return client;
-
     }
 
     public void validateClientRedirectUri(ClientDetails client) {

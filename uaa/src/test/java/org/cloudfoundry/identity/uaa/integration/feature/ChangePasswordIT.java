@@ -13,7 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.dumbster.smtp.SimpleSmtpServer;
+import com.icegreen.greenmail.util.GreenMail;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.AfterEach;
@@ -45,7 +45,7 @@ public class ChangePasswordIT {
     UaaWebDriver webDriver;
 
     @Autowired
-    SimpleSmtpServer simpleSmtpServer;
+    GreenMail greenMail;
 
     @Autowired
     TestClient testClient;

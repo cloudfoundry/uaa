@@ -104,8 +104,10 @@ public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSaml
         return id.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
+    @SuppressWarnings("deprecation")
     private void updateSpSsoDescriptor(EntityDescriptor entityDescriptor, SamlConfig samlConfig) {
         SPSSODescriptor spSsoDescriptor = entityDescriptor.getSPSSODescriptor(SAMLConstants.SAML20P_NS);
+        // wantAssertionSigned is deprecated but still drives SAML metadata interoperability hint
         spSsoDescriptor.setWantAssertionsSigned(samlConfig.isWantAssertionSigned());
         spSsoDescriptor.setAuthnRequestsSigned(samlConfig.isRequestSigned());
         updateNameIdFormats(spSsoDescriptor);

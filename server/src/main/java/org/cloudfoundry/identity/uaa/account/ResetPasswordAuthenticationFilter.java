@@ -20,13 +20,12 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -42,7 +41,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
     private final AuthenticationEntryPoint entryPoint;
     private final ExpiringCodeStore expiringCodeStore;
     public static final String RESET_PASSWORD_URL = "/reset_password.do";
-    private static final RequestMatcher matcher = new AntPathRequestMatcher(RESET_PASSWORD_URL, "POST");
+    private static final RequestMatcher matcher = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, RESET_PASSWORD_URL);
 
     public ResetPasswordAuthenticationFilter(
             ResetPasswordService service,

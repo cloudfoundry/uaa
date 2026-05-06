@@ -20,8 +20,8 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.UrlUtils;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -46,7 +46,7 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
     private final String entityBaseURL;
     private final String uaaWideSamlEntityIDAlias;
     private final RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
-    private final RequestMatcher registrationRequestMatcher = new AntPathRequestMatcher("/**/{registrationId}");
+    private final RequestMatcher registrationRequestMatcher = PathPatternRequestMatcher.withDefaults().matcher("/**/{registrationId}");
 
     public UaaRelyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
             String uaaWideSamlEntityIDAlias,

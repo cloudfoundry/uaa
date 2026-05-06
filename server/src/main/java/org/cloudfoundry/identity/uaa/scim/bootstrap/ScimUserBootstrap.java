@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getCleanedUserControlString;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isEmpty;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -290,7 +291,11 @@ public class ScimUserBootstrap implements
         if (!StringUtils.hasText(gName)) {
             return;
         }
-        logger.debug("Adding to group: {}", gName);
+        if (isDefaultGroup(gName)) {
+            logger.debug("Skipping explicit membership for default group: {}", getCleanedUserControlString(gName));
+            return;
+        }
+        logger.debug("Adding to group: {}", getCleanedUserControlString(gName));
         ScimGroup group;
         try {
             group = getOrCreateGroup(gName, addGroup);
@@ -311,6 +316,15 @@ public class ScimUserBootstrap implements
         } catch (MemberAlreadyExistsException | DuplicateKeyException ex) {
             // do nothing
         }
+    }
+
+    private boolean isDefaultGroup(String groupName) {
+        var zone = identityZoneManager.getCurrentIdentityZone();
+        if (zone == null || zone.getConfig() == null || zone.getConfig().getUserConfig() == null) {
+            return false;
+        }
+        List<String> defaultGroups = zone.getConfig().getUserConfig().getDefaultGroups();
+        return defaultGroups != null && defaultGroups.contains(groupName);
     }
 
     private ScimGroup getOrCreateGroup(String gName, boolean addGroup) {

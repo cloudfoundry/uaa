@@ -1156,4 +1156,45 @@ class ScimUserBootstrapTests {
                 .doesNotContain(groupNameWithSpecialChars)
                 .containsExactlyInAnyOrder("openid", "uaa.user");
     }
+
+    @Test
+    void bootstrapDoesNotCreateDuplicateMembershipForDefaultGroups() {
+        // Set up "uaa.user" as a default group (simulating the real UAA config)
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(List.of("uaa.user"));
+        jdbcScimGroupProvisioning.createOrGet(
+                new ScimGroup(null, "uaa.user", IdentityZone.getUaaZoneId()), IdentityZone.getUaaZoneId());
+
+        // Bootstrap a user whose manifest lists "uaa.user" (default) AND "custom.group" (non-default)
+        UaaUser userWithDefaultGroup = new UaaUser("dupuser", "password", "dup@test.org", "Dup", "User")
+                .authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.user,custom.group"));
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService,
+                jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager,
+                Collections.singletonList(userWithDefaultGroup), false, emptyList(), false);
+        bootstrap.afterPropertiesSet();
+
+        List<ScimUser> users = jdbcScimUserProvisioning.query("userName eq \"dupuser\"", IdentityZone.getUaaZoneId());
+        ScimUser user = users.getFirst();
+
+        // User should see the default group via virtual membership
+        Set<ScimGroup> groups = jdbcScimGroupMembershipManager.getGroupsWithMember(user.getId(), false, IdentityZone.getUaaZoneId());
+        assertThat(groups).extracting(ScimGroup::getDisplayName).contains("uaa.user", "custom.group");
+
+        // No explicit DB row for the default group
+        ScimGroup uaaUserGroup = jdbcScimGroupProvisioning.getByName("uaa.user", IdentityZone.getUaaZoneId());
+        int defaultGroupRows = jdbcTemplate.queryForObject(
+                "select count(*) from group_membership where member_id=? and group_id=? and identity_zone_id=?",
+                Integer.class, user.getId(), uaaUserGroup.getId(), IdentityZone.getUaaZoneId());
+        assertThat(defaultGroupRows).isZero();
+
+        // Explicit DB row DOES exist for the non-default group (proves selective skip)
+        ScimGroup customGroup = jdbcScimGroupProvisioning.getByName("custom.group", IdentityZone.getUaaZoneId());
+        int customGroupRows = jdbcTemplate.queryForObject(
+                "select count(*) from group_membership where member_id=? and group_id=? and identity_zone_id=?",
+                Integer.class, user.getId(), customGroup.getId(), IdentityZone.getUaaZoneId());
+        assertThat(customGroupRows).isEqualTo(1);
+
+        // Deletion should succeed without 422
+        assertThatCode(() -> jdbcScimGroupMembershipManager.removeMembersByMemberId(user.getId(), IdentityZone.getUaaZoneId()))
+                .doesNotThrowAnyException();
+    }
 }

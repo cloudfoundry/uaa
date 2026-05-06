@@ -90,17 +90,21 @@ public class ClientJwtConfiguration implements Cloneable {
     public void addJwtCredentials(final List<ClientJwtCredential> additionalCredentials) {
         HashMap<String, ClientJwtCredential> clientJwtCredentialHashMap = new HashMap<>();
         if (this.clientJwtCredentials != null) {
-            this.clientJwtCredentials.forEach(jwtEntry -> clientJwtCredentialHashMap.putIfAbsent(jwtEntry.getSubject() + jwtEntry.getIssuer(), jwtEntry));
+            this.clientJwtCredentials.forEach(jwtEntry -> clientJwtCredentialHashMap.putIfAbsent(credKey(jwtEntry), jwtEntry));
         }
         validateClientJwtCredentials(additionalCredentials, clientJwtCredentialHashMap);
         setClientJwtCredentials(clientJwtCredentialHashMap.values().stream().toList());
     }
 
+    private static String credKey(ClientJwtCredential entry) {
+        return entry.getSubject() + '\0' + entry.getIssuer();
+    }
+
     private static void validateClientJwtCredentials(List<ClientJwtCredential> additionalCredentials, HashMap<String, ClientJwtCredential> clientJwtCredentialHashMap) {
         additionalCredentials.forEach(jwtEntry ->
-                clientJwtCredentialHashMap.putIfAbsent(jwtEntry.getSubject() + jwtEntry.getIssuer(), jwtEntry));
+                clientJwtCredentialHashMap.putIfAbsent(credKey(jwtEntry), jwtEntry));
         if (clientJwtCredentialHashMap.isEmpty() || clientJwtCredentialHashMap.size() > MAX_KEY_SIZE) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: federated jwt credentials exceeds the maximum of keys. max: + " + MAX_KEY_SIZE);
+            throw new InvalidClientDetailsException("Invalid private_key_jwt: federated JWT credentials are empty or exceed the maximum number of keys. max: " + MAX_KEY_SIZE);
         }
     }
 
@@ -210,7 +214,7 @@ public class ClientJwtConfiguration implements Cloneable {
     private boolean validateJwkSet() {
         List<JsonWebKey> keyList = jwkSet.getKeys();
         if (keyList.isEmpty() || keyList.size() > MAX_KEY_SIZE) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwk set is empty of exceeds to maximum of keys. max: + " + MAX_KEY_SIZE);
+            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwk set is empty or exceeds the maximum of keys. max: " + MAX_KEY_SIZE);
         }
         Set<String> keyId = new HashSet<>();
         keyList.forEach((JsonWebKey key) -> {
@@ -343,12 +347,47 @@ public class ClientJwtConfiguration implements Cloneable {
         if (newConfig.clientJwtCredentials != null) {
             result = existingConfig;
             if (overwrite) {
-                result.setValidatedCredentials(newConfig.clientJwtCredentials);
+                result.setClientJwtCredentials(newConfig.clientJwtCredentials);
             } else {
                 result.addJwtCredentials(newConfig.clientJwtCredentials);
             }
         }
+        if (result == null) {
+            return Objects.requireNonNullElseGet(existingConfig, ClientJwtConfiguration::new);
+        }
         return result;
+    }
+
+    /**
+     * Builds a {@code ClientJwtConfiguration} carrying only the credentials parsed from a raw
+     * {@code jwt_creds} value that may arrive as a JSON string or a pre-parsed {@code List}.
+     * Returns {@code null} when {@code value} is neither a {@code String} nor a {@code List}.
+     */
+    @JsonIgnore
+    public static ClientJwtConfiguration fromJwtCredsValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            String json;
+            if (value instanceof String s) {
+                json = s;
+            } else if (value instanceof List<?> list) {
+                json = JsonUtils.writeValueAsString(list);
+            } else {
+                return null;
+            }
+            ClientJwtConfiguration cfg = new ClientJwtConfiguration();
+            cfg.addJwtCredentials(ClientJwtCredential.parse(json));
+            return cfg;
+        } catch (InvalidClientDetailsException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InvalidClientDetailsException(
+                    "Invalid jwt_creds format: expected a JSON string containing an array or a pre-parsed List",
+                    e
+            );
+        }
     }
 
     @JsonIgnore

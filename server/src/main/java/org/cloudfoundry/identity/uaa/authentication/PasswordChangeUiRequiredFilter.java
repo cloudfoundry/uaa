@@ -6,8 +6,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.stereotype.Component;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import jakarta.servlet.FilterChain;
@@ -21,19 +22,19 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
     private static final String MATCH_PATH = "/force_password_change";
     private static final String COMPLETED_PATH = "/force_password_change_completed";
 
-    private final AntPathRequestMatcher matchPath;
-    private final AntPathRequestMatcher completedPath;
+    private final RequestMatcher matchPath;
+    private final RequestMatcher completedPath;
     private final UaaSavedRequestCache cache;
 
     public PasswordChangeUiRequiredFilter() {
         this(new UaaSavedRequestCache());
-        this.cache.setRequestMatcher(new AntPathRequestMatcher("/oauth/authorize**"));
+        this.cache.setRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/oauth/authorize**"));
     }
 
     public PasswordChangeUiRequiredFilter(UaaSavedRequestCache cache) {
         this.cache = cache;
-        this.matchPath = new AntPathRequestMatcher(MATCH_PATH);
-        this.completedPath = new AntPathRequestMatcher(COMPLETED_PATH);
+        this.matchPath = PathPatternRequestMatcher.withDefaults().matcher(MATCH_PATH);
+        this.completedPath = PathPatternRequestMatcher.withDefaults().matcher(COMPLETED_PATH);
     }
 
     @Override
