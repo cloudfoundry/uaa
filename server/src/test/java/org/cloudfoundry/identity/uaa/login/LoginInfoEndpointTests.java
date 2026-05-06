@@ -363,17 +363,6 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void discoverIdentityProviderCarriesEmailIfProvided() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpSession session = new MockHttpSession();
-        RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, null, extendedModelMap, redirectAttributes, session, request);
-
-        verify(redirectAttributes).addAttribute("email", "testuser@fake.com");
-    }
-
-    @Test
     void discoverIdentityProvider_addsAllRedirectAttributesOnFallthrough() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         RedirectAttributes redirectAttributes = mock(RedirectAttributes.class);
