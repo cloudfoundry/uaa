@@ -184,7 +184,7 @@ class LoginInfoEndpointDocs extends EndpointDocs {
         request.setPassword("koala");
         String body = mockMvc.perform(
                 post("/autologin")
-                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("admin:adminsecret".getBytes(StandardCharsets.UTF_8))))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("admin:adminsecret".getBytes(StandardCharsets.UTF_8)))
                         .contentType(APPLICATION_JSON)
                         .accept(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(request)))

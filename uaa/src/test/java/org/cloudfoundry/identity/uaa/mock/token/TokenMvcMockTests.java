@@ -2904,7 +2904,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userId = "testuser" + generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,uaa.user";
         ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        String basicAuthForOauthClient = new String(Base64.getEncoder().encode("%s:%s".formatted(oauthClientId, SECRET).getBytes()));
+        String basicAuthForOauthClient = Base64.getEncoder().encodeToString("%s:%s".formatted(oauthClientId, SECRET).getBytes(StandardCharsets.UTF_8));
 
         //success - regular password grant but client is authenticated using POST parameters
         mockMvc.perform(post("/oauth/token")

@@ -74,7 +74,7 @@ class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
                         post("/check_token")
                                 .param("token", token)
                                 .header(AUTHORIZATION,
-                                        "Basic " + new String(Base64.getEncoder().encode((client.getClientId() + ":" + SECRET).getBytes(StandardCharsets.UTF_8))))
+                                        "Basic " + Base64.getEncoder().encodeToString((client.getClientId() + ":" + SECRET).getBytes(StandardCharsets.UTF_8)))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scope").value(containsInAnyOrder("clients.read", "uaa.resource")))

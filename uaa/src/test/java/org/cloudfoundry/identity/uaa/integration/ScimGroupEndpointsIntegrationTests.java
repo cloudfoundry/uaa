@@ -564,7 +564,7 @@ class ScimGroupEndpointsIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
-                "Basic " + new String(Base64.getEncoder().encode("%s:%s".formatted(clientId, clientSecret).getBytes(StandardCharsets.UTF_8))));
+                "Basic " + Base64.getEncoder().encodeToString("%s:%s".formatted(clientId, clientSecret).getBytes(StandardCharsets.UTF_8)));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
