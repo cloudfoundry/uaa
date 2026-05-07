@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.springframework.security.saml2.core.Saml2Error;
-import org.springframework.security.saml2.provider.service.authentication.logout.OpenSamlLogoutRequestValidator;
+import org.springframework.security.saml2.provider.service.authentication.logout.OpenSaml5LogoutRequestValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequestValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequestValidatorParameters;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutValidatorResult;
@@ -9,7 +9,7 @@ import org.springframework.security.saml2.provider.service.authentication.logout
 import java.util.Collection;
 
 /**
- * Delegates SAML logout request validation to {@link OpenSamlLogoutRequestValidator},
+ * Delegates SAML logout request validation to {@link OpenSaml5LogoutRequestValidator},
  * but ignores errors due to missing signatures.
  */
 public class SamlLogoutRequestValidator implements Saml2LogoutRequestValidator {
@@ -17,7 +17,7 @@ public class SamlLogoutRequestValidator implements Saml2LogoutRequestValidator {
     private final Saml2LogoutRequestValidator delegate;
 
     public SamlLogoutRequestValidator() {
-        this.delegate = new OpenSamlLogoutRequestValidator();
+        this.delegate = new OpenSaml5LogoutRequestValidator();
     }
 
     public SamlLogoutRequestValidator(Saml2LogoutRequestValidator delegate) {

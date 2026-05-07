@@ -52,6 +52,7 @@ public class SamlMetadataEndpointKeyRotationTests {
     @BeforeAll
     static void beforeAll() {
         Security.addProvider(new BouncyCastleFipsProvider());
+        SamlConfiguration.setupOpenSaml();
 
         SamlConfigProps samlConfigProps = new SamlConfigProps();
         samlConfigProps.setKeys(Map.of(legacyKeyName(), legacySamlKey()));

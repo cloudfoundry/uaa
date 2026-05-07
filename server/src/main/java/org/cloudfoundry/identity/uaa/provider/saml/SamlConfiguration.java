@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.opensaml.core.config.ConfigurationService;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.Initializer;
+import org.opensaml.core.config.provider.PropertiesAdapter;
 import org.opensaml.security.config.GlobalNamedCurveRegistryInitializer;
 import org.opensaml.xmlsec.config.impl.DefaultSecurityConfigurationBootstrap;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -74,10 +75,13 @@ public class SamlConfiguration {
     @Bean
     public static Boolean setupOpenSaml() {
         if (samlInitialized.compareAndSet(false, true)) {
-            Properties props = ConfigurationService.getConfigurationProperties();
-            props.put(CONFIG_PROPERTY_ECDH_DEFAULT_KDF, DefaultSecurityConfigurationBootstrap.PBKDF2);
+            Properties props = new Properties();
+            props.setProperty(CONFIG_PROPERTY_ECDH_DEFAULT_KDF, DefaultSecurityConfigurationBootstrap.PBKDF2);
+            ConfigurationService.setDefaultConfigurationPropertiesSource(() -> new PropertiesAdapter(props));
             Class<?> toSkip = GlobalNamedCurveRegistryInitializer.class;
-            ServiceLoader.load(Initializer.class).stream().filter((provider) -> provider.type() != toSkip).forEach((provider) -> init(provider));
+            ServiceLoader.load(Initializer.class).stream()
+                .filter(provider -> provider.type() != toSkip)
+                .forEach(SamlConfiguration::init);
             try {
                 OpenSamlInitializationService.initialize();
             } catch (NoClassDefFoundError | NoSuchMethodError e) {

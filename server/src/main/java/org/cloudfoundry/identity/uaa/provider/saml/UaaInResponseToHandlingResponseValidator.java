@@ -16,7 +16,6 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import groovy.util.logging.Slf4j;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -32,26 +31,25 @@ import java.util.Optional;
 
 /**
  * Strategy for validating the SAML 2.0 Response used with
- * {@link org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider}
+ * {@link OpenSaml5AuthenticationProvider}
  * Handles the property `login.saml.disableInResponseToCheck` when set to true
  * we will ignore errors on the InResponseTo check of the SAML Response.
  * <p>
  * The InResponseTo attribute is optional, but if it is present, the default validator checks against the ID of the request.
  */
-@Slf4j
-public final class UaaInResponseToHandlingResponseValidator implements Converter<OpenSaml4AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> {
+public final class UaaInResponseToHandlingResponseValidator implements Converter<OpenSaml5AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> {
 
     private final boolean uaaWideDisableInResponseToCheck;
-    private final Converter<OpenSaml4AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> delegate;
+    private final Converter<OpenSaml5AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> delegate;
 
-    public UaaInResponseToHandlingResponseValidator(Converter<OpenSaml4AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> delegate,
+    public UaaInResponseToHandlingResponseValidator(Converter<OpenSaml5AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> delegate,
             boolean uaaWideDisableInResponseToCheck) {
         this.delegate = delegate;
         this.uaaWideDisableInResponseToCheck = uaaWideDisableInResponseToCheck;
     }
 
     @Override
-    public Saml2ResponseValidatorResult convert(@NonNull OpenSaml4AuthenticationProvider.ResponseToken source) {
+    public Saml2ResponseValidatorResult convert(@NonNull OpenSaml5AuthenticationProvider.ResponseToken source) {
         Saml2ResponseValidatorResult result = delegate.convert(source);
         // if the result is successful, return it
         if (result == null || !result.hasErrors()) {

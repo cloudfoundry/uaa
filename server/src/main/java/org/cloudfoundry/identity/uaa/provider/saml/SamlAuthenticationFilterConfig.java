@@ -22,10 +22,10 @@ import org.springframework.security.saml2.provider.service.authentication.logout
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationTokenConverter;
 import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
-import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml4AuthenticationRequestResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml5AuthenticationRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutRequestResolver;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutResponseResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml5LogoutRequestResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml5LogoutResponseResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter;
@@ -37,6 +37,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfLogoutHandler;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+
 import jakarta.servlet.Filter;
 
 /**
@@ -52,9 +53,9 @@ public class SamlAuthenticationFilterConfig {
      */
     @Bean
     FilterRegistrationBean<Filter> saml2WebSsoAuthenticationRequestFilter(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
-        OpenSaml4AuthenticationRequestResolver openSaml4AuthenticationRequestResolver = new OpenSaml4AuthenticationRequestResolver(relyingPartyRegistrationResolver);
+        OpenSaml5AuthenticationRequestResolver openSaml5AuthenticationRequestResolver = new OpenSaml5AuthenticationRequestResolver(relyingPartyRegistrationResolver);
 
-        Saml2WebSsoAuthenticationRequestFilter filter = new Saml2WebSsoAuthenticationRequestFilter(openSaml4AuthenticationRequestResolver);
+        Saml2WebSsoAuthenticationRequestFilter filter = new Saml2WebSsoAuthenticationRequestFilter(openSaml5AuthenticationRequestResolver);
         FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
         return bean;
@@ -92,12 +93,12 @@ public class SamlAuthenticationFilterConfig {
                 new SamlUaaResponseAuthenticationConverter(identityZoneManager, samlUaaAuthenticationUserManager);
         samlResponseAuthenticationConverter.setApplicationEventPublisher(applicationEventPublisher);
 
-        OpenSaml4AuthenticationProvider samlResponseAuthenticationProvider = new OpenSaml4AuthenticationProvider();
+        OpenSaml5AuthenticationProvider samlResponseAuthenticationProvider = new OpenSaml5AuthenticationProvider();
         samlResponseAuthenticationProvider.setResponseAuthenticationConverter(samlResponseAuthenticationConverter);
 
-        // This validator ignores wraps the default validator and ignores InResponseTo errors, if configured
+        // This validator wraps the default validator and ignores InResponseTo errors, if configured
         UaaInResponseToHandlingResponseValidator uaaInResponseToHandlingResponseValidator =
-                new UaaInResponseToHandlingResponseValidator(OpenSaml4AuthenticationProvider.createDefaultResponseValidator(), samlConfigProps.getDisableInResponseToCheck());
+                new UaaInResponseToHandlingResponseValidator(OpenSaml5AuthenticationProvider.createDefaultResponseValidator(), samlConfigProps.getDisableInResponseToCheck());
         samlResponseAuthenticationProvider.setResponseValidator(uaaInResponseToHandlingResponseValidator);
 
         return samlResponseAuthenticationProvider;
@@ -148,7 +149,7 @@ public class SamlAuthenticationFilterConfig {
 
     @Bean
     Saml2LogoutRequestResolver saml2LogoutRequestResolver(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
-        OpenSaml4LogoutRequestResolver logoutRequestResolver = new OpenSaml4LogoutRequestResolver(relyingPartyRegistrationResolver);
+        OpenSaml5LogoutRequestResolver logoutRequestResolver = new OpenSaml5LogoutRequestResolver(relyingPartyRegistrationResolver);
         logoutRequestResolver.setParametersConsumer((parameters) -> {
             LogoutRequest logoutRequest = parameters.getLogoutRequest();
             NameID nameId = logoutRequest.getNameID();
@@ -192,9 +193,9 @@ public class SamlAuthenticationFilterConfig {
             UaaAuthenticationFailureHandler authenticationFailureHandler,
             CookieBasedCsrfTokenRepository loginCookieCsrfRepository) {
 
-        // This validator ignores missing signatures in the SAML2 Logout Response
+        // This validator ignores missing signatures in the SAML2 Logout Request
         Saml2LogoutRequestValidator logoutRequestValidator = new SamlLogoutRequestValidator();
-        Saml2LogoutResponseResolver logoutResponseResolver = new OpenSaml4LogoutResponseResolver(relyingPartyRegistrationResolver);
+        Saml2LogoutResponseResolver logoutResponseResolver = new OpenSaml5LogoutResponseResolver(relyingPartyRegistrationResolver);
 
         SecurityContextLogoutHandler securityContextLogoutHandlerWithHandler = new SecurityContextLogoutHandler();
         CsrfLogoutHandler csrfLogoutHandler = new CsrfLogoutHandler(loginCookieCsrfRepository);
