@@ -12,8 +12,9 @@ versions.springBootVersion = "3.5.14"
 versions.guavaVersion = "33.6.0-jre"
 versions.seleniumVersion = "4.43.0"
 versions.braveVersion = "6.3.1"
-// OpenSAML 5.2.x pulls non-FIPS classes; stay on 5.1.x until resolved
-versions.opensaml = "5.1.6"
+versions.opensaml = "5.2.1"
+// Pin cryptacular for the OpenSAML 5.2.x upgrade to maintain compatibility with our FIPS dependency set.
+versions.cryptacular = "1.2.6"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
 ext["selenium.version"] = "${versions.seleniumVersion}" // Selenium for integration tests only
