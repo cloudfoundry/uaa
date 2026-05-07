@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import net.shibboleth.utilities.java.support.xml.SerializeSupport;
+import net.shibboleth.shared.xml.SerializeSupport;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -65,7 +65,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 /**
- * This is based on OpenSaml4AuthenticationProviderTest from Spring Security
+ * This is based on OpenSaml5AuthenticationProviderTest from Spring Security
  */
 class Saml2BearerGrantAuthenticationConverterTest {
 
@@ -396,7 +396,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
     @Test
     void createDefaultAssertionValidatorWhenAssertionThenValidates() {
         Assertion assertion = signed(assertion());
-        OpenSaml4AuthenticationProvider.AssertionToken assertionToken = new OpenSaml4AuthenticationProvider.AssertionToken(
+        OpenSaml5AuthenticationProvider.AssertionToken assertionToken = new OpenSaml5AuthenticationProvider.AssertionToken(
                 assertion, token());
         assertThat(
                 Saml2BearerGrantAuthenticationConverter.createDefaultAssertionValidator().convert(assertionToken).hasErrors())
@@ -417,7 +417,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
     void createDefaultResponseAuthenticationConverterWhenResponseThenConverts() {
         Assertion assertion = assertion();
         Saml2AuthenticationToken token = token(assertion, verifying(registration()));
-        OpenSaml4AuthenticationProvider.AssertionToken assertionToken = new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token);
+        OpenSaml5AuthenticationProvider.AssertionToken assertionToken = new OpenSaml5AuthenticationProvider.AssertionToken(assertion, token);
         AbstractAuthenticationToken authentication = Saml2BearerGrantAuthenticationConverter
                 .createDefaultAssertionAuthenticationConverter()
                 .convert(assertionToken);

@@ -59,7 +59,7 @@ public final class Saml2Utils {
         try {
             return Base64.getUrlDecoder().decode(s);
         } catch (IllegalArgumentException ex) {
-            throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_ASSERTION, "Unable to urlBase64Decode bearer assertion", ex);
+            throw OpenSaml5AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_ASSERTION, "Unable to urlBase64Decode bearer assertion", ex);
         }
     }
 

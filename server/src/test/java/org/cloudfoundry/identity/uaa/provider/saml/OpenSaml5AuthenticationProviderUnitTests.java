@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import net.shibboleth.utilities.java.support.xml.SerializeSupport;
-import org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4AuthenticationProvider.ResponseToken;
+import net.shibboleth.shared.xml.SerializeSupport;
+import org.cloudfoundry.identity.uaa.provider.saml.OpenSaml5AuthenticationProvider.ResponseToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -70,21 +70,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
- * This was copied from Spring Security, Test Classes and modified to work with the modified OpenSaml4AuthenticationProvider.
+ * This was copied from Spring Security, Test Classes and modified to work with the modified OpenSaml5AuthenticationProvider.
  * <p/>
- * Once we can move to the spring-security version of OpenSaml4AuthenticationProvider,
+ * Once we can move to the spring-security version of OpenSaml5AuthenticationProvider,
  * this class should be removed, along with OpenSamlDecryptionUtils and OpenSamlVerificationUtils.
  * <p/>
  * Modified Tests:
  * authenticateWhenAssertionContainsAttributesThenItSucceeds
  * deserializeWhenAssertionContainsAttributesThenWorks
  * <p/>
- * Tests for {@link OpenSaml4AuthenticationProvider}
+ * Tests for {@link OpenSaml5AuthenticationProvider}
  *
  * @author Filip Hanik
  * @author Josh Cummings
  */
-class OpenSaml4AuthenticationProviderUnitTests {
+class OpenSaml5AuthenticationProviderUnitTests {
 
     private static final String DESTINATION = "http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id";
 
@@ -92,7 +92,8 @@ class OpenSaml4AuthenticationProviderUnitTests {
 
     private static final String ASSERTING_PARTY_ENTITY_ID = "https://some.idp.test/saml2/idp";
 
-    private final OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
+    private final OpenSaml5AuthenticationProvider provider = new OpenSaml5AuthenticationProvider();
+
 
     @BeforeEach
     void setUp() {
@@ -106,14 +107,14 @@ class OpenSaml4AuthenticationProviderUnitTests {
     @Test
     void supportsWhenSaml2AuthenticationTokenThenReturnTrue() {
         assertThat(this.provider.supports(Saml2AuthenticationToken.class))
-                .withFailMessage(OpenSaml4AuthenticationProvider.class + "should support " + Saml2AuthenticationToken.class)
+                .withFailMessage(OpenSaml5AuthenticationProvider.class + "should support " + Saml2AuthenticationToken.class)
                 .isTrue();
     }
 
     @Test
     void supportsWhenNotSaml2AuthenticationTokenThenReturnFalse() {
         assertThat(this.provider.supports(Authentication.class))
-                .withFailMessage(OpenSaml4AuthenticationProvider.class + "should not support " + Authentication.class)
+                .withFailMessage(OpenSaml5AuthenticationProvider.class + "should not support " + Authentication.class)
                 .isFalse();
     }
 
@@ -672,10 +673,10 @@ class OpenSaml4AuthenticationProviderUnitTests {
     void createDefaultAssertionValidatorWhenAssertionThenValidates() {
         Response response = TestOpenSamlObjects.signedResponseWithOneAssertion();
         Assertion assertion = response.getAssertions().getFirst();
-        OpenSaml4AuthenticationProvider.AssertionToken assertionToken = new OpenSaml4AuthenticationProvider.AssertionToken(
+        OpenSaml5AuthenticationProvider.AssertionToken assertionToken = new OpenSaml5AuthenticationProvider.AssertionToken(
                 assertion, token());
         assertThat(
-                OpenSaml4AuthenticationProvider.createDefaultAssertionValidator().convert(assertionToken).hasErrors())
+                OpenSaml5AuthenticationProvider.createDefaultAssertionValidator().convert(assertionToken).hasErrors())
                 .isFalse();
     }
 
@@ -695,7 +696,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
         Response response = TestOpenSamlObjects.signedResponseWithOneAssertion();
         Saml2AuthenticationToken token = token(response, verifying(registration()));
         ResponseToken responseToken = new ResponseToken(response, token);
-        Saml2Authentication authentication = OpenSaml4AuthenticationProvider
+        Saml2Authentication authentication = OpenSaml5AuthenticationProvider
                 .createDefaultResponseAuthenticationConverter()
                 .convert(responseToken);
         assertThat(authentication.getName()).isEqualTo("test@saml.user");
@@ -747,7 +748,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
     void authenticateWhenCustomResponseValidatorThenUses() {
         Converter<ResponseToken, Saml2ResponseValidatorResult> validator = mock(Converter.class);
         // @formatter:off
-        provider.setResponseValidator(responseToken -> OpenSaml4AuthenticationProvider.createDefaultResponseValidator()
+        provider.setResponseValidator(responseToken -> OpenSaml5AuthenticationProvider.createDefaultResponseValidator()
                         .convert(responseToken)
                         .concat(validator.convert(responseToken))
         );
@@ -776,7 +777,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
     // gh-14931
     @Test
     void authenticateWhenAssertionHasProxyRestrictionThenParses() {
-        OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
+        OpenSaml5AuthenticationProvider provider = new OpenSaml5AuthenticationProvider();
         Response response = response();
         Assertion assertion = assertion();
         ProxyRestriction condition = new ProxyRestrictionBuilder().buildObject();
@@ -909,41 +910,39 @@ class OpenSaml4AuthenticationProviderUnitTests {
     @Test
     void toOauthTokenRecipient_whenAliasPath_thenReturnsStandardTokenEndpoint() {
         String alias = "http://localhost:8080/uaa/oauth/token/alias/my-idp?query=value";
-        assertThat(OpenSaml4AuthenticationProvider.toOauthTokenRecipient(alias))
+        assertThat(OpenSaml5AuthenticationProvider.toOauthTokenRecipient(alias))
                 .isEqualTo("http://localhost:8080/uaa/oauth/token?query=value");
     }
 
     @Test
     void toOauthTokenRecipient_whenAliasPathWithSubdomain_thenPreservesHost() {
         String alias = "http://myzone.localhost:8080/uaa/oauth/token/alias/myzone.my-idp";
-        assertThat(OpenSaml4AuthenticationProvider.toOauthTokenRecipient(alias))
+        assertThat(OpenSaml5AuthenticationProvider.toOauthTokenRecipient(alias))
                 .isEqualTo("http://myzone.localhost:8080/uaa/oauth/token");
     }
 
     @Test
     void toOauthTokenRecipient_whenNoAliasPath_thenReturnsUnchanged() {
         String plain = "http://localhost:8080/uaa/oauth/token";
-        assertThat(OpenSaml4AuthenticationProvider.toOauthTokenRecipient(plain))
+        assertThat(OpenSaml5AuthenticationProvider.toOauthTokenRecipient(plain))
                 .isEqualTo(plain);
     }
 
     @Test
     void toOauthTokenRecipient_whenSamlSsoPath_thenReturnsUnchanged() {
         String sso = "http://localhost:8080/uaa/saml/SSO/alias/my-idp";
-        assertThat(OpenSaml4AuthenticationProvider.toOauthTokenRecipient(sso))
+        assertThat(OpenSaml5AuthenticationProvider.toOauthTokenRecipient(sso))
                 .isEqualTo(sso);
     }
 
     private RelyingPartyRegistration.Builder registration() {
-        return TestRelyingPartyRegistrations.noCredentials()
-                .entityId(RELYING_PARTY_ENTITY_ID)
-                .assertionConsumerServiceLocation(DESTINATION)
-                .assertingPartyDetails(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
+        return TestRelyingPartyRegistrations.noCredentials().entityId(RELYING_PARTY_ENTITY_ID).assertionConsumerServiceLocation(DESTINATION)
+            .assertingPartyMetadata(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
     }
 
     private RelyingPartyRegistration.Builder verifying(RelyingPartyRegistration.Builder builder) {
-        return builder.assertingPartyDetails(party -> party
-                .verificationX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
+        return builder.assertingPartyMetadata(
+            party -> party.verificationX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
     }
 
     private RelyingPartyRegistration.Builder decrypting(RelyingPartyRegistration.Builder builder) {

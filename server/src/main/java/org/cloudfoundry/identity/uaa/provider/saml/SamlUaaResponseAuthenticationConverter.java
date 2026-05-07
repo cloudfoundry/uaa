@@ -26,7 +26,7 @@ import java.util.Objects;
 @Slf4j
 @Getter
 public class SamlUaaResponseAuthenticationConverter
-        implements Converter<OpenSaml4AuthenticationProvider.ResponseToken, UaaAuthentication>,
+        implements Converter<OpenSaml5AuthenticationProvider.ResponseToken, UaaAuthentication>,
         ApplicationEventPublisherAware {
 
     private final IdentityZoneManager identityZoneManager;
@@ -42,7 +42,7 @@ public class SamlUaaResponseAuthenticationConverter
     }
 
     @Override
-    public UaaAuthentication convert(OpenSaml4AuthenticationProvider.ResponseToken responseToken) {
+    public UaaAuthentication convert(OpenSaml5AuthenticationProvider.ResponseToken responseToken) {
         Saml2AuthenticationToken authenticationToken = responseToken.getToken();
         Response response = responseToken.getResponse();
         List<Assertion> assertions = response.getAssertions();

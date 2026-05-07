@@ -75,7 +75,7 @@ subprojects {
             resolutionStrategy.eachDependency { DependencyResolveDetails details ->
                 if (details.requested.group == 'org.opensaml' && details.requested.name.startsWith("opensaml-")) {
                     details.useVersion "${versions.opensaml}"
-                    details.because 'Spring Security 5.8.x allows OpenSAML 3 or 4. OpenSAML 3 has reached its end-of-life. Spring Security 6 drops support for 3, using 4.'
+                    details.because 'Pinning all opensaml modules to the same version for OpenSAML 5 migration.'
                 }
             }
         }

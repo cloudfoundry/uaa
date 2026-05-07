@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.saml2.provider.service.metadata.OpenSamlMetadataResolver;
+import org.springframework.security.saml2.provider.service.metadata.OpenSaml5MetadataResolver;
 import org.springframework.security.saml2.provider.service.metadata.Saml2MetadataResolver;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
@@ -34,7 +34,7 @@ public class SamlMetadataEndpoint implements ZoneAware {
             @Qualifier("signSamlMetaData") boolean signMetaData) {
         Assert.notNull(registrationResolver, "registrationResolver cannot be null");
         relyingPartyRegistrationResolver = registrationResolver;
-        OpenSamlMetadataResolver metadataResolver = new OpenSamlMetadataResolver();
+        OpenSaml5MetadataResolver metadataResolver = new OpenSaml5MetadataResolver();
         saml2MetadataResolver = metadataResolver;
         metadataResolver.setEntityDescriptorCustomizer(
                 new SamlMetadataEntityDescriptorCustomizer(identityZoneManager, signatureAlgorithms, signMetaData));

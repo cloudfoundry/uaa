@@ -21,10 +21,10 @@ import static org.mockito.Mockito.when;
 class UaaInResponseToHandlingResponseValidatorTest {
 
     @Mock
-    Converter<OpenSaml4AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> delegate;
+    Converter<OpenSaml5AuthenticationProvider.ResponseToken, Saml2ResponseValidatorResult> delegate;
 
     @Mock
-    OpenSaml4AuthenticationProvider.ResponseToken responseToken;
+    OpenSaml5AuthenticationProvider.ResponseToken responseToken;
 
     @BeforeEach
     void beforeEach() {
