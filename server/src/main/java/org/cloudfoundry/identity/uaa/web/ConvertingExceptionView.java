@@ -22,6 +22,7 @@ import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.cloudfoundry.identity.uaa.util.MediaTypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpInputMessage;
@@ -119,7 +120,7 @@ public class ConvertingExceptionView implements View {
         } else {
             acceptedMediaTypes.add(MediaType.APPLICATION_JSON);
         }
-        MediaType.sortByQualityValue(acceptedMediaTypes);
+        MediaTypeUtils.sortByQualityValue(acceptedMediaTypes);
         Class<?> returnValueType = returnValue.getClass();
         List<MediaType> allSupportedMediaTypes = new ArrayList<>();
         if (messageConverters != null) {
