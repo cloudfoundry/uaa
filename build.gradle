@@ -79,7 +79,7 @@ subprojects {
                 }
                 if (details.requested.group == 'org.cryptacular' && details.requested.name == 'cryptacular') {
                     details.useVersion "${versions.cryptacular}"
-                    details.because 'Pin cryptacular to 1.2.6 to avoid regressions from newer versions.'
+                    details.because 'Pinning cryptacular to 1.2.6 to avoid regressions from newer OpenSAML versions.'
                 }
             }
         }
