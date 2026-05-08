@@ -34,6 +34,7 @@ GEM
     fast_blank (1.0.1)
     fastimage (2.4.1)
     ffi (1.17.4-arm64-darwin)
+    ffi (1.17.4-x86_64-linux-gnu)
     haml (6.4.0)
       temple (>= 0.8.2)
       thor
@@ -92,7 +93,9 @@ GEM
       middleman-core (>= 3.2)
       rouge (~> 3.2)
     minitest (5.27.0)
-    nokogiri (1.19.2-arm64-darwin)
+    nokogiri (1.19.3-arm64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.19.3-x86_64-linux-gnu)
       racc (~> 1.4)
     ostruct (0.6.3)
     padrino-helpers (0.16.1)
@@ -134,6 +137,7 @@ GEM
 
 PLATFORMS
   arm64-darwin-24
+  x86_64-linux
 
 DEPENDENCIES
   activesupport (~> 7.2.3, >= 7.2.3.1)
@@ -141,7 +145,7 @@ DEPENDENCIES
   middleman (~> 4.5)
   middleman-autoprefixer (~> 3.0)
   middleman-syntax (~> 3.6)
-  nokogiri (~> 1.19.1)
+  nokogiri (~> 1.19.3)
   ostruct
   redcarpet (~> 3.6.0)
   rouge (~> 3.21)
