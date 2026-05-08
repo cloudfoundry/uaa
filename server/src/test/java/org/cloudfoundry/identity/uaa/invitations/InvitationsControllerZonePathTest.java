@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
-import jakarta.annotation.PostConstruct;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
@@ -34,7 +33,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
@@ -63,7 +61,6 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
 import java.net.URI;
@@ -855,14 +852,6 @@ class InvitationsControllerZonePathTest {
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration implements WebMvcConfigurer {
-
-        @Autowired
-        private RequestMappingHandlerAdapter requestMappingHandlerAdapter;
-
-        @PostConstruct
-        public void init() {
-            requestMappingHandlerAdapter.setIgnoreDefaultModelOnRedirect(false);
-        }
 
         @Override
         public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {

@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
-import jakarta.annotation.PostConstruct;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
@@ -58,7 +57,6 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import java.net.URI;
 import java.sql.Timestamp;
@@ -773,14 +771,6 @@ class InvitationsControllerTest {
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration implements WebMvcConfigurer {
-
-        @Autowired
-        private RequestMappingHandlerAdapter requestMappingHandlerAdapter;
-
-        @PostConstruct
-        public void init() {
-            requestMappingHandlerAdapter.setIgnoreDefaultModelOnRedirect(false);
-        }
 
         @Override
         public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {

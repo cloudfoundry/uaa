@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.account;
 
-import jakarta.annotation.PostConstruct;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
@@ -29,7 +28,6 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -98,14 +96,6 @@ class ChangePasswordControllerViewZonePathTests extends TestClassNullifier {
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration implements WebMvcConfigurer {
-
-        @Autowired
-        private RequestMappingHandlerAdapter requestMappingHandlerAdapter;
-
-        @PostConstruct
-        public void init() {
-            requestMappingHandlerAdapter.setIgnoreDefaultModelOnRedirect(false);
-        }
 
         @Override
         public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
