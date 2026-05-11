@@ -218,7 +218,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#loginsamlassertionconsumerindex"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.assertionConsumerIndex` | `0`| Assertion consumer index|
 | <a href="#loginsamlsignmetadata"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.signMetaData` | `true`| Sign SAML SP metadata|
 | <a href="#loginsamlsignrequest"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.signRequest` | `true`| Sign SAML auth requests|
-| <a href="#loginsamlwantassertionsigned"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.wantAssertionSigned` | `true`| **Deprecated** (since 78.13.0). SP metadata hint and encrypted-response decrypt behavior only; see section below.|
+| <a href="#loginsamlwantassertionsigned"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.wantAssertionSigned` | `true`| **Deprecated** (since 78.13.0). Only controls SAML SP metadata `WantAssertionsSigned` attribute. No longer affects authentication behavior.|
 | <a href="#loginsamlsignaturealgorithm"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.signatureAlgorithm` | `SHA256`| SAML signature algorithm|
 | <a href="#loginsamldisableinresponsetocheck"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.disableInResponseToCheck` | `false`| Disable InResponseTo validation|
 | <a href="#loginsamlproviders"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.providers` | —| SAML IDP definitions|
