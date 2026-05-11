@@ -636,7 +636,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             additionalRootClaims = new HashMap<>();
             for (UaaTokenEnhancer enhancer : uaaTokenEnhancers) {
                 if (enhancer != null) {
-                    Map<String, Object> claims = enhancer.enhance(emptyMap(), authentication);
+                    Map<String, Object> claims = enhancer.enhance(additionalRootClaims, authentication);
                     if (claims != null) {
                         additionalRootClaims.putAll(claims);
                     }

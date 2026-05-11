@@ -606,6 +606,9 @@ class DeprecatedUaaTokenServicesTests {
 
             @Override
             public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                if (claims.containsKey("claim1")) {
+                    return Map.of("claim2", claims.get("claim1") + "_modified");
+                }
                 return Map.of("claim2", "value2");
             }
         };
@@ -624,7 +627,7 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, Object> claims = JsonUtils.readValue(parsedToken.getClaims(), new TypeReference<Map<String, Object>>() {});
 
         assertThat(claims).containsEntry("claim1", "value1");
-        assertThat(claims).containsEntry("claim2", "value2");
+        assertThat(claims).containsEntry("claim2", "value1_modified");
     }
 
     @MethodSource("data")
