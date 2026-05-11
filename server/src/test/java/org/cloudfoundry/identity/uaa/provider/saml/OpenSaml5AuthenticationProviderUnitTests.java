@@ -543,7 +543,7 @@ class OpenSaml5AuthenticationProviderUnitTests {
         Saml2AuthenticationToken token = token(response, decrypting(verifying(registration())));
         assertThatExceptionOfType(Saml2AuthenticationException.class)
                 .isThrownBy(() -> this.provider.authenticate(token))
-                .satisfies(errorOf(Saml2ErrorCodes.INVALID_SIGNATURE, "Did not decrypt response"));
+                .satisfies(errorOf(Saml2ErrorCodes.INVALID_SIGNATURE, "Either the response or one of the assertions is unsigned."));
     }
 
     @Test
@@ -581,6 +581,28 @@ class OpenSaml5AuthenticationProviderUnitTests {
         response.getEncryptedAssertions().add(encryptedAssertion);
         Saml2AuthenticationToken token = token(signed(response), decrypting(verifying(registration())));
         this.provider.authenticate(token);
+    }
+
+    @Test
+    void authenticateWhenUnsignedResponseWithEncryptedSignedAssertionThenItSucceedsEvenWithWantAssertionSignedTrue() {
+        // This test verifies the fix for the design flaw where wantAssertionSigned=true
+        // would prevent decryption of unsigned responses, even when the encrypted assertions were signed
+        IdentityZone identityZone = IdentityZoneHolder.getUaaZone();
+        identityZone.getConfig().getSamlConfig().setWantAssertionSigned(true);  // Default value, but make it explicit
+        IdentityZoneHolder.set(identityZone);
+        
+        Response response = response();  // Unsigned response
+        Assertion assertion = TestOpenSamlObjects.signed(assertion(),
+                TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID);
+        EncryptedAssertion encryptedAssertion = TestOpenSamlObjects.encrypted(assertion,
+                TestSaml2X509Credentials.assertingPartyEncryptingCredential());
+        response.getEncryptedAssertions().add(encryptedAssertion);
+        
+        // Note: response is NOT signed, but the encrypted assertion IS signed
+        Saml2AuthenticationToken token = token(response, decrypting(verifying(registration())));
+        
+        // This should succeed with our fix - we decrypt first, then validate the signed assertion
+        assertThatNoException().isThrownBy(() -> this.provider.authenticate(token));
     }
 
     @Test
