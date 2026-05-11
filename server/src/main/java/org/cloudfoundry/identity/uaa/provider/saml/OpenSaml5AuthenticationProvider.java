@@ -379,9 +379,8 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
         ResponseToken responseToken = new ResponseToken(response, token);
         Saml2ResponseValidatorResult result = this.responseSignatureValidator.convert(responseToken);
         if (responseSigned || !response.getEncryptedAssertions().isEmpty()) {
-            // Always decrypt encrypted content to evaluate what's inside,
-            // regardless of wantAssertionSigned policy - signature validation
-            // will be applied after decryption in the assertion processing loop
+            // Always decrypt encrypted content to evaluate what's inside.
+            // Signature validation will be applied after decryption in the assertion processing loop
             this.responseElementsDecrypter.accept(responseToken);
         }
         result = result.concat(this.responseValidator.convert(responseToken));
@@ -396,7 +395,6 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
             result = result.concat(this.assertionValidator.convert(assertionToken));
         }
         // Apply signature policy: require either response signature OR all assertions signed
-        // The wantAssertionSigned flag is now properly enforced after decryption
         if (!responseSigned && !allAssertionsSigned) {
             String description = "Either the response or one of the assertions is unsigned. "
                     + "Please either sign the response or all of the assertions.";
