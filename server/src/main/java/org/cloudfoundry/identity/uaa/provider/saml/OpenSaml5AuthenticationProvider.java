@@ -370,19 +370,6 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
         }
     }
 
-    /**
-     * Reads {@link org.cloudfoundry.identity.uaa.zone.SamlConfig#wantAssertionSigned} (deprecated on the zone model;
-     * retained for the unsigned-response + {@code EncryptedAssertion} decrypt branch below).
-     */
-    private boolean isWantAssertionSigned() {
-        IdentityZone currentZone = retrieveZone();
-
-        boolean isWantAssertionSigned = false;
-        if (currentZone.getConfig() != null && currentZone.getConfig().getSamlConfig() != null) {
-            isWantAssertionSigned = currentZone.getConfig().getSamlConfig().isWantAssertionSigned();
-        }
-        return isWantAssertionSigned;
-    }
     @SuppressWarnings("deprecation")
     private void process(Saml2AuthenticationToken token, Response response) {
         String issuer = response.getIssuer().getValue();
