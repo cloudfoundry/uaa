@@ -370,7 +370,6 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
         }
     }
 
-    @SuppressWarnings("deprecation")
     private void process(Saml2AuthenticationToken token, Response response) {
         String issuer = response.getIssuer().getValue();
         this.logger.debug(LogMessage.format("Processing SAML response from %s", issuer));
