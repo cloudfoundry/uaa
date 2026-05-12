@@ -10,10 +10,10 @@ buildscript {
     }
 
     dependencies {
-        classpath(libraries.springDependencyManagementGradlePlugin)
-        classpath(libraries.springBootGradlePlugin)
-        classpath(libraries.gradleJcocoPlugin)
-        classpath(libraries.sonarqubePlugin)
+        classpath(libs.springDependencyManagementGradlePlugin)
+        classpath(libs.springBootGradlePlugin)
+        classpath(libs.gradleJacocoPlugin)
+        classpath(libs.sonarqubePlugin)
     }
 }
 
@@ -24,7 +24,7 @@ allprojects {
 
     dependencyManagement {
         imports {
-            mavenBom(libraries.springBootBom)
+            mavenBom(libs.springBootBom.get().toString())
         }
     }
 
@@ -70,11 +70,11 @@ subprojects {
         resolutionStrategy {
             resolutionStrategy.eachDependency { DependencyResolveDetails details ->
                 if (details.requested.group == 'org.opensaml' && details.requested.name.startsWith("opensaml-")) {
-                    details.useVersion "${versions.opensaml}"
+                    details.useVersion "${libs.versions.opensaml.get()}"
                     details.because 'Pinning all opensaml modules to the same version for OpenSAML 5 migration.'
                 }
                 if (details.requested.group == 'org.cryptacular' && details.requested.name == 'cryptacular') {
-                    details.useVersion "${versions.cryptacular}"
+                    details.useVersion "${libs.versions.cryptacular.get()}"
                     details.because 'Pinning cryptacular to 1.2.6 to avoid regressions from newer OpenSAML versions.'
                 }
             }
@@ -82,21 +82,21 @@ subprojects {
     }
 
     dependencies {
-        testImplementation(libraries.springBootStarterTest) {
+        testImplementation(libs.springBootStarterTest) {
             exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
         }
-        testImplementation(libraries.hamcrest)
-        testImplementation(libraries.junit5JupiterApi)
-        testImplementation(libraries.junit5JupiterParams)
-        testImplementation(libraries.junit5JupiterEngine)
-        testImplementation(libraries.unboundIdLdapSdk)
-        testRuntimeOnly(libraries.jacocoAgent)
+        testImplementation(libs.hamcrest)
+        testImplementation(libs.junit5JupiterApi)
+        testImplementation(libs.junit5JupiterParams)
+        testImplementation(libs.junit5JupiterEngine)
+        testImplementation(libs.unboundIdLdapSdk)
+        testRuntimeOnly(libs.jacocoAgent)
 
         // Ensure test runtime dependencies are included
         testRuntimeOnly('org.junit.platform:junit-platform-launcher')
 
-        compileOnly(libraries.lombok)
-        annotationProcessor(libraries.lombok)
+        compileOnly(libs.lombok)
+        annotationProcessor(libs.lombok)
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn", "-parameters"]

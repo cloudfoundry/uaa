@@ -6,51 +6,51 @@ dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
     implementation(project(":cloudfoundry-identity-model"))
 
-    implementation(libraries.tomcatJdbc)
-    providedCompile(libraries.tomcatEmbed)
+    implementation(libs.tomcatJdbc)
+    providedCompile(libs.tomcatEmbed)
 
-    implementation(libraries.jacksonDatabind)
-    implementation(libraries.jsonPath) {
+    implementation(libs.jacksonDatabind)
+    implementation(libs.jsonPath) {
         exclude(module: "json-smart")
     }
-    implementation(libraries.springBeans)
-    implementation(libraries.springContext)
-    implementation(libraries.springContextSupport)
-    implementation(libraries.springTx)
-    implementation(libraries.springJdbc)
-    implementation(libraries.springWeb)
-    implementation(libraries.springSecurityCore)
-    implementation(libraries.springSecurityWeb)
-    implementation(libraries.springSecurityConfig)
-    implementation(libraries.springBootStarterMail)
-    implementation(libraries.openSamlApi)
-    implementation(libraries.springSecuritySamlServiceProvider)
-    implementation(libraries.xmlSecurity)
-    implementation(libraries.springSessionJdbc)
+    implementation(libs.springBeans)
+    implementation(libs.springContext)
+    implementation(libs.springContextSupport)
+    implementation(libs.springTx)
+    implementation(libs.springJdbc)
+    implementation(libs.springWeb)
+    implementation(libs.springSecurityCore)
+    implementation(libs.springSecurityWeb)
+    implementation(libs.springSecurityConfig)
+    implementation(libs.springBootStarterMail)
+    implementation(libs.openSamlApi)
+    implementation(libs.springSecuritySamlServiceProvider)
+    implementation(libs.xmlSecurity)
+    implementation(libs.springSessionJdbc)
 
-    implementation(libraries.bouncyCastleFipsProv)
-    implementation(libraries.bouncyCastlePkixFips)
-    implementation(libraries.bouncyCastleTlsFips)
-    implementation(libraries.bouncyCastleUtilFips)
+    implementation(libs.bouncyCastleFipsProv)
+    implementation(libs.bouncyCastlePkixFips)
+    implementation(libs.bouncyCastleTlsFips)
+    implementation(libs.bouncyCastleUtilFips)
 
-    implementation(libraries.guava)
+    implementation(libs.guava)
 
-    implementation(libraries.aspectJWeaver)
+    implementation(libs.aspectJWeaver)
 
-    implementation(libraries.thymeLeaf) {
+    implementation(libs.thymeLeaf) {
         exclude(module: "ognl")
     }
-    implementation(libraries.thymeleafSpring) {
+    implementation(libs.thymeleafSpring) {
         exclude(module: "ognl")
     }
-    implementation(libraries.thymeleafDialect) {
+    implementation(libs.thymeleafDialect) {
         exclude(module: "ognl")
     }
-    implementation(libraries.thymeleafExtrasSpringSecurity) {
+    implementation(libs.thymeleafExtrasSpringSecurity) {
         exclude(module: "ognl")
     }
 
-    implementation(libraries.unboundIdScimSdk) {
+    implementation(libs.unboundIdScimSdk) {
         exclude(module: "servlet-api")
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
@@ -58,53 +58,53 @@ dependencies {
         exclude(module: "json")
     }
 
-    implementation(libraries.hibernateValidator)
-    implementation(libraries.flywayHsqlDb)
-    implementation(libraries.flywayMySql)
-    implementation(libraries.flywayPostgresql)
-    implementation(libraries.hsqldb)
+    implementation(libs.hibernateValidator)
+    implementation(libs.flywayHsqlDb)
+    implementation(libs.flywayMySql)
+    implementation(libs.flywayPostgresql)
+    implementation(libs.hsqldb)
 
-    implementation(libraries.snakeyaml)
-    implementation(libraries.velocity)
+    implementation(libs.snakeyaml)
+    implementation(libs.velocity)
 
-    implementation(libraries.springWebMvc)
-    implementation(libraries.springSecurityLdap)
-    implementation(libraries.springLdapCore)
-    implementation(libraries.apacheLdapApi) {
+    implementation(libs.springWebMvc)
+    implementation(libs.springSecurityLdap)
+    implementation(libs.springLdapCore)
+    implementation(libs.apacheLdapApi) {
         exclude(module: "slf4j-api")
         exclude(module: "mina-core")
     }
 
-    implementation(libraries.passay)
+    implementation(libs.passay)
 
-    implementation(libraries.slf4jImpl)
-    implementation(libraries.log4jCore)
+    implementation(libs.slf4jImpl)
+    implementation(libs.log4jCore)
 
-    implementation(libraries.nimbusJwt)
-    implementation(libraries.orgJson)
+    implementation(libs.nimbusJwt)
+    implementation(libs.orgJson)
 
-    implementation(libraries.apacheHttpClient)
+    implementation(libs.apacheHttpClient)
 
     testImplementation(project(path: ":cloudfoundry-identity-model", configuration: "testArtifacts"))
 
-    testImplementation(libraries.springTest)
+    testImplementation(libs.springTest)
 
-    testImplementation(libraries.bytebuddy)
-    testImplementation(libraries.bytebuddyagent)
-    testImplementation(libraries.mockitoJunit5)
+    testImplementation(libs.bytebuddy)
+    testImplementation(libs.bytebuddyagent)
+    testImplementation(libs.mockitoJunit5)
 
-    testImplementation(libraries.postgresql)
-    testImplementation(libraries.mariaJdbcDriver)
+    testImplementation(libs.postgresql)
+    testImplementation(libs.mariaJdbcDriver)
 
-    testImplementation(libraries.tomcatElApi)
-    testImplementation(libraries.tomcatJasperEl)
-    testImplementation(libraries.tomcatJdbc)
+    testImplementation(libs.tomcatElApi)
+    testImplementation(libs.tomcatJasperEl)
+    testImplementation(libs.tomcatJdbc)
 
-    testImplementation(libraries.jsonPathAssert)
-    testImplementation(libraries.xmlUnit)
-    testImplementation(libraries.awaitility)
+    testImplementation(libs.jsonPathAssert)
+    testImplementation(libs.xmlUnit)
+    testImplementation(libs.awaitility)
 
-    implementation(libraries.commonsIo)
+    implementation(libs.commonsIo)
 }
 
 configurations.all {
