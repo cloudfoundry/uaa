@@ -6,14 +6,14 @@ repositories {
 
 dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
-    implementation(libraries.springBootStarter)
-    implementation(libraries.springBootStarterWeb)
-    implementation(libraries.springBootStarterLog4j2)
-    implementation(libraries.statsdClient)
-    testImplementation(libraries.mockitoJunit5)
-    testImplementation(libraries.bytebuddy)
-    testImplementation(libraries.bytebuddyagent)
-    implementation(libraries.jacksonDatabind)
+    implementation(libs.springBootStarter)
+    implementation(libs.springBootStarterWeb)
+    implementation(libs.springBootStarterLog4j2)
+    implementation(libs.statsdClient)
+    testImplementation(libs.mockitoJunit5)
+    testImplementation(libs.bytebuddy)
+    testImplementation(libs.bytebuddyagent)
+    implementation(libs.jacksonDatabind)
 }
 
 test {

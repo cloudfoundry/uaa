@@ -34,78 +34,78 @@ dependencies {
     }
     implementation(project(":cloudfoundry-identity-statsd-lib"))
     implementation(project(":cloudfoundry-identity-model"))
-    implementation(libraries.springSecurityConfig)
-    implementation(libraries.springSecurityWeb)
-    implementation(libraries.springBootStarter)
-    implementation(libraries.springBootStarterWeb)
-    implementation(libraries.thymeLeaf) {
+    implementation(libs.springSecurityConfig)
+    implementation(libs.springSecurityWeb)
+    implementation(libs.springBootStarter)
+    implementation(libs.springBootStarterWeb)
+    implementation(libs.thymeLeaf) {
         exclude(module: "ognl")
     }
-    implementation(libraries.thymeleafSpring) {
+    implementation(libs.thymeleafSpring) {
         exclude(module: "ognl")
     }
-    implementation(libraries.thymeleafDialect) {
+    implementation(libs.thymeleafDialect) {
         exclude(module: "ognl")
     }
-    implementation(libraries.thymeleafExtrasSpringSecurity) {
+    implementation(libs.thymeleafExtrasSpringSecurity) {
         exclude(module: "ognl")
     }
-    runtimeOnly(libraries.aspectJWeaver)
-    runtimeOnly(libraries.postgresql)
-    runtimeOnly(libraries.mariaJdbcDriver)
+    runtimeOnly(libs.aspectJWeaver)
+    runtimeOnly(libs.postgresql)
+    runtimeOnly(libs.mariaJdbcDriver)
 
-    implementation(libraries.braveInstrumentation)
-    implementation(libraries.braveContextSlf4j)
-    
+    implementation(libs.braveInstrumentation)
+    implementation(libs.braveContextSlf4j)
+
     // OpenAPI documentation
-    implementation(libraries.springdocOpenapi)
+    implementation(libs.springDocOpenapi)
 
-    implementation(libraries.springWeb)
-    implementation(libraries.springWebMvc)
+    implementation(libs.springWeb)
+    implementation(libs.springWebMvc)
 
-    providedCompile(libraries.tomcatEmbed)
-    implementation(libraries.bouncyCastleFipsProv)
+    providedCompile(libs.tomcatEmbed)
+    implementation(libs.bouncyCastleFipsProv)
 
     testImplementation(identityServer.sourceSets.test.output)
 
     testImplementation(project(":cloudfoundry-identity-model"))
     testImplementation(project(":cloudfoundry-identity-metrics-data"))
-    testImplementation(libraries.apacheLdapApi) {
+    testImplementation(libs.apacheLdapApi) {
         exclude(module: "slf4j-api")
     }
-    testImplementation(libraries.flywayCore)
-    testImplementation(libraries.hibernateValidator)
-    testImplementation(libraries.selenium)
-    testImplementation(libraries.seleniumRemoteDriver)
-    testImplementation(libraries.orgJson)
-    testImplementation(libraries.jsonAssert)
-    testImplementation(libraries.jsonPathAssert)
-    testImplementation(libraries.unboundIdScimSdk) {
+    testImplementation(libs.flywayCore)
+    testImplementation(libs.hibernateValidator)
+    testImplementation(libs.selenium)
+    testImplementation(libs.seleniumRemoteDriver)
+    testImplementation(libs.orgJson)
+    testImplementation(libs.jsonAssert)
+    testImplementation(libs.jsonPathAssert)
+    testImplementation(libs.unboundIdScimSdk) {
         exclude(module: "servlet-api")
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
     }
-    testImplementation(libraries.springBootStarterLog4j2)
-    testImplementation(libraries.springContextSupport)
-    testImplementation(libraries.springSessionJdbc)
-    testImplementation(libraries.springTest)
-    testImplementation(libraries.springSecurityLdap)
-    testImplementation(libraries.springSecurityTest)
-    testImplementation(libraries.springBootStarterMail)
-    testImplementation(libraries.passay)
-    testImplementation(libraries.mockitoJunit5)
-    testImplementation(libraries.bytebuddy)
-    testImplementation(libraries.bytebuddyagent)
-    testImplementation(libraries.tomcatJdbc)
-    testImplementation(libraries.springRestdocs)
-    testImplementation(libraries.greenmail)
-    testImplementation(libraries.commonsIo)
-    testImplementation(libraries.apacheHttpClient)
-    testImplementation(libraries.openSamlApi)
-    testImplementation(libraries.xmlUnit)
-    testImplementation(libraries.awaitility)
-    testImplementation(libraries.nimbusJwt)
+    testImplementation(libs.springBootStarterLog4j2)
+    testImplementation(libs.springContextSupport)
+    testImplementation(libs.springSessionJdbc)
+    testImplementation(libs.springTest)
+    testImplementation(libs.springSecurityLdap)
+    testImplementation(libs.springSecurityTest)
+    testImplementation(libs.springBootStarterMail)
+    testImplementation(libs.passay)
+    testImplementation(libs.mockitoJunit5)
+    testImplementation(libs.bytebuddy)
+    testImplementation(libs.bytebuddyagent)
+    testImplementation(libs.tomcatJdbc)
+    testImplementation(libs.springRestdocs)
+    testImplementation(libs.greenmail)
+    testImplementation(libs.commonsIo)
+    testImplementation(libs.apacheHttpClient)
+    testImplementation(libs.openSamlApi)
+    testImplementation(libs.xmlUnit)
+    testImplementation(libs.awaitility)
+    testImplementation(libs.nimbusJwt)
 }
 
 ext {
