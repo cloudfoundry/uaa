@@ -39,11 +39,11 @@ public class SamlConfig {
     private boolean requestSigned = true;
 
     /**
-     * @deprecated Since 78.13.0. Still honored today for SP metadata ({@code WantAssertionsSigned}) and for
-     * whether an unsigned SAML {@code Response} that only contains {@code EncryptedAssertion} elements is
-     * decrypted before validation. Authentication always requires a verifiable XML signature on the response
-     * or on every assertion after decryption; this flag does not relax that requirement. Scheduled for removal
-     * in a future release; configure the IdP to sign the response or assertions instead of relying on this toggle.
+     * @deprecated Since 78.13.0. Only controls the {@code WantAssertionsSigned} attribute in published SAML SP
+     * metadata. This flag no longer affects authentication behavior - encrypted assertions are always decrypted
+     * and evaluated, and authentication always requires a verifiable XML signature on the response or on every
+     * assertion after decryption. Scheduled for removal in a future release; configure the IdP to sign the
+     * response or assertions instead of relying on this metadata hint.
      */
     @Deprecated(since = "78.13.0", forRemoval = true)
     private boolean wantAssertionSigned = true;
