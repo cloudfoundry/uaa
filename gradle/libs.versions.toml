@@ -1,99 +1,212 @@
-# Direct 1:1 conversion from Groovy - versions mixed with libraries initially
-# This will be reorganized in the next commit
+# Gradle Version Catalog for UAA
+
+[versions]
+bouncyCastleFips = "2.1.2"
+bouncyCastlePkix = "2.1.11"
+bouncyCastleTls = "2.1.23"
+bouncyCastleUtil = "2.1.6"
+brave = "6.3.1"
+commonsCodec = "1.22.0"
+commonsIo = "2.22.0"
+cryptacular = "1.2.6"
+eclipseJgit = "7.6.0.202603022253-r"
+greenmail = "2.1.8"
+guava = "33.6.0-jre"
+jacoco = "4.0.2"
+jacocoAgent = "0.8.14"
+nimbusJwt = "10.9"
+opensaml = "5.2.2"
+orgJson = "20251224"
+passay = "2.0.0"
+selenium = "4.44.0"
+sonarqube = "7.3.0.8198"
+springBoot = "3.5.14"
+springdocOpenapi = "2.8.17"
+statsdClient = "3.1.0"
+unboundIdScimSdk = "2.0.0"
+velocity = "2.4.1"
+xmlSecurity = "4.0.4"
 
 [libraries]
-# Dependencies with inline versions (to be extracted later)
+# Apache Commons
+commonsCodec = { module = "commons-codec:commons-codec", version.ref = "commonsCodec" }
+commonsIo = { module = "commons-io:commons-io", version.ref = "commonsIo" }
+
+# Apache Directory Server
 apacheHttpClient = "org.apache.httpcomponents.client5:httpclient5"
 apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.7"
+
+# Apache Logging
+log4jCore = "org.apache.logging.log4j:log4j-core"
+slf4jImpl = "org.apache.logging.log4j:log4j-slf4j2-impl"
+
+# Apache Tomcat
+tomcatElApi = "org.apache.tomcat.embed:tomcat-embed-el"
+tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core"
+tomcatJasperEl = "org.apache.tomcat.embed:tomcat-embed-jasper"
+tomcatJdbc = "org.apache.tomcat:tomcat-jdbc"
+
+# Apache Velocity
+velocity = { module = "org.apache.velocity:velocity-engine-core", version.ref = "velocity" }
+
+# Apache XML Security
+xmlSecurity = { module = "org.apache.santuario:xmlsec", version.ref = "xmlSecurity" }
+
+# AspectJ
 aspectJWeaver = "org.aspectj:aspectjweaver"
+
+# Awaitility
 awaitility = "org.awaitility:awaitility"
-bouncyCastlePkixFips = "org.bouncycastle:bcpkix-fips:2.1.11"
-bouncyCastleFipsProv = "org.bouncycastle:bc-fips:2.1.2"
-bouncyCastleTlsFips = "org.bouncycastle:bctls-fips:2.1.23"
-bouncyCastleUtilFips = "org.bouncycastle:bcutil-fips:2.1.6"
-braveInstrumentation = "io.zipkin.brave:brave-instrumentation-servlet-jakarta:6.3.1"
-braveContextSlf4j = "io.zipkin.brave:brave-context-slf4j:6.3.1"
-commonsCodec = "commons-codec:commons-codec:1.22.0"
-commonsIo = "commons-io:commons-io:2.22.0"
-eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:7.6.0.202603022253-r"
+
+# BouncyCastle FIPS
+bouncyCastleFipsProv = { module = "org.bouncycastle:bc-fips", version.ref = "bouncyCastleFips" }
+bouncyCastlePkixFips = { module = "org.bouncycastle:bcpkix-fips", version.ref = "bouncyCastlePkix" }
+bouncyCastleTlsFips = { module = "org.bouncycastle:bctls-fips", version.ref = "bouncyCastleTls" }
+bouncyCastleUtilFips = { module = "org.bouncycastle:bcutil-fips", version.ref = "bouncyCastleUtil" }
+
+# ByteBuddy
+bytebuddy = "net.bytebuddy:byte-buddy"
+bytebuddyagent = "net.bytebuddy:byte-buddy-agent"
+
+# Eclipse JGit
+eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "eclipseJgit" }
+
+# FasterXML Jackson
+jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations"
+jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind"
+
+# Flyway
 flywayCore = "org.flywaydb:flyway-core"
 flywayHsqlDb = "org.flywaydb:flyway-database-hsqldb"
 flywayMySql = "org.flywaydb:flyway-mysql"
 flywayPostgresql = "org.flywaydb:flyway-database-postgresql"
-greenmail = "com.icegreen:greenmail:2.1.8"
-guava = "com.google.guava:guava:33.6.0-jre"
+
+# Google Guava
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+
+# Greenmail
+greenmail = { module = "com.icegreen:greenmail", version.ref = "greenmail" }
+
+# Hamcrest
 hamcrest = "org.hamcrest:hamcrest"
+
+# Hibernate
 hibernateValidator = "org.hibernate.validator:hibernate-validator"
+
+# HSQLDB
 hsqldb = "org.hsqldb:hsqldb"
-jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations"
-jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind"
+
+# JaCoCo
+jacocoAgent = { module = "org.jacoco:org.jacoco.agent", version.ref = "jacocoAgent" }
+
+# Jakarta
 jakartaValidationApi = "jakarta.validation:jakarta.validation-api"
-jacocoAgent = "org.jacoco:org.jacoco.agent:0.8.14"
+
+# JSON Processing
 jsonAssert = "org.skyscreamer:jsonassert"
 jsonPath = "com.jayway.jsonpath:json-path"
 jsonPathAssert = "com.jayway.jsonpath:json-path-assert"
+orgJson = { module = "org.json:json", version.ref = "orgJson" }
+
+# JUnit 5
 junit5JupiterApi = "org.junit.jupiter:junit-jupiter-api"
 junit5JupiterEngine = "org.junit.jupiter:junit-jupiter-engine"
 junit5JupiterParams = "org.junit.jupiter:junit-jupiter-params"
-log4jCore = "org.apache.logging.log4j:log4j-core"
+
+# Lombok
 lombok = "org.projectlombok:lombok"
+
+# MariaDB
 mariaJdbcDriver = "org.mariadb.jdbc:mariadb-java-client"
+
+# Mockito
 mockito = "org.mockito:mockito-core"
 mockitoJunit5 = "org.mockito:mockito-junit-jupiter"
-bytebuddy = "net.bytebuddy:byte-buddy"
-bytebuddyagent = "net.bytebuddy:byte-buddy-agent"
-openSamlApi = "org.opensaml:opensaml-saml-api:5.2.2"
-orgJson = "org.json:json:20251224"
-passay = "org.passay:passay:2.0.0"
+
+# Nimbus JOSE+JWT
+nimbusJwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbusJwt" }
+
+# OpenSAML
+openSamlApi = { module = "org.opensaml:opensaml-saml-api", version.ref = "opensaml" }
+
+# Passay
+passay = { module = "org.passay:passay", version.ref = "passay" }
+
+# PostgreSQL
 postgresql = "org.postgresql:postgresql"
-selenium = "org.seleniumhq.selenium:selenium-java:4.44.0"
-seleniumRemoteDriver = "org.seleniumhq.selenium:selenium-remote-driver:4.44.0"
+
+# Selenium
+selenium = { module = "org.seleniumhq.selenium:selenium-java", version.ref = "selenium" }
+seleniumRemoteDriver = { module = "org.seleniumhq.selenium:selenium-remote-driver", version.ref = "selenium" }
+
+# SLF4J
 slf4jApi = "org.slf4j:slf4j-api"
 slf4jImpl = "org.apache.logging.log4j:log4j-slf4j2-impl"
+
+# SnakeYAML
 snakeyaml = "org.yaml:snakeyaml"
+
+# Spring Framework
 springBeans = "org.springframework:spring-beans"
-springBootBom = "org.springframework.boot:spring-boot-dependencies:3.5.14"
-springBootStarter = "org.springframework.boot:spring-boot-starter"
-springBootStarterLog4j2 = "org.springframework.boot:spring-boot-starter-log4j2"
-springBootStarterTest = "org.springframework.boot:spring-boot-starter-test"
-springBootStarterTomcat = "org.springframework.boot:spring-boot-starter-tomcat"
-springBootStarterWeb = "org.springframework.boot:spring-boot-starter-web"
-springBootStarterMail = "org.springframework.boot:spring-boot-starter-mail"
 springContext = "org.springframework:spring-context"
 springContextSupport = "org.springframework:spring-context-support"
 springJdbc = "org.springframework:spring-jdbc"
+springTest = "org.springframework:spring-test"
+springTx = "org.springframework:spring-tx"
+springWeb = "org.springframework:spring-web"
+springWebMvc = "org.springframework:spring-webmvc"
+
+# Spring Boot
+springBootBom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
+springBootStarter = "org.springframework.boot:spring-boot-starter"
+springBootStarterLog4j2 = "org.springframework.boot:spring-boot-starter-log4j2"
+springBootStarterMail = "org.springframework.boot:spring-boot-starter-mail"
+springBootStarterTest = "org.springframework.boot:spring-boot-starter-test"
+springBootStarterTomcat = "org.springframework.boot:spring-boot-starter-tomcat"
+springBootStarterWeb = "org.springframework.boot:spring-boot-starter-web"
+
+# Spring Data
 springLdapCore = "org.springframework.ldap:spring-ldap-core"
+
+# Spring Doc
+springdocOpenapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdocOpenapi" }
+
+# Spring REST Docs
 springRestdocs = "org.springframework.restdocs:spring-restdocs-mockmvc"
-springdocOpenapi = "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17"
+
+# Spring Security
 springSecurityConfig = "org.springframework.security:spring-security-config"
 springSecurityCore = "org.springframework.security:spring-security-core"
 springSecurityLdap = "org.springframework.security:spring-security-ldap"
 springSecuritySamlServiceProvider = "org.springframework.security:spring-security-saml2-service-provider"
 springSecurityTest = "org.springframework.security:spring-security-test"
 springSecurityWeb = "org.springframework.security:spring-security-web"
+
+# Spring Session
 springSessionJdbc = "org.springframework.session:spring-session-jdbc"
-springTest = "org.springframework:spring-test"
-springTx = "org.springframework:spring-tx"
-springWeb = "org.springframework:spring-web"
-springWebMvc = "org.springframework:spring-webmvc"
-statsdClient = "com.timgroup:java-statsd-client:3.1.0"
+
+# StatsD
+statsdClient = { module = "com.timgroup:java-statsd-client", version.ref = "statsdClient" }
+
+# Thymeleaf
+thymeLeaf = "org.thymeleaf:thymeleaf"
 thymeleafDialect = "nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect"
 thymeleafExtrasSpringSecurity = "org.thymeleaf.extras:thymeleaf-extras-springsecurity6"
-thymeLeaf = "org.thymeleaf:thymeleaf"
 thymeleafSpring = "org.thymeleaf:thymeleaf-spring6"
-tomcatElApi = "org.apache.tomcat.embed:tomcat-embed-el"
-tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core"
-tomcatJasperEl = "org.apache.tomcat.embed:tomcat-embed-jasper"
-tomcatJdbc = "org.apache.tomcat:tomcat-jdbc"
+
+# UnboundID
 unboundIdLdapSdk = "com.unboundid:unboundid-ldapsdk"
-unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:2.0.0"
-velocity = "org.apache.velocity:velocity-engine-core:2.4.1"
-nimbusJwt = "com.nimbusds:nimbus-jose-jwt:10.9"
-xmlSecurity = "org.apache.santuario:xmlsec:4.0.4"
+unboundIdScimSdk = { module = "com.unboundid.product.scim:scim-sdk", version.ref = "unboundIdScimSdk" }
+
+# XMLUnit
 xmlUnit = "org.xmlunit:xmlunit-assertj"
 
-# Gradle plugins (will be moved to [plugins] section later)
-springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:3.5.14"
-springDependencyManagementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
-gradleJcocoPlugin = "org.barfuin.gradle.jacocolog:gradle-jacoco-log:4.0.2"
-sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:7.3.0.8198"
+# Zipkin Brave
+braveContextSlf4j = { module = "io.zipkin.brave:brave-context-slf4j", version.ref = "brave" }
+braveInstrumentation = { module = "io.zipkin.brave:brave-instrumentation-servlet-jakarta", version.ref = "brave" }
+
+[plugins]
+jacocoLog = { id = "org.barfuin.gradle.jacocolog", version.ref = "jacoco" }
+sonarqube = { id = "org.sonarsource.scanner.gradle.sonarqube", version.ref = "sonarqube" }
+springBoot = { id = "org.springframework.boot", version.ref = "springBoot" }
+springDependencyManagement = { id = "io.spring.dependency-management" }
