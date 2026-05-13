@@ -16,6 +16,19 @@ updates:
   - dependency-name: "org.springframework.boot:*"
     versions:
     - ">= 4"  # Stay in Spring Boot major version 3 and do updates manually.
+  groups:
+    selenium:
+      patterns:
+      - "org.seleniumhq.selenium:*"
+    guava:
+      patterns:  
+      - "com.google.guava:*"
+    bouncy-castle:
+      patterns:
+      - "org.bouncycastle:*"
+    jackson:
+      patterns:
+      - "com.fasterxml.jackson.*:*"
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:

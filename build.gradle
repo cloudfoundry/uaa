@@ -26,6 +26,19 @@ allprojects {
         imports {
             mavenBom(libs.springBootBom.get().toString())
         }
+        
+        // Libraries that have version conflicts
+        dependencies {
+            // Selenium - modules were at mixed versions (4.43.0 vs 4.31.0)
+            dependency "org.seleniumhq.selenium:selenium-java:${libs.versions.selenium.get()}"
+            dependency "org.seleniumhq.selenium:selenium-api:${libs.versions.selenium.get()}"
+            dependency "org.seleniumhq.selenium:selenium-chrome-driver:${libs.versions.selenium.get()}"
+            dependency "org.seleniumhq.selenium:selenium-remote-driver:${libs.versions.selenium.get()}"
+            dependency "org.seleniumhq.selenium:selenium-http:${libs.versions.selenium.get()}"
+            
+            // Guava - multiple versions from different transitive deps
+            dependency "com.google.guava:guava:${libs.versions.guava.get()}"
+        }
     }
 
     repositories {
@@ -69,13 +82,20 @@ subprojects {
 
         resolutionStrategy {
             resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                // OpenSAML modules - align for migration
                 if (details.requested.group == 'org.opensaml' && details.requested.name.startsWith("opensaml-")) {
                     details.useVersion "${libs.versions.opensaml.get()}"
                     details.because 'Pinning all opensaml modules to the same version for OpenSAML 5 migration.'
                 }
-                if (details.requested.group == 'org.cryptacular' && details.requested.name == 'cryptacular') {
+                // Cryptacular - avoid regressions  
+                else if (details.requested.group == 'org.cryptacular' && details.requested.name == 'cryptacular') {
                     details.useVersion "${libs.versions.cryptacular.get()}"
                     details.because 'Pinning cryptacular to 1.2.6 to avoid regressions from newer OpenSAML versions.'
+                }
+                // Selenium - force all modules to same version
+                else if (details.requested.group == 'org.seleniumhq.selenium') {
+                    details.useVersion "${libs.versions.selenium.get()}"
+                    details.because 'Force Selenium modules to consistent version'
                 }
             }
         }
@@ -93,7 +113,7 @@ subprojects {
         testRuntimeOnly(libs.jacocoAgent)
 
         // Ensure test runtime dependencies are included
-        testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+        testRuntimeOnly(libs.junit5PlatformLauncher)
 
         compileOnly(libs.lombok)
         annotationProcessor(libs.lombok)
@@ -157,12 +177,12 @@ subprojects {
 
     tasks.register('integrationTest', Test) {
         dependsOn subprojects.integrationTest
-        
+
         useJUnitPlatform()
 
         // This prevents integrationTests from hanging indefinitely
         timeout = Duration.ofMinutes(180)
-        
+
         // Integration test workers need same memory as unit tests
         // Actual CI configuration is controlled via integration_tests.sh script
         jvmArgs += ["-Xmx640m",
