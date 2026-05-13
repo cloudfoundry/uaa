@@ -114,6 +114,7 @@ orgJson = { module = "org.json:json", version.ref = "orgJson" }
 junit5JupiterApi = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit5JupiterEngine = { module = "org.junit.jupiter:junit-jupiter-engine" }
 junit5JupiterParams = { module = "org.junit.jupiter:junit-jupiter-params" }
+junit5PlatformLauncher = { module = "org.junit.platform:junit-platform-launcher" }
 
 # Lombok
 lombok = { module = "org.projectlombok:lombok" }
@@ -212,3 +213,4 @@ gradleJacocoPlugin = { module = "org.barfuin.gradle.jacocolog:gradle-jacoco-log"
 sonarqubePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarqube" }
 springBootGradlePlugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "springBoot" }
 springDependencyManagementGradlePlugin = { module = "io.spring.gradle:dependency-management-plugin", version.ref = "springDependencyManagement" }
+
