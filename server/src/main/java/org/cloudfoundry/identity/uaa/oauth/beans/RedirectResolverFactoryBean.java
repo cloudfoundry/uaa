@@ -12,7 +12,7 @@ public class RedirectResolverFactoryBean implements FactoryBean<RedirectResolver
     private final boolean allowUnsafeMatching;
 
     public RedirectResolverFactoryBean(
-            @Value("${uaa.oauth.redirect_uri.allow_unsafe_matching:true}") boolean allowUnsafeMatching
+            @Value("${uaa.oauth.redirect_uri.allow_unsafe_matching:false}") boolean allowUnsafeMatching
     ) {
         this.allowUnsafeMatching = allowUnsafeMatching;
     }
