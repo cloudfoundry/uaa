@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.flywaydb.core.internal.util.StringUtils;
@@ -766,12 +765,6 @@ class InvitationsEndpointMockMvcZonePathTests {
                                                                              String... emails) throws Exception {
         return MockMvcUtils.sendRequestWithTokenAndReturnResponse(webApplicationContext,
                 mockMvc, token, subdomain, clientId, redirectUri, emails);
-    }
-
-    private static void sendRequestWithToken(WebApplicationContext webApplicationContext, MockMvc mockMvc, String token, String clientId, String... emails) throws Exception {
-        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, token, null, clientId, "example.com", emails);
-        assertThat(response.getNewInvites()).hasSameSizeAs(emails);
-        assertThat(response.getFailedInvites()).isEmpty();
     }
 
     private static void assertResponseAndCodeCorrect(ExpiringCodeStore expiringCodeStore, String[] emails, String redirectUrl, IdentityZone zone, InvitationsResponse response, ClientDetails clientDetails) {

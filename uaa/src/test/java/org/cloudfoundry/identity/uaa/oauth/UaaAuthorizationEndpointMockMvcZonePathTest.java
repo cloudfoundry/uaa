@@ -96,17 +96,6 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
                         .andExpect(status().isFound())
                         .andExpect(header().string("Location", startsWith("http://sample.com/a/b?code=")));
             }
-
-            @Test
-            void shouldRedirect_whenTheRequestRedirectUriIsAnExactMatch() throws Exception {
-                mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com/a/b"))
-                        .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com/a/b#token_type=bearer&access_token=")));
-
-                mockMvc.perform(authCodeAuthorizeRequest("http://sample.com/a/b"))
-                        .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com/a/b?code=")));
-            }
         }
 
         @Nested

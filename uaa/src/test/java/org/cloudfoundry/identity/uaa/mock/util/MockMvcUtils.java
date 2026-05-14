@@ -351,8 +351,8 @@ public final class MockMvcUtils {
         return JsonUtils.readValue(result.getResponse().getContentAsString(), InvitationsResponse.class);
     }
 
-    public static URL inviteUser(ApplicationContext context, MockMvc mockMvc, String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin, String REDIRECT_URI) throws Exception {
-        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(context, mockMvc, userInviteToken, subdomain, clientId, REDIRECT_URI, email);
+    public static URL inviteUser(ApplicationContext context, MockMvc mockMvc, String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin, String redirectUri) throws Exception {
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(context, mockMvc, userInviteToken, subdomain, clientId, redirectUri, email);
         assertThat(response.getNewInvites()).hasSize(1);
         assertThat(context.getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class)).isEqualTo(expectedOrigin);
         return response.getNewInvites().getFirst().getInviteLink();

@@ -161,8 +161,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
 })
 @DefaultTestContext
-// public for LimitedModeTokenMockMvcTests
-public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
+@SuppressWarnings("rule:java:S5810")
+public // NOSONAR public for LimitedModeTokenMockMvcTests
+class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private static final String BAD_SECRET = "badsecret";
     protected AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
 
