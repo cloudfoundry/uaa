@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
@@ -254,8 +255,14 @@ class InvitationsEndpointMockMvcZonePathTests {
 
     @Nested
     @DefaultTestContext
+    @TestPropertySource(
+            properties = "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+    )
     @ExtendWith(ZoneSeederExtension.class)
     class WithOtherIdentityZone {
+
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
 
         private ZoneSeeder zoneSeeder;
 

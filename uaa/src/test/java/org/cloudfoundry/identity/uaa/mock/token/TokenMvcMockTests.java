@@ -155,7 +155,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@TestPropertySource(properties = {"uaa.url=https://localhost:8080/uaa", "jwt.token.refresh.format=jwt"})
+@TestPropertySource(properties = {
+        "uaa.url=https://localhost:8080/uaa",
+        "jwt.token.refresh.format=jwt",
+        "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+})
 @DefaultTestContext
 // public for LimitedModeTokenMockMvcTests
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {

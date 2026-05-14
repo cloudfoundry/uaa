@@ -1036,7 +1036,7 @@ public final class MockMvcUtils {
                 .param(TokenConstants.REQUEST_TOKEN_FORMAT, tokenFormat.getStringValue())
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost:8080/test");
         if (StringUtils.hasText(scope)) {
             authRequest.param(OAuth2Utils.SCOPE, scope);
         }
@@ -1052,7 +1052,7 @@ public final class MockMvcUtils {
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost:8080/test");
         if (StringUtils.hasText(scope)) {
             authRequest.param(OAuth2Utils.SCOPE, scope);
         }

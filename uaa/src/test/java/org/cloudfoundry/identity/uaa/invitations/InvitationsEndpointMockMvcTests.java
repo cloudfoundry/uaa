@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.TestPropertySource;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -139,8 +140,14 @@ class InvitationsEndpointMockMvcTests {
 
     @Nested
     @DefaultTestContext
+    @TestPropertySource(
+            properties = "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+    )
     @ExtendWith(ZoneSeederExtension.class)
     class WithOtherIdentityZone {
+
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
 
         private ZoneSeeder zoneSeeder;
 

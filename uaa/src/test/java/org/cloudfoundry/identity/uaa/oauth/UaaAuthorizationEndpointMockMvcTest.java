@@ -62,7 +62,13 @@ class UaaAuthorizationEndpointMockMvcTest {
 
     @Nested
     @DefaultTestContext
+    @TestPropertySource(
+            properties = "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+    )
     class WhenRedirectUriAllowUnsafeMatchingIsEnabled {
+
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
 
         @Nested
         @DefaultTestContext

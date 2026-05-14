@@ -160,7 +160,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-@TestPropertySource(properties = {"uaa.url=https://localhost:8080/uaa", "jwt.token.refresh.format=jwt"})
+@TestPropertySource(properties = {
+        "uaa.url=https://localhost:8080/uaa",
+        "jwt.token.refresh.format=jwt",
+        "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+})
 // public for LimitedModeTokenMockMvcTests
 @EnabledIfZonePathsEnabled
 @DefaultTestContext

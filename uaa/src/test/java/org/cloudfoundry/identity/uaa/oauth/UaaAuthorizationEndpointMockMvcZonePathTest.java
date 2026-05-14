@@ -70,7 +70,13 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
 
     @Nested
     @DefaultTestContext
+    @TestPropertySource(
+            properties = "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+    )
     class WhenRedirectUriAllowUnsafeMatchingIsEnabled {
+
+        @Autowired // Need a new mockMvc which is tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
 
         @Nested
         @DefaultTestContext
@@ -142,7 +148,7 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
     )
     class WhenRedirectUriAllowUnsafeMatchingIsDisabled {  // "spec-compliant" mode
 
-        @Autowired // Need a new mockMvc which is tied to the new web app context created by @TestPropertySource
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
         protected MockMvc mockMvc;
 
         @Nested
