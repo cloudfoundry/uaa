@@ -19,8 +19,8 @@ zones:
 ```
 
 - **Production default:** `uaa/src/main/resources/uaa.yml` sets `zones.paths.enabled: false`, so zone paths are off unless the deployer enables them.
-- **MockMVC Unit / test:** `uaa/src/test/resources/mockmvc_unittest_properties.yml` set `zones.paths.enabled: true` so Unit tests can exercise the feature.
-- **Integration / test:** `scripts/boot/uaa.yml` set `zones.paths.enabled: true` so integration tests can exercise the feature.
+- **MockMvc unit tests:** `uaa/src/test/resources/mockmvc_unittest_properties.yml` sets `zones.paths.enabled: true` so unit tests can exercise the feature.
+- **Integration tests:** `scripts/boot/uaa.yml` sets `zones.paths.enabled: true` so integration tests can exercise the feature.
 
 #### Changed configuration options
 
