@@ -19,7 +19,8 @@ zones:
 ```
 
 - **Production default:** `uaa/src/main/resources/uaa.yml` sets `zones.paths.enabled: false`, so zone paths are off unless the deployer enables them.
-- **Integration / test:** `scripts/boot/uaa.yml` and `uaa/src/test/resources/integration_test_properties.yml` set `zones.paths.enabled: true` so tests can exercise the feature.
+- **MockMVC Unit / test:** `uaa/src/test/resources/mockmvc_unittest_properties.yml` set `zones.paths.enabled: true` so Unit tests can exercise the feature.
+- **Integration / test:** `scripts/boot/uaa.yml` set `zones.paths.enabled: true` so integration tests can exercise the feature.
 
 #### Changed configuration options
 
@@ -194,7 +195,7 @@ The entire zone-path feature can be enabled or disabled at runtime through the `
 |---|---|---|
 | `uaa/src/main/resources/uaa.yml` | `false` | Default for production — zone paths are **off** unless explicitly enabled by the deployer. |
 | `scripts/boot/uaa.yml` | `true` | Development/integration test server — zone paths are **on** so that integration tests exercise the feature. |
-| `uaa/src/test/resources/integration_test_properties.yml` | `true` | Unit test properties — zone paths are **on** so that `@DefaultTestContext` MockMvc tests exercise zone-path filters. |
+| `uaa/src/test/resources/mockmvc_unittest_properties.yml` | `true` | Unit test properties — zone paths are **on** so that `@DefaultTestContext` MockMvc tests exercise zone-path filters. |
 
 YAML syntax in all three files:
 

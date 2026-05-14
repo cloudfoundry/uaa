@@ -32,7 +32,7 @@ class YamlConfigurationValidationTests {
 
     @Test
     void validConfiguration() {
-        System.setProperty("UAA_CONFIG_URL", "classpath:integration_test_properties.yml");
+        System.setProperty("UAA_CONFIG_URL", "classpath:mockmvc_unittest_properties.yml");
         var applicationContext = createApplicationContext();
         assertThatNoException().isThrownBy(applicationContext::refresh);
     }
@@ -72,15 +72,10 @@ class YamlConfigurationValidationTests {
         }
     }
 
-    ;
-
     static class TestMockContext extends MockServletContext {
         @Override
         public <T extends EventListener> void addListener(@Nullable T t) {
             //no op
         }
     }
-
-    ;
-
 }
