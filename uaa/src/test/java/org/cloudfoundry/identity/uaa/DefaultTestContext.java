@@ -71,7 +71,7 @@ class TestPropertyInitializer implements ApplicationContextInitializer<Configura
 
     @Override
     public void initialize(ConfigurableWebApplicationContext applicationContext) {
-        System.setProperty("UAA_CONFIG_URL","classpath:integration_test_properties.yml");
+        System.setProperty("UAA_CONFIG_URL","classpath:mockmvc_unittest_properties.yml");
         SamlConfiguration.setupOpenSaml();
     }
 }
