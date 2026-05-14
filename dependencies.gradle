@@ -12,7 +12,7 @@ versions.springBootVersion = "3.5.14"
 versions.guavaVersion = "33.6.0-jre"
 versions.seleniumVersion = "4.43.0"
 versions.braveVersion = "6.3.1"
-versions.opensaml = "5.2.1"
+versions.opensaml = "5.2.2"
 // Pin cryptacular for the OpenSAML 5.2.x upgrade to maintain compatibility with our FIPS dependency set.
 versions.cryptacular = "1.2.6"
 
