@@ -16,6 +16,10 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.extern.slf4j.Slf4j;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
@@ -85,7 +89,7 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
             if (relyingPartyRegistration == null) {
                 return null;
             } else {
-                String baseUrl = StringUtils.hasText(entityBaseURL) ? entityBaseURL : getApplicationUri(request);
+                String baseUrl = resolveBaseUrl(entityBaseURL, request);
                 Function<String, String> templateResolver = this.templateResolver(baseUrl, relyingPartyRegistration);
                 String relyingPartyEntityId = templateResolver.apply(relyingPartyRegistration.getEntityId());
                 String assertionConsumerServiceLocation = templateResolver.apply(relyingPartyRegistration.getAssertionConsumerServiceLocation());
@@ -150,6 +154,63 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
         uriVariables.put("entityId", StringUtils.hasText(entityId) ? entityId : "");
         uriVariables.put("registrationId", StringUtils.hasText(registrationId) ? registrationId : "");
         return uriVariables;
+    }
+
+    /**
+     * Determines the base URL used to expand {@code {baseUrl}} template variables in
+     * relying-party endpoint locations, accounting for both zone-access patterns:
+     *
+     * <ul>
+     *   <li><b>Subdomain-based zones</b> ({@code http://zone.host/uaa/…}): when
+     *       {@code entityBaseURL} is configured the zone subdomain is prepended to its
+     *       host, e.g. {@code http://localhost:8080/uaa} →
+     *       {@code http://zone.localhost:8080/uaa}.</li>
+     *   <li><b>Path-based zones</b> ({@code http://host/z/{subdomain}/…}):
+     *       {@link ZonePathContextRewritingFilter} has already rewritten
+     *       {@code request.getContextPath()} to include {@code /z/{subdomain}}, so
+     *       {@link #getApplicationUri} produces the correct zone-specific base URL.
+     *       {@code entityBaseURL} is a static operator setting that cannot encode the
+     *       per-zone path dynamically, therefore it is ignored for this access pattern.</li>
+     * </ul>
+     *
+     * When {@code entityBaseURL} is not configured the base URL is always derived from
+     * the incoming HTTP request, which already carries the correct zone information
+     * (subdomain in the {@code Host} header, or zone path in the rewritten context path).
+     */
+    private static String resolveBaseUrl(String entityBaseURL, HttpServletRequest request) {
+        // Path-based zone: ZonePathContextRewritingFilter has embedded /z/{subdomain}
+        // into the context path. entityBaseURL is a static value that cannot reflect this
+        // dynamically, so always derive from the request for this access pattern.
+        if (isZonePathRequest(request)) {
+            return getApplicationUri(request);
+        }
+
+        if (!StringUtils.hasText(entityBaseURL)) {
+            return getApplicationUri(request);
+        }
+
+        // Subdomain-based zone with entityBaseURL configured: prepend the zone
+        // subdomain to the host so ACS/SLO endpoints resolve to the right virtual host.
+        IdentityZone currentZone = IdentityZoneHolder.get();
+        if (!currentZone.isUaa()) {
+            return UaaUrlUtils.addSubdomainToUrl(entityBaseURL, currentZone.getSubdomain());
+        }
+        return entityBaseURL;
+    }
+
+    /**
+     * Returns {@code true} when the current request is being served under a path-based
+     * zone URL ({@code /z/{subdomain}/}), as signalled by the
+     * {@link ZonePathContextRewritingFilter#ZONE_ORIGINAL_CONTEXT_PATH} request attribute.
+     */
+    private static boolean isZonePathRequest(HttpServletRequest request) {
+        Object origAttr = request.getAttribute(ZonePathContextRewritingFilter.ZONE_ORIGINAL_CONTEXT_PATH);
+        if (origAttr instanceof String originalContextPath) {
+            String contextPath = request.getContextPath();
+            return contextPath != null
+                    && contextPath.startsWith(originalContextPath + ZonePathContextRewritingFilter.ZONE_PATH_PREFIX);
+        }
+        return false;
     }
 
     private static String getApplicationUri(HttpServletRequest request) {

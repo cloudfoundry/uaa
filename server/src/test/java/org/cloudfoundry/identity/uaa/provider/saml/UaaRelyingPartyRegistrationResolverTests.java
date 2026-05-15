@@ -16,6 +16,10 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +64,11 @@ class UaaRelyingPartyRegistrationResolverTests {
         registration = mock(RelyingPartyRegistration.class);
         repository = mock(RelyingPartyRegistrationRepository.class);
         resolver = new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", "http://localhost:8080/uaa");
+    }
+
+    @AfterEach
+    void afterEach() {
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -142,21 +151,7 @@ class UaaRelyingPartyRegistrationResolverTests {
 
         String expectedBaseUrl = "https://uaa.example.com/uaa-security";
 
-        RelyingPartyRegistration testRegistration = RelyingPartyRegistration.withRegistrationId("test-idp")
-                .entityId("{baseUrl}/saml/metadata")
-                .assertionConsumerServiceLocation("{baseUrl}/saml/SSO")
-                .assertionConsumerServiceBinding(Saml2MessageBinding.POST)
-                .singleLogoutServiceLocation("{baseUrl}/saml/SingleLogout")
-                .singleLogoutServiceResponseLocation("{baseUrl}/saml/SingleLogout")
-                .singleLogoutServiceBinding(Saml2MessageBinding.POST)
-                .assertingPartyMetadata(party -> party
-                        .entityId("https://idp.example.com")
-                        .singleSignOnServiceLocation("https://idp.example.com/sso")
-                        .singleSignOnServiceBinding(Saml2MessageBinding.POST)
-                        .wantAuthnRequestsSigned(false))
-                .build();
-
-        doReturn(testRegistration).when(repository).findByRegistrationId("test-idp");
+        doReturn(buildTestRegistration()).when(repository).findByRegistrationId("test-idp");
 
         RelyingPartyRegistration result = resolverWithNullOrEmptyBaseUrl.resolve(request, "test-idp");
 
@@ -181,7 +176,134 @@ class UaaRelyingPartyRegistrationResolverTests {
 
         String expectedBaseUrl = StringUtils.trimTrailingCharacter(configuredBaseUrl, '/');
 
-        RelyingPartyRegistration testRegistration = RelyingPartyRegistration.withRegistrationId("test-idp")
+        doReturn(buildTestRegistration()).when(repository).findByRegistrationId("test-idp");
+
+        RelyingPartyRegistration result = resolverWithConfiguredBaseUrl.resolve(request, "test-idp");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getEntityId()).isEqualTo(expectedBaseUrl + "/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SingleLogout");
+    }
+
+    @Test
+    void resolveWhenEntityBaseUrlIsSetAndNonDefaultZoneSubdomainPrependsSubdomainToHost() {
+        UaaRelyingPartyRegistrationResolver resolverWithConfiguredBaseUrl =
+                new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", "http://localhost:8080/uaa");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("myzone.localhost");
+        request.setServerPort(8080);
+        request.setContextPath("/uaa");
+        request.setRequestURI("/uaa/saml/metadata/test-idp");
+
+        IdentityZone zone = new IdentityZone();
+        zone.setId("myzone-id");
+        zone.setSubdomain("myzone");
+        IdentityZoneHolder.set(zone);
+
+        RelyingPartyRegistration testRegistration = buildTestRegistration();
+        doReturn(testRegistration).when(repository).findByRegistrationId("test-idp");
+
+        RelyingPartyRegistration result = resolverWithConfiguredBaseUrl.resolve(request, "test-idp");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getEntityId()).isEqualTo("http://myzone.localhost:8080/uaa/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo("http://myzone.localhost:8080/uaa/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo("http://myzone.localhost:8080/uaa/saml/SingleLogout");
+    }
+
+    /**
+     * Validates that {@code entityBaseURL} is ignored when the request is path-based zone access,
+     * regardless of whether {@code zones.paths.enabled} is set as a system property.
+     *
+     * <p>This test is intentionally NOT gated by {@code @EnabledIfZonePathsEnabled}. The companion
+     * MockMvc test ({@code nonDefaultZoneSamlMetadataXMLValidationViaZonePath}) goes through the
+     * real {@link org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter} and is
+     * annotated with {@code @EnabledIfZonePathsEnabled}, so it can be silently skipped when
+     * {@code zones.paths.enabled} is not set (e.g. running from an IDE without Gradle's system
+     * property default). This unit test runs unconditionally and is the safety net that would
+     * fail if {@link org.cloudfoundry.identity.uaa.provider.saml.UaaRelyingPartyRegistrationResolver#isZonePathRequest}
+     * were removed or returned {@code false} for all inputs.
+     *
+     * <p>Request setup mirrors what {@link org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter}
+     * actually produces in the MockMvc (no-{@code /uaa}-context-path) environment:
+     * <ul>
+     *   <li>{@code ZONE_ORIGINAL_CONTEXT_PATH = ""} — original context path before filter runs</li>
+     *   <li>{@code getContextPath() = "/z/myzone"} — context path after filter rewrites it</li>
+     * </ul>
+     * The filter would produce {@code ZONE_ORIGINAL_CONTEXT_PATH = "/uaa"} in a production deployment
+     * with a servlet context path of {@code /uaa}; that is tested separately below.
+     */
+    @Test
+    void resolveWhenEntityBaseUrlIsSetAndNonDefaultZonePathIgnoresEntityBaseUrlAndUsesRequestContextPath() {
+        UaaRelyingPartyRegistrationResolver resolverWithConfiguredBaseUrl =
+                new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", "http://localhost:8080/uaa");
+
+        // Realistic MockMvc scenario: no /uaa context path prefix. The filter rewrites
+        // contextPath from "" to "/z/myzone" and records ZONE_ORIGINAL_CONTEXT_PATH="".
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        request.setContextPath("/z/myzone");
+        request.setRequestURI("/z/myzone/saml/metadata/test-idp");
+        request.setAttribute(ZonePathContextRewritingFilter.ZONE_ORIGINAL_CONTEXT_PATH, "");
+
+        IdentityZone zone = new IdentityZone();
+        zone.setId("myzone-id");
+        zone.setSubdomain("myzone");
+        IdentityZoneHolder.set(zone);
+
+        doReturn(buildTestRegistration()).when(repository).findByRegistrationId("test-idp");
+        RelyingPartyRegistration result = resolverWithConfiguredBaseUrl.resolve(request, "test-idp");
+
+        // entityBaseURL ("http://localhost:8080/uaa") is ignored for zone-path requests.
+        // If isZonePathRequest returned false, the subdomain path would be taken instead and
+        // the base URL would be "http://myzone.localhost:8080/uaa" — a different host/path.
+        assertThat(result).isNotNull();
+        assertThat(result.getEntityId()).isEqualTo("http://localhost:8080/z/myzone/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo("http://localhost:8080/z/myzone/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo("http://localhost:8080/z/myzone/saml/SingleLogout");
+    }
+
+    /**
+     * Production-deployment variant: servlet context path is {@code /uaa}, so the filter sets
+     * {@code ZONE_ORIGINAL_CONTEXT_PATH="/uaa"} and rewrites {@code getContextPath()} to
+     * {@code /uaa/z/myzone}. entityBaseURL must still be ignored.
+     */
+    @Test
+    void resolveWhenEntityBaseUrlIsSetAndNonDefaultZonePathWithServletContextPathIgnoresEntityBaseUrl() {
+        UaaRelyingPartyRegistrationResolver resolverWithConfiguredBaseUrl =
+                new UaaRelyingPartyRegistrationResolver(repository, "cloudfoundry-saml-login", "http://localhost:8080/uaa");
+
+        // Production scenario: UAA deployed at context path /uaa; filter rewrites contextPath
+        // from "/uaa" to "/uaa/z/myzone" and sets ZONE_ORIGINAL_CONTEXT_PATH="/uaa".
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        request.setContextPath("/uaa/z/myzone");
+        request.setRequestURI("/uaa/z/myzone/saml/metadata/test-idp");
+        request.setAttribute(ZonePathContextRewritingFilter.ZONE_ORIGINAL_CONTEXT_PATH, "/uaa");
+
+        IdentityZone zone = new IdentityZone();
+        zone.setId("myzone-id");
+        zone.setSubdomain("myzone");
+        IdentityZoneHolder.set(zone);
+
+        doReturn(buildTestRegistration()).when(repository).findByRegistrationId("test-idp");
+        RelyingPartyRegistration result = resolverWithConfiguredBaseUrl.resolve(request, "test-idp");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getEntityId()).isEqualTo("http://localhost:8080/uaa/z/myzone/saml/metadata");
+        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo("http://localhost:8080/uaa/z/myzone/saml/SSO");
+        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo("http://localhost:8080/uaa/z/myzone/saml/SingleLogout");
+    }
+
+    private RelyingPartyRegistration buildTestRegistration() {
+        return RelyingPartyRegistration.withRegistrationId("test-idp")
                 .entityId("{baseUrl}/saml/metadata")
                 .assertionConsumerServiceLocation("{baseUrl}/saml/SSO")
                 .assertionConsumerServiceBinding(Saml2MessageBinding.POST)
@@ -194,14 +316,5 @@ class UaaRelyingPartyRegistrationResolverTests {
                         .singleSignOnServiceBinding(Saml2MessageBinding.POST)
                         .wantAuthnRequestsSigned(false))
                 .build();
-
-        doReturn(testRegistration).when(repository).findByRegistrationId("test-idp");
-
-        RelyingPartyRegistration result = resolverWithConfiguredBaseUrl.resolve(request, "test-idp");
-
-        assertThat(result).isNotNull();
-        assertThat(result.getEntityId()).isEqualTo(expectedBaseUrl + "/saml/metadata");
-        assertThat(result.getAssertionConsumerServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SSO");
-        assertThat(result.getSingleLogoutServiceLocation()).isEqualTo(expectedBaseUrl + "/saml/SingleLogout");
     }
 }
