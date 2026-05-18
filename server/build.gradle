@@ -40,7 +40,7 @@ dependencies {
     implementation(libs.guava)
 
     // OpenAPI documentation
-    implementation(libs.springdocOpenapi)
+    implementation(libs.springDocOpenapi)
 
     implementation(libs.aspectJRt)
     implementation(libs.aspectJWeaver)

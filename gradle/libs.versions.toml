@@ -23,7 +23,7 @@ selenium = "4.44.0"
 sonarqube = "7.3.0.8198"
 springBoot = "4.0.0"
 springDependencyManagement = "1.1.7"
-springDocOpenapi = "2.8.17"
+springDocOpenapi = "3.0.2"
 springRetry = "2.0.12"
 statsdClient = "3.1.0"
 unboundIdScimSdk = "2.0.0"
@@ -56,6 +56,7 @@ velocity = { module = "org.apache.velocity:velocity-engine-core", version.ref = 
 xmlSecurity = { module = "org.apache.santuario:xmlsec", version.ref = "xmlSecurity" }
 
 # AspectJ
+aspectJRt = { module = "org.aspectj:aspectjrt" }
 aspectJWeaver = { module = "org.aspectj:aspectjweaver" }
 
 # Awaitility
