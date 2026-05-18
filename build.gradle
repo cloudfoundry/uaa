@@ -128,8 +128,11 @@ subprojects {
         // gradle might stop the test run due to the failFast but still concludes with BUILD SUCCESSFUL (if the retry is successful)
         failFast = false
         useJUnitPlatform()
-        // Reduced from 1024m to 640m - unit tests don't need as much as integration tests
-        jvmArgs += ["-Xmx640m",
+        // Increased to 1536m for Spring Boot 4 compatibility
+        jvmArgs += ["-Xmx1536m",
+                    "-Xms512m",
+                    "-XX:MaxMetaspaceSize=512m",
+                    "-XX:+UseG1GC",
                     "-XX:+StartAttachListener",
                     "-XX:+HeapDumpOnOutOfMemoryError",
                     "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"
