@@ -36,13 +36,12 @@ class EmptyPasswordAwareEncoder implements PasswordEncoder {
             return false;
         }
 
-        String extracted = extractPasswordValue(encodedPassword);
-
-        if (isBcryptHash(extracted)) {
-            return bcryptMatchesEmpty(extracted);
+        if ("{noop}".equals(encodedPassword)) {
+            return true;
         }
 
-        return extracted.isEmpty();
+        String extracted = extractPasswordValue(encodedPassword);
+        return isBcryptHash(extracted) && bcryptMatchesEmpty(extracted);
     }
 
     private String extractPasswordValue(String encodedPassword) {

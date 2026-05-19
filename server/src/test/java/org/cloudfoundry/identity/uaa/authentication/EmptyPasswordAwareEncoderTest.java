@@ -32,6 +32,27 @@ class EmptyPasswordAwareEncoderTest {
     }
 
     @Test
+    void emptyRawPassword_doesNotMatchRawEmptyStoredValue() {
+        assertThat(encoder.matches("", "")).isFalse();
+    }
+
+    @Test
+    void emptyRawPassword_doesNotMatchEmptyBracesPrefix() {
+        assertThat(encoder.matches("", "{}")).isFalse();
+    }
+
+    @Test
+    void emptyRawPassword_doesNotMatchUnknownPrefixWithEmptyValue() {
+        assertThat(encoder.matches("", "{plaintext}")).isFalse();
+        assertThat(encoder.matches("", "{argon2}")).isFalse();
+    }
+
+    @Test
+    void emptyRawPassword_doesNotMatchBcryptPrefixWithoutHash() {
+        assertThat(encoder.matches("", "{bcrypt}")).isFalse();
+    }
+
+    @Test
     void nonEmptyRawPassword_delegatesToWrappedEncoder() {
         String encoded = bcrypt.encode("secret");
         assertThat(encoder.matches("secret", encoded)).isTrue();
