@@ -77,7 +77,7 @@ public class RateLimiterStatus {
                 json = OM.writerWithDefaultPrettyPrinter().writeValueAsString(this);
             }
             catch (JacksonException e) {
-                json = "JsonProcessingException (" + e.getMessage() + "): "
+                json = "JacksonException (" + e.getMessage() + "): "
                         + "current: " + current
                         + "fromSource: " + fromSource;
             }
