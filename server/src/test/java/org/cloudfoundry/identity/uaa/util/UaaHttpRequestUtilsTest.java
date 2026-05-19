@@ -2,12 +2,12 @@ package org.cloudfoundry.identity.uaa.util;
 
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsServer;
-import org.apache.hc.core5.http.HttpException;
-import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.client5.http.HttpRoute;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.routing.HttpRoutePlanner;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
 import org.junit.jupiter.api.AfterAll;
@@ -18,11 +18,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLHandshakeException;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 import static org.springframework.http.HttpStatus.OK;
@@ -128,11 +134,11 @@ class UaaHttpRequestUtilsTest {
     }
 
     public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, 20, 2, 5, 2000, 2, 3000);
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, new UaaHttpRequestUtils.HttpClientConfig(20, 2, 5, 2000, 2, 3000, 3000, Integer.MAX_VALUE));
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
         builder.setRoutePlanner(routePlanner);
-        RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE, Integer.MAX_VALUE));
+        RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE));
         try {
             template.getForObject(url, String.class);
         } catch (Exception ignored) {
@@ -148,6 +154,66 @@ class UaaHttpRequestUtilsTest {
     void skipSslValidation() {
         RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 10_000));
         assertThat(restTemplate.getForEntity(httpsUrl, String.class).getStatusCode()).isEqualTo(OK);
+    }
+
+    @Test
+    void clientBuilderAppliesReadTimeout() throws Exception {
+        int readTimeoutMs = 300;
+        var loopback = java.net.InetAddress.getLoopbackAddress();
+        // Accept the connection but hold it open without writing a response to trigger the read timeout.
+        try (ServerSocket ss = new ServerSocket(0, 1, loopback)) {
+            int port = ss.getLocalPort();
+            Thread acceptThread = new Thread(() -> {
+                try (var socket = ss.accept()) {
+                    // Sleep longer than the read timeout so the client times out first.
+                    Thread.sleep(readTimeoutMs * 10L);
+                } catch (Exception ignored) {}
+            });
+            acceptThread.setDaemon(true);
+            acceptThread.start();
+
+            HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false,
+                    new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 4000, readTimeoutMs, 4000));
+            RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, 4000));
+            long start = System.currentTimeMillis();
+            assertThat(catchThrowable(
+                    () -> template.getForObject("http://" + loopback.getHostAddress() + ":" + port + "/", String.class)))
+                    .isInstanceOf(ResourceAccessException.class);
+            long elapsed = System.currentTimeMillis() - start;
+            // Must have waited at least readTimeoutMs, and well under the connect timeout
+            assertThat(elapsed).isGreaterThanOrEqualTo(readTimeoutMs).isLessThan(4_000);
+        }
+    }
+
+    @Test
+    void clientBuilderWithZeroTimeoutsDoesNotTimeOut() throws Exception {
+        // Zero timeouts should disable the timeout — a real request to the local HTTP server must succeed.
+        var loopback = java.net.InetAddress.getLoopbackAddress();
+        try (ServerSocket ss = new ServerSocket(0, 1, loopback)) {
+            int port = ss.getLocalPort();
+            Thread serverThread = new Thread(() -> {
+                try {
+                    var clientSocket = ss.accept();
+                    var out = clientSocket.getOutputStream();
+                    var in = clientSocket.getInputStream();
+                    // Read until end of HTTP request headers
+                    var headerReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.US_ASCII));
+                    String line;
+                    while ((line = headerReader.readLine()) != null && !line.isEmpty()) {}
+                    String response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+                    out.write(response.getBytes(StandardCharsets.US_ASCII));
+                    out.flush();
+                    clientSocket.close();
+                } catch (Exception ignored) {}
+            });
+            serverThread.setDaemon(true);
+            serverThread.start();
+
+            HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(false,
+                    new UaaHttpRequestUtils.HttpClientConfig(10, 5, 0, 2000, 0, 0, 0, 0));
+            RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, 0));
+            assertThat(template.getForEntity("http://" + loopback.getHostAddress() + ":" + port + "/", String.class).getStatusCode().value()).isEqualTo(200);
+        }
     }
 
     @Test

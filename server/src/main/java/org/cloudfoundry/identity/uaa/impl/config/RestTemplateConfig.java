@@ -28,12 +28,12 @@ public class RestTemplateConfig {
 
     @Bean
     public RestTemplate nonTrustingRestTemplate() {
-        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, timeout, timeout, maxTotal, maxPerRoute, maxKeepAlive, validateAfterInactivity, retryCount));
+        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, timeout, timeout, this));
     }
 
     @Bean
     public RestTemplate trustingRestTemplate() {
-        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true, timeout, timeout, maxTotal, maxPerRoute, maxKeepAlive, validateAfterInactivity, retryCount));
+        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true, timeout, timeout, this));
     }
 
     public static RestTemplateConfig createDefaults() {
