@@ -227,7 +227,7 @@ class IdentityProviderEndpointsMockMvcZonePathTests {
         //no access token
         mockMvc.perform(
                 delete("/identity-providers/{id}", created.getId())
-        ).andExpect(status().isForbidden());
+        ).andExpect(status().isUnauthorized());
 
         mockMvc.perform(
                 delete("/identity-providers/{id}", created.getId())
