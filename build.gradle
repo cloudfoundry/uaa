@@ -38,6 +38,9 @@ allprojects {
             
             // Guava - multiple versions from different transitive deps
             dependency "com.google.guava:guava:${libs.versions.guava.get()}"
+
+            // Commons Codec - OpenSAML/Shibboleth dependencies bring in older versions
+            dependency "commons-codec:commons-codec:${libs.versions.commonsCodec.get()}"
         }
     }
 
