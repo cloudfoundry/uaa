@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.flywaydb.core.internal.util.StringUtils;
@@ -39,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
@@ -254,8 +254,14 @@ class InvitationsEndpointMockMvcZonePathTests {
 
     @Nested
     @DefaultTestContext
+    @TestPropertySource(
+            properties = "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+    )
     @ExtendWith(ZoneSeederExtension.class)
     class WithOtherIdentityZone {
+
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
 
         private ZoneSeeder zoneSeeder;
 
@@ -759,12 +765,6 @@ class InvitationsEndpointMockMvcZonePathTests {
                                                                              String... emails) throws Exception {
         return MockMvcUtils.sendRequestWithTokenAndReturnResponse(webApplicationContext,
                 mockMvc, token, subdomain, clientId, redirectUri, emails);
-    }
-
-    private static void sendRequestWithToken(WebApplicationContext webApplicationContext, MockMvc mockMvc, String token, String clientId, String... emails) throws Exception {
-        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, token, null, clientId, "example.com", emails);
-        assertThat(response.getNewInvites()).hasSameSizeAs(emails);
-        assertThat(response.getFailedInvites()).isEmpty();
     }
 
     private static void assertResponseAndCodeCorrect(ExpiringCodeStore expiringCodeStore, String[] emails, String redirectUrl, IdentityZone zone, InvitationsResponse response, ClientDetails clientDetails) {

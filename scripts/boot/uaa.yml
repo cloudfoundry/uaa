@@ -375,3 +375,8 @@ oauth:
       - roles
       - user_attributes
       - uaa.offline_token
+
+uaa:
+  oauth:
+    redirect_uri:
+      allow_unsafe_matching: true

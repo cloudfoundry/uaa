@@ -70,7 +70,13 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
 
     @Nested
     @DefaultTestContext
+    @TestPropertySource(
+            properties = "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+    )
     class WhenRedirectUriAllowUnsafeMatchingIsEnabled {
+
+        @Autowired // Need a new mockMvc which is tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
 
         @Nested
         @DefaultTestContext
@@ -82,17 +88,6 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
 
             @Test
             void shouldRedirect_whenItReliesOnLegacyWildcardBehavior() throws Exception {
-                mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com/a/b"))
-                        .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com/a/b#token_type=bearer&access_token=")));
-
-                mockMvc.perform(authCodeAuthorizeRequest("http://sample.com/a/b"))
-                        .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com/a/b?code=")));
-            }
-
-            @Test
-            void shouldRedirect_whenTheRequestRedirectUriIsAnExactMatch() throws Exception {
                 mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com/a/b"))
                         .andExpect(status().isFound())
                         .andExpect(header().string("Location", startsWith("http://sample.com/a/b#token_type=bearer&access_token=")));
@@ -142,7 +137,7 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
     )
     class WhenRedirectUriAllowUnsafeMatchingIsDisabled {  // "spec-compliant" mode
 
-        @Autowired // Need a new mockMvc which is tied to the new web app context created by @TestPropertySource
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
         protected MockMvc mockMvc;
 
         @Nested

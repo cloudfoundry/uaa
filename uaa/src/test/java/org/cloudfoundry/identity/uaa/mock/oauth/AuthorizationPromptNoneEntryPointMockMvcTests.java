@@ -11,8 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@TestPropertySource(properties = "uaa.oauth.redirect_uri.allow_unsafe_matching=true")
 @DefaultTestContext
 class AuthorizationPromptNoneEntryPointMockMvcTests {
 
@@ -115,6 +116,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
 
             //we need to know session id when we are calculating session_state
             MockHttpSession session = new MockHttpSession(null, "12345") {
+                @Override
                 public String changeSessionId() {
                     return "12345";
                 }

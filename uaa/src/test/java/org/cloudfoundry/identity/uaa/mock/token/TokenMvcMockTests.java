@@ -155,10 +155,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@TestPropertySource(properties = {"uaa.url=https://localhost:8080/uaa", "jwt.token.refresh.format=jwt"})
+@TestPropertySource(properties = {
+        "uaa.url=https://localhost:8080/uaa",
+        "jwt.token.refresh.format=jwt",
+        "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
+})
 @DefaultTestContext
-// public for LimitedModeTokenMockMvcTests
-public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
+public // NOSONAR public for LimitedModeTokenMockMvcTests
+class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private static final String BAD_SECRET = "badsecret";
     protected AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
 

@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
-import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.DefaultRedirectResolver;
 import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.RedirectResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.FactoryBean;
@@ -18,12 +17,11 @@ class RedirectResolverFactoryBeanTest {
     }
 
     @Test
-    void disallowUnsafeMatching_shouldReturnSpringSecurityOauth2RedirectResolver_withDontMatchSubdomain() throws Exception {
+    void disallowUnsafeMatching_shouldReturnRedirectResolver_withDontMatchSubdomain() throws Exception {
         FactoryBean<RedirectResolver> factory = new RedirectResolverFactoryBean(false);
 
         RedirectResolver redirectResolver = factory.getObject();
-        assertThat(redirectResolver).isInstanceOf(DefaultRedirectResolver.class);
+        assertThat(redirectResolver).isInstanceOf(NormalizedRedirectResolver.class);
         assertThat(ReflectionTestUtils.getField(redirectResolver, "matchSubdomains")).isEqualTo(false);
     }
-
 }

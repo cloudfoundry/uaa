@@ -351,8 +351,8 @@ public final class MockMvcUtils {
         return JsonUtils.readValue(result.getResponse().getContentAsString(), InvitationsResponse.class);
     }
 
-    public static URL inviteUser(ApplicationContext context, MockMvc mockMvc, String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin, String REDIRECT_URI) throws Exception {
-        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(context, mockMvc, userInviteToken, subdomain, clientId, REDIRECT_URI, email);
+    public static URL inviteUser(ApplicationContext context, MockMvc mockMvc, String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin, String redirectUri) throws Exception {
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(context, mockMvc, userInviteToken, subdomain, clientId, redirectUri, email);
         assertThat(response.getNewInvites()).hasSize(1);
         assertThat(context.getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class)).isEqualTo(expectedOrigin);
         return response.getNewInvites().getFirst().getInviteLink();
@@ -1036,7 +1036,7 @@ public final class MockMvcUtils {
                 .param(TokenConstants.REQUEST_TOKEN_FORMAT, tokenFormat.getStringValue())
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost:8080/test");
         if (StringUtils.hasText(scope)) {
             authRequest.param(OAuth2Utils.SCOPE, scope);
         }
@@ -1052,7 +1052,7 @@ public final class MockMvcUtils {
                 .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+                .param(OAuth2Utils.REDIRECT_URI, "http://localhost:8080/test");
         if (StringUtils.hasText(scope)) {
             authRequest.param(OAuth2Utils.SCOPE, scope);
         }

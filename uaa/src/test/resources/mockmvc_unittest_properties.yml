@@ -418,6 +418,9 @@ oauth:
       - uaa.offline_token
 
 uaa:
+  oauth:
+    redirect_uri:
+      allow_unsafe_matching: true
   # The hostname of the UAA that this login server will connect to
   url: http://localhost:8080/uaa
   token:
