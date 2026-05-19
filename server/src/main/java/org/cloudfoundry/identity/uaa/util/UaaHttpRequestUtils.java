@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.hc.client5.http.ConnectionKeepAliveStrategy;
 import org.apache.hc.client5.http.HttpRequestRetryStrategy;
+import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.impl.DefaultRedirectStrategy;
 import org.apache.hc.client5.http.impl.NoopUserTokenHandler;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -33,11 +34,13 @@ import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.config.Registry;
 import org.apache.hc.core5.http.config.RegistryBuilder;
+import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.message.BasicHeaderElementIterator;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.TextUtils;
 import org.apache.hc.core5.util.TimeValue;
+import org.apache.hc.core5.util.Timeout;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,29 +69,38 @@ public abstract class UaaHttpRequestUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
+    record HttpClientConfig(
+            int poolSize,
+            int defaultMaxPerRoute,
+            int maxKeepAlive,
+            int validateAfterInactivity,
+            int retryCount,
+            int connectTimeoutInMs,
+            int readTimeoutInMs,
+            int connectionRequestTimeoutInMs
+    ) {
+        public static HttpClientConfig defaults(int connectTimeoutInMs, int readTimeoutInMs) {
+            return new HttpClientConfig(10, 5, 0, 2000, 0, connectTimeoutInMs, readTimeoutInMs, connectTimeoutInMs);
+        }
+    }
+
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, 10, 5, 0, 2000, 0), timeout, timeout);
+        HttpClientConfig config = HttpClientConfig.defaults(timeout, timeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, config), config.connectionRequestTimeoutInMs());
     }
 
-    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int readTimeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive, int validateAfterInactivity, int retryCount) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, poolSize, defaultMaxPerRoute, maxKeepAlive, validateAfterInactivity, retryCount), timeout, readTimeout);
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int connectTimeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
+        HttpClientConfig config = new HttpClientConfig(restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount, connectTimeout, readTimeout, connectTimeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, config), config.connectionRequestTimeoutInMs());
     }
 
-    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount), timeout, readTimeout);
+    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int connectionRequestTimeoutInMs) {
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(builder.build());
+        factory.setConnectionRequestTimeout(connectionRequestTimeoutInMs);
+        return factory;
     }
 
-    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int timeoutInMs, int readTimeoutInMs) {
-        HttpComponentsClientHttpRequestFactory httpComponentsClientHttpRequestFactory = new HttpComponentsClientHttpRequestFactory(builder.build());
-
-        // Manual migration to `SocketConfig.Builder.setSoTimeout(Timeout)` necessary; see: https://docs.spring.io/spring-framework/docs/6.0.0/javadoc-api/org/springframework/http/client/HttpComponentsClientHttpRequestFactory.html#setReadTimeout(int)
-        httpComponentsClientHttpRequestFactory.setReadTimeout(readTimeoutInMs);
-        httpComponentsClientHttpRequestFactory.setConnectionRequestTimeout(timeoutInMs);
-        httpComponentsClientHttpRequestFactory.setConnectTimeout(timeoutInMs);
-        return httpComponentsClientHttpRequestFactory;
-    }
-
-    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, int poolSize, int defaultMaxPerRoute, int maxKeepAlive, int validateAfterInactivity, int retryCount) {
+    static HttpClientBuilder getClientBuilder(boolean skipSslValidation, HttpClientConfig config) {
         HttpClientBuilder builder = HttpClients.custom()
                 .useSystemProperties()
                 .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
@@ -108,22 +120,34 @@ public abstract class UaaHttpRequestUtils {
         } else {
             cm = new PoolingHttpClientConnectionManager();
         }
-        cm.setMaxTotal(poolSize);
-        cm.setDefaultMaxPerRoute(defaultMaxPerRoute);
-        cm.setValidateAfterInactivity(TimeValue.of(validateAfterInactivity, TimeUnit.MILLISECONDS));
+        cm.setMaxTotal(config.poolSize());
+        cm.setDefaultMaxPerRoute(config.defaultMaxPerRoute());
+        cm.setValidateAfterInactivity(TimeValue.of(config.validateAfterInactivity(), TimeUnit.MILLISECONDS));
+
+        cm.setDefaultConnectionConfig(ConnectionConfig.custom()
+                .setConnectTimeout(toTimeout(config.connectTimeoutInMs()))
+                .build());
+        cm.setDefaultSocketConfig(SocketConfig.custom()
+                .setSoTimeout(toTimeout(config.readTimeoutInMs()))
+                .build());
+
         builder.setConnectionManager(cm);
 
-        if (maxKeepAlive <= 0) {
+        if (config.maxKeepAlive() <= 0) {
             builder.setConnectionReuseStrategy((request, response, context) -> false);
         } else {
-            builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(maxKeepAlive));
+            builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(config.maxKeepAlive()));
         }
 
-        if (retryCount > 0) {
-            builder.setRetryStrategy(new UaaHttpRequestRetryHandler(retryCount));
+        if (config.retryCount() > 0) {
+            builder.setRetryStrategy(new UaaHttpRequestRetryHandler(config.retryCount()));
         }
 
         return builder;
+    }
+
+    private static Timeout toTimeout(int millis) {
+        return millis <= 0 ? Timeout.DISABLED : Timeout.ofMilliseconds(millis);
     }
 
     private static SSLContext getNonValidatingSslContext() {
