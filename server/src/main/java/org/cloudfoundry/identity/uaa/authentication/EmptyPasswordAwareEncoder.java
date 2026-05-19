@@ -14,6 +14,7 @@ import java.util.Set;
 class EmptyPasswordAwareEncoder implements PasswordEncoder {
 
     private static final String NOOP_PREFIX = "{noop}";
+    private static final String BCRYPT_PREFIX = "{bcrypt}";
     private static final Set<String> BCRYPT_HASH_PREFIXES = Set.of("$2a$", "$2b$", "$2y$");
 
     private final PasswordEncoder delegate;
@@ -50,11 +51,8 @@ class EmptyPasswordAwareEncoder implements PasswordEncoder {
     }
 
     private String extractPasswordValue(String encodedPassword) {
-        int start = encodedPassword.indexOf('{');
-        int end = encodedPassword.indexOf('}');
-
-        if (start == 0 && end > 0) {
-            return encodedPassword.substring(end + 1);
+        if (encodedPassword.startsWith(BCRYPT_PREFIX)) {
+            return encodedPassword.substring(BCRYPT_PREFIX.length());
         }
 
         return encodedPassword;

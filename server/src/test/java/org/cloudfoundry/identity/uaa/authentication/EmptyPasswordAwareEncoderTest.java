@@ -48,6 +48,12 @@ class EmptyPasswordAwareEncoderTest {
     }
 
     @Test
+    void emptyRawPassword_doesNotMatchUnknownPrefixWrappingBcryptEmptyHash() {
+        String bcryptEmpty = bcrypt.encode("");
+        assertThat(encoder.matches("", "{sha256}" + bcryptEmpty)).isFalse();
+    }
+
+    @Test
     void emptyRawPassword_doesNotMatchBcryptPrefixWithoutHash() {
         assertThat(encoder.matches("", "{bcrypt}")).isFalse();
     }
