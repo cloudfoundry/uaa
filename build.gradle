@@ -21,26 +21,22 @@ allprojects {
     apply(plugin: "io.spring.dependency-management")
     apply(plugin: "org.barfuin.gradle.jacocolog")
     apply(plugin: "org.sonarqube")
+    
+    // Override Spring Boot managed dependency versions using ext properties
+    // See: https://docs.spring.io/spring-boot/appendix/dependency-versions/properties.html
+    ext['tomcat.version'] = libs.versions.tomcat.get()
+    ext['commons-codec.version'] = libs.versions.commonsCodec.get()
+    ext['selenium.version'] = libs.versions.selenium.get()
 
     dependencyManagement {
         imports {
             mavenBom(libs.springBootBom.get().toString())
         }
         
-        // Libraries that have version conflicts
+        // Libraries that have version conflicts (not managed by BOMs above)
         dependencies {
-            // Selenium - modules were at mixed versions (4.43.0 vs 4.31.0)
-            dependency "org.seleniumhq.selenium:selenium-java:${libs.versions.selenium.get()}"
-            dependency "org.seleniumhq.selenium:selenium-api:${libs.versions.selenium.get()}"
-            dependency "org.seleniumhq.selenium:selenium-chrome-driver:${libs.versions.selenium.get()}"
-            dependency "org.seleniumhq.selenium:selenium-remote-driver:${libs.versions.selenium.get()}"
-            dependency "org.seleniumhq.selenium:selenium-http:${libs.versions.selenium.get()}"
-            
             // Guava - multiple versions from different transitive deps
             dependency "com.google.guava:guava:${libs.versions.guava.get()}"
-
-            // Commons Codec - OpenSAML/Shibboleth dependencies bring in older versions
-            dependency "commons-codec:commons-codec:${libs.versions.commonsCodec.get()}"
         }
     }
 
@@ -85,25 +81,16 @@ subprojects {
 
         resolutionStrategy {
             resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                // Dependencies not managed by any BOM
                 // OpenSAML modules - align for migration
                 if (details.requested.group == 'org.opensaml' && details.requested.name.startsWith("opensaml-")) {
                     details.useVersion "${libs.versions.opensaml.get()}"
                     details.because 'Pinning all opensaml modules to the same version for OpenSAML 5 migration.'
                 }
-                // Cryptacular - avoid regressions  
+                // Cryptacular - avoid regressions, explicit downgrade to 1.2.6
                 else if (details.requested.group == 'org.cryptacular' && details.requested.name == 'cryptacular') {
                     details.useVersion "${libs.versions.cryptacular.get()}"
                     details.because 'Pinning cryptacular to 1.2.6 to avoid regressions from newer OpenSAML versions.'
-                }
-                // Selenium - force all modules to same version
-                else if (details.requested.group == 'org.seleniumhq.selenium') {
-                    details.useVersion "${libs.versions.selenium.get()}"
-                    details.because 'Force Selenium modules to consistent version'
-                }
-                // Tomcat - force consistent version across all tomcat modules
-                else if (details.requested.group == 'org.apache.tomcat' || details.requested.group == 'org.apache.tomcat.embed') {
-                    details.useVersion "${libs.versions.tomcat.get()}"
-                    details.because 'Force Tomcat modules to consistent version'
                 }
             }
         }
