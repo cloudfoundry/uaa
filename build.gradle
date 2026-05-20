@@ -100,6 +100,11 @@ subprojects {
                     details.useVersion "${libs.versions.selenium.get()}"
                     details.because 'Force Selenium modules to consistent version'
                 }
+                // Tomcat - force consistent version across all tomcat modules
+                else if (details.requested.group == 'org.apache.tomcat' || details.requested.group == 'org.apache.tomcat.embed') {
+                    details.useVersion "${libs.versions.tomcat.get()}"
+                    details.because 'Force Tomcat modules to consistent version'
+                }
             }
         }
     }

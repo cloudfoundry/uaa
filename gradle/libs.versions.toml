@@ -25,6 +25,7 @@ springBoot = "3.5.14"
 springDependencyManagement = "1.1.7"
 springDocOpenapi = "2.8.17"
 statsdClient = "3.1.0"
+tomcat = "10.1.55"
 unboundIdScimSdk = "2.0.0"
 velocity = "2.4.1"
 xmlSecurity = "4.0.4"
@@ -43,10 +44,10 @@ log4jCore = { module = "org.apache.logging.log4j:log4j-core" }
 slf4jImpl = { module = "org.apache.logging.log4j:log4j-slf4j2-impl" }
 
 # Apache Tomcat
-tomcatElApi = { module = "org.apache.tomcat.embed:tomcat-embed-el" }
-tomcatEmbed = { module = "org.apache.tomcat.embed:tomcat-embed-core" }
-tomcatJasperEl = { module = "org.apache.tomcat.embed:tomcat-embed-jasper" }
-tomcatJdbc = { module = "org.apache.tomcat:tomcat-jdbc" }
+tomcatElApi = { module = "org.apache.tomcat.embed:tomcat-embed-el", version.ref = "tomcat" }
+tomcatEmbed = { module = "org.apache.tomcat.embed:tomcat-embed-core", version.ref = "tomcat" }
+tomcatJasperEl = { module = "org.apache.tomcat.embed:tomcat-embed-jasper", version.ref = "tomcat" }
+tomcatJdbc = { module = "org.apache.tomcat:tomcat-jdbc", version.ref = "tomcat" }
 
 # Apache Velocity
 velocity = { module = "org.apache.velocity:velocity-engine-core", version.ref = "velocity" }
