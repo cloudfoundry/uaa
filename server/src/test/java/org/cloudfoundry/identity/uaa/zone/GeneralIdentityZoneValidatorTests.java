@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -49,6 +51,29 @@ class GeneralIdentityZoneValidatorTests {
             try {
                 validator.validate(uaaZone, mode);
                 fail("");
+            } catch (InvalidIdentityZoneDetailsException e) {
+                assertThat(e.getMessage()).isEqualTo("The default zone cannot be set inactive.");
+            }
+        }
+    }
+
+    /**
+     * On case-insensitive databases (default MySQL collations), a WHERE id = 'UAA' lookup
+     * resolves to the system-zone row stored as 'uaa'. The validator must also treat all
+     * case variants of "uaa" as the system zone and refuse to deactivate them.
+     */
+    @ParameterizedTest(name = "uaaZoneInactive blocked for id=''{0}''")
+    @ValueSource(strings = {"UAA", "Uaa", "uAA", "uAa", "UaA", "UAa"})
+    void uaaZoneInactive_withCasedId_fails(String caseVariant) {
+        IdentityZone zone = new IdentityZone();
+        zone.setId(caseVariant);
+        zone.setSubdomain("");
+        zone.setName(caseVariant);
+        zone.setActive(false);
+        for (IdentityZoneValidator.Mode mode : Arrays.asList(CREATE, MODIFY, DELETE)) {
+            try {
+                validator.validate(zone, mode);
+                fail("Expected InvalidIdentityZoneDetailsException for id='" + caseVariant + "' mode=" + mode);
             } catch (InvalidIdentityZoneDetailsException e) {
                 assertThat(e.getMessage()).isEqualTo("The default zone cannot be set inactive.");
             }

@@ -15,7 +15,7 @@ public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
 
     @Override
     public IdentityZone validate(IdentityZone identityZone, Mode mode) throws InvalidIdentityZoneDetailsException {
-        if (IdentityZoneHolder.getUaaZone().getId().equals(identityZone.getId()) && !identityZone.isActive()) {
+        if (IdentityZoneHolder.getUaaZone().getId().equalsIgnoreCase(identityZone.getId()) && !identityZone.isActive()) {
             throw new InvalidIdentityZoneDetailsException("The default zone cannot be set inactive.", null);
         }
         if (DEFAULT_ZONE_SUBDOMAIN_PATH.equalsIgnoreCase(identityZone.getSubdomain())) {
