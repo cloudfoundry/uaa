@@ -84,7 +84,10 @@ public class SamlMetadataEndpointKeyRotationTests {
 
         RelyingPartyRegistrationRepository registrationRepository =
                 new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias", List.of(), NAME_ID_FORMAT);
-        RelyingPartyRegistrationResolver registrationResolver = new UaaRelyingPartyRegistrationResolver(registrationRepository, ENTITY_ID, "http://zone-id.localhost:8080/uaa");
+        // entityBaseURL is the UAA base URL without any zone subdomain. For non-default zones accessed
+        // via subdomain, UaaRelyingPartyRegistrationResolver prepends the zone subdomain automatically
+        // (e.g. "http://localhost:8080/uaa" → "http://zone-id.localhost:8080/uaa").
+        RelyingPartyRegistrationResolver registrationResolver = new UaaRelyingPartyRegistrationResolver(registrationRepository, ENTITY_ID, "http://localhost:8080/uaa");
         endpoint = spy(new SamlMetadataEndpoint(registrationResolver, identityZoneManager, SignatureAlgorithm.SHA256, true));
         IdentityZoneHolder.set(otherZone);
 

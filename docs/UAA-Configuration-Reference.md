@@ -1716,8 +1716,21 @@ When `true`, users see an account chooser UI that lets them pick from previously
 **Type:** `String`
 
 The base URL of this UAA instance for SAML SP metadata generation. This URL appears in the
-SAML metadata as the service provider's base location. When `null`, UAA uses the request URL,
-which enables automatic zone subdomain resolution.
+SAML metadata as the service provider's base location and is used to construct AssertionConsumerService (ACS) and SingleLogoutService (SLS) endpoints.
+
+**When `null` or empty:** UAA derives the base URL from the incoming HTTP request, which works for subdomain-based zones but provides automatic hostname resolution.
+
+**Important:** The behavior of `entityBaseURL` varies depending on the identity zone access pattern:
+
+| Zone Access Pattern | Behavior | Example |
+|---------------------|----------|---------|
+| **Default (UAA) zone** | Uses `entityBaseURL` as-is | `http://localhost:8080/uaa` → ACS: `http://localhost:8080/uaa/saml/SSO/alias/...` |
+| **Non-default zone, subdomain access** | Prepends zone subdomain to `entityBaseURL` host | `http://localhost:8080/uaa` + zone `myzone` → ACS: `http://myzone.localhost:8080/uaa/saml/SSO/alias/...` |
+| **Non-default zone, path access** (`zones.paths.enabled=true`) | **Ignores** `entityBaseURL`; derives from request | Request to `/z/myzone/saml/metadata` → ACS: `http://localhost/z/myzone/saml/SSO/alias/...` |
+
+**Zone Path Access Pattern:** When [`zones.paths.enabled=true`](#zonespathsenabled) and zones are accessed via `/z/{subdomain}/` URLs, `entityBaseURL` is ignored because it's a static configuration value that cannot encode the dynamic zone path. The SAML metadata URLs are derived from the incoming request, which already contains the zone path information thanks to the [`ZonePathContextRewritingFilter`](../server/src/main/java/org/cloudfoundry/identity/uaa/zone/ZonePathContextRewritingFilter.java).
+
+**When to set `entityBaseURL`:** Configure this when deploying behind load balancers or proxies where the internal server hostname/port differs from the externally accessible URL. This ensures SAML metadata contains stable, publicly reachable endpoints.
 
 [Back to table](#login--branding)
 
@@ -2937,6 +2950,12 @@ When `false`, only aggregate metrics are collected.
 When `true`, enables path-based identity zone routing via `/z/{subdomain}/` URL prefixes.
 This allows multiple zones to be accessed through the same hostname using different
 URL paths instead of different subdomains.
+
+**Examples:**
+- Subdomain access (default): `https://myzone.uaa.example.com/login`
+- Path access (when enabled): `https://uaa.example.com/z/myzone/login`
+
+**Important:** When path-based zone access is enabled, [`login.entityBaseURL`](#loginentitybaseurl) is ignored for SAML metadata generation in non-default zones, as the zone information is already encoded in the URL path. See the `login.entityBaseURL` documentation for details on how this affects SAML endpoint URLs.
 
 [Back to table](#zone-paths)
 

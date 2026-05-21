@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.mock.saml;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
@@ -18,6 +20,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.net.URI;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_DIGEST_SHA256;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
 import static org.springframework.http.HttpHeaders.HOST;
@@ -76,7 +79,7 @@ class SamlMetadataEndpointMockMvcTests {
                         xpath("/EntityDescriptor/SPSSODescriptor/KeyDescriptor[@use='signing']/KeyInfo/X509Data/X509Certificate").string("MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEOMAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEOMAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5hcnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4HaMIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGcgBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxCKdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkKRpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0="),
                         xpath("/EntityDescriptor/SPSSODescriptor/KeyDescriptor[@use='encryption']/KeyInfo/X509Data/X509Certificate").string("MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEOMAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEOMAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5hcnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4HaMIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGcgBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxCKdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkKRpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0="),
                         xpath("/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location")
-                                .string(containsString("/saml/SSO/alias/integration-saml-entity-id")), // last path is the UAA-wide entity ID alias, set by login.saml.entityIDAlias; is not set, fall back to login.entityID
+                                .string(equalTo("http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id")), // entityBaseURL (http://localhost:8080/uaa) + /saml/SSO/alias/ + login.entityID
                         xpath("/EntityDescriptor/Signature").exists(),
                         xpath("/EntityDescriptor/Signature/SignedInfo/SignatureMethod/@Algorithm").string(containsString(ALGO_ID_SIGNATURE_RSA_SHA256)),
                         xpath("/EntityDescriptor/Signature/SignatureValue").exists(),
@@ -102,8 +105,52 @@ class SamlMetadataEndpointMockMvcTests {
                         xpath("/EntityDescriptor/SPSSODescriptor/NameIDFormat").string("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"),  // matches UAA config login.saml.NameID???
                         xpath("/EntityDescriptor/SPSSODescriptor/KeyDescriptor[@use='signing']/KeyInfo/X509Data/X509Certificate").string("MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEOMAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEOMAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5hcnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4HaMIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGcgBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxCKdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkKRpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0="),
                         xpath("/EntityDescriptor/SPSSODescriptor/KeyDescriptor[@use='encryption']/KeyInfo/X509Data/X509Certificate").string("MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEOMAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEOMAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5hcnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4HaMIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGcgBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxCKdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkKRpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0="),
-                        xpath("/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location").string(containsString("/saml/SSO/alias/%s.integration-saml-entity-id".formatted(subdomain))) // this needs to be: /saml/SSO/alias/[zone-subdomain].[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias, or fall back on login.entityID in this case]
+                        xpath("/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location").string(equalTo("http://%s.localhost:8080/uaa/saml/SSO/alias/%s.integration-saml-entity-id".formatted(subdomain, subdomain))) // this needs to be: /saml/SSO/alias/[zone-subdomain].[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias, or fall back on login.entityID in this case]
                 );
+    }
+
+    /**
+     * Zone accessed via the path prefix ({@code /z/{subdomain}/…}) instead of a subdomain.
+     * <p>
+     * {@code zones.paths.enabled=true} is set explicitly via {@link TestPropertySource} so that the
+     * {@link org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter} is wired with
+     * {@code zonePathsEnabled=true} at context startup. This makes the test run unconditionally —
+     * no {@code @EnabledIfZonePathsEnabled} gate and no reliance on a Gradle system-property default.
+     */
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = {"zones.paths.enabled=true"})
+    class SamlMetadataZonePathMockMvcTests {
+        @Autowired
+        private MockMvc mockMvc;
+
+        /**
+         * {@link org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter} rewrites the context
+         * path to {@code /z/{subdomain}} so {@code entityBaseURL} (a static operator config) is ignored
+         * in favour of the request-derived base URL, which already carries the zone path.
+         * The resulting ACS Location must use plain {@code localhost} (no subdomain in the host) and
+         * include the zone path prefix in the URL path.
+         */
+        @Test
+        void nonDefaultZoneSamlMetadataXMLValidationViaZonePath() throws Exception {
+            IdentityZone spZone = setupIdentityZone(true);
+            String subdomain = spZone.getSubdomain();
+
+            mockMvc.perform(ZoneResolutionMode.ZONE_PATH.createRequestBuilder(subdomain, HttpMethod.GET, "/saml/metadata"))
+                    .andDo(print())
+                    .andExpectAll(
+                            status().isOk(),
+                            header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-%s-sp.xml\";".formatted(subdomain))),
+                            xpath("/EntityDescriptor/@entityID").string(spZone.getConfig().getSamlConfig().getEntityID()),
+                            xpath("/EntityDescriptor/SPSSODescriptor/@AuthnRequestsSigned").booleanValue(false),
+                            xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(false),
+                            // Zone path: entityBaseURL ("http://localhost:8080/uaa") is ignored.
+                            // Base URL comes from the rewritten context path /z/{subdomain}.
+                            // MockMvc uses port 80 (default HTTP), so no port in the URL.
+                            xpath("/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location")
+                                    .string(equalTo("http://localhost/z/%s/saml/SSO/alias/%s.integration-saml-entity-id".formatted(subdomain, subdomain)))
+                    );
+        }
     }
 
     @Nested
