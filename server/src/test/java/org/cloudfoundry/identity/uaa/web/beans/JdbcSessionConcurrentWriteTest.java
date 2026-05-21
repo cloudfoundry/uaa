@@ -4,6 +4,7 @@ import java.util.Collections;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,10 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
+import org.springframework.session.config.SessionRepositoryCustomizer;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
+import org.springframework.session.jdbc.MySqlJdbcIndexedSessionRepositoryCustomizer;
+import org.springframework.session.jdbc.PostgreSqlJdbcIndexedSessionRepositoryCustomizer;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,9 +35,10 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  * {@code MapSession} delegate, populated only at {@code findById} time), so no
  * threads are required to reproduce it.
  *
- * <p>Currently fails. Will pass once the {@code createSessionAttributeQuery} is
- * customized to upsert (e.g. via {@code PostgreSqlJdbcIndexedSessionRepositoryCustomizer}
- * on Postgres, or an equivalent {@code MERGE} on HSQLDB).
+ * <p>Runs against whichever DB the CI matrix selects via {@code spring.profiles.active}
+ * (hsqldb, mysql, postgresql) and applies the matching upsert customizer — the same one
+ * {@link UaaJdbcSessionConfig} wires up in production — so all three SQL dialects are
+ * covered.
  */
 @WithDatabaseContext
 class JdbcSessionConcurrentWriteTest {
@@ -45,6 +50,9 @@ class JdbcSessionConcurrentWriteTest {
 
     @Autowired
     private DataSource dataSource;
+
+    @Autowired
+    private DatabaseProperties databaseProperties;
 
     @SuppressWarnings("rawtypes")
     private SessionRepository repository;
@@ -58,10 +66,20 @@ class JdbcSessionConcurrentWriteTest {
         // Disable the background cleanup scheduler — we never call afterPropertiesSet,
         // but be explicit so future changes don't accidentally start it.
         jdbcRepository.setCleanupCron("-");
-        // Apply the same upsert SQL the production config wires up for HSQLDB,
-        // so this test exercises the actual fix rather than the default INSERT.
-        new HsqldbJdbcIndexedSessionRepositoryCustomizer().customize(jdbcRepository);
+        // Apply the same upsert SQL that UaaJdbcSessionConfig wires up in production,
+        // chosen by the active DB platform so this test exercises the real fix on
+        // whichever database the CI matrix is running against (hsqldb/mysql/postgresql).
+        customizerFor(databaseProperties).customize(jdbcRepository);
         this.repository = jdbcRepository;
+    }
+
+    private static SessionRepositoryCustomizer<JdbcIndexedSessionRepository> customizerFor(
+            DatabaseProperties databaseProperties) {
+        return switch (databaseProperties.getDatabasePlatform()) {
+            case POSTGRESQL -> new PostgreSqlJdbcIndexedSessionRepositoryCustomizer();
+            case MYSQL -> new MySqlJdbcIndexedSessionRepositoryCustomizer();
+            case HSQLDB -> new HsqldbJdbcIndexedSessionRepositoryCustomizer();
+        };
     }
 
     /**
