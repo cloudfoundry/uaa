@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -69,7 +68,7 @@ public class SpringServletXmlSecurityConfiguration {
             "/.well-known/openid-configuration",
             // OpenAPI documentation endpoints
             "/v3/api-docs/**",
-            "/v3/api-docs", 
+            "/v3/api-docs",
             "/v3/api-docs.yaml",
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -122,7 +121,7 @@ public class SpringServletXmlSecurityConfiguration {
     @Order(FilterChainOrder.NO_SECURITY)
     UaaFilterChain noSecurityFilters(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .headers(headers -> headers.frameOptions(withDefaults()))
+                .headers(headers -> headers.frameOptions(c -> c.disable()))
                 .securityMatcher(noSecurityEndpoints)
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
