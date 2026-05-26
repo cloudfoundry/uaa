@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import java.util.Collections;
-
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.web.beans.UaaJdbcSessionConfig;
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +12,8 @@ import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.context.TestPropertySource;
+
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;

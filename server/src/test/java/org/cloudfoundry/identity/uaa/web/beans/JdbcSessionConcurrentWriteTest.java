@@ -1,10 +1,8 @@
 package org.cloudfoundry.identity.uaa.web.beans;
 
-import java.util.Collections;
-import javax.sql.DataSource;
-
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +18,9 @@ import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.session.jdbc.MySqlJdbcIndexedSessionRepositoryCustomizer;
 import org.springframework.session.jdbc.PostgreSqlJdbcIndexedSessionRepositoryCustomizer;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import javax.sql.DataSource;
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -57,6 +58,15 @@ class JdbcSessionConcurrentWriteTest {
     @SuppressWarnings("rawtypes")
     private SessionRepository repository;
 
+    private String createdSessionId;
+
+    @AfterEach
+    void tearDown() {
+        if (createdSessionId != null) {
+            repository.deleteById(createdSessionId);
+            createdSessionId = null;
+        }
+    }
     @BeforeEach
     void setUp() {
         TransactionTemplate transactionTemplate =
@@ -88,8 +98,8 @@ class JdbcSessionConcurrentWriteTest {
      *   <li>Both call {@code findById} before either has written — neither delegate
      *       has {@code SPRING_SECURITY_CONTEXT}, so each marks its delta as {@code ADDED}.</li>
      *   <li>Request A's {@code save()} inserts the attribute row — succeeds.</li>
-     *   <li>Request B's {@code save()} insert the same attribute row — currently
-     *       throws {@code DuplicateKeyException}.</li>
+     *   <li>Request B's {@code save()} inserts the same attribute row — with the upsert customizer,
+     *       it resolves as last-write-wins instead of throwing {@code DuplicateKeyException}.</li>
      * </ol>
      */
     @Test
@@ -98,7 +108,7 @@ class JdbcSessionConcurrentWriteTest {
         Session created = repository.createSession();
         repository.save(created);
         String sessionId = created.getId();
-
+        createdSessionId = sessionId;
         Session requestA = repository.findById(sessionId);
         Session requestB = repository.findById(sessionId);
         assertThat(requestA).as("Session A should load").isNotNull();
