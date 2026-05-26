@@ -12,6 +12,7 @@ public class FilterChainOrder {
 
     // spring-servlet.xml: 0
     public static final int NO_SECURITY = 1;
+    public static final int SESSION_MANAGEMENT = 2;
 
     // login-server-security.xml: 100
     public static final int AUTHENTICATE_BEARER = 100;

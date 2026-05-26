@@ -41,11 +41,22 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
 public class SpringServletXmlSecurityConfiguration {
+
+    /**
+     * These endpoints are loaded by the uaa-singular library inside a hidden cross-origin iframe
+     * (opFrame) to drive OIDC Session Management via postMessage. They must never send
+     * X-Frame-Options: DENY, which is handled by the dedicated sessionManagementFilters chain below.
+     * Keeping them in a separate chain prevents the frameOptions override from accidentally
+     * spreading to the rest of the no-security endpoints in a future refactor.
+     */
+    private final String[] sessionManagementEndpoints = {
+            "/session",
+            "/session_management"
+    };
 
     private final String[] noSecurityEndpoints = {
             "/error**",
@@ -63,13 +74,11 @@ public class SpringServletXmlSecurityConfiguration {
             "/saml_error",
             "/favicon.ico",
             "/oauth_error",
-            "/session",
-            "/session_management",
             "/oauth/token/.well-known/openid-configuration",
             "/.well-known/openid-configuration",
             // OpenAPI documentation endpoints
             "/v3/api-docs/**",
-            "/v3/api-docs", 
+            "/v3/api-docs",
             "/v3/api-docs.yaml",
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -119,10 +128,27 @@ public class SpringServletXmlSecurityConfiguration {
     }
 
     @Bean
+    @Order(FilterChainOrder.SESSION_MANAGEMENT)
+    UaaFilterChain sessionManagementFilters(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .headers(headers -> headers.frameOptions(c -> c.disable()))
+                .securityMatcher(sessionManagementEndpoints)
+                .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers(sessionManagementEndpoints))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .securityContext(sc -> sc.requireExplicitSave(false))
+                .build();
+
+        return new UaaFilterChain(chain, "sessionManagementFilters");
+    }
+
+    @Bean
     @Order(FilterChainOrder.NO_SECURITY)
     UaaFilterChain noSecurityFilters(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .headers(headers -> headers.frameOptions(withDefaults()))
                 .securityMatcher(noSecurityEndpoints)
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
