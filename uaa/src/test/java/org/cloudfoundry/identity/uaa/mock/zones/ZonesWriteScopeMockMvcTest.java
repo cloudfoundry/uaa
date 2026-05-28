@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -78,7 +78,7 @@ class ZonesWriteScopeMockMvcTest {
 
         String jsonResponse = result.getResponse().getContentAsString();
         JsonNode responseNode = JsonUtils.readTree(jsonResponse);
-        assertThat(responseNode.get("id").asText()).isEqualTo(zone.getId());
+        assertThat(responseNode.get("id").asString()).isEqualTo(zone.getId());
 
         mockMvc.perform(
                         get("/identity-zones/" + zone2.getId())
@@ -112,7 +112,7 @@ class ZonesWriteScopeMockMvcTest {
 
         String jsonResponse = result.getResponse().getContentAsString();
         JsonNode responseNode = JsonUtils.readTree(jsonResponse);
-        assertThat(responseNode.get(0).get("id").asText()).isEqualTo(zone.getId());
+        assertThat(responseNode.get(0).get("id").asString()).isEqualTo(zone.getId());
         assertThat(responseNode.get(1)).isNull();
     }
 

@@ -14,10 +14,10 @@
 
 package org.cloudfoundry.identity.uaa.impl;
 
-import com.fasterxml.jackson.core.JsonLocation;
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -30,8 +30,9 @@ class JsonDateDeserializerTest {
     Exception exceptionOccured;
 
     @Test
-    void parsing() throws IOException, ParseException {
-        Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
+    void parsing() throws ParseException {
+        JsonParser jp = JsonMapper.shared().createParser("\"" + testDateString + "\"");
+        Date d = JsonDateDeserializer.getDate(testDateString, jp);
         assertThat((long) d.getTime()).isEqualTo(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime());
     }
 
@@ -42,7 +43,8 @@ class JsonDateDeserializerTest {
 
             threadArray[i] = new Thread(() -> {
                 try {
-                    Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
+                    JsonParser jp = JsonMapper.shared().createParser("\"" + testDateString + "\"");
+                    Date d = JsonDateDeserializer.getDate(testDateString, jp);
                     if (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime() != d.getTime()) {
                         throw new Exception("Unexpected date");
                     }

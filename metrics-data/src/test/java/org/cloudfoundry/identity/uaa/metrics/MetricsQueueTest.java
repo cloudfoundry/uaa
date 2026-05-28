@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.metrics;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

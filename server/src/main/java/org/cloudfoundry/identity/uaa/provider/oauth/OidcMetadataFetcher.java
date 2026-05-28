@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
@@ -18,8 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.core.JacksonException;
 
-import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -134,8 +135,8 @@ public class OidcMetadataFetcher {
             rawContents = contentCache.getUrlContent(discoveryUrl.toString(), nonTrustingRestTemplate);
         }
         try {
-            return new ObjectMapper().readValue(rawContents, OidcMetadata.class);
-        } catch (IOException e) {
+            return new JsonMapper().readValue(rawContents, OidcMetadata.class);
+        } catch (JacksonException e) {
             throw new OidcMetadataFetchingException(e);
         }
     }

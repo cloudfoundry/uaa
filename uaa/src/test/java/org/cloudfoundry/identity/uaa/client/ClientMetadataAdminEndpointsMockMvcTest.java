@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.assertj.core.groups.Tuple;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.test.TestClient;

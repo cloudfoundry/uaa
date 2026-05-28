@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -43,7 +44,7 @@ class AuthorizationManagersUtilsTests {
     void noAuthenticationManager() {
         AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf();
 
-        var authorizationDecision = authManager.check(() -> FULLY_AUTHENTICATED, null);
+        var authorizationDecision = authManager.authorize(() -> FULLY_AUTHENTICATED, null);
 
         assertThat(authorizationDecision.isGranted()).isFalse();
     }
@@ -53,11 +54,11 @@ class AuthorizationManagersUtilsTests {
         var granted = granted();
         var notGranted = notGranted();
         var unknown = unknown();
-        assertThat(AuthorizationManagersUtils.anyOf().or(granted).check(() -> FULLY_AUTHENTICATED, null).isGranted()).isTrue();
+        assertThat(AuthorizationManagersUtils.anyOf().or(granted).authorize(() -> FULLY_AUTHENTICATED, null).isGranted()).isTrue();
         assertThat(granted.called).isTrue();
-        assertThat(AuthorizationManagersUtils.anyOf().or(notGranted).check(() -> FULLY_AUTHENTICATED, null).isGranted()).isFalse();
+        assertThat(AuthorizationManagersUtils.anyOf().or(notGranted).authorize(() -> FULLY_AUTHENTICATED, null).isGranted()).isFalse();
         assertThat(notGranted.called).isTrue();
-        assertThat(AuthorizationManagersUtils.anyOf().or(unknown).check(() -> FULLY_AUTHENTICATED, null).isGranted()).isFalse();
+        assertThat(AuthorizationManagersUtils.anyOf().or(unknown).authorize(() -> FULLY_AUTHENTICATED, null).isGranted()).isFalse();
         assertThat(unknown.called).isTrue();
     }
 
@@ -71,7 +72,7 @@ class AuthorizationManagersUtilsTests {
                 .or(granted)
                 .or(unknown);
 
-        assertThat(authorizationManager.check(() -> FULLY_AUTHENTICATED, null).isGranted()).isTrue();
+        assertThat(authorizationManager.authorize(() -> FULLY_AUTHENTICATED, null).isGranted()).isTrue();
         assertThat(notGranted.called).isTrue();
         assertThat(granted.called).isTrue();
         assertThat(unknown.called).isFalse();
@@ -82,10 +83,10 @@ class AuthorizationManagersUtilsTests {
         AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf()
                 .anonymous();
 
-        assertThat(authManager.check(() -> ANONYMOUS, null).isGranted()).isTrue();
-        assertThat(authManager.check(() -> NOT_AUTHENTICATED, null).isGranted()).isFalse();
-        assertThat(authManager.check(() -> FULLY_AUTHENTICATED, null).isGranted()).isFalse();
-        assertThat(authManager.check(() -> REMEMBER_ME, null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> ANONYMOUS, null).isGranted()).isTrue();
+        assertThat(authManager.authorize(() -> NOT_AUTHENTICATED, null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> FULLY_AUTHENTICATED, null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> REMEMBER_ME, null).isGranted()).isFalse();
     }
 
     @Test
@@ -93,26 +94,26 @@ class AuthorizationManagersUtilsTests {
         AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf()
                 .fullyAuthenticated();
 
-        assertThat(authManager.check(() -> ANONYMOUS, null).isGranted()).isFalse();
-        assertThat(authManager.check(() -> NOT_AUTHENTICATED, null).isGranted()).isFalse();
-        assertThat(authManager.check(() -> FULLY_AUTHENTICATED, null).isGranted()).isTrue();
-        assertThat(authManager.check(() -> REMEMBER_ME, null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> ANONYMOUS, null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> NOT_AUTHENTICATED, null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> FULLY_AUTHENTICATED, null).isGranted()).isTrue();
+        assertThat(authManager.authorize(() -> REMEMBER_ME, null).isGranted()).isFalse();
     }
 
     @Test
     void uaaAdmin() {
         AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf().isUaaAdmin();
 
-        assertThat(authManager.check(() -> withScopes("foo.bar"), null).isGranted()).isFalse();
-        assertThat(authManager.check(() -> withScopes("uaa.admin"), null).isGranted()).isTrue();
+        assertThat(authManager.authorize(() -> withScopes("foo.bar"), null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> withScopes("uaa.admin"), null).isGranted()).isTrue();
     }
 
     @Test
     void hasScope() {
         AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf().hasScope("foo.bar");
 
-        assertThat(authManager.check(() -> withScopes("uaa.admin"), null).isGranted()).isFalse();
-        assertThat(authManager.check(() -> withScopes("uaa.admin", "foo.bar"), null).isGranted()).isTrue();
+        assertThat(authManager.authorize(() -> withScopes("uaa.admin"), null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> withScopes("uaa.admin", "foo.bar"), null).isGranted()).isTrue();
     }
 
     @Test
@@ -120,7 +121,7 @@ class AuthorizationManagersUtilsTests {
         AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf(true).hasScope("foo.bar");
 
         assertThatThrownBy(
-                () -> {authManager.check(() -> withScopes("uaa.admin"), null);}
+                () -> {authManager.authorize(() -> withScopes("uaa.admin"), null);}
         ).getCause().isInstanceOf(InsufficientScopeException.class);
 
     }
@@ -131,8 +132,8 @@ class AuthorizationManagersUtilsTests {
 
         IdentityZoneHolder.set(ModelTestUtils.identityZone("someZoneId", "some-domain"));
 
-        assertThat(authManager.check(() -> withScopes("foo.bar"), null).isGranted()).isFalse();
-        assertThat(authManager.check(() -> withScopes("zones.someZoneId.admin"), null).isGranted()).isTrue();
+        assertThat(authManager.authorize(() -> withScopes("foo.bar"), null).isGranted()).isFalse();
+        assertThat(authManager.authorize(() -> withScopes("zones.someZoneId.admin"), null).isGranted()).isTrue();
     }
 
     static class TestAuthManager implements AuthorizationManager<RequestAuthorizationContext> {
@@ -161,7 +162,7 @@ class AuthorizationManagersUtilsTests {
         }
 
         @Override
-        public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext object) {
+        public AuthorizationDecision authorize(Supplier<? extends @Nullable Authentication> authentication, RequestAuthorizationContext object) {
             called = true;
             return authorizationDecision;
         }

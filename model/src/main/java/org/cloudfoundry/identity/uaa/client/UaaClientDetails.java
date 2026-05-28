@@ -6,7 +6,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
+import tools.jackson.databind.annotation.JsonDeserialize;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.SpringSecurityCoreVersion;
@@ -78,7 +80,7 @@ public class UaaClientDetails implements ClientDetails {
     @JsonProperty("refresh_token_validity")
     private Integer refreshTokenValiditySeconds;
 
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private transient Map<String, Object> additionalInformation = new LinkedHashMap<>();
 
     @JsonProperty("client_jwt_config")

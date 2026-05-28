@@ -34,8 +34,8 @@ import org.springframework.util.Assert;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 import lombok.Setter;
 
@@ -588,7 +588,8 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.salt = salt;
     }
 
-    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonSerialize(using = JsonDateSerializer.class)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Date getPasswordLastModified() {
         if (passwordLastModified != null) {
             return passwordLastModified;

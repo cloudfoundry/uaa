@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.jwk.JWKParameterNames;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;

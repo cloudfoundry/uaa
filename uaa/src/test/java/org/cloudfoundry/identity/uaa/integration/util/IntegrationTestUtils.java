@@ -1,6 +1,10 @@
 package org.cloudfoundry.identity.uaa.integration.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.cfg.ConstructorDetector;
+import tools.jackson.databind.json.JsonMapper;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.GreenMailUtil;
 import jakarta.mail.internet.MimeMessage;
@@ -58,7 +62,9 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -263,8 +269,30 @@ public class IntegrationTestUtils {
         return resource;
     }
 
+    public static RestTemplate createConfiguredRestTemplate() {
+        RestTemplate template = new RestTemplate();
+        configureRestTemplate(template);
+        return template;
+    }
+
+    public static void configureRestTemplate(RestTemplate template) {
+        JsonMapper mapper = JsonMapper.builder()
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                .constructorDetector(ConstructorDetector.DEFAULT.withAllowImplicitWithDefaultConstructor(false))
+                .build();
+        List<HttpMessageConverter<?>> converters = template.getMessageConverters();
+        for (int i = 0; i < converters.size(); i++) {
+            if (converters.get(i) instanceof JacksonJsonHttpMessageConverter) {
+                converters.set(i, new JacksonJsonHttpMessageConverter(mapper));
+                break;
+            }
+        }
+    }
+
     public static RestTemplate getClientCredentialsTemplate(ClientCredentialsResourceDetails details) {
         RestTemplate client = new OAuth2RestTemplate(details);
+        configureRestTemplate(client);
         client.setRequestFactory(new StatelessRequestFactory());
         client.setErrorHandler(new OAuth2ErrorHandler(details) {
             // Pass errors through in response entity for status code analysis
@@ -315,7 +343,7 @@ public class IntegrationTestUtils {
     }
 
     public static ScimUser createUser(String token, String url, ScimUser user, String zoneSwitchId) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -338,7 +366,7 @@ public class IntegrationTestUtils {
     }
 
     public static void updateUser(String token, String url, ScimUser user) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -364,7 +392,7 @@ public class IntegrationTestUtils {
     }
 
     public static ScimUser getUserByZone(String token, String url, String subdomain, String username) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -393,7 +421,7 @@ public class IntegrationTestUtils {
     }
 
     public static ScimUser getUser(String token, String url, String userId) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -416,7 +444,7 @@ public class IntegrationTestUtils {
     }
 
     public static String getUserIdByField(String token, String url, String origin, String field, String fieldValue) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -450,7 +478,7 @@ public class IntegrationTestUtils {
 
     public static void deleteUser(String zoneAdminToken, String url, String userId) {
 
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + zoneAdminToken);
@@ -514,7 +542,7 @@ public class IntegrationTestUtils {
                                      String zoneId,
                                      String url,
                                      String displayName) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -569,7 +597,7 @@ public class IntegrationTestUtils {
                                          String zoneId,
                                          String url,
                                          ScimGroup group) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -609,7 +637,7 @@ public class IntegrationTestUtils {
                                                            String url,
                                                            ScimGroupExternalMember scimGroup) {
 
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -636,7 +664,7 @@ public class IntegrationTestUtils {
                                    String url,
                                    String groupId
     ) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         template.setErrorHandler(fiveHundredErrorHandler);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Authorization", "bearer " + token);
@@ -713,7 +741,7 @@ public class IntegrationTestUtils {
     public static UaaClientDetails getClient(String token,
                                              String url,
                                              String clientId) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -752,7 +780,7 @@ public class IntegrationTestUtils {
                                                            String zoneId,
                                                            UaaClientDetails client) {
 
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + zoneAdminToken);
@@ -782,7 +810,7 @@ public class IntegrationTestUtils {
                                                         String switchToZoneId,
                                                         UaaClientDetails client) {
 
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         template.setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
             protected boolean hasError(HttpStatusCode statusCode) {
@@ -826,7 +854,7 @@ public class IntegrationTestUtils {
                                     String token,
                                     UaaClientDetails client) {
 
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
@@ -865,7 +893,7 @@ public class IntegrationTestUtils {
     private static List<IdentityProvider<? extends AbstractIdentityProviderDefinition>> getProviders(String zoneAdminToken,
                                                                                                      String url,
                                                                                                      String zoneId) {
-        RestTemplate client = new RestTemplate();
+        RestTemplate client = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + zoneAdminToken);
@@ -893,7 +921,7 @@ public class IntegrationTestUtils {
         if (provider == null) {
             return;
         }
-        RestTemplate client = new RestTemplate();
+        RestTemplate client = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Authorization", "bearer " + zoneAdminToken);
         headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
@@ -1060,7 +1088,7 @@ public class IntegrationTestUtils {
                                                                                                             String url,
                                                                                                             IdentityProvider<T> provider) {
 
-        RestTemplate client = new RestTemplate();
+        RestTemplate client = createConfiguredRestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + accessToken);
@@ -1102,7 +1130,7 @@ public class IntegrationTestUtils {
     public static String getClientCredentialsToken(String baseUrl,
                                                    String clientId,
                                                    String clientSecret) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "client_credentials");
@@ -1144,7 +1172,7 @@ public class IntegrationTestUtils {
                                        String password,
                                        String scopes,
                                        String loginHint) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         template.getMessageConverters().addFirst(new StringHttpMessageConverter(StandardCharsets.UTF_8));
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -1181,7 +1209,7 @@ public class IntegrationTestUtils {
                                        String assertion,
                                        String loginHint,
                                        String scopes) {
-        RestTemplate template = new RestTemplate();
+        RestTemplate template = createConfiguredRestTemplate();
         template.getMessageConverters().addFirst(new StringHttpMessageConverter(StandardCharsets.UTF_8));
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -1214,23 +1242,7 @@ public class IntegrationTestUtils {
     public static String getClientCredentialsToken(ServerRunningExtension serverRunning,
                                                    String clientId,
                                                    String clientSecret) {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("grant_type", "client_credentials");
-        formData.add("client_id", clientId);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.set("Authorization",
-                "Basic " + new String(BASE_64_ENCODER.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
-
-        @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        final Map responseBody = response.getBody();
-        assertThat(responseBody).isNotNull();
-        @SuppressWarnings("unchecked")
-        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(responseBody);
-        return accessToken.getValue();
+        return getClientCredentialsToken(serverRunning.getBaseUrl(), clientId, clientSecret);
     }
 
     public static String getAccessTokenByAuthCode(ServerRunningExtension serverRunning,
@@ -1548,7 +1560,7 @@ public class IntegrationTestUtils {
     }
 
     public static void extractCookies(ResponseEntity<?> response, BasicCookieStore cookies) {
-        if (response.getHeaders().containsKey("Set-Cookie")) {
+        if (response.getHeaders().containsHeader("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
                 cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
@@ -1557,7 +1569,7 @@ public class IntegrationTestUtils {
     }
 
     public static void copyCookies(ResponseEntity<?> response, HttpHeaders headers) {
-        if (response.getHeaders().containsKey("Set-Cookie")) {
+        if (response.getHeaders().containsHeader("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 headers.add("Cookie", cookie);
             }

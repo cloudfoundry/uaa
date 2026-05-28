@@ -87,7 +87,7 @@ public final class RelyingPartyRegistrationBuilder {
                 })
                 // alter the default value of the APs wantAuthnRequestsSigned,
                 // to reflect the UAA configured desire to always sign/or-not the AuthnRequest
-                .assertingPartyDetails(details -> {
+                .assertingPartyMetadata(details -> {
                     details.wantAuthnRequestsSigned(params.requestSigned);
                     details.signingAlgorithms(alg -> {
                         alg.clear();

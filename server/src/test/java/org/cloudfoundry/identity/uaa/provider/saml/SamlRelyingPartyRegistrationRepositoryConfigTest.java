@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
@@ -85,7 +86,7 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
                 .returns("{baseUrl}/saml/SSO/alias/entityId", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("entityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("entityId", AssertingPartyMetadata::getEntityId);
     }
 }

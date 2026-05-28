@@ -13,7 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.login.AutologinRequest;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;

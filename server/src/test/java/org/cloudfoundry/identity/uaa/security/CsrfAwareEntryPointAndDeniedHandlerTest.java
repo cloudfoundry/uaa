@@ -53,7 +53,7 @@ class CsrfAwareEntryPointAndDeniedHandlerTest {
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_FOUND);
         assertThat(ex).isSameAs(request.getAttribute(WebAttributes.ACCESS_DENIED_403));
         assertThat(response.isCommitted()).isTrue();
-        assertThat(response.getHeader("Location")).isEqualTo("http://localhost/login");
+        assertThat(response.getHeader("Location")).isEqualTo("/login");
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_MOVED_TEMPORARILY);
     }
 
@@ -74,7 +74,7 @@ class CsrfAwareEntryPointAndDeniedHandlerTest {
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_FOUND);
         assertThat(ex).isSameAs(request.getAttribute(WebAttributes.ACCESS_DENIED_403));
         assertThat(response.isCommitted()).isTrue();
-        assertThat(response.getHeader("Location")).isEqualTo("http://localhost/login");
+        assertThat(response.getHeader("Location")).isEqualTo("/login");
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_MOVED_TEMPORARILY);
     }
 

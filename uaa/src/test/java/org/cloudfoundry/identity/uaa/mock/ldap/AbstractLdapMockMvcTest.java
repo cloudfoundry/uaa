@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
@@ -1125,7 +1125,10 @@ public abstract class AbstractLdapMockMvcTest {
         Authentication auth = manager.authenticate(token);
         assertThat(auth).isNotNull();
         defaultAuthorities.addAll(Arrays.asList("test.read", "test.write", "test.everything"));
-        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities())).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
+        Set<String> actualAuthorities = UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()).stream()
+                .filter(a -> a != null && !a.startsWith("FACTOR_"))
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(actualAuthorities).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
         IdentityZoneHolder.clear();
     }
 
@@ -1167,7 +1170,10 @@ public abstract class AbstractLdapMockMvcTest {
     void validateUserAuthorities(String[] expected, Authentication auth) {
         Set<String> defaultAuthorities = new HashSet<>(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         Collections.addAll(defaultAuthorities, expected);
-        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities())).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
+        Set<String> actualAuthorities = UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()).stream()
+                .filter(a -> a != null && !a.startsWith("FACTOR_"))
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(actualAuthorities).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
     }
 
     @Test
@@ -1258,18 +1264,18 @@ public abstract class AbstractLdapMockMvcTest {
         assertThat(auth).isNotNull();
         Set<String> defaultAuthorities = Sets.newHashSet(zone.getZone().getIdentityZone().getConfig().getUserConfig().getDefaultGroups());
         defaultAuthorities.addAll(Arrays.asList(expected));
-        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities())).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
+        Set<String> actualAuthorities = UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()).stream()
+                .filter(a -> a != null && !a.startsWith("FACTOR_"))
+                .collect(java.util.stream.Collectors.toSet());
+        assertThat(actualAuthorities).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
     }
 
     String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {
-        String[] result = new String[authorities != null ? authorities.size() : 0];
-        if (result.length > 0) {
-            int index = 0;
-            for (GrantedAuthority a : authorities) {
-                result[index++] = a.getAuthority();
-            }
-        }
-        return result;
+        if (authorities == null) return new String[0];
+        return authorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(a -> a != null && !a.startsWith("FACTOR_"))
+                .toArray(String[]::new);
     }
 
     void updateLdapProvider() throws Exception {

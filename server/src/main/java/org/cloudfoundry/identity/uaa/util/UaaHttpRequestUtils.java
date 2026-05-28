@@ -13,7 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.hc.client5.http.ConnectionKeepAliveStrategy;
 import org.apache.hc.client5.http.HttpRequestRetryStrategy;

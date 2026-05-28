@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.common;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +21,7 @@ class OAuth2AccessTokenJackson2SerializerTests extends BaseOAuth2AccessTokenJack
 
     @BeforeEach
     void createObjectMapper() {
-        mapper = new ObjectMapper();
+        mapper = new JsonMapper();
     }
 
     @Test
@@ -60,11 +61,11 @@ class OAuth2AccessTokenJackson2SerializerTests extends BaseOAuth2AccessTokenJack
                 accessToken.getScope().add(null);
             } catch (NullPointerException e) {
                 // short circuit NPE from Java 7 (which is correct but only relevant for this test)
-                throw new JsonMappingException("Scopes cannot be null or empty. Got [null]");
+                throw new IllegalArgumentException("Scopes cannot be null or empty. Got [null]");
             }
             mapper.writeValueAsString(accessToken);
         })
-                .isInstanceOf(JsonMappingException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Scopes cannot be null or empty. Got [null]");
     }
 
@@ -73,7 +74,7 @@ class OAuth2AccessTokenJackson2SerializerTests extends BaseOAuth2AccessTokenJack
         accessToken.getScope().clear();
         accessToken.getScope().add("");
         assertThatThrownBy(() -> mapper.writeValueAsString(accessToken))
-                .isInstanceOf(JsonMappingException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Scopes cannot be null or empty. Got []");
     }
 

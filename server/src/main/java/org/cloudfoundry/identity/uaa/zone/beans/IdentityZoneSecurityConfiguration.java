@@ -16,6 +16,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AnonymousConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.authentication.AuthenticationManagerBeanDefinitionParser;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -125,6 +126,7 @@ class IdentityZoneSecurityConfiguration {
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(oauth2ResourceFilter, AbstractPreAuthenticatedProcessingFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception -> {
                     exception.authenticationEntryPoint(oauthAuthenticationEntryPoint);

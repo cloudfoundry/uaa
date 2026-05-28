@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;

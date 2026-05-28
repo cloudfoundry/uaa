@@ -13,15 +13,14 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationContext;
 import org.springframework.security.core.GrantedAuthority;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.ValueDeserializer;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,9 +29,9 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 
-public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentication> implements UaaAuthenticationJsonBase {
+public class UaaAuthenticationDeserializer extends ValueDeserializer<UaaAuthentication> implements UaaAuthenticationJsonBase {
     @Override
-    public UaaAuthentication deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public UaaAuthentication deserialize(JsonParser jp, DeserializationContext ctxt) {
         UaaAuthenticationDetails details = null;
         UaaPrincipal princpal = null;
         List<? extends GrantedAuthority> authorities = emptyList();
@@ -46,10 +45,10 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
         String idpIdToken = null;
         Map<String, List<String>> userAttributes = emptyMap();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
-            if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
-                String fieldName = jp.getCurrentName();
+            if (jp.currentToken() == JsonToken.PROPERTY_NAME) {
+                String fieldName = jp.currentName();
                 jp.nextToken();
-                if (NULL_STRING.equals(jp.getText())) {
+                if (NULL_STRING.equals(jp.getString())) {
                     //do nothing
                 } else if (DETAILS.equals(fieldName)) {
                     details = jp.readValueAs(UaaAuthenticationDetails.class);
@@ -85,7 +84,7 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
             }
         }
         if (princpal == null) {
-            throw new JsonMappingException("Missing " + UaaPrincipal.class.getName());
+            throw DatabindException.from(jp, "Missing " + UaaPrincipal.class.getName());
         }
         UaaAuthentication uaaAuthentication = new UaaAuthentication(princpal,
                 null,

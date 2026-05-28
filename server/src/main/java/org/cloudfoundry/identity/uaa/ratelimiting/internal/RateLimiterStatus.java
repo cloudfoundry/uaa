@@ -6,13 +6,14 @@ import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
+import tools.jackson.core.JacksonException;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include;
 
@@ -75,8 +76,8 @@ public class RateLimiterStatus {
             try {
                 json = OM.writerWithDefaultPrettyPrinter().writeValueAsString(this);
             }
-            catch (JsonProcessingException e) {
-                json = "JsonProcessingException (" + e.getMessage() + "): "
+            catch (JacksonException e) {
+                json = "JacksonException (" + e.getMessage() + "): "
                         + "current: " + current
                         + "fromSource: " + fromSource;
             }
@@ -115,5 +116,5 @@ public class RateLimiterStatus {
         return builder().current(Current.builder().status(CurrentStatus.DISABLED).asOf(now).build()).build();
     }
 
-    private static final ObjectMapper OM = new ObjectMapper();
+    private static final ObjectMapper OM = new JsonMapper();
 }

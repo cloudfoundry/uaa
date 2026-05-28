@@ -619,7 +619,7 @@ class ScimGroupEndpointsIntegrationTests {
                 .contains("username")
                 .contains("password");
 
-        if (response.getHeaders().containsKey("Set-Cookie")) {
+        if (response.getHeaders().containsHeader("Set-Cookie")) {
             String cookie = response.getHeaders().getFirst("Set-Cookie");
             int nameLength = cookie.indexOf('=');
             cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));

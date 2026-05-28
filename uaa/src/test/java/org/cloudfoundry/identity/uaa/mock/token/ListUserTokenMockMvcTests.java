@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;

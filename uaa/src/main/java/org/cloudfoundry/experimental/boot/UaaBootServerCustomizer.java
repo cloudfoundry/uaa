@@ -4,8 +4,8 @@ import org.apache.catalina.connector.Connector;
 import org.apache.catalina.valves.ErrorReportValve;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.server.ErrorPage;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
+import org.springframework.boot.web.error.ErrorPage;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.web.firewall.RequestRejectedException;
@@ -37,7 +37,7 @@ public class UaaBootServerCustomizer implements
         factory.addEngineValves(getErrorReportValve());
 
         if (this.serverHttp.port() > 0) {
-            factory.addAdditionalTomcatConnectors(
+            factory.addAdditionalConnectors(
                     getHttpPort(
                             this.serverHttp
                     )

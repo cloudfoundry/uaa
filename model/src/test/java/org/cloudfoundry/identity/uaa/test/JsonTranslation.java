@@ -1,8 +1,10 @@
 package org.cloudfoundry.identity.uaa.test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.junit.jupiter.api.Test;
+import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 
@@ -45,7 +47,9 @@ public abstract class JsonTranslation<T> {
         this.withAllNullFields = withAllNullFields;
 
         this.jsonFileName = subjectClass.getSimpleName() + ".json";
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = JsonMapper.builder()
+                .enable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .build();
     }
 
     protected ObjectMapper getObjectMapper() {
@@ -58,7 +62,7 @@ public abstract class JsonTranslation<T> {
     }
 
     @Test
-    void toJson() throws JsonProcessingException {
+    void toJson() throws JacksonException {
         validate();
         assertThat(subjectClass.getResourceAsStream(jsonFileName)).as("file <%s/%s> must exist on classpath".formatted(subjectClass.getPackage().getName().replace(".", "/"), jsonFileName)).isNotNull();
 
@@ -80,7 +84,7 @@ public abstract class JsonTranslation<T> {
     }
 
     @Test
-    void withNullFields_checkIsEmptyJson() throws IllegalAccessException, InstantiationException, JsonProcessingException {
+    void withNullFields_checkIsEmptyJson() throws IllegalAccessException, InstantiationException, JacksonException {
         assumeTrue(EXPECT_EMPTY_JSON.equals(withAllNullFields),
                 "To configure this test, use %s instead of %s".formatted(EXPECT_EMPTY_JSON, withAllNullFields));
         validate();
@@ -90,7 +94,7 @@ public abstract class JsonTranslation<T> {
     }
 
     @Test
-    void withNullFields_compareToFile() throws JsonProcessingException, IllegalAccessException, InstantiationException {
+    void withNullFields_compareToFile() throws JacksonException, IllegalAccessException, InstantiationException {
         assumeTrue(EXPECT_NULLS_IN_JSON.equals(withAllNullFields),
                 "To configure this test, use %s instead of %s".formatted(EXPECT_NULLS_IN_JSON, withAllNullFields));
         validate();

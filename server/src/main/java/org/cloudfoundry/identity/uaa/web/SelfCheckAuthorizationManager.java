@@ -4,8 +4,10 @@ import java.util.function.Supplier;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
@@ -63,12 +65,12 @@ public class SelfCheckAuthorizationManager  implements AuthorizationManager<Requ
 	}
 
 	@Override
-    public void verify(Supplier<Authentication> authentication, RequestAuthorizationContext context) {
+    public void verify(Supplier<? extends @Nullable Authentication> authentication, RequestAuthorizationContext context) {
         AuthorizationManager.super.verify(authentication, context);
     }
 
     @Override
-    public AuthorizationDecision check(Supplier<Authentication> authentication, RequestAuthorizationContext context) {
+    public AuthorizationResult authorize(Supplier<? extends @Nullable Authentication> authentication, RequestAuthorizationContext context) {
         HttpServletRequest request = context.getRequest();
         switch (type) {
             case USER -> {

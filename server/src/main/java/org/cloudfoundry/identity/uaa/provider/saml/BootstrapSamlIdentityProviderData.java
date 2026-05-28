@@ -185,7 +185,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             IdentityProvider<SamlIdentityProviderDefinition> provider = parseSamlProvider(def);
             if (def.getType() == SamlIdentityProviderDefinition.MetadataLocation.DATA) {
                 RelyingPartyRegistration metadataDelegate = samlConfigurator.getExtendedMetadataDelegate(def);
-                def.setIdpEntityId(metadataDelegate.getAssertingPartyDetails().getEntityId());
+                def.setIdpEntityId(metadataDelegate.getAssertingPartyMetadata().getEntityId());
             }
             IdentityProviderWrapper<SamlIdentityProviderDefinition> wrapper = new IdentityProviderWrapper<>(provider);
             wrapper.setOverride(override == null || override);

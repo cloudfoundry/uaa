@@ -15,7 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;

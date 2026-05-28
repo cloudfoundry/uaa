@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;

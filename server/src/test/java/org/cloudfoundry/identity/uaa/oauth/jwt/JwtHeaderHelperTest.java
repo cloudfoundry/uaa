@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension;
 import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension.RandomValue;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +34,7 @@ class JwtHeaderHelperTest {
 
         @BeforeEach
         void setup() {
-            objectNode = new ObjectMapper().createObjectNode();
+            objectNode = new JsonMapper().createObjectNode();
             objectNode.put("kid", "key-id");
             objectNode.put("alg", "key-alg");
             objectNode.put("enc", "key-encoding");
@@ -114,7 +115,7 @@ class JwtHeaderHelperTest {
         class OptionalHeaders {
             @BeforeEach
             void setup() {
-                objectNode = new ObjectMapper().createObjectNode();
+                objectNode = new JsonMapper().createObjectNode();
             }
 
             @ParameterizedTest

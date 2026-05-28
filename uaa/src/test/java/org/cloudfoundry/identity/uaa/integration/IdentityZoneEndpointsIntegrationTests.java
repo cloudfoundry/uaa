@@ -180,7 +180,7 @@ class IdentityZoneEndpointsIntegrationTests {
                 new ParameterizedTypeReference<>() {
                 },
                 id);
-        assertThat(response.getStatusCode()).as(response.getBody()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getStatusCode()).as(response.getBody()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
     }
 
     @Test

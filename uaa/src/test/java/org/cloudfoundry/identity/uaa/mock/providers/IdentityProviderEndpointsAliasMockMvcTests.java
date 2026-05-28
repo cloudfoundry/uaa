@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.providers;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;

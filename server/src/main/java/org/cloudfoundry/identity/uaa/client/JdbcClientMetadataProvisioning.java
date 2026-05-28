@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;

@@ -147,7 +147,7 @@ public class SamlIdentityProviderConfiguratorTests {
                 }
                 case "simplesamlphp-url": {
                     RelyingPartyRegistration extendedMetadataDelegate = configurator.getExtendedMetadataDelegate(def);
-                    assertThat(extendedMetadataDelegate.getAssertingPartyDetails().getEntityId()).isEqualTo("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php");
+                    assertThat(extendedMetadataDelegate.getAssertingPartyMetadata().getEntityId()).isEqualTo("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php");
                     break;
                 }
                 default:

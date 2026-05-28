@@ -9,8 +9,9 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
@@ -25,9 +26,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DefaultTestContext
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @TestPropertySource(properties = {"server.http.port = 8081"})
+@Import(UaaBootServerCustomizer.class)
 class UaaBootServerCustomizerTest {
 
-    @SpyBean
+    @MockitoSpyBean
     UaaBootServerCustomizer customizer;
 
     @Test
@@ -47,7 +49,7 @@ class UaaBootServerCustomizerTest {
     void localhostConnectorAdded() throws UnknownHostException {
         ArgumentCaptor<TomcatServletWebServerFactory> captor = ArgumentCaptor.forClass(TomcatServletWebServerFactory.class);
         Mockito.verify(customizer, Mockito.atMostOnce()).customize(captor.capture());
-        List<Connector> connectors = captor.getValue().getAdditionalTomcatConnectors();
+        List<Connector> connectors = captor.getValue().getAdditionalConnectors();
         assertThat(connectors).isNotEmpty();
         assertThat(connectors).hasSize(1);
         Connector httpConnector = connectors.getFirst();

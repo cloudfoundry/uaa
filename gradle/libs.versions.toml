@@ -21,9 +21,10 @@ orgJson = "20260522"
 passay = "2.0.0"
 selenium = "4.44.0"
 sonarqube = "7.3.0.8198"
-springBoot = "3.5.14"
+springBoot = "4.0.6"
 springDependencyManagement = "1.1.7"
-springDocOpenapi = "2.8.17"
+springDocOpenapi = "3.0.2"
+springRetry = "2.0.12"
 statsdClient = "3.1.0"
 tomcat = "10.1.55"
 unboundIdScimSdk = "2.0.0"
@@ -56,6 +57,7 @@ velocity = { module = "org.apache.velocity:velocity-engine-core", version.ref = 
 xmlSecurity = { module = "org.apache.santuario:xmlsec", version.ref = "xmlSecurity" }
 
 # AspectJ
+aspectJRt = { module = "org.aspectj:aspectjrt" }
 aspectJWeaver = { module = "org.aspectj:aspectjweaver" }
 
 # Awaitility
@@ -76,7 +78,8 @@ eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "ecl
 
 # FasterXML Jackson
 jacksonAnnotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
-jacksonDatabind = { module = "com.fasterxml.jackson.core:jackson-databind" }
+jacksonDatabind = { module = "tools.jackson.core:jackson-databind" }
+jacksonDataformatYaml = { module = "tools.jackson.dataformat:jackson-dataformat-yaml" }
 
 # Flyway
 flywayCore = { module = "org.flywaydb:flyway-core" }
@@ -155,6 +158,7 @@ springBeans = { module = "org.springframework:spring-beans" }
 springContext = { module = "org.springframework:spring-context" }
 springContextSupport = { module = "org.springframework:spring-context-support" }
 springJdbc = { module = "org.springframework:spring-jdbc" }
+springRetry = { module ="org.springframework.retry:spring-retry", version.ref = "springRetry" }
 springTest = { module = "org.springframework:spring-test" }
 springTx = { module = "org.springframework:spring-tx" }
 springWeb = { module = "org.springframework:spring-web" }
@@ -162,12 +166,17 @@ springWebMvc = { module = "org.springframework:spring-webmvc" }
 
 # Spring Boot
 springBootBom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
+springBootFlyway = { module = "org.springframework.boot:spring-boot-flyway" }
+springBootJdbc = { module = "org.springframework.boot:spring-boot-jdbc" }
+springBootSql = { module = "org.springframework.boot:spring-boot-sql" }
 springBootStarter = { module = "org.springframework.boot:spring-boot-starter" }
 springBootStarterLog4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2" }
 springBootStarterMail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 springBootStarterTest = { module = "org.springframework.boot:spring-boot-starter-test" }
 springBootStarterTomcat = { module = "org.springframework.boot:spring-boot-starter-tomcat" }
+springBootStarterTomcatRuntime = { module = "org.springframework.boot:spring-boot-starter-tomcat-runtime" }
 springBootStarterWeb = { module = "org.springframework.boot:spring-boot-starter-web" }
+springBootTransaction = { module = "org.springframework.boot:spring-boot-transaction" }
 
 # Spring Data
 springLdapCore = { module = "org.springframework.ldap:spring-ldap-core" }
@@ -179,6 +188,7 @@ springDocOpenapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui
 springRestdocs = { module = "org.springframework.restdocs:spring-restdocs-mockmvc" }
 
 # Spring Security
+springSecurityAccess = { module = "org.springframework.security:spring-security-access" }
 springSecurityConfig = { module = "org.springframework.security:spring-security-config" }
 springSecurityCore = { module = "org.springframework.security:spring-security-core" }
 springSecurityLdap = { module = "org.springframework.security:spring-security-ldap" }

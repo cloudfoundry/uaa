@@ -16,6 +16,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.core.Saml2X509Credential;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.util.FileCopyUtils;
 
@@ -119,8 +120,8 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId);
     }
 
     @Test
@@ -167,8 +168,8 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId);
     }
 
     @Test
@@ -222,8 +223,8 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId);
     }
 
     @Test
@@ -271,10 +272,10 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SSO/alias/zoneDomain.entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/zoneDomain.entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
-                .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId)
                 // signature algorithm defaults to SHA256
-                .extracting(RelyingPartyRegistration.AssertingPartyDetails::getSigningAlgorithms)
+                .extracting(AssertingPartyMetadata::getSigningAlgorithms)
                 .isEqualTo(List.of(ALGO_ID_SIGNATURE_RSA_SHA256));
     }
 
@@ -347,7 +348,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
         when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-        assertThat(registration.getAssertingPartyDetails().getSigningAlgorithms())
+        assertThat(registration.getAssertingPartyMetadata().getSigningAlgorithms())
                 .hasSize(1)
                 .first()
                 .isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA512);

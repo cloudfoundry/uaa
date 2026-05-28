@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutSuccessHandler;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2RelyingPartyInitiatedLogoutSuccessHandler;
@@ -94,7 +95,7 @@ public class UaaDelegatingLogoutSuccessHandler implements LogoutSuccessHandler {
             return false;
         }
 
-        String singleLogoutServiceLocation = Optional.ofNullable(registration.getAssertingPartyDetails()).map(RelyingPartyRegistration.AssertingPartyDetails::getSingleLogoutServiceLocation).orElse(null);
+        String singleLogoutServiceLocation = Optional.ofNullable(registration.getAssertingPartyMetadata()).map(AssertingPartyMetadata::getSingleLogoutServiceLocation).orElse(null);
         return singleLogoutServiceLocation != null;
     }
 }

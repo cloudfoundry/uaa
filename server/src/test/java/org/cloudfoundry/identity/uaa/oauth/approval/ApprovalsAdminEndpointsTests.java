@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.unboundid.scim.sdk.AttributePath;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;

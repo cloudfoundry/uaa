@@ -261,7 +261,7 @@ class ForcePasswordChangeControllerMockMvcTest {
         validPost.with(cookieCsrf());
         mockMvc.perform(validPost)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     static class PasswordPolicyWithInvalidPassword {

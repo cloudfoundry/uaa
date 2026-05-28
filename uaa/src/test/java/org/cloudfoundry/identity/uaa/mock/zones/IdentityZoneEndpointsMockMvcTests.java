@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;

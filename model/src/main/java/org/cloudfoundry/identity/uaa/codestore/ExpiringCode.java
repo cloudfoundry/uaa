@@ -14,16 +14,12 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Data;
 
 import java.sql.Timestamp;
 import java.util.Objects;
 
 @Data
-@JsonSerialize
-@JsonDeserialize
 public class ExpiringCode {
 
     private String code;

@@ -20,9 +20,13 @@ dependencies {
     implementation(libs.springJdbc)
     implementation(libs.springWeb)
     implementation(libs.springSecurityCore)
+    implementation(libs.springSecurityAccess)
     implementation(libs.springSecurityWeb)
     implementation(libs.springSecurityConfig)
     implementation(libs.springBootStarterMail)
+    implementation(libs.springBootSql)
+    implementation(libs.springBootJdbc)
+    implementation(libs.springBootTransaction)
     implementation(libs.openSamlApi)
     implementation(libs.springSecuritySamlServiceProvider)
     implementation(libs.xmlSecurity)
@@ -35,6 +39,10 @@ dependencies {
 
     implementation(libs.guava)
 
+    // OpenAPI documentation
+    implementation(libs.springDocOpenapi)
+
+    implementation(libs.aspectJRt)
     implementation(libs.aspectJWeaver)
 
     implementation(libs.thymeLeaf) {
@@ -62,6 +70,7 @@ dependencies {
     implementation(libs.flywayHsqlDb)
     implementation(libs.flywayMySql)
     implementation(libs.flywayPostgresql)
+    implementation(libs.springBootFlyway)
     implementation(libs.hsqldb)
 
     implementation(libs.snakeyaml)

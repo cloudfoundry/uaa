@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Sets;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
@@ -1118,7 +1118,7 @@ class ScimGroupEndpointsMockMvcTests {
                         .header("Authorization", "Bearer " + scimWriteToken)
                         .header("Content-Type", APPLICATION_JSON_VALUE))
                 .andDo(print())
-                .andExpect(header().string("Location", "http://localhost/login?error=invalid_login_request"))
+                .andExpect(header().string("Location", "/login?error=invalid_login_request"))
                 .andExpect(status().isFound()); //gets caught by the ui filter for unknown URIs but wantsJson;
     }
 

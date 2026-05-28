@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.util.Assert;
 
@@ -28,6 +29,7 @@ public abstract class ScimCore<T extends ScimCore> {
 
     private ScimMeta meta = new ScimMeta();
 
+    @JsonCreator
     protected ScimCore(String id) {
         this.id = id;
     }

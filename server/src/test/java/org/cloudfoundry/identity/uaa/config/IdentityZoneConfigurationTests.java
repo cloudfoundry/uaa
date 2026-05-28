@@ -88,6 +88,16 @@ class IdentityZoneConfigurationTests {
     }
 
     @Test
+    void clientSecretPolicy_expireSecretInMonths_isIgnoredInJson() {
+        ClientSecretPolicy policy = new ClientSecretPolicy(5, 12, 1, 1, 1, 1, 6);
+        String json = JsonUtils.writeValueAsString(policy);
+        assertThat(json).doesNotContain("expireSecretInMonths");
+
+        ClientSecretPolicy back = JsonUtils.readValue(json, ClientSecretPolicy.class);
+        assertThat(back.getExpireSecretInMonths()).isEqualTo(-1);
+    }
+
+    @Test
     void deserializeLinksJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, Links.class);

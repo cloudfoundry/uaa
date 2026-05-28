@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;

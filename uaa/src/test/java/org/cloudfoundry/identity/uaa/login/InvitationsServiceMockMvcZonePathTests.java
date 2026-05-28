@@ -73,7 +73,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -295,7 +295,7 @@ public class InvitationsServiceMockMvcZonePathTests {
                                 .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @ParameterizedTest
@@ -337,7 +337,7 @@ public class InvitationsServiceMockMvcZonePathTests {
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(get("/profile").session(session).accept(MediaType.TEXT_HTML))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test
@@ -538,7 +538,7 @@ public class InvitationsServiceMockMvcZonePathTests {
                                 .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @ParameterizedTest
@@ -595,7 +595,7 @@ public class InvitationsServiceMockMvcZonePathTests {
 
         mockMvc.perform(get("/profile").session(session).accept(MediaType.TEXT_HTML))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test
@@ -641,7 +641,7 @@ public class InvitationsServiceMockMvcZonePathTests {
                                 .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @ParameterizedTest
@@ -700,7 +700,7 @@ public class InvitationsServiceMockMvcZonePathTests {
         session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(get("/profile").session(session).accept(MediaType.TEXT_HTML))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test

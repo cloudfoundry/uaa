@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import jakarta.servlet.http.HttpSession;
 import org.apache.commons.collections4.map.HashedMap;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;

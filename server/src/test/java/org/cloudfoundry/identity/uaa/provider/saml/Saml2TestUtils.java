@@ -244,11 +244,11 @@ public final class Saml2TestUtils {
         return TestRelyingPartyRegistrations.noCredentials()
                 .entityId(RELYING_PARTY_ENTITY_ID)
                 .assertionConsumerServiceLocation(DESTINATION)
-                .assertingPartyDetails(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
+                .assertingPartyMetadata(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
     }
 
     public static RelyingPartyRegistration.Builder verifying(RelyingPartyRegistration.Builder builder) {
-        return builder.assertingPartyDetails(party -> party
+        return builder.assertingPartyMetadata(party -> party
                 .verificationX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
     }
 

@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.common;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 import org.junit.jupiter.api.Test;
@@ -19,7 +21,7 @@ class JsonSerializationTests {
     void defaultSerialization() throws Exception {
         DefaultOAuth2AccessToken accessToken = new DefaultOAuth2AccessToken("FOO");
         accessToken.setExpiration(new Date(System.currentTimeMillis() + 10000));
-        String result = new ObjectMapper().writeValueAsString(accessToken);
+        String result = new JsonMapper().writeValueAsString(accessToken);
         // System.err.println(result);
         assertThat(result).as("Wrong token: " + result).contains("\"token_type\":\"bearer\"")
                 .as("Wrong token: " + result).contains("\"access_token\":\"FOO\"")
@@ -31,7 +33,7 @@ class JsonSerializationTests {
         DefaultOAuth2AccessToken accessToken = new DefaultOAuth2AccessToken("FOO");
         accessToken.setRefreshToken(new DefaultOAuth2RefreshToken("BAR"));
         accessToken.setExpiration(new Date(System.currentTimeMillis() + 10000));
-        String result = new ObjectMapper().writeValueAsString(accessToken);
+        String result = new JsonMapper().writeValueAsString(accessToken);
         // System.err.println(result);
         assertThat(result).as("Wrong token: " + result).contains("\"token_type\":\"bearer\"")
                 .as("Wrong token: " + result).contains("\"access_token\":\"FOO\"")
@@ -43,7 +45,7 @@ class JsonSerializationTests {
     void exceptionSerialization() throws Exception {
         InvalidClientException exception = new InvalidClientException("FOO");
         exception.addAdditionalInformation("foo", "bar");
-        String result = new ObjectMapper().writeValueAsString(exception);
+        String result = new JsonMapper().writeValueAsString(exception);
         // System.err.println(result);
         assertThat(result).as("Wrong result: " + result).contains("\"error\":\"invalid_client\"")
                 .as("Wrong result: " + result).contains("\"error_description\":\"FOO\"")
@@ -53,7 +55,7 @@ class JsonSerializationTests {
     @Test
     void defaultDeserialization() throws Exception {
         String accessToken = "{\"access_token\": \"FOO\", \"expires_in\": 100, \"token_type\": \"mac\"}";
-        OAuth2AccessToken result = new ObjectMapper().readValue(accessToken, OAuth2AccessToken.class);
+        OAuth2AccessToken result = new JsonMapper().readValue(accessToken, OAuth2AccessToken.class);
         // System.err.println(result);
         assertThat(result.getValue()).isEqualTo("FOO");
         assertThat(result.getTokenType()).isEqualTo("mac");
@@ -63,7 +65,7 @@ class JsonSerializationTests {
     @Test
     void exceptionDeserialization() throws Exception {
         String exception = "{\"error\": \"invalid_client\", \"error_description\": \"FOO\", \"foo\": \"bar\"}";
-        OAuth2Exception result = new ObjectMapper().readValue(exception, OAuth2Exception.class);
+        OAuth2Exception result = new JsonMapper().readValue(exception, OAuth2Exception.class);
         // System.err.println(result);
         assertThat(result.getMessage()).isEqualTo("FOO");
         assertThat(result.getOAuth2ErrorCode()).isEqualTo("invalid_client");

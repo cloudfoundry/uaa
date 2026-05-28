@@ -15,7 +15,7 @@ package org.cloudfoundry.identity.uaa.security;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;

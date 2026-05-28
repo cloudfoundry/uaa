@@ -22,7 +22,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -57,7 +57,7 @@ class LoginPagePerformanceMockMvcTest {
 
     private File originalLimitedModeStatusFile;
 
-    @MockBean
+    @MockitoBean
     OidcMetadataFetcher oidcMetadataFetcher;
 
     @BeforeEach

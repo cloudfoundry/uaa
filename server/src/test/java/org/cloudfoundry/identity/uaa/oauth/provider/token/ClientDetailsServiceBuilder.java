@@ -25,15 +25,15 @@ public class ClientDetailsServiceBuilder<B extends ClientDetailsServiceBuilder<B
 
     private final List<ClientBuilder> clientBuilders = new ArrayList<>();
 
-    public InMemoryClientDetailsServiceBuilder inMemory() throws Exception {
+    public InMemoryClientDetailsServiceBuilder inMemory() {
         return new InMemoryClientDetailsServiceBuilder();
     }
 
     @SuppressWarnings("rawtypes")
-    public ClientDetailsServiceBuilder<?> clients(final ClientDetailsService clientDetailsService) throws Exception {
+    public ClientDetailsServiceBuilder<?> clients(final ClientDetailsService clientDetailsService) {
         return new ClientDetailsServiceBuilder() {
             @Override
-            public ClientDetailsService build() throws Exception {
+            public ClientDetailsService build() {
                 return clientDetailsService;
             }
         };
@@ -46,7 +46,7 @@ public class ClientDetailsServiceBuilder<B extends ClientDetailsServiceBuilder<B
     }
 
     @Override
-    public ClientDetailsService build() throws Exception {
+    public ClientDetailsService build() {
         for (ClientBuilder clientDetailsBldr : clientBuilders) {
             addClient(clientDetailsBldr.clientId, clientDetailsBldr.build());
         }

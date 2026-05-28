@@ -95,7 +95,7 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
                 String assertionConsumerServiceLocation = templateResolver.apply(relyingPartyRegistration.getAssertionConsumerServiceLocation());
                 String singleLogoutServiceLocation = templateResolver.apply(relyingPartyRegistration.getSingleLogoutServiceLocation());
                 String singleLogoutServiceResponseLocation = templateResolver.apply(relyingPartyRegistration.getSingleLogoutServiceResponseLocation());
-                return RelyingPartyRegistration.withRelyingPartyRegistration(relyingPartyRegistration).entityId(relyingPartyEntityId).assertionConsumerServiceLocation(assertionConsumerServiceLocation).singleLogoutServiceLocation(singleLogoutServiceLocation).singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocation).build();
+                return relyingPartyRegistration.mutate().entityId(relyingPartyEntityId).assertionConsumerServiceLocation(assertionConsumerServiceLocation).singleLogoutServiceLocation(singleLogoutServiceLocation).singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocation).build();
             }
         }
     }
@@ -134,7 +134,7 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
     }
 
     private static Map<String, String> constructUriVariables(String baseUrl, RelyingPartyRegistration relyingParty) {
-        String entityId = relyingParty.getAssertingPartyDetails().getEntityId();
+        String entityId = relyingParty.getAssertingPartyMetadata().getEntityId();
         String registrationId = relyingParty.getRegistrationId();
         Map<String, String> uriVariables = new HashMap<>();
         UriComponents uriComponents = UriComponentsBuilder.fromUriString(baseUrl).replaceQuery(null).fragment(null).build();

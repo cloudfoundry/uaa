@@ -158,6 +158,8 @@ public class SamlLoginIT {
             LogoutDoEndpoint.logout(webDriver, baseUrl.replace("localhost", domain));
             new Page(webDriver).clearCookies();
         }
+        webDriver.get(samlServerConfig.getSamlServerUrl() + "/index.php");
+        webDriver.manage().deleteAllCookies();
         SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, samlServerConfig);
     }
 

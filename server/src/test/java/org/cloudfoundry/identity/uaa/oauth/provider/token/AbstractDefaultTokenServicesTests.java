@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.io.Serial;
 import java.util.Arrays;
@@ -244,7 +245,7 @@ public abstract class AbstractDefaultTokenServicesTests {
         private final String principal;
 
         public TestAuthentication(String name, boolean authenticated) {
-            super(null);
+            super((Collection<? extends GrantedAuthority>) null);
             setAuthenticated(authenticated);
             this.principal = name;
         }

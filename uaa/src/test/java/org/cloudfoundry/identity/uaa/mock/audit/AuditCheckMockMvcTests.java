@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.audit;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.codec.binary.Base64;

@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import net.shibboleth.shared.xml.SerializeSupport;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
@@ -259,8 +258,8 @@ class Saml2BearerGrantAuthenticationConverterTest {
     // gh-11785
     @Test
     void deserializeWhenAssertionContainsAttributesThenWorks() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
         ClassLoader loader = getClass().getClassLoader();
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         mapper.registerModules(SecurityJackson2Modules.getModules(loader));
         Assertion assertion = assertion();
         List<AttributeStatement> attributes = TestOpenSamlObjects.attributeStatements();
@@ -557,11 +556,11 @@ class Saml2BearerGrantAuthenticationConverterTest {
         return TestRelyingPartyRegistrations.noCredentials()
                 .entityId(RELYING_PARTY_ENTITY_ID)
                 .assertionConsumerServiceLocation(DESTINATION)
-                .assertingPartyDetails(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
+                .assertingPartyMetadata(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
     }
 
     private RelyingPartyRegistration.Builder verifying(RelyingPartyRegistration.Builder builder) {
-        return builder.assertingPartyDetails(party -> party
+        return builder.assertingPartyMetadata(party -> party
                 .verificationX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
     }
 
