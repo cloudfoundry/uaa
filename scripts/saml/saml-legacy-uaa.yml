@@ -301,3 +301,8 @@ oauth:
       autoapprove: 'true'
       redirect-uri: 'http://localhost/*,http://localhost:8080/**,http://localhost:7000/**'
       jwt_creds: '[{"iss":"http://localhost:8080/uaa/oauth/token","sub":"client_with_jwks_trust","aud":"client_with_jwks_trust"}]'
+
+uaa:
+  oauth:
+    redirect_uri:
+      allow_unsafe_matching: true
