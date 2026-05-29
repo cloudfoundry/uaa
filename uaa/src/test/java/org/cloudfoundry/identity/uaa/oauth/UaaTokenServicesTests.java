@@ -326,6 +326,52 @@ class UaaTokenServicesTests {
                     tokenServices.setUaaTokenEnhancers(new ArrayList<>());
                 }
             }
+
+            @DisplayName("claims from later enhancers override claims from earlier enhancers")
+            @ParameterizedTest
+            @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
+            void claimsAreOverriddenBySubsequentEnhancers(String grantType) {
+                UaaTokenEnhancer enhancer1 = new UaaTokenEnhancer() {
+                    @Override
+                    public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                        return Map.of();
+                    }
+
+                    @Override
+                    public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                        return Map.of("shared_claim", "original_value");
+                    }
+                };
+
+                UaaTokenEnhancer enhancer2 = new UaaTokenEnhancer() {
+                    @Override
+                    public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                        return Map.of();
+                    }
+
+                    @Override
+                    public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                        return Map.of("shared_claim", "overridden_value");
+                    }
+                };
+
+                tokenServices.setUaaTokenEnhancers(Arrays.asList(enhancer1, enhancer2));
+
+                try {
+                    AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, grantType, "openid", "user_attributes");
+                    OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+
+                    CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
+
+                    String jwt = accessToken.getValue();
+                    Jwt parsedToken = JwtHelper.decode(jwt);
+                    Map<String, Object> claims = JsonUtils.readValue(parsedToken.getClaims(), new TypeReference<Map<String, Object>>() {});
+
+                    assertThat(claims).containsEntry("shared_claim", "overridden_value");
+                } finally {
+                    tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+                }
+            }
         }
 
         @Nested

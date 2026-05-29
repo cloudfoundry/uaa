@@ -90,6 +90,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -195,7 +196,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     @Autowired(required = false)
     public void setUaaTokenEnhancers(List<UaaTokenEnhancer> uaaTokenEnhancers) {
-        this.uaaTokenEnhancers = new ArrayList<>(uaaTokenEnhancers == null ? emptyList() : uaaTokenEnhancers);
+        if (uaaTokenEnhancers != null) {
+            this.uaaTokenEnhancers = uaaTokenEnhancers.stream()
+                    .filter(Objects::nonNull)
+                    .toList();
+        } else {
+            this.uaaTokenEnhancers = new ArrayList<>();
+        }
     }
 
     @Deprecated
@@ -635,11 +642,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (!uaaTokenEnhancers.isEmpty()) {
             additionalRootClaims = new HashMap<>();
             for (UaaTokenEnhancer enhancer : uaaTokenEnhancers) {
-                if (enhancer != null) {
-                    Map<String, Object> claims = enhancer.enhance(additionalRootClaims, authentication);
-                    if (claims != null) {
-                        additionalRootClaims.putAll(claims);
-                    }
+                Map<String, Object> claims = enhancer.enhance(additionalRootClaims, authentication);
+                if (claims != null) {
+                    additionalRootClaims.putAll(claims);
                 }
             }
         }
