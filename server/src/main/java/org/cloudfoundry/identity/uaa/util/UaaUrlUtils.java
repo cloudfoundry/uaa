@@ -112,9 +112,15 @@ public abstract class UaaUrlUtils {
         return false;
     }
 
+    /**
+     * Maximum length accepted for a registered redirect URI. Inputs longer than this are rejected
+     * before regex evaluation as a defence against polynomial backtracking on pathological inputs.
+     */
+    private static final int MAX_REDIRECT_URI_LENGTH = 2048;
+
     private static final Pattern allowedRedirectUriPattern = Pattern.compile(
             "^([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
-                    "(.*:.*@)?" +                    //username/password in URL
+                    "([^:/@]{0,255}:[^/@]{0,255}@)?" + //username/password in URL — bounded, no `/`/`@` to avoid ReDoS
                     "(([a-zA-Z0-9\\-\\*\\_]+\\.){0,255}" + //subdomains (RFC1035) limited, regex backtracking disabled
                     "[a-zA-Z0-9\\-\\_]+\\.)?" +      //hostname
                     "[a-zA-Z0-9\\-]+" +              //tld
@@ -122,7 +128,7 @@ public abstract class UaaUrlUtils {
     );
 
     public static boolean isValidRegisteredRedirectUrl(String url) {
-        if (hasText(url)) {
+        if (hasText(url) && url.length() <= MAX_REDIRECT_URI_LENGTH) {
             return allowedRedirectUriPattern.matcher(url).matches();
         }
         return false;

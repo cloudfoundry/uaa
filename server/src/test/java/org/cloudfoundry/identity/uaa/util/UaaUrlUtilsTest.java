@@ -656,6 +656,20 @@ class UaaUrlUtilsTest {
     }
 
     @Test
+    void isValidRegisteredRedirectUrlRejectsOverlongInputQuickly() {
+        // Defence against polynomial regex backtracking (CWE-1333). A long pathological input
+        // that does not contain "://" should be rejected by the length cap before regex matching,
+        // and must complete well under the 1 s budget even on a slow CI box.
+        String pathological = "a".repeat(100_000);
+        long start = System.nanoTime();
+        boolean result = UaaUrlUtils.isValidRegisteredRedirectUrl(pathological);
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
+
+        assertThat(result).isFalse();
+        assertThat(elapsedMillis).as("regex evaluation time in ms").isLessThan(1000);
+    }
+
+    @Test
     void invalidUrlExceptionIsThrown() {
         assertThatExceptionOfType(InvalidUrlException.class).isThrownBy(
                 () -> UaaUrlUtils.fromUriString("invalid-url")
