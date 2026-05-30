@@ -115,7 +115,7 @@ public abstract class UaaUrlUtils {
     /**
      * Maximum length accepted for a registered redirect URI. Inputs longer than this are rejected
      * before regex evaluation as a defence against polynomial backtracking on pathological inputs.
-     * RFC 7230 limizd max URI is 8000.
+     * RFC 7230 recommends support for request-line lengths of at least 8000 octets.
      */
     private static final int MAX_REDIRECT_URI_LENGTH = 8000;
 
