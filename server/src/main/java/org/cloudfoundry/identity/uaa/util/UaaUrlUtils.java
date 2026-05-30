@@ -115,8 +115,9 @@ public abstract class UaaUrlUtils {
     /**
      * Maximum length accepted for a registered redirect URI. Inputs longer than this are rejected
      * before regex evaluation as a defence against polynomial backtracking on pathological inputs.
+     * RFC 7230 limizd max URI is 8000.
      */
-    private static final int MAX_REDIRECT_URI_LENGTH = 2048;
+    private static final int MAX_REDIRECT_URI_LENGTH = 8000;
 
     private static final Pattern allowedRedirectUriPattern = Pattern.compile(
             "^([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
