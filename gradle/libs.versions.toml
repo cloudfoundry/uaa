@@ -38,7 +38,7 @@ commonsIo = { module = "commons-io:commons-io", version.ref = "commonsIo" }
 
 # Apache Directory Server
 apacheHttpClient = { module = "org.apache.httpcomponents.client5:httpclient5" }
-apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.7"
+apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.8"
 
 # Apache Logging
 log4jCore = { module = "org.apache.logging.log4j:log4j-core" }
