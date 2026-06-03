@@ -105,6 +105,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         String normalized = sqlFragment.toLowerCase(Locale.ROOT);
         if (normalized.contains(";")
                 || normalized.contains("--")
+                || normalized.contains("#")
                 || normalized.contains("/*")
                 || normalized.contains("*/")) {
             throw new IllegalArgumentException("Invalid filter: disallowed SQL token in generated query");
