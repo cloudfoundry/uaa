@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -86,10 +87,38 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
     }
 
     private String getQuerySQL(SearchQueryConverter.ProcessedFilter where) {
+        String sqlFragment = where.getSql();
+        assertSafeGeneratedSql(sqlFragment);
+
         if (where.hasOrderBy()) {
-            return getBaseSqlQuery() + " where (" + where.getSql().replace(ORDER_BY, ")" + ORDER_BY);
+            return getBaseSqlQuery() + " where (" + sqlFragment.replace(ORDER_BY, ")" + ORDER_BY);
         } else {
-            return getBaseSqlQuery() + " where (" + where.getSql() + ")";
+            return getBaseSqlQuery() + " where (" + sqlFragment + ")";
+        }
+    }
+
+    private void assertSafeGeneratedSql(String sqlFragment) {
+        if (!StringUtils.hasText(sqlFragment)) {
+            throw new IllegalArgumentException("Invalid filter: empty SQL fragment");
+        }
+
+        String normalized = sqlFragment.toLowerCase(Locale.ROOT);
+        if (normalized.contains(";")
+                || normalized.contains("--")
+                || normalized.contains("/*")
+                || normalized.contains("*/")) {
+            throw new IllegalArgumentException("Invalid filter: disallowed SQL token in generated query");
+        }
+
+        String trimmed = normalized.trim();
+        if (trimmed.startsWith("select ")
+                || trimmed.startsWith("insert ")
+                || trimmed.startsWith("update ")
+                || trimmed.startsWith("delete ")
+                || trimmed.startsWith("drop ")
+                || trimmed.startsWith("alter ")
+                || trimmed.startsWith("create ")) {
+            throw new IllegalArgumentException("Invalid filter: unexpected SQL clause in generated query");
         }
     }
 
