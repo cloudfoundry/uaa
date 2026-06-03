@@ -37,7 +37,7 @@ public class CredentialIdTypeJWTjsonField extends CredentialIdTypeAbstractJWT {
     }
 
     static class SectionFieldJWT extends SectionJWT {
-        private final ObjectMapper mapper = new JsonMapper();
+        private static final ObjectMapper MAPPER = new JsonMapper();
         private final AuthorizationCredentialIdExtractorErrorLogger errorLogger;
         private final String field;
 
@@ -58,7 +58,7 @@ public class CredentialIdTypeJWTjsonField extends CredentialIdTypeAbstractJWT {
             String valueFound = null;
             try {
                 String json = decodeSection(section, this);
-                Map<?, ?> map = mapper.readValue(json, Map.class);
+                Map<?, ?> map = MAPPER.readValue(json, Map.class);
                 Object value = map.get(field);
                 if (value != null) {
                     valueFound = value.toString();
