@@ -28,6 +28,8 @@ import java.util.Collections;
 import static java.util.Optional.ofNullable;
 
 public class OidcMetadataFetcher {
+    private static final ObjectMapper OBJECT_MAPPER = new JsonMapper();
+
     private final UrlContentCache contentCache;
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
@@ -135,7 +137,7 @@ public class OidcMetadataFetcher {
             rawContents = contentCache.getUrlContent(discoveryUrl.toString(), nonTrustingRestTemplate);
         }
         try {
-            return new JsonMapper().readValue(rawContents, OidcMetadata.class);
+            return OBJECT_MAPPER.readValue(rawContents, OidcMetadata.class);
         } catch (JacksonException e) {
             throw new OidcMetadataFetchingException(e);
         }

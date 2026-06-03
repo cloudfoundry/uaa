@@ -30,7 +30,10 @@ class EmptyPasswordAwareEncoder implements PasswordEncoder {
 
     @Override
     public boolean matches(CharSequence rawPassword, String encodedPassword) {
-        if (rawPassword != null && rawPassword.isEmpty()) {
+        if (rawPassword == null) {
+            return false;
+        }
+        if (rawPassword.isEmpty()) {
             return emptyPasswordMatchesStoredHash(encodedPassword);
         }
 
