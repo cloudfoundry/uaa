@@ -132,6 +132,30 @@ class AbstractQueryableSqlGuardTests {
                 .hasMessageContaining("unexpected SQL clause");
     }
 
+    /**
+     * Parenthesis-wrapped bypass raised by Copilot review: a fragment like
+     * "(select 1)" or "((select 1))" must be rejected — leading whitespace and
+     * "(" are stripped before the DML/DDL keyword check.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "(select 1)",
+            "((select 1))",
+            "( select 1 )",
+            "(\tselect 1)",
+            "( ( select 1 ) )",
+            " (select 1) ",
+            "((((delete from users))))",
+            "(UPDATE users set x=1)",
+            "(DROP table users)",
+            "(union select 1)"
+    })
+    void rejectsParenthesisWrappedKeyword(String fragment) {
+        assertThatThrownBy(() -> GuardHarness.invoke(fragment))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("unexpected SQL clause");
+    }
+
     // ---------- Typical generated SCIM filter fragments are accepted ----------
 
     @ParameterizedTest

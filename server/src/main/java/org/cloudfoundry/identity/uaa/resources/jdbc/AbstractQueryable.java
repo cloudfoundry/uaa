@@ -109,6 +109,10 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
             "^(select|insert|update|delete|drop|alter|create|truncate|merge|union|grant|revoke|exec|execute|call|with|replace|rename|comment)(\\s|\\().*",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
+    // Strips leading whitespace and any number of leading "(" so the keyword guard above
+    // also catches parenthesis-wrapped bypasses such as "(select 1)" or "((select 1))".
+    private static final Pattern LEADING_PARENS_OR_WHITESPACE = Pattern.compile("^[\\s(]+");
+
     protected static void assertSafeGeneratedSql(String sqlFragment) {
         if (!StringUtils.hasText(sqlFragment)) {
             throw new IllegalArgumentException("Invalid filter: empty SQL fragment");
@@ -123,7 +127,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
             throw new IllegalArgumentException("Invalid filter: disallowed SQL token in generated query");
         }
 
-        String trimmed = normalized.trim();
+        String trimmed = LEADING_PARENS_OR_WHITESPACE.matcher(normalized).replaceFirst("");
         if (DISALLOWED_LEADING_CLAUSE.matcher(trimmed).matches()) {
             throw new IllegalArgumentException("Invalid filter: unexpected SQL clause in generated query");
         }
