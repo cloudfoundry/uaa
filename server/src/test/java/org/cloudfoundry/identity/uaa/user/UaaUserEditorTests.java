@@ -13,11 +13,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UaaUserEditorTests {
     private static final UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
@@ -67,7 +68,7 @@ class UaaUserEditorTests {
     @Test
     void invalidFormat() {
         UaaUserEditor editor = new UaaUserEditor();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> editor.setAsText("%s|%s|%s|%s".formatted(UNM, PWD, FNM, LNM)));
+        assertThatThrownBy(() -> editor.setAsText("%s|%s|%s|%s".formatted(UNM, PWD, FNM, LNM))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

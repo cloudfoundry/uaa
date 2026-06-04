@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -40,7 +41,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -106,21 +108,21 @@ class UaaAuthorizationRequestManagerTests {
     void clientIDPAuthorizationInUAAzoneListFails() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
-        assertThatExceptionOfType(UnauthorizedClientException.class).isThrownBy(() -> factory.checkClientIdpAuthorization(client, user));
+        assertThatThrownBy(() -> factory.checkClientIdpAuthorization(client, user)).asInstanceOf(InstanceOfAssertFactories.throwable(UnauthorizedClientException.class));
     }
 
     @Test
     void clientIDPAuthorizationInUAAzoneNullProvider() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(null);
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
-        assertThatExceptionOfType(UnauthorizedClientException.class).isThrownBy(() -> factory.checkClientIdpAuthorization(client, user));
+        assertThatThrownBy(() -> factory.checkClientIdpAuthorization(client, user)).asInstanceOf(InstanceOfAssertFactories.throwable(UnauthorizedClientException.class));
     }
 
     @Test
     void clientIDPAuthorizationInUAAzoneEmptyResultSetException() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
-        assertThatExceptionOfType(UnauthorizedClientException.class).isThrownBy(() -> factory.checkClientIdpAuthorization(client, user));
+        assertThatThrownBy(() -> factory.checkClientIdpAuthorization(client, user)).asInstanceOf(InstanceOfAssertFactories.throwable(UnauthorizedClientException.class));
     }
 
     @Test

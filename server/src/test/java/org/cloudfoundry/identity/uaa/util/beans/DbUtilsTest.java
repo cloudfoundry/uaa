@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.util.beans;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,7 +15,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -92,13 +93,13 @@ class DbUtilsTest {
         @NullSource
         void rejectsInvalidQuoteStrings(String quoteString) throws Exception {
             when(databaseMetaData.getIdentifierQuoteString()).thenReturn(quoteString);
-            assertThatExceptionOfType(Throwable.class).isThrownBy(() -> dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate));
+            assertThatThrownBy(() -> dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate)).asInstanceOf(InstanceOfAssertFactories.throwable(Throwable.class));
         }
 
         @Test
         void abortsWhenCannotGetMetaData() throws Exception {
             when(metaDataExtractor.extractDatabaseMetaData(any())).thenThrow(MetaDataAccessException.class);
-            assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate));
+            assertThatThrownBy(() -> dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate)).asInstanceOf(InstanceOfAssertFactories.throwable(RuntimeException.class));
         }
     }
 }

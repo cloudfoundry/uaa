@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -13,7 +14,7 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +41,7 @@ class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
         ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(mockDataSource);
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
-        assertThatExceptionOfType(DataAccessException.class).isThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
+        assertThatThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(DataAccessException.class));
     }
 
     @Test
@@ -48,11 +49,11 @@ class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
         jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZone.getUaaZoneId());
         ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcTemplate.queryForObject(
+        assertThatThrownBy(() -> jdbcTemplate.queryForObject(
                 JdbcExpiringCodeStore.selectAllFields,
                 new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(),
                 "test",
-                IdentityZone.getUaaZoneId()));
+                IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     @Override

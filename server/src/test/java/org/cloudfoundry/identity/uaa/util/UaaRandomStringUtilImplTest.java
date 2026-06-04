@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -9,7 +10,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UaaRandomStringUtilImplTest {
 
@@ -32,7 +33,7 @@ class UaaRandomStringUtilImplTest {
 
     @Test
     void invalidLength() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> uaaRandomStringUtil.getSecureRandom(-1));
+        assertThatThrownBy(() -> uaaRandomStringUtil.getSecureRandom(-1)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
 }

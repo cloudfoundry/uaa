@@ -1,10 +1,11 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
 class UserConfigValidatorTest {
@@ -31,15 +32,15 @@ class UserConfigValidatorTest {
         UserConfig userConfig = new UserConfig();
         userConfig.setDefaultGroups(Collections.emptyList());
         userConfig.setAllowedGroups(Collections.emptyList());
-        assertThatExceptionOfType(InvalidIdentityZoneConfigurationException.class).isThrownBy(() -> // no groups allowed
-                UserConfigValidator.validate(userConfig));
+        assertThatThrownBy(() -> // no groups allowed
+                UserConfigValidator.validate(userConfig)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidIdentityZoneConfigurationException.class));
     }
 
     @Test
     void noUsersAllowed() {
         UserConfig userConfig = new UserConfig();
         userConfig.setMaxUsers(0);
-        assertThatExceptionOfType(InvalidIdentityZoneConfigurationException.class).isThrownBy(() ->
-                UserConfigValidator.validate(userConfig));
+        assertThatThrownBy(() ->
+                UserConfigValidator.validate(userConfig)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidIdentityZoneConfigurationException.class));
     }
 }

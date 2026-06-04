@@ -1,11 +1,12 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TestUaaUrlBuilderTest {
     private TestUaaUrlBuilder builder;
@@ -19,7 +20,7 @@ class TestUaaUrlBuilderTest {
     @Test
     void informativeError_whenNoSystemDomain() {
         ReflectionTestUtils.setField(builder, "systemDomain", "");
-        assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> builder.build());
+        assertThatThrownBy(() -> builder.build()).asInstanceOf(InstanceOfAssertFactories.throwable(RuntimeException.class));
     }
 
     @Test

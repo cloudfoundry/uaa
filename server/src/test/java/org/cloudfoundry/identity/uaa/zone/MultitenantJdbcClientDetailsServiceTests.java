@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -39,7 +40,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService.DEFAULT_DELETE_STATEMENT;
@@ -200,7 +202,7 @@ class MultitenantJdbcClientDetailsServiceTests {
 
     @Test
     void loadingClientForNonExistingClientId() {
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> service.loadClientByClientId("nonExistingClientId"));
+        assertThatThrownBy(() -> service.loadClientByClientId("nonExistingClientId")).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
@@ -477,7 +479,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId("duplicateClientIdWithNoDetails");
 
         service.addClientDetails(clientDetails);
-        assertThatExceptionOfType(ClientAlreadyExistsException.class).isThrownBy(() -> service.addClientDetails(clientDetails));
+        assertThatThrownBy(() -> service.addClientDetails(clientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(ClientAlreadyExistsException.class));
     }
 
     @Test
@@ -624,7 +626,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("nosuchClientIdWithNoDetails");
 
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> service.updateClientDetails(clientDetails));
+        assertThatThrownBy(() -> service.updateClientDetails(clientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
@@ -648,7 +650,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("nosuchClientIdWithNoDetails");
 
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> service.removeClientDetails(clientDetails.getClientId()));
+        assertThatThrownBy(() -> service.removeClientDetails(clientDetails.getClientId())).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
@@ -679,7 +681,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId("clientInOtherZone");
         service.addClientDetails(clientDetails);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> service.loadClientByClientId("clientInOtherZone"));
+        assertThatThrownBy(() -> service.loadClientByClientId("clientInOtherZone")).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test

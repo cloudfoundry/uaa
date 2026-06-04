@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import com.nimbusds.jose.jwk.JWKParameterNames;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,13 +25,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SignatureVerifierTest {
 
     @Test
     void null_is_not_an_acceptable_key() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> new SignatureVerifier(null));
+        assertThatThrownBy(() -> new SignatureVerifier(null)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @ParameterizedTest
@@ -72,6 +73,6 @@ class SignatureVerifierTest {
         key.put(JWKParameterNames.KEY_TYPE, "RSA");
         key.put("value", "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxMi4Z4");
         JsonWebKey jsonWebKey = new JsonWebKey(key);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> new SignatureVerifier(jsonWebKey));
+        assertThatThrownBy(() -> new SignatureVerifier(jsonWebKey)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 }

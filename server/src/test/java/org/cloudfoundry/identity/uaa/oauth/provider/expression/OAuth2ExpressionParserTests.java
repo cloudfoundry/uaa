@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.expression;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,7 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParserContext;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -35,9 +36,9 @@ class OAuth2ExpressionParserTests {
 
     @Test
     void constructorNull() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> {
+        assertThatThrownBy(() -> {
             new OAuth2ExpressionParser(null);
-        });
+        }).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -31,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -118,7 +119,7 @@ class AutologinAuthenticationManagerTest {
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> manager.authenticate(authenticationToken));
+        assertThatThrownBy(() -> manager.authenticate(authenticationToken)).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test
@@ -130,13 +131,13 @@ class AutologinAuthenticationManagerTest {
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> manager.authenticate(authenticationToken));
+        assertThatThrownBy(() -> manager.authenticate(authenticationToken)).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test
     void authentication_fails_withExpiredCode() {
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(null);
-        assertThatExceptionOfType(InvalidCodeException.class).isThrownBy(() -> manager.authenticate(authenticationToken));
+        assertThatThrownBy(() -> manager.authenticate(authenticationToken)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidCodeException.class));
     }
 
     @Test
@@ -148,7 +149,7 @@ class AutologinAuthenticationManagerTest {
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        assertThatExceptionOfType(InvalidCodeException.class).isThrownBy(() -> manager.authenticate(authenticationToken));
+        assertThatThrownBy(() -> manager.authenticate(authenticationToken)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidCodeException.class));
     }
 
     @Test
@@ -157,6 +158,6 @@ class AutologinAuthenticationManagerTest {
         codeData.put("action", "someotheraction");
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        assertThatExceptionOfType(InvalidCodeException.class).isThrownBy(() -> manager.authenticate(authenticationToken));
+        assertThatThrownBy(() -> manager.authenticate(authenticationToken)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidCodeException.class));
     }
 }

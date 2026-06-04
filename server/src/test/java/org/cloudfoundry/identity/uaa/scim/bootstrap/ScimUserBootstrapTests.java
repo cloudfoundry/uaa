@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.apache.commons.lang3.tuple.Triple;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
@@ -256,7 +257,7 @@ class ScimUserBootstrapTests {
         UaaUser joe = new UaaUser("joe", "", "joe@test.org", "Joe", "User", OriginKeys.UAA, null);
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager, Collections.singletonList(joe), false, Collections.emptyList(), false);
-        assertThatExceptionOfType(InvalidPasswordException.class).isThrownBy(bootstrap::afterPropertiesSet);
+        assertThatThrownBy(bootstrap::afterPropertiesSet).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidPasswordException.class));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.client.http.converter;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.BadClientCredentialsException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
@@ -13,7 +14,7 @@ import org.springframework.mock.http.MockHttpOutputMessage;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FormOAuth2ExceptionHttpMessageTest {
 
@@ -50,8 +51,8 @@ class FormOAuth2ExceptionHttpMessageTest {
 
     @Test
     void writeInternal() {
-        assertThatExceptionOfType(UnsupportedOperationException.class).isThrownBy(() ->
-                auth2AccessTokenMessageConverter.writeInternal(new DefaultOAuth2AccessToken(""), new MockHttpOutputMessage()));
+        assertThatThrownBy(() ->
+                auth2AccessTokenMessageConverter.writeInternal(new DefaultOAuth2AccessToken(""), new MockHttpOutputMessage())).asInstanceOf(InstanceOfAssertFactories.throwable(UnsupportedOperationException.class));
     }
 
     @Test

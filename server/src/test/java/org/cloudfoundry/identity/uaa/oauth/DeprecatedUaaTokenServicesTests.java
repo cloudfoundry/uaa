@@ -4,6 +4,7 @@ import tools.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
@@ -412,8 +413,8 @@ class DeprecatedUaaTokenServicesTests {
     @ParameterizedTest(name = "{index}: {0}")
     void nullRefreshTokenString(TestTokenEnhancer enhancer) {
         initDeprecatedUaaTokenServicesTests(enhancer);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                tokenServices.refreshAccessToken(null, null));
+        assertThatThrownBy(() ->
+                tokenServices.refreshAccessToken(null, null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1145,9 +1146,9 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token")));
+                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1458,8 +1459,8 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, String> refreshAzParameters = new HashMap<>(expandedScopeAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         expandedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
-        assertThatExceptionOfType(InvalidScopeException.class).isThrownBy(() ->
-                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(expandedScopeAuthorizationRequest, "refresh_token")));
+        assertThatThrownBy(() ->
+                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(expandedScopeAuthorizationRequest, "refresh_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidScopeException.class));
     }
 
     @MethodSource("data")
@@ -1529,9 +1530,9 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
-        assertThatExceptionOfType(TokenRevokedException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token")));
+                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(TokenRevokedException.class));
     }
 
     @MethodSource("data")
@@ -1612,9 +1613,9 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token")));
+                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1648,9 +1649,9 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token")));
+                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1684,9 +1685,9 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token")));
+                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1714,9 +1715,9 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token")));
+                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1736,9 +1737,9 @@ class DeprecatedUaaTokenServicesTests {
         Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token")));
+                tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), tokenSupport.requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1832,8 +1833,8 @@ class DeprecatedUaaTokenServicesTests {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         this.tokenSupport.userDatabase.clear();
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                assertThat(tokenServices.readAccessToken(accessToken.getValue())).isEqualTo(accessToken));
+        assertThatThrownBy(() ->
+                assertThat(tokenServices.readAccessToken(accessToken.getValue())).isEqualTo(accessToken)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")

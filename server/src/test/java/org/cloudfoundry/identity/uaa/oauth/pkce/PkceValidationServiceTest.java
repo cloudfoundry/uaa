@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.pkce;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
 import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier;
@@ -15,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -93,17 +94,17 @@ class PkceValidationServiceTest {
 
     @Test
     void codeChallengeMissingForEvaluation() {
-        assertThatExceptionOfType(PkceValidationException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
                 pkceValidationService.checkAndValidate(authorizeRequestParameters,
-                        validPlainCodeChallengeOrCodeVerifierParameter, null));
+                        validPlainCodeChallengeOrCodeVerifierParameter, null)).asInstanceOf(InstanceOfAssertFactories.throwable(PkceValidationException.class));
     }
 
     @Test
     void codeVerifierMissingForEvaluation() {
         authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
                 validPlainCodeChallengeOrCodeVerifierParameter);
-        assertThatExceptionOfType(PkceValidationException.class).isThrownBy(() ->
-                pkceValidationService.checkAndValidate(authorizeRequestParameters, "", null));
+        assertThatThrownBy(() ->
+                pkceValidationService.checkAndValidate(authorizeRequestParameters, "", null)).asInstanceOf(InstanceOfAssertFactories.throwable(PkceValidationException.class));
     }
 
     @Test
@@ -126,8 +127,8 @@ class PkceValidationServiceTest {
         when(client.getAdditionalInformation()).thenReturn(Map.of(ClientConstants.ALLOW_PUBLIC, "true"));
         authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
                 validPlainCodeChallengeOrCodeVerifierParameter);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() -> pkceValidationService.checkAndValidate(authorizeRequestParameters,
-                validPlainCodeChallengeOrCodeVerifierParameter, client));
+        assertThatThrownBy(() -> pkceValidationService.checkAndValidate(authorizeRequestParameters,
+                validPlainCodeChallengeOrCodeVerifierParameter, client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
@@ -20,7 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -80,7 +81,7 @@ class ClientRefreshTokenValidityTest {
             when(mockMultitenantClientServices.loadClientByClientId("clientId", currentIdentityZoneId))
                     .thenThrow(RuntimeException.class);
 
-            assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> clientRefreshTokenValidity.getValiditySeconds("clientId"));
+            assertThatThrownBy(() -> clientRefreshTokenValidity.getValiditySeconds("clientId")).asInstanceOf(InstanceOfAssertFactories.throwable(RuntimeException.class));
         }
     }
 

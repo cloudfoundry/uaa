@@ -1,11 +1,12 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SessionUtilsTest {
     private MockHttpSession mockHttpSession;
@@ -35,6 +36,6 @@ class SessionUtilsTest {
     @Test
     void isPasswordChangeRequiredIfSetNotBoolean() {
         mockHttpSession.setAttribute(SessionUtils.PASSWORD_CHANGE_REQUIRED, "true");
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> SessionUtils.isPasswordChangeRequired(mockHttpSession));
+        assertThatThrownBy(() -> SessionUtils.isPasswordChangeRequired(mockHttpSession)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 }

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.provider.code.AuthorizationCodeServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.implicit.ImplicitTokenGranter;
@@ -16,7 +17,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -74,7 +75,7 @@ class CompositeTokenGranterTests {
     @Test
     void addTokenGranter() {
         compositeTokenGranter.addTokenGranter(mock(ImplicitTokenGranter.class));
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                compositeTokenGranter.addTokenGranter(null));
+        assertThatThrownBy(() ->
+                compositeTokenGranter.addTokenGranter(null)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 }

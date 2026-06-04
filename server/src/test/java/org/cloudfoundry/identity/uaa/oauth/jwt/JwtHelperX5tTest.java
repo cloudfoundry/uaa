@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 
 public class JwtHelperX5tTest {
@@ -53,14 +54,14 @@ public class JwtHelperX5tTest {
     @Test
     void jwtHeaderShouldFailWithInvalidCert() {
         KeyInfo keyInfo1 = KeyInfoBuilder.build("testKid", SIGNING_KEY_1, "http://localhost/uaa", "RS256", "X");
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                JwtHelper.encodePlusX5t(Map.of("key", new Object()), keyInfo1, keyInfo1.verifierCertificate().orElse(null)));
+        assertThatThrownBy(() ->
+                JwtHelper.encodePlusX5t(Map.of("key", new Object()), keyInfo1, keyInfo1.verifierCertificate().orElse(null))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void getX509CertThumbprintInvalidAlg() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                JwtHelper.getX509CertThumbprint("test".getBytes(), "unknown"));
+        assertThatThrownBy(() ->
+                JwtHelper.getX509CertThumbprint("test".getBytes(), "unknown")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

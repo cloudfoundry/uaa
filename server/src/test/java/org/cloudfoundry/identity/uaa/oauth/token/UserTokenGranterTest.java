@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
@@ -39,7 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
@@ -108,49 +109,49 @@ class UserTokenGranterTest {
     @Test
     void no_authentication() {
         SecurityContextHolder.clearContext();
-        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() ->
-                granter.validateRequest(tokenRequest));
+        assertThatThrownBy(() ->
+                granter.validateRequest(tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
     }
 
     @Test
     void not_authenticated() {
         when(authentication.isAuthenticated()).thenReturn(false);
-        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() ->
-                granter.validateRequest(tokenRequest));
+        assertThatThrownBy(() ->
+                granter.validateRequest(tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
     }
 
     @Test
     void not_a_user_authentication() {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
-        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() ->
-                granter.validateRequest(tokenRequest));
+        assertThatThrownBy(() ->
+                granter.validateRequest(tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
     }
 
     @Test
     void invalid_grant_type() {
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                missing_parameter(GRANT_TYPE));
+        assertThatThrownBy(() ->
+                missing_parameter(GRANT_TYPE)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
     void requesting_client_id_missing() {
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                missing_parameter(USER_TOKEN_REQUESTING_CLIENT_ID));
+        assertThatThrownBy(() ->
+                missing_parameter(USER_TOKEN_REQUESTING_CLIENT_ID)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
     void wrong_requesting_grant_type() {
         requestingClient.setAuthorizedGrantTypes(Collections.singletonList("password"));
-        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() ->
-                missing_parameter("non existent"));
+        assertThatThrownBy(() ->
+                missing_parameter("non existent")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientException.class));
     }
 
     @Test
     void wrong_receiving_grant_type() {
         receivingClient.setAuthorizedGrantTypes(Collections.singletonList("password"));
-        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() ->
-                missing_parameter("non existent"));
+        assertThatThrownBy(() ->
+                missing_parameter("non existent")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientException.class));
     }
 
     @Test

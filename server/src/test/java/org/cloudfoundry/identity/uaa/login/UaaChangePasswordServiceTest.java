@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.account.UaaChangePasswordService;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -31,7 +32,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -56,23 +56,23 @@ class UaaChangePasswordServiceTest {
 
     @Test
     void changePasswordWithNoCurrentPasswordOrUsername() {
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() ->
-                subject.changePassword(null, null, "newPassword"));
+        assertThatThrownBy(() ->
+                subject.changePassword(null, null, "newPassword")).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test
     void changePasswordWithInvalidNewPassword() {
         doThrow(new InvalidPasswordException("")).when(passwordValidator).validate("invPawd");
-        assertThatExceptionOfType(InvalidPasswordException.class).isThrownBy(() ->
-                subject.changePassword("username", "currentPassword", "invPawd"));
+        assertThatThrownBy(() ->
+                subject.changePassword("username", "currentPassword", "invPawd")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidPasswordException.class));
     }
 
     @Test
     void changePasswordWithUserNotFound() {
         String zoneId = IdentityZoneHolder.get().getId();
         when(scimUserProvisioning.query(anyString(), eq(zoneId))).thenReturn(emptyList());
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() ->
-                subject.changePassword("username", "currentPassword", "validPassword"));
+        assertThatThrownBy(() ->
+                subject.changePassword("username", "currentPassword", "validPassword")).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
         verify(passwordValidator).validate("validPassword");
         verify(scimUserProvisioning).retrieveByUsernameAndOriginAndZone(anyString(), eq(OriginKeys.UAA), eq(zoneId));
     }

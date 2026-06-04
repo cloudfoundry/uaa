@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -36,7 +37,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.mockito.ArgumentMatchers.any;
@@ -212,8 +213,8 @@ class UaaAuthorizationEndpointTest {
         authorizationRequest.setScope(Arrays.asList("read", "write"));
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -225,8 +226,8 @@ class UaaAuthorizationEndpointTest {
         authorizationRequest.setClientId("bar");
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -238,8 +239,8 @@ class UaaAuthorizationEndpointTest {
         authorizationRequest.setState("state-5678");
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -251,8 +252,8 @@ class UaaAuthorizationEndpointTest {
         authorizationRequest.setRedirectUri("http://somewhere.com");
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -264,8 +265,8 @@ class UaaAuthorizationEndpointTest {
         authorizationRequest.setResponseTypes(Collections.singleton("implicit"));
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -278,8 +279,8 @@ class UaaAuthorizationEndpointTest {
         authorizationRequest.setApproved(true);
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -291,8 +292,8 @@ class UaaAuthorizationEndpointTest {
         authorizationRequest.setResourceIds(Collections.singleton("resource-other"));
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -304,8 +305,8 @@ class UaaAuthorizationEndpointTest {
         authorizationRequest.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("authority-other"));
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -330,24 +331,24 @@ class UaaAuthorizationEndpointTest {
     void shortCodeChallengeParameter() {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(PkceValidationService.CODE_CHALLENGE, "ShortCodeChallenge");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
     void longCodeChallengeParameter() {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(PkceValidationService.CODE_CHALLENGE, "LongCodeChallenge12346574382823193700987654321326352173528351287635126532123452534234254323254325325325432342532532254325432532532");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
     void forbiddenCodeChallengeParameter() {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(PkceValidationService.CODE_CHALLENGE, "#ForbiddenCodeChallenge098765445647544743211234657438282319370#");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -355,8 +356,8 @@ class UaaAuthorizationEndpointTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE);
         parameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, "unsupportedMethod");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters));
+        assertThatThrownBy(() ->
+                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test

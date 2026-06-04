@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.implicit;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
@@ -13,7 +14,7 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,8 +60,8 @@ class ImplicitTokenGranterTests {
         Authentication authentication = mock(Authentication.class);
         when(authentication.isAuthenticated()).thenReturn(false);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() ->
-                implicitTokenGranter.getOAuth2Authentication(mock(ClientDetails.class), implicitTokenRequest));
+        assertThatThrownBy(() ->
+                implicitTokenGranter.getOAuth2Authentication(mock(ClientDetails.class), implicitTokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
     }
 
     @Test

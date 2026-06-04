@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.Limiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LimiterManager;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiterInternalException;
@@ -7,7 +8,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfo;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 class RateLimiterImplTest {
@@ -38,7 +39,7 @@ class RateLimiterImplTest {
 
     @Test
     void internalExceptionTest() {
-        assertThatExceptionOfType(RateLimiterInternalException.class).isThrownBy(() -> check(null)); // Force Error
+        assertThatThrownBy(() -> check(null)).asInstanceOf(InstanceOfAssertFactories.throwable(RateLimiterInternalException.class)); // Force Error
     }
 
     @Test

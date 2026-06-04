@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.config;
 
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -400,8 +399,7 @@ class IdentityProviderBootstrapTest {
 
         setOauthIDPWrappers();
         bootstrap.setSamlProviders(configurator);
-        assertThatThrownBy(() -> bootstrap.afterPropertiesSet())
-                .asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
+        assertThatThrownBy(() -> bootstrap.afterPropertiesSet()).isInstanceOf(IllegalArgumentException.class);
     }
 
     private AbstractExternalOAuthIdentityProviderDefinition setCommonProperties(AbstractExternalOAuthIdentityProviderDefinition definition) throws MalformedURLException {

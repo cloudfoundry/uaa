@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.util;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -25,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -135,7 +136,7 @@ class ScimUtilsTest {
         emails.add(email2);
         user.setEmails(emails);
 
-        assertThatExceptionOfType(InvalidScimResourceException.class).isThrownBy(() -> ScimUtils.validate(user));
+        assertThatThrownBy(() -> ScimUtils.validate(user)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidScimResourceException.class));
     }
 
     @Test
@@ -147,7 +148,7 @@ class ScimUtilsTest {
         emails.add(email);
         user.setEmails(emails);
 
-        assertThatExceptionOfType(InvalidScimResourceException.class).isThrownBy(() -> ScimUtils.validate(user));
+        assertThatThrownBy(() -> ScimUtils.validate(user)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidScimResourceException.class));
     }
 
     @Test
@@ -156,6 +157,6 @@ class ScimUtilsTest {
         user.setOrigin(OriginKeys.UAA);
         user.addEmail("jo@blah.com");
 
-        assertThatExceptionOfType(InvalidScimResourceException.class).isThrownBy(() -> ScimUtils.validate(user));
+        assertThatThrownBy(() -> ScimUtils.validate(user)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidScimResourceException.class));
     }
 }

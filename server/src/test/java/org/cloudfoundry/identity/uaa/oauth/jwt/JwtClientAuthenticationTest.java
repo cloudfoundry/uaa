@@ -11,7 +11,6 @@ import com.nimbusds.jose.util.X509CertUtils;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
@@ -478,8 +477,7 @@ class JwtClientAuthenticationTest {
     void getClientIdOfInvalidClientAssertionOidcCompliance() {
         // Then
         assertThat(JwtClientAuthentication.getClientIdOidcAssertion(INVALID_CLIENT_JWT)).isNull();
-        assertThatThrownBy(() -> JwtClientAuthentication.getClientIdOidcAssertion("eyXXX"))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
+        assertThatThrownBy(() -> JwtClientAuthentication.getClientIdOidcAssertion("eyXXX")).isInstanceOf(BadCredentialsException.class);
     }
 
     @Test

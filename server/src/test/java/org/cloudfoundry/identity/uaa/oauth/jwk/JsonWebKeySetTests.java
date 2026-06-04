@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.nimbusds.jose.jwk.JWKSet;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -23,7 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
 
 class JsonWebKeySetTests {
@@ -202,7 +203,7 @@ class JsonWebKeySetTests {
     @Test
     void jsonKeySetParseFailurePEM() {
         String publicKey = "-----BEGIN PUBLIC KEY-----tokenKey-----END PUBLIC KEY-----";
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> JsonWebKeyHelper.parseConfiguration(publicKey));
+        assertThatThrownBy(() -> JsonWebKeyHelper.parseConfiguration(publicKey)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

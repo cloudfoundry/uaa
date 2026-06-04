@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
@@ -27,7 +28,7 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -51,8 +52,8 @@ class DefaultTokenServicesTests {
                 new DefaultOAuth2AccessToken("FOO"));
         Mockito.when(tokenStore.readAuthentication(Mockito.any(OAuth2AccessToken.class)))
                 .thenReturn(null);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                services.loadAuthentication("FOO"));
+        assertThatThrownBy(() ->
+                services.loadAuthentication("FOO")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @Test

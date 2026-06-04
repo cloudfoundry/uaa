@@ -1,5 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
-
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
@@ -19,7 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -116,8 +116,8 @@ class ExternalOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            assertThatExceptionOfType(HttpSessionRequiredException.class).isThrownBy(() ->
-                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain));
+            assertThatThrownBy(() ->
+                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(HttpSessionRequiredException.class));
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
 
@@ -129,8 +129,8 @@ class ExternalOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            assertThatExceptionOfType(CsrfException.class).isThrownBy(() ->
-                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain));
+            assertThatThrownBy(() ->
+                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(CsrfException.class));
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
 
@@ -142,8 +142,8 @@ class ExternalOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            assertThatExceptionOfType(CsrfException.class).isThrownBy(() ->
-                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain));
+            assertThatThrownBy(() ->
+                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(CsrfException.class));
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
 
@@ -156,8 +156,8 @@ class ExternalOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            assertThatExceptionOfType(CsrfException.class).isThrownBy(() ->
-                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain));
+            assertThatThrownBy(() ->
+                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(CsrfException.class));
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
     }

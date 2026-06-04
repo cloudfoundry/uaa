@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.user;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
@@ -134,7 +135,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void storeUserInfoWithoutId() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> jdbcUaaUserDatabase.storeUserInfo(null, new UserInfo()));
+        assertThatThrownBy(() -> jdbcUaaUserDatabase.storeUserInfo(null, new UserInfo())).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
@@ -277,7 +278,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void getNonExistentUserRaisedNotFoundException() {
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() -> jdbcUaaUserDatabase.retrieveUserByName("jo", OriginKeys.UAA));
+        assertThatThrownBy(() -> jdbcUaaUserDatabase.retrieveUserByName("jo", OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test
@@ -343,7 +344,7 @@ class JdbcUaaUserDatabaseTests {
     void getValidUserInDefaultZoneFromOtherZoneFails() {
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn("zone-the-second");
         // TODO: One @Test should not call another @Test
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(this::getValidUserSucceeds);
+        assertThatThrownBy(this::getValidUserSucceeds).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test
@@ -354,7 +355,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void getValidUserInOtherZoneFromDefaultZoneFails() {
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() -> jdbcUaaUserDatabase.retrieveUserByName("alice", OriginKeys.UAA));
+        assertThatThrownBy(() -> jdbcUaaUserDatabase.retrieveUserByName("alice", OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test

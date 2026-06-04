@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -82,7 +83,7 @@ class JdbcIdentityZoneProvisioningTests {
 
     @Test
     void null_subdomain() {
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.retrieveBySubdomain(null));
+        assertThatThrownBy(() -> jdbcIdentityZoneProvisioning.retrieveBySubdomain(null)).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     @Test
@@ -176,7 +177,7 @@ class JdbcIdentityZoneProvisioningTests {
     void updateNonExistentIdentityZone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
-        assertThatExceptionOfType(ZoneDoesNotExistsException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.update(identityZone));
+        assertThatThrownBy(() -> jdbcIdentityZoneProvisioning.update(identityZone)).asInstanceOf(InstanceOfAssertFactories.throwable(ZoneDoesNotExistsException.class));
     }
 
     @Test
@@ -282,8 +283,8 @@ class JdbcIdentityZoneProvisioningTests {
 
     @Test
     void identityZoneRetrieveZoneIdNull() {
-        assertThatExceptionOfType(ZoneDoesNotExistsException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.retrieve(null));
-        assertThatExceptionOfType(ZoneDoesNotExistsException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.retrieveIgnoreActiveFlag(null));
+        assertThatThrownBy(() -> jdbcIdentityZoneProvisioning.retrieve(null)).asInstanceOf(InstanceOfAssertFactories.throwable(ZoneDoesNotExistsException.class));
+        assertThatThrownBy(() -> jdbcIdentityZoneProvisioning.retrieveIgnoreActiveFlag(null)).asInstanceOf(InstanceOfAssertFactories.throwable(ZoneDoesNotExistsException.class));
     }
 
     @Test
@@ -299,7 +300,7 @@ class JdbcIdentityZoneProvisioningTests {
         assertThat(createdIdZone2.getSubdomain()).isNotEqualTo(createdIdZone.getSubdomain());
         createdIdZone2.setConfig(null);
         createdIdZone2.setSubdomain(subDomain);
-        assertThatExceptionOfType(ZoneAlreadyExistsException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.update(createdIdZone2));
+        assertThatThrownBy(() -> jdbcIdentityZoneProvisioning.update(createdIdZone2)).asInstanceOf(InstanceOfAssertFactories.throwable(ZoneAlreadyExistsException.class));
     }
 
     @Test

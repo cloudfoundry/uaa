@@ -8,11 +8,12 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleState;
 import org.apache.catalina.Server;
 import org.apache.catalina.Service;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -60,7 +61,7 @@ class UaaStartupFailureListenerTest {
         @Test
         void rethrowsAnyExceptions() throws Exception {
             doThrow(new LifecycleException()).when(server).stop();
-            assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> listener.lifecycleEvent(mockLifecycleEvent(server, Lifecycle.AFTER_START_EVENT)));
+            assertThatThrownBy(() -> listener.lifecycleEvent(mockLifecycleEvent(server, Lifecycle.AFTER_START_EVENT))).asInstanceOf(InstanceOfAssertFactories.throwable(RuntimeException.class));
             verify(server, times(1)).stop();
             verify(server, times(0)).destroy();
         }

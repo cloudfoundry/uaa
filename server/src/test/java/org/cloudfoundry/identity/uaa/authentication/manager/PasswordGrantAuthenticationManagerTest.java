@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -687,7 +688,7 @@ class PasswordGrantAuthenticationManagerTest {
                 .setRelyingPartyId("client-id")
                 .setRelyingPartySecret("client-secret");
         idp.setConfig(config);
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> instance.oidcPasswordGrant(authentication, idp));
+        assertThatThrownBy(() -> instance.oidcPasswordGrant(authentication, idp)).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test
@@ -697,6 +698,6 @@ class PasswordGrantAuthenticationManagerTest {
                 .setRelyingPartyId("client-id")
                 .setRelyingPartySecret("client-secret");
         idp.setConfig(config);
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> instance.oidcPasswordGrant(authentication, idp));
+        assertThatThrownBy(() -> instance.oidcPasswordGrant(authentication, idp)).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 }

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -21,7 +22,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
@@ -168,7 +169,7 @@ class OidcMetadataFetcherTest {
                     .thenReturn(responseEntity);
             when(responseEntity.getStatusCode()).thenReturn(HttpStatus.FORBIDDEN);
 
-            assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition));
+            assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
 
             verify(urlContentCache, times(0))
                     .getUrlContent(
@@ -225,7 +226,7 @@ class OidcMetadataFetcherTest {
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
                     .thenReturn("".getBytes());
 
-            assertThatExceptionOfType(OidcMetadataFetchingException.class).isThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition));
+            assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(OidcMetadataFetchingException.class));
         }
 
         @Test
@@ -234,7 +235,7 @@ class OidcMetadataFetcherTest {
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
                     .thenReturn("{x}".getBytes());
 
-            assertThatExceptionOfType(OidcMetadataFetchingException.class).isThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition));
+            assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(OidcMetadataFetchingException.class));
         }
     }
 
@@ -271,7 +272,7 @@ class OidcMetadataFetcherTest {
         @Test
         void failWithInvalidConfig() throws Exception {
 
-            assertThatExceptionOfType(OidcMetadataFetchingException.class).isThrownBy(() -> metadataDiscoverer.fetchWebKeySet(new ClientJwtConfiguration(null, null)));
+            assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(new ClientJwtConfiguration(null, null))).asInstanceOf(InstanceOfAssertFactories.throwable(OidcMetadataFetchingException.class));
         }
     }
 

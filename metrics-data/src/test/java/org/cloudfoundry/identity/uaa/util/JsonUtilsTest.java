@@ -5,7 +5,6 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.annotation.JsonDeserialize;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.metrics.UrlGroup;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -65,8 +64,7 @@ class JsonUtilsTest {
     @ParameterizedTest
     @ValueSource(strings = {"{", "}", "{\"prop1\":\"abc\","})
     void readValueAsMapInvalid(final String input) {
-        assertThatThrownBy(() -> JsonUtils.readValueAsMap(input))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(JsonUtils.JsonUtilException.class));
+        assertThatThrownBy(() -> JsonUtils.readValueAsMap(input)).isInstanceOf(JsonUtils.JsonUtilException.class);
     }
 
     @Test
@@ -102,8 +100,7 @@ class JsonUtilsTest {
     void serializeExcludingPropertiesInnerCallFails() {
         Map<String, String> groupProperties = JsonUtils.readValue(JSON_TEST_OBJECT_STRING, new TypeReference<>() {
         });
-        assertThatThrownBy(() -> JsonUtils.serializeExcludingProperties(groupProperties, "limit.unknown"))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(JsonUtils.JsonUtilException.class));
+        assertThatThrownBy(() -> JsonUtils.serializeExcludingProperties(groupProperties, "limit.unknown")).isInstanceOf(JsonUtils.JsonUtilException.class);
     }
 
     @Test

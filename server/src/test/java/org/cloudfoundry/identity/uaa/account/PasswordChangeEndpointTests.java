@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
@@ -25,7 +26,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -112,7 +112,7 @@ class PasswordChangeEndpointTests {
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("password");
         change.setPassword("newpassword");
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> passwordChangeEndpoint.changePassword(dale.getId(), change));
+        assertThatThrownBy(() -> passwordChangeEndpoint.changePassword(dale.getId(), change)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 
     @Test
@@ -128,14 +128,14 @@ class PasswordChangeEndpointTests {
     void changePasswordRequestFailsForUserWithoutCurrentPassword() {
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> passwordChangeEndpoint.changePassword(joel.getId(), change));
+        assertThatThrownBy(() -> passwordChangeEndpoint.changePassword(joel.getId(), change)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 
     @Test
     void changePasswordRequestFailsForAdminWithoutOwnCurrentPassword() {
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> passwordChangeEndpoint.changePassword(joel.getId(), change));
+        assertThatThrownBy(() -> passwordChangeEndpoint.changePassword(joel.getId(), change)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 
     @Test
@@ -151,7 +151,7 @@ class PasswordChangeEndpointTests {
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("newpassword");
         change.setOldPassword("wrongpassword");
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> passwordChangeEndpoint.changePassword(joel.getId(), change));
+        assertThatThrownBy(() -> passwordChangeEndpoint.changePassword(joel.getId(), change)).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -32,7 +33,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.HamcrestCondition.matching;
 import static org.cloudfoundry.identity.uaa.user.UaaUserMatcher.aUaaUser;
 import static org.mockito.Mockito.mock;
@@ -101,7 +103,7 @@ class LoginAuthenticationManagerTests {
     @Test
     void userNotFoundNoAutoAdd() {
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"));
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> manager.authenticate(UaaAuthenticationTestFactory.getAuthenticationRequest("foo")));
+        assertThatThrownBy(() -> manager.authenticate(UaaAuthenticationTestFactory.getAuthenticationRequest("foo"))).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test
@@ -117,7 +119,7 @@ class LoginAuthenticationManagerTests {
     @Test
     void unsuccessfulAutoAddButWithNewUser() {
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"));
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> manager.authenticate(UaaAuthenticationTestFactory.getAuthenticationRequest("foo", true)));
+        assertThatThrownBy(() -> manager.authenticate(UaaAuthenticationTestFactory.getAuthenticationRequest("foo", true))).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test

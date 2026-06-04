@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -10,7 +11,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,11 +36,11 @@ class ClientJwtConfigurationTest {
 
     @Test
     void jwksInvalid() {
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("custom://any.domain.net/openid/jwks-uri", null));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("test", null));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("http://any.domain.net/openid/jwks-uri"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("https://"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("ftp://any.domain.net/openid/jwks-uri"));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("custom://any.domain.net/openid/jwks-uri", null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("test", null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("http://any.domain.net/openid/jwks-uri")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("ftp://any.domain.net/openid/jwks-uri")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -49,14 +51,14 @@ class ClientJwtConfigurationTest {
 
     @Test
     void jwkSetInvalid() {
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse(jsonJwkSetEmtpy));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse(jsonWebKeyNoId));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("{\"keys\": \"x\"}"));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse(jsonJwkSetEmtpy)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse(jsonWebKeyNoId)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("{\"keys\": \"x\"}")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void jwkSetInvalidSize() {
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> new ClientJwtConfiguration(null, new JsonWebKeySet<>(Collections.emptyList())));
+        assertThatThrownBy(() -> new ClientJwtConfiguration(null, new JsonWebKeySet<>(Collections.emptyList()))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -113,7 +115,7 @@ class ClientJwtConfigurationTest {
         when(mockedKey.getKeys()).thenReturn(keyList);
         ClientJwtConfiguration privateKey = new ClientJwtConfiguration(null, mockedKey);
         when(mockedKey.getKeySetMap()).thenThrow(new IllegalStateException("error"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(privateKey::hasConfiguration);
+        assertThatThrownBy(privateKey::hasConfiguration).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         ClientJwtConfiguration privateKey2 = new ClientJwtConfiguration("hello", null);
         assertThat(privateKey2.hasConfiguration()).isFalse();
     }
@@ -123,7 +125,7 @@ class ClientJwtConfigurationTest {
         JsonWebKeySet<JsonWebKey> mockedKey = mock(JsonWebKeySet.class);
         List<JsonWebKey> keyList = ClientJwtConfiguration.parse(jsonJwkSet).getJwkSet().getKeys();
         when(mockedKey.getKeys()).thenReturn(Arrays.asList(keyList.getFirst(), keyList.getFirst()));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> new ClientJwtConfiguration(null, mockedKey));
+        assertThatThrownBy(() -> new ClientJwtConfiguration(null, mockedKey)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test

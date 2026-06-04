@@ -355,7 +355,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
             // after the failed creation, the IdP must not exist
             final List<IdentityProvider<?>> idpsInZoneAfterFailedCreation = readAllIdpsInZone(zone);
-            assertThat(idpsInZoneAfterFailedCreation.stream().map(IdentityProvider::getOriginKey)).doesNotContain(idp.getOriginKey());
+            assertThat(idpsInZoneAfterFailedCreation).extracting(IdentityProvider::getOriginKey).doesNotContain(idp.getOriginKey());
         }
     }
 

@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.scim.services;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.alias.AliasPropertiesInvalidException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
@@ -76,8 +75,7 @@ class ScimUserServiceTest {
             final ScimUser user = mock(ScimUser.class);
             when(scimUserAliasHandler.aliasPropertiesAreValid(user, existingUser)).thenReturn(false);
 
-            assertThatThrownBy(() -> scimUserService.updateUser(userId, user))
-.asInstanceOf(InstanceOfAssertFactories.throwable(AliasPropertiesInvalidException.class));
+            assertThatThrownBy(() -> scimUserService.updateUser(userId, user)).isInstanceOf(AliasPropertiesInvalidException.class);
         }
     }
 

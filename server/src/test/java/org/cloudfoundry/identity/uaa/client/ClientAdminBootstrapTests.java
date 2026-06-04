@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
@@ -35,7 +36,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -206,8 +208,8 @@ class ClientAdminBootstrapTests {
         map.put("scope", "openid");
         map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() ->
-                doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients));
+        assertThatThrownBy(() ->
+                doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -218,8 +220,8 @@ class ClientAdminBootstrapTests {
         map.put("scope", "openid");
         map.put("authorized-grant-types", GRANT_TYPE_IMPLICIT);
         map.put("authorities", "uaa.none");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() ->
-                doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients));
+        assertThatThrownBy(() ->
+                doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -286,7 +288,7 @@ class ClientAdminBootstrapTests {
         map.put("authorities", "uaa.none");
         map.put("redirect-uri", "http://localhost/callback");
         map.put("jwks", "invalid");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients));
+        assertThatThrownBy(() -> doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test

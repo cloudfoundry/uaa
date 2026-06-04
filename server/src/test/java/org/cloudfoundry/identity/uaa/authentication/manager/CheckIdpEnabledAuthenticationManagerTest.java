@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -20,7 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -62,7 +63,7 @@ class CheckIdpEnabledAuthenticationManagerTest {
         IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         provider.setActive(false);
         identityProviderProvisioning.update(provider, IdentityZoneHolder.get().getId());
-        assertThatExceptionOfType(ProviderNotFoundException.class).isThrownBy(() -> manager.authenticate(token));
+        assertThatThrownBy(() -> manager.authenticate(token)).asInstanceOf(InstanceOfAssertFactories.throwable(ProviderNotFoundException.class));
     }
 
 }

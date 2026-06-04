@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -429,7 +430,7 @@ class JdbcScimGroupMembershipManagerTests {
         IdentityZoneHolder.set(otherIdentityZone);
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         m1.setOrigin(OriginKeys.UAA);
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> jdbcScimGroupMembershipManager.addMember("g2", m1, otherIdentityZone.getId()));
+        assertThatThrownBy(() -> jdbcScimGroupMembershipManager.addMember("g2", m1, otherIdentityZone.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -439,7 +440,7 @@ class JdbcScimGroupMembershipManagerTests {
         validateCount(0, jdbcTemplate, otherIdentityZone.getId());
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         m1.setOrigin(OriginKeys.UAA);
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> jdbcScimGroupMembershipManager.addMember("g2", m1, otherIdentityZone.getId()));
+        assertThatThrownBy(() -> jdbcScimGroupMembershipManager.addMember("g2", m1, otherIdentityZone.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -456,7 +457,7 @@ class JdbcScimGroupMembershipManagerTests {
     @Test
     void cannotNestGroupWithinItself() {
         ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP);
-        assertThatExceptionOfType(InvalidScimResourceException.class).isThrownBy(() -> jdbcScimGroupMembershipManager.addMember("g2", g2, uaaIdentityZone.getId()));
+        assertThatThrownBy(() -> jdbcScimGroupMembershipManager.addMember("g2", g2, uaaIdentityZone.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidScimResourceException.class));
     }
 
     @Test
@@ -558,7 +559,7 @@ class JdbcScimGroupMembershipManagerTests {
 
         jdbcScimGroupMembershipManager.removeMemberById("g1", "m1", uaaIdentityZone.getId());
         validateCount(0, jdbcTemplate, uaaIdentityZone.getId());
-        assertThatExceptionOfType(MemberNotFoundException.class).isThrownBy(() -> jdbcScimGroupMembershipManager.getMemberById("g1", "m1", uaaIdentityZone.getId()));
+        assertThatThrownBy(() -> jdbcScimGroupMembershipManager.getMemberById("g1", "m1", uaaIdentityZone.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(MemberNotFoundException.class));
     }
 
     @Test
@@ -571,7 +572,7 @@ class JdbcScimGroupMembershipManagerTests {
         validateUserGroups("m2", jdbcScimGroupMembershipManager, uaaIdentityZone.getId(), "test2", "test1.i");
 
         jdbcScimGroupMembershipManager.removeMemberById("g1", "g2", uaaIdentityZone.getId());
-        assertThatExceptionOfType(MemberNotFoundException.class).isThrownBy(() -> jdbcScimGroupMembershipManager.getMemberById("g1", "g2", uaaIdentityZone.getId()));
+        assertThatThrownBy(() -> jdbcScimGroupMembershipManager.getMemberById("g1", "g2", uaaIdentityZone.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(MemberNotFoundException.class));
         validateCount(2, jdbcTemplate, uaaIdentityZone.getId());
         validateUserGroups("m1", jdbcScimGroupMembershipManager, uaaIdentityZone.getId(), "test1");
         validateUserGroups("m2", jdbcScimGroupMembershipManager, uaaIdentityZone.getId(), "test2");
@@ -589,7 +590,7 @@ class JdbcScimGroupMembershipManagerTests {
 
         jdbcScimGroupMembershipManager.removeMembersByGroupId("g1", uaaIdentityZone.getId());
         validateCount(1, jdbcTemplate, uaaIdentityZone.getId());
-        assertThatExceptionOfType(MemberNotFoundException.class).isThrownBy(() -> jdbcScimGroupMembershipManager.getMemberById("g1", "m1", uaaIdentityZone.getId()));
+        assertThatThrownBy(() -> jdbcScimGroupMembershipManager.getMemberById("g1", "m1", uaaIdentityZone.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(MemberNotFoundException.class));
         validateUserGroups("m1", jdbcScimGroupMembershipManager, uaaIdentityZone.getId());
         validateUserGroups("m2", jdbcScimGroupMembershipManager, uaaIdentityZone.getId(), "test2");
     }

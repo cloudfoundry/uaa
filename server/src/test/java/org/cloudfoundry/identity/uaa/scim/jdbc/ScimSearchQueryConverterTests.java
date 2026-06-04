@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
@@ -11,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ScimSearchQueryConverterTests {
 
@@ -118,7 +119,7 @@ class ScimSearchQueryConverterTests {
 
     @Test
     void illegalUnquotedValueInFilter() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> filterProcessor.convert("username eq joe", null, false, zoneId));
+        assertThatThrownBy(() -> filterProcessor.convert("username eq joe", null, false, zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

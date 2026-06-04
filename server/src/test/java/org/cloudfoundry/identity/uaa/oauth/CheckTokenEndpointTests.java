@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Sets;
 import org.apache.logging.log4j.util.Strings;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
@@ -365,8 +366,8 @@ class CheckTokenEndpointTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         configureDefaultZoneKeys(Map.of("testKey", alternateSignerKey));
 
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -391,8 +392,8 @@ class CheckTokenEndpointTests {
                 "changedsalt",
                 new Date(nowMillis - 2000));
         resetAndMockUserDatabase(userId, user);
-        assertThatExceptionOfType(TokenRevokedException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(TokenRevokedException.class));
     }
 
     @MethodSource("data")
@@ -417,8 +418,8 @@ class CheckTokenEndpointTests {
                 "salt",
                 new Date(nowMillis - 2000));
         resetAndMockUserDatabase(userId, user);
-        assertThatExceptionOfType(TokenRevokedException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(TokenRevokedException.class));
     }
 
     @MethodSource("data")
@@ -443,8 +444,8 @@ class CheckTokenEndpointTests {
                 "salt",
                 new Date(nowMillis - 2000));
         resetAndMockUserDatabase(userId, user);
-        assertThatExceptionOfType(TokenRevokedException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(TokenRevokedException.class));
     }
 
     @MethodSource("data")
@@ -469,8 +470,8 @@ class CheckTokenEndpointTests {
                 "salt",
                 new Date(nowMillis - 2000));
         resetAndMockUserDatabase(userId, user);
-        assertThatExceptionOfType(TokenRevokedException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(TokenRevokedException.class));
     }
 
     @MethodSource("data")
@@ -479,8 +480,8 @@ class CheckTokenEndpointTests {
         initCheckTokenEndpointTests(signerKey, useOpaque);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         defaultClient.addAdditionalInformation(ClientConstants.TOKEN_SALT, "changedsalt");
-        assertThatExceptionOfType(TokenRevokedException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(TokenRevokedException.class));
     }
 
     @MethodSource("data")
@@ -489,8 +490,8 @@ class CheckTokenEndpointTests {
         initCheckTokenEndpointTests(signerKey, useOpaque);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         defaultClient.setClientSecret("changedsecret");
-        assertThatExceptionOfType(TokenRevokedException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(TokenRevokedException.class));
     }
 
     private static String missingScopeMessage(String... scopes) {
@@ -569,8 +570,8 @@ class CheckTokenEndpointTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         user = user.authorities(UaaAuthority.NONE_AUTHORITIES);
         resetAndMockUserDatabase(userId, user);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -581,8 +582,8 @@ class CheckTokenEndpointTests {
         defaultClient = new UaaClientDetails("client", "scim, cc", "write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
         clientDetailsStore = Map.of("client", defaultClient);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -599,8 +600,8 @@ class CheckTokenEndpointTests {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
                 Set.of("scim.read")).createOAuth2Request(), null);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -710,7 +711,7 @@ class CheckTokenEndpointTests {
     void zoneRejectsTokenSignedWithKeyFromOtherZone(String signerKey, boolean useOpaque) {
         initCheckTokenEndpointTests(signerKey, useOpaque);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> {
+        assertThatThrownBy(() -> {
 
             try {
                 zone.getConfig().getTokenPolicy().setKeys(Map.of("testKey",
@@ -746,7 +747,7 @@ class CheckTokenEndpointTests {
             } finally {
                 IdentityZoneHolder.clear();
             }
-        });
+        }).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -852,8 +853,8 @@ class CheckTokenEndpointTests {
         tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         IdentityZoneHolder.clear();
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -902,7 +903,7 @@ class CheckTokenEndpointTests {
     void disable_query_string(String signerKey, boolean useOpaque) {
         initCheckTokenEndpointTests(signerKey, useOpaque);
         endpoint.setAllowQueryString(false);
-        assertThatExceptionOfType(HttpRequestMethodNotSupportedException.class).isThrownBy(this::internal_byDefaultQueryStringIsAllowed);
+        assertThatThrownBy(this::internal_byDefaultQueryStringIsAllowed).asInstanceOf(InstanceOfAssertFactories.throwable(HttpRequestMethodNotSupportedException.class));
     }
 
     @MethodSource("data")
@@ -910,7 +911,7 @@ class CheckTokenEndpointTests {
     void disable_get_method(String signerKey, boolean useOpaque) {
         initCheckTokenEndpointTests(signerKey, useOpaque);
         endpoint.setAllowQueryString(false);
-        assertThatExceptionOfType(HttpRequestMethodNotSupportedException.class).isThrownBy(this::internal_ByDefaultGetIsAllowed);
+        assertThatThrownBy(this::internal_ByDefaultGetIsAllowed).asInstanceOf(InstanceOfAssertFactories.throwable(HttpRequestMethodNotSupportedException.class));
     }
 
     @MethodSource("data")
@@ -942,8 +943,8 @@ class CheckTokenEndpointTests {
 
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(true);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        assertThatExceptionOfType(TokenRevokedException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(TokenRevokedException.class));
     }
 
     @MethodSource("data")
@@ -1019,8 +1020,8 @@ class CheckTokenEndpointTests {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         when(timeService.getCurrentTimeMillis()).thenReturn(nowMillis + validitySeconds.longValue() * 1000 + 1L);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1044,8 +1045,8 @@ class CheckTokenEndpointTests {
                 .setExpiresAt(thirtySecondsAhead)
                 .setStatus(ApprovalStatus.DENIED)
                 .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")
@@ -1066,8 +1067,8 @@ class CheckTokenEndpointTests {
                 .setExpiresAt(new Date(nowMillis))
                 .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                endpoint.checkToken(accessToken.getValue(), List.of(), request));
+        assertThatThrownBy(() ->
+                endpoint.checkToken(accessToken.getValue(), List.of(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @MethodSource("data")

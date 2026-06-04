@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -15,7 +16,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,14 +51,14 @@ abstract class ExpiringCodeStoreTests {
     void generateCodeWithNullData() {
         String data = null;
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
+        assertThatThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
     void generateCodeWithNullExpiresAt() {
         String data = "{}";
         Timestamp expiresAt = null;
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
+        assertThatThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
@@ -66,7 +67,7 @@ abstract class ExpiringCodeStoreTests {
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(now);
         String data = "{}";
         Timestamp expiresAt = new Timestamp(now - 60000);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
+        assertThatThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -78,7 +79,7 @@ abstract class ExpiringCodeStoreTests {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
         expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId());
-        assertThatExceptionOfType(DataIntegrityViolationException.class).isThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
+        assertThatThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(DataIntegrityViolationException.class));
     }
 
     @Test
@@ -127,7 +128,7 @@ abstract class ExpiringCodeStoreTests {
 
     @Test
     void retrieveCodeWithNullCode() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> expiringCodeStore.retrieveCode(null, IdentityZone.getUaaZoneId()));
+        assertThatThrownBy(() -> expiringCodeStore.retrieveCode(null, IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test

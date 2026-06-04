@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import org.apache.commons.collections4.SetUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -28,7 +29,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
@@ -296,14 +297,14 @@ class JdbcIdentityProviderProvisioningTests {
     void createIdentityProviderWithNonUniqueOriginKeyInDefaultZone() {
         IdentityProvider idp = MultitenancyFixture.identityProvider(origin, uaaZoneId);
         jdbcIdentityProviderProvisioning.create(idp, uaaZoneId);
-        assertThatExceptionOfType(IdpAlreadyExistsException.class).isThrownBy(() -> jdbcIdentityProviderProvisioning.create(idp, uaaZoneId));
+        assertThatThrownBy(() -> jdbcIdentityProviderProvisioning.create(idp, uaaZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IdpAlreadyExistsException.class));
     }
 
     @Test
     void createIdentityProviderWithNonUniqueOriginKeyInOtherZone() {
         IdentityProvider idp = MultitenancyFixture.identityProvider(origin, otherZoneId1);
         jdbcIdentityProviderProvisioning.create(idp, otherZoneId1);
-        assertThatExceptionOfType(IdpAlreadyExistsException.class).isThrownBy(() -> jdbcIdentityProviderProvisioning.create(idp, otherZoneId1));
+        assertThatThrownBy(() -> jdbcIdentityProviderProvisioning.create(idp, otherZoneId1)).asInstanceOf(InstanceOfAssertFactories.throwable(IdpAlreadyExistsException.class));
     }
 
     @Test
@@ -405,7 +406,7 @@ class JdbcIdentityProviderProvisioningTests {
         IdentityProvider idp = MultitenancyFixture.identityProvider(origin, otherZoneId1);
         idp.setId(idpId);
         IdentityProvider idp1 = jdbcIdentityProviderProvisioning.create(idp, otherZoneId1);
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcIdentityProviderProvisioning.retrieveByOrigin(idp1.getOriginKey(), otherZoneId2));
+        assertThatThrownBy(() -> jdbcIdentityProviderProvisioning.retrieveByOrigin(idp1.getOriginKey(), otherZoneId2)).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     @ParameterizedTest

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.client.token.grant;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.grant.ImplicitAccessTokenProvider;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ImplicitResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
@@ -19,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -43,8 +44,8 @@ class ImplicitAccessTokenProviderTests {
     @Test
     void redirectNotSpecified() {
         AccessTokenRequest request = new DefaultAccessTokenRequest();
-        assertThatExceptionOfType(IllegalStateException.class).isThrownBy(() ->
-                provider.obtainAccessToken(resource, request));
+        assertThatThrownBy(() ->
+                provider.obtainAccessToken(resource, request)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalStateException.class));
     }
 
     @Test
@@ -82,8 +83,8 @@ class ImplicitAccessTokenProviderTests {
         ImplicitResourceDetails details = new ImplicitResourceDetails();
         details.setScope(Set.of("openid").stream().toList());
         assertThat(details.isClientOnly()).isFalse();
-        assertThatExceptionOfType(IllegalStateException.class).isThrownBy(() ->
-                assertThat(provider.obtainAccessToken(details, new DefaultAccessTokenRequest(Map.of("scope", new String[]{"x"}, "client_id", new String[]{"x"})))).isNotNull());
+        assertThatThrownBy(() ->
+                assertThat(provider.obtainAccessToken(details, new DefaultAccessTokenRequest(Map.of("scope", new String[]{"x"}, "client_id", new String[]{"x"})))).isNotNull()).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalStateException.class));
     }
 
     @Test

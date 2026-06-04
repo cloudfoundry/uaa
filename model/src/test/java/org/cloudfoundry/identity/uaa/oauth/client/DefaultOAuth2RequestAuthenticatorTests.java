@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.http.AccessTokenRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.BaseOAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
@@ -8,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.http.client.MockClientHttpRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -25,8 +26,8 @@ class DefaultOAuth2RequestAuthenticatorTests {
     @Test
     void missingAccessToken() {
         BaseOAuth2ProtectedResourceDetails resource = new BaseOAuth2ProtectedResourceDetails();
-        assertThatExceptionOfType(AccessTokenRequiredException.class).isThrownBy(() ->
-                authenticator.authenticate(resource, new DefaultOAuth2ClientContext(), request));
+        assertThatThrownBy(() ->
+                authenticator.authenticate(resource, new DefaultOAuth2ClientContext(), request)).asInstanceOf(InstanceOfAssertFactories.throwable(AccessTokenRequiredException.class));
     }
 
     @Test

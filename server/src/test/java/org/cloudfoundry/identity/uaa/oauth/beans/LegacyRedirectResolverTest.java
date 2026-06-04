@@ -5,6 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
@@ -23,7 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 
 import static org.apache.logging.log4j.Level.WARN;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -247,7 +249,7 @@ class LegacyRedirectResolverTest {
 
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            assertThatExceptionOfType(RedirectMismatchException.class).isThrownBy(() -> resolver.resolveRedirect(requestedRedirectUri, client));
+            assertThatThrownBy(() -> resolver.resolveRedirect(requestedRedirectUri, client)).asInstanceOf(InstanceOfAssertFactories.throwable(RedirectMismatchException.class));
 
             assertThat(logEvents).isEmpty();
         }
@@ -259,7 +261,7 @@ class LegacyRedirectResolverTest {
 
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            assertThatExceptionOfType(RedirectMismatchException.class).isThrownBy(() -> resolver.resolveRedirect(requestedRedirectUri, client));
+            assertThatThrownBy(() -> resolver.resolveRedirect(requestedRedirectUri, client)).asInstanceOf(InstanceOfAssertFactories.throwable(RedirectMismatchException.class));
 
             assertThat(logEvents).isEmpty();
         }

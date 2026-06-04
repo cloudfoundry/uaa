@@ -1,5 +1,4 @@
 package org.cloudfoundry.identity.uaa.login;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
@@ -947,8 +946,7 @@ class LoginInfoEndpointTests {
     @Test
     void loginWithInvalidMediaType() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        assertThatThrownBy(() -> endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_XML)))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(HttpMediaTypeNotAcceptableException.class));
+        assertThatThrownBy(() -> endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_XML))).isInstanceOf(HttpMediaTypeNotAcceptableException.class);
     }
 
     @Test

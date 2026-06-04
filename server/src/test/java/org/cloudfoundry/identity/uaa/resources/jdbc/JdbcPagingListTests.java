@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.extensions.profiles.DisabledIfProfile;
 import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
@@ -20,7 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class JdbcPagingListTests {
@@ -187,7 +189,7 @@ class JdbcPagingListTests {
     void subListExtendsBeyondSize() {
         list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                 new ColumnMapRowMapper(), 3);
-        assertThatExceptionOfType(IndexOutOfBoundsException.class).isThrownBy(() -> list.subList(1, 40));
+        assertThatThrownBy(() -> list.subList(1, 40)).asInstanceOf(InstanceOfAssertFactories.throwable(IndexOutOfBoundsException.class));
     }
 
     @Test

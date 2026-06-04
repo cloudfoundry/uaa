@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.config;
 
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
@@ -132,8 +131,7 @@ public class IdentityZoneConfigurationBootstrapTests {
         keys.put(null, key1);
         bootstrap.setActiveKeyId(null);
         bootstrap.setSamlKeys(keys);
-        assertThatThrownBy(() -> bootstrap.afterPropertiesSet())
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InvalidIdentityZoneDetailsException.class));
+        assertThatThrownBy(() -> bootstrap.afterPropertiesSet()).isInstanceOf(InvalidIdentityZoneDetailsException.class);
     }
 
     @Test

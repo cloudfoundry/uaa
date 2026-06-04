@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.user;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,7 +11,7 @@ import java.util.Collections;
 import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class InMemoryUaaUserDatabaseTests {
 
@@ -34,14 +35,14 @@ class InMemoryUaaUserDatabaseTests {
 
     @Test
     void retrieveUserByNameInvalidOrigin() {
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() ->
-                db.retrieveUserByName(user.getUsername(), OriginKeys.LDAP));
+        assertThatThrownBy(() ->
+                db.retrieveUserByName(user.getUsername(), OriginKeys.LDAP)).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test
     void retrieveUserByNameInvalidUsername() {
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() ->
-                db.retrieveUserByName(user.getUsername() + "1", OriginKeys.UAA));
+        assertThatThrownBy(() ->
+                db.retrieveUserByName(user.getUsername() + "1", OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test
@@ -56,8 +57,8 @@ class InMemoryUaaUserDatabaseTests {
 
     @Test
     void retrieveUserByInvalidId() {
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() ->
-                db.retrieveUserById(user.getId() + "1"));
+        assertThatThrownBy(() ->
+                db.retrieveUserById(user.getId() + "1")).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test

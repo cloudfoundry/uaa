@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.http.AccessTokenRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.BaseOAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
@@ -32,7 +33,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -162,9 +164,9 @@ class OAuth2RestTemplateTests {
         restTemplate.setRequestFactory((_, _) -> {
             throw new AccessTokenRequiredException(resource);
         });
-        assertThatExceptionOfType(AccessTokenRequiredException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
                 restTemplate.doExecute(new URI("https://foo"), null, HttpMethod.GET, new NullRequestCallback(),
-                        new SimpleResponseExtractor()));
+                        new SimpleResponseExtractor())).asInstanceOf(InstanceOfAssertFactories.throwable(AccessTokenRequiredException.class));
     }
 
     @Test
@@ -242,8 +244,8 @@ class OAuth2RestTemplateTests {
     // gh-1478
     @Test
     void negativeClockSkew() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                restTemplate.setClockSkew(-1));
+        assertThatThrownBy(() ->
+                restTemplate.setClockSkew(-1)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     // gh-1909

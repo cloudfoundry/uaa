@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.uaa;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
@@ -7,7 +8,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UaaIdentityProviderConfigValidatorTest {
 
@@ -42,15 +43,15 @@ class UaaIdentityProviderConfigValidatorTest {
     @Test
     void passwordPolicyIsNotNullAndIncomplete() {
         uaaIdentityProviderDef.setPasswordPolicy(new PasswordPolicy(8, 8, -1, 1, 8, 1, 3));
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                configValidator.validate(uaaIdentityProviderDef));
+        assertThatThrownBy(() ->
+                configValidator.validate(uaaIdentityProviderDef)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void lockoutPolicyIsNotNullAndIncomplete() {
         uaaIdentityProviderDef.setLockoutPolicy(new LockoutPolicy(-1, 1, 1));
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                configValidator.validate(uaaIdentityProviderDef));
+        assertThatThrownBy(() ->
+                configValidator.validate(uaaIdentityProviderDef)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
 }

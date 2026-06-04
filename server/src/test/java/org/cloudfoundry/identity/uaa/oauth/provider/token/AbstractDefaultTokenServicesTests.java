@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.ExpiringOAuth2RefreshToken;
@@ -28,7 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -78,7 +79,7 @@ public abstract class AbstractDefaultTokenServicesTests {
         });
         OAuth2AccessToken token = tokenServices.createAccessToken(createAuthentication());
         deleted.set(true);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> tokenServices.loadAuthentication(token.getValue()));
+        assertThatThrownBy(() -> tokenServices.loadAuthentication(token.getValue())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @Test
@@ -89,7 +90,7 @@ public abstract class AbstractDefaultTokenServicesTests {
         TokenRequest tokenRequest = new TokenRequest(Collections.singletonMap("client_id", "wrong"), "wrong", null,
                 null);
         String value = expectedExpiringRefreshToken.getValue();
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() -> tokenServices.refreshAccessToken(value, tokenRequest));
+        assertThatThrownBy(() -> tokenServices.refreshAccessToken(value, tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
@@ -146,8 +147,8 @@ public abstract class AbstractDefaultTokenServicesTests {
         services.readAccessToken(original.getValue());
         services.getClientId(original.getValue());
         getTokenStore().removeAccessToken(original);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                services.loadAuthentication(original.getValue()));
+        assertThatThrownBy(() ->
+                services.loadAuthentication(original.getValue())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @Test

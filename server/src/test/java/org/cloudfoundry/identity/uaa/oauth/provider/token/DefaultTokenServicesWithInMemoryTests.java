@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.ExpiringOAuth2RefreshToken;
@@ -24,7 +25,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -78,8 +80,8 @@ class DefaultTokenServicesWithInMemoryTests extends AbstractPersistentDefaultTok
                 expectedAuthentication);
         assertThat(firstAccessToken.getRefreshToken()).isNotNull();
         TokenRequest tokenRequest = new TokenRequest(Collections.singletonMap("client_id", "id"), "id", null, null);
-        assertThatExceptionOfType(AccountExpiredException.class).isThrownBy(() ->
-                getTokenServices().refreshAccessToken(firstAccessToken.getRefreshToken().getValue(), tokenRequest));
+        assertThatThrownBy(() ->
+                getTokenServices().refreshAccessToken(firstAccessToken.getRefreshToken().getValue(), tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(AccountExpiredException.class));
     }
 
     @Test

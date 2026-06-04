@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.alias;
 
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,8 +90,7 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             arrangeZoneDoesNotExist(customZoneId);
 
             assertThatThrownBy(() ->
-                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(EntityAliasFailedException.class));
+                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)).isInstanceOf(EntityAliasFailedException.class);
         }
 
         @Test
@@ -149,8 +147,7 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             arrangeEntityDoesNotExist(aliasId, customZoneId);
             arrangeZoneDoesNotExist(customZoneId);
 
-            assertThatThrownBy(() -> aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity))
-                    .asInstanceOf(InstanceOfAssertFactories.throwable(EntityAliasFailedException.class));
+            assertThatThrownBy(() -> aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)).isInstanceOf(EntityAliasFailedException.class);
         }
     }
 

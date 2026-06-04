@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.client.http;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.BaseOAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UserDeniedAuthorizationException;
@@ -31,7 +32,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 /**
@@ -142,24 +144,24 @@ class OAuth2ErrorHandlerTests {
     void handle500Error() {
         HttpHeaders headers = new HttpHeaders();
         ClientHttpResponse response = new TestClientHttpResponse(headers, 500);
-        assertThatExceptionOfType(HttpServerErrorException.class).isThrownBy(() ->
-                handler.handleError(null, null, response));
+        assertThatThrownBy(() ->
+                handler.handleError(null, null, response)).asInstanceOf(InstanceOfAssertFactories.throwable(HttpServerErrorException.class));
     }
 
     @Test
     void handleGeneric400Error() {
         HttpHeaders headers = new HttpHeaders();
         ClientHttpResponse response = new TestClientHttpResponse(headers, 400);
-        assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(null, null, response));
+        assertThatThrownBy(() ->
+                handler.handleError(null, null, response)).asInstanceOf(InstanceOfAssertFactories.throwable(HttpClientErrorException.class));
     }
 
     @Test
     void handleGeneric403Error() {
         HttpHeaders headers = new HttpHeaders();
         ClientHttpResponse response = new TestClientHttpResponse(headers, 403);
-        assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(null, null, response));
+        assertThatThrownBy(() ->
+                handler.handleError(null, null, response)).asInstanceOf(InstanceOfAssertFactories.throwable(HttpClientErrorException.class));
     }
 
     // See https://github.com/spring-projects/spring-security-oauth/issues/387
@@ -170,8 +172,8 @@ class OAuth2ErrorHandlerTests {
         ClientHttpResponse response = new TestClientHttpResponse(headers, 403,
                 new ByteArrayInputStream("{}".getBytes()));
         handler = new OAuth2ErrorHandler(new DefaultResponseErrorHandler(), resource);
-        assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(null, null, response));
+        assertThatThrownBy(() ->
+                handler.handleError(null, null, response)).asInstanceOf(InstanceOfAssertFactories.throwable(HttpClientErrorException.class));
     }
 
     @Test
@@ -208,8 +210,8 @@ class OAuth2ErrorHandlerTests {
         when(response.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
         when(response.getBody()).thenReturn(new ByteArrayInputStream(new byte[0]));
         when(response.getStatusText()).thenReturn(HttpStatus.BAD_REQUEST.toString());
-        assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(null, null, response));
+        assertThatThrownBy(() ->
+                handler.handleError(null, null, response)).asInstanceOf(InstanceOfAssertFactories.throwable(HttpClientErrorException.class));
     }
 
     // gh-875
@@ -220,8 +222,8 @@ class OAuth2ErrorHandlerTests {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         ClientHttpResponse response = new TestClientHttpResponse(headers, 400, messageBody);
-        assertThatExceptionOfType(UserDeniedAuthorizationException.class).isThrownBy(() ->
-                handler.handleError(null, null, response));
+        assertThatThrownBy(() ->
+                handler.handleError(null, null, response)).asInstanceOf(InstanceOfAssertFactories.throwable(UserDeniedAuthorizationException.class));
     }
 
     // gh-875
@@ -232,8 +234,8 @@ class OAuth2ErrorHandlerTests {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         ClientHttpResponse response = new TestClientHttpResponse(headers, 403, messageBody);
-        assertThatExceptionOfType(OAuth2AccessDeniedException.class).isThrownBy(() ->
-                handler.handleError(null, null, response));
+        assertThatThrownBy(() ->
+                handler.handleError(null, null, response)).asInstanceOf(InstanceOfAssertFactories.throwable(OAuth2AccessDeniedException.class));
     }
 
     @Test
@@ -271,7 +273,7 @@ class OAuth2ErrorHandlerTests {
         final String appSpecificBodyContent = "This user is not authorized";
         InputStream appSpecificErrorBody = new ByteArrayInputStream(appSpecificBodyContent.getBytes("UTF-8"));
         ClientHttpResponse response = new TestClientHttpResponse(headers, 401, appSpecificErrorBody);
-        assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() ->
-                handler.handleError(null, null, response));
+        assertThatThrownBy(() ->
+                handler.handleError(null, null, response)).asInstanceOf(InstanceOfAssertFactories.throwable(HttpClientErrorException.class));
     }
 }

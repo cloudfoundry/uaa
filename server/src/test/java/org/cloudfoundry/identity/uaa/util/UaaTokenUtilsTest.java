@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -16,7 +17,7 @@ import java.util.Map;
 
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
@@ -149,8 +150,8 @@ class UaaTokenUtilsTest {
 
     @Test
     void getClaims_throwsExceptionWhenJwtIsMalformed() {
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                UaaTokenUtils.getClaims("not.a.jwt", Map.class));
+        assertThatThrownBy(() ->
+                UaaTokenUtils.getClaims("not.a.jwt", Map.class)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @Test

@@ -875,7 +875,7 @@ class IdentityProviderEndpointsTest {
             IdentityProvider created = response.getBody();
             assertThat(created).isNotNull();
             assertThat(created.getType()).isEqualTo(type);
-            assertThat(created.getConfig()).isNotNull()
+            assertThat(created.getConfig())
                     .isInstanceOf(AbstractExternalOAuthIdentityProviderDefinition.class);
             assertThat(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret()).isNull();
             assertThat(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getAuthMethod()).isEqualTo(ClientAuthentication.CLIENT_SECRET_BASIC);

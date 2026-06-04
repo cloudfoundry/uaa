@@ -15,7 +15,6 @@
  */
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -99,8 +98,7 @@ class UaaRelyingPartyRegistrationResolverTests {
         request.setRequestURI("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
         request.setParameter("SAMLResponse", "PGJhc2U2ND4=");
-        assertThatThrownBy(() -> resolver.resolve(request, null))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(Saml2AuthenticationException.class));
+        assertThatThrownBy(() -> resolver.resolve(request, null)).isInstanceOf(Saml2AuthenticationException.class);
     }
 
     @Test

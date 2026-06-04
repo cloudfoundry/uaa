@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.approval;
 import tools.jackson.core.type.TypeReference;
 import com.unboundid.scim.sdk.AttributePath;
 import com.unboundid.scim.sdk.SCIMFilter;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
@@ -40,7 +41,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
 import static org.mockito.Mockito.mock;
@@ -341,7 +343,7 @@ class ApprovalsAdminEndpointsTests {
                 .setExpiresAt(Approval.timeFromNow(2000))
                 .setStatus(APPROVED)};
 
-        assertThatExceptionOfType(UaaException.class).isThrownBy(() -> endpoints.updateApprovals(approvals));
+        assertThatThrownBy(() -> endpoints.updateApprovals(approvals)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
     }
 
     @Test

@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
@@ -228,8 +229,8 @@ class ClientAdminEndpointsValidatorTests {
         urls.add("http://invalid*");
         client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() ->
-                validator.validateClientRedirectUri(client));
+        assertThatThrownBy(() ->
+                validator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -239,8 +240,8 @@ class ClientAdminEndpointsValidatorTests {
         urls.add("http://invalid.com/with/path,subpath");
         client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() ->
-                validator.validateClientRedirectUri(client));
+        assertThatThrownBy(() ->
+                validator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test

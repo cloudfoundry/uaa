@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.password;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
@@ -31,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -115,8 +116,8 @@ class ResourceOwnerPasswordTokenGranterTests {
         };
         ResourceOwnerPasswordTokenGranter granter = new ResourceOwnerPasswordTokenGranter(authenticationManager,
                 providerTokenServices, clientDetailsService, requestFactory);
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() ->
-                granter.grant("password", tokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("password", tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
@@ -126,8 +127,8 @@ class ResourceOwnerPasswordTokenGranterTests {
                 throw new BadCredentialsException("test");
             }
         }, providerTokenServices, clientDetailsService, requestFactory);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                granter.grant("password", tokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("password", tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
@@ -135,8 +136,8 @@ class ResourceOwnerPasswordTokenGranterTests {
         ResourceOwnerPasswordTokenGranter granter = new ResourceOwnerPasswordTokenGranter(authenticationManager,
                 providerTokenServices, clientDetailsService, requestFactory);
         client.setAuthorizedGrantTypes(Collections.singleton("client_credentials"));
-        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() ->
-                granter.grant("password", tokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("password", tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientException.class));
     }
 
     @Test
@@ -146,8 +147,8 @@ class ResourceOwnerPasswordTokenGranterTests {
                 throw new LockedException("test");
             }
         }, providerTokenServices, clientDetailsService, requestFactory);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                granter.grant("password", tokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("password", tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
@@ -155,8 +156,8 @@ class ResourceOwnerPasswordTokenGranterTests {
         validUser = new UsernamePasswordAuthenticationToken("foo", "bar");
         ResourceOwnerPasswordTokenGranter granter = new ResourceOwnerPasswordTokenGranter(authenticationManager,
                 providerTokenServices, clientDetailsService, requestFactory);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                granter.grant("password", tokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("password", tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
@@ -167,7 +168,7 @@ class ResourceOwnerPasswordTokenGranterTests {
                 throw new UsernameNotFoundException("test");
             }
         }, providerTokenServices, clientDetailsService, requestFactory);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                granter.grant("password", tokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("password", tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 }

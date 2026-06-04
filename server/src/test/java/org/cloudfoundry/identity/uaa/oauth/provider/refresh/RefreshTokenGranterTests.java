@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.refresh;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
@@ -31,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -106,16 +107,16 @@ class RefreshTokenGranterTests {
     @Test
     void badCredentials() {
         RefreshTokenGranter granter = new RefreshTokenGranter(providerTokenServices, clientDetailsService, requestFactory);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                granter.grant("refresh_token", createRefreshTokenRequest(accessToken.getRefreshToken().getValue() + "invalid_token")));
+        assertThatThrownBy(() ->
+                granter.grant("refresh_token", createRefreshTokenRequest(accessToken.getRefreshToken().getValue() + "invalid_token"))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
     void grantTypeNotSupported() {
         RefreshTokenGranter granter = new RefreshTokenGranter(providerTokenServices, clientDetailsService, requestFactory);
         client.setAuthorizedGrantTypes(Collections.singleton("client_credentials"));
-        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() ->
-                granter.grant("refresh_token", validRefreshTokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("refresh_token", validRefreshTokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientException.class));
     }
 
     @Test
@@ -126,8 +127,8 @@ class RefreshTokenGranterTests {
             }
         });
         RefreshTokenGranter granter = new RefreshTokenGranter(providerTokenServices, clientDetailsService, requestFactory);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                granter.grant("refresh_token", validRefreshTokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("refresh_token", validRefreshTokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
@@ -138,7 +139,7 @@ class RefreshTokenGranterTests {
             }
         });
         RefreshTokenGranter granter = new RefreshTokenGranter(providerTokenServices, clientDetailsService, requestFactory);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                granter.grant("refresh_token", validRefreshTokenRequest));
+        assertThatThrownBy(() ->
+                granter.grant("refresh_token", validRefreshTokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 }

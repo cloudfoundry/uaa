@@ -1,5 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.client;
-
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.DefaultThrowableAnalyzer;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -48,8 +48,8 @@ class OAuth2ClientContextFilterTests {
         doThrow(new IOException("")).when(filterChain).doFilter(any(), any());
         filter.setThrowableAnalyzer(new DefaultThrowableAnalyzer());
         filter.afterPropertiesSet();
-        assertThatExceptionOfType(IOException.class).isThrownBy(() ->
-                filter.doFilter(request, response, filterChain));
+        assertThatThrownBy(() ->
+                filter.doFilter(request, response, filterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(IOException.class));
     }
 
     @Test
@@ -63,8 +63,8 @@ class OAuth2ClientContextFilterTests {
         doThrow(new IllegalArgumentException("")).when(filterChain).doFilter(any(), any());
         filter.setThrowableAnalyzer(new DefaultThrowableAnalyzer());
         filter.afterPropertiesSet();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                filter.doFilter(request, response, filterChain));
+        assertThatThrownBy(() ->
+                filter.doFilter(request, response, filterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -78,8 +78,8 @@ class OAuth2ClientContextFilterTests {
         doThrow(new ServletException("")).when(filterChain).doFilter(any(), any());
         filter.setThrowableAnalyzer(new DefaultThrowableAnalyzer());
         filter.afterPropertiesSet();
-        assertThatExceptionOfType(ServletException.class).isThrownBy(() ->
-                filter.doFilter(request, response, filterChain));
+        assertThatThrownBy(() ->
+                filter.doFilter(request, response, filterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(ServletException.class));
     }
 
     @Test

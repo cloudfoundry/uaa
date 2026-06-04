@@ -5,7 +5,6 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import com.nimbusds.jose.JWSSigner;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -376,8 +375,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("iss", issuerURL);
         CompositeToken token = getCompositeAccessToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.resolveOriginProvider(token.getIdTokenValue()))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.resolveOriginProvider(token.getIdTokenValue())).isInstanceOf(InsufficientAuthenticationException.class);
     }
 
     @Test
@@ -423,8 +421,7 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken)).isInstanceOf(InsufficientAuthenticationException.class);
     }
 
     @Test
@@ -802,8 +799,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setAddShadowUserOnLogin(false);
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(AccountNotPreCreatedException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken)).isInstanceOf(AccountNotPreCreatedException.class);
     }
 
     @Test
@@ -812,16 +808,14 @@ class ExternalOAuthAuthenticationManagerIT {
 
         config.setTokenKey("WRONG_KEY");
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken)).isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
     void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
         configureTokenKeyResponse("http://localhost/token_key", INVALID_RSA_SIGNING_KEY, "wrongKey");
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken)).isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
@@ -829,8 +823,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("iss", "http://wrong.issuer/");
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken)).isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
@@ -838,8 +831,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("exp", Instant.now().getEpochSecond() - 1);
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken)).isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
@@ -847,8 +839,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("aud", Arrays.asList("another_client", "a_complete_stranger"));
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken)).isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
@@ -1065,8 +1056,7 @@ class ExternalOAuthAuthenticationManagerIT {
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.getUser(
                 xCodeToken,
                 externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken)
-        ))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
+        )).isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
@@ -1119,8 +1109,7 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         mockUaaServer.expect(requestTo("http://localhost/oauth/token")).andRespond(withServerError());
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(HttpServerErrorException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken)).isInstanceOf(HttpServerErrorException.class);
     }
 
     @Test
@@ -1130,8 +1119,7 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         mockUaaServer.expect(requestTo("http://localhost/oauth/token")).andRespond(withBadRequest());
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .asInstanceOf(InstanceOfAssertFactories.throwable(HttpClientErrorException.class));
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken)).isInstanceOf(HttpClientErrorException.class);
     }
 
     @Test

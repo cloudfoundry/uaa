@@ -157,8 +157,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
         cloneIdp.setAliasId(idp.getAliasId());
         cloneIdp.setAliasZid(idp.getAliasZid());
         cloneIdp.setActive(idp.isActive());
-        assertThat(cloneIdp).isEqualTo(idp);
-        return cloneIdp;
+        return assertThat(cloneIdp).isEqualTo(idp).actual();
     }
 
     @Override

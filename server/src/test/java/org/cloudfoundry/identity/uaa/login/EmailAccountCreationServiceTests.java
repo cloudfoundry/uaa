@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -45,7 +46,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyInt;
@@ -198,7 +200,7 @@ class EmailAccountCreationServiceTests {
         ).thenReturn(Collections.singletonList(user));
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
 
-        assertThatExceptionOfType(UaaException.class).isThrownBy(() -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null));
+        assertThatThrownBy(() -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
     }
 
     @Test
@@ -328,7 +330,7 @@ class EmailAccountCreationServiceTests {
     void beginActivation_throwsException_ifPasswordViolatesPolicy() {
         doThrow(new InvalidPasswordException("Oh hell no")).when(mockPasswordValidator).validate(anyString());
 
-        assertThatExceptionOfType(InvalidPasswordException.class).isThrownBy(() -> emailAccountCreationService.beginActivation("user@example.com", "some password", null, null));
+        assertThatThrownBy(() -> emailAccountCreationService.beginActivation("user@example.com", "some password", null, null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidPasswordException.class));
 
         verify(mockPasswordValidator).validate("some password");
     }

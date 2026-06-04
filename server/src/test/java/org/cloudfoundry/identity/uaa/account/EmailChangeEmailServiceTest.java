@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -42,7 +43,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.account.EmailChangeEmailService.CHANGE_EMAIL_REDIRECT_URL;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
 import static org.mockito.Mockito.any;
@@ -150,7 +151,7 @@ class EmailChangeEmailServiceTest {
                 eq(zoneId))
         ).thenReturn(Collections.singletonList(new ScimUser()));
 
-        assertThatExceptionOfType(UaaException.class).isThrownBy(() -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null));
+        assertThatThrownBy(() -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
     }
 
     @Test
@@ -253,14 +254,14 @@ class EmailChangeEmailServiceTest {
     void completeVerificationWithInvalidCode() {
         when(mockExpiringCodeStore.retrieveCode("invalid_code", zoneId)).thenReturn(null);
 
-        assertThatExceptionOfType(UaaException.class).isThrownBy(() -> emailChangeEmailService.completeVerification("invalid_code"));
+        assertThatThrownBy(() -> emailChangeEmailService.completeVerification("invalid_code")).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
     }
 
     @Test
     void completeVerificationWithInvalidIntent() {
         when(mockExpiringCodeStore.retrieveCode("invalid_code", zoneId)).thenReturn(new ExpiringCode("invalid_code", new Timestamp(System.currentTimeMillis()), null, "invalid-intent"));
 
-        assertThatExceptionOfType(UaaException.class).isThrownBy(() -> emailChangeEmailService.completeVerification("invalid_code"));
+        assertThatThrownBy(() -> emailChangeEmailService.completeVerification("invalid_code")).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
     }
 
     @Test

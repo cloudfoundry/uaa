@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -134,7 +135,7 @@ class JdbcRevocableTokenProvisioningTest {
 
     @Test
     void tokenNotFound() {
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     @Test
@@ -146,7 +147,7 @@ class JdbcRevocableTokenProvisioningTest {
     @Test
     void addDuplicateFails() {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
-        assertThatExceptionOfType(DuplicateKeyException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(DuplicateKeyException.class));
     }
 
     @Test
@@ -155,7 +156,7 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         assertThat(jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId())).isNotNull();
         IdentityZoneHolder.clear();
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     @Test
@@ -171,12 +172,12 @@ class JdbcRevocableTokenProvisioningTest {
 
     @Test
     void getUserTokens_WithNullClientId() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.getUserTokens("userid", null, IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.getUserTokens("userid", null, IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
     void getUserTokens_WithEmptyClientId() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.getUserTokens("userid", "", IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.getUserTokens("userid", "", IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
@@ -229,7 +230,7 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
         jdbcRevocableTokenProvisioning.delete(revocableToken.getTokenId(), 8, IdentityZoneHolder.get().getId());
 
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     @Test
@@ -250,7 +251,7 @@ class JdbcRevocableTokenProvisioningTest {
     void ensureExpiredTokenIsDeleted() {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, revocableToken.getTokenId());
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
         assertThat(getCountOfTokens(jdbcTemplate)).isZero();
     }
 
@@ -276,7 +277,7 @@ class JdbcRevocableTokenProvisioningTest {
         assertThat(getCountOfTokens(jdbcTemplate)).isEqualTo(2);
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=?", System.currentTimeMillis() - 10000);
         jdbcRevocableTokenProvisioning.resetLastExpiredCheck();
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
         assertThat(getCountOfTokens(jdbcTemplate)).isZero();
     }
 
@@ -288,7 +289,7 @@ class JdbcRevocableTokenProvisioningTest {
         jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId());
         EntityDeletedEvent<IdentityZone> zoneDeleted = new EntityDeletedEvent<>(zone, null, IdentityZoneHolder.getCurrentZoneId());
         jdbcRevocableTokenProvisioning.onApplicationEvent(zoneDeleted);
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId()));
+        assertThatThrownBy(() -> jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), IdentityZoneHolder.get().getId())).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     @Test

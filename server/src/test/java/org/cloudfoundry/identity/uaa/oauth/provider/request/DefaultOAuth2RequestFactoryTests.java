@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.request;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
@@ -15,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -76,8 +77,8 @@ class DefaultOAuth2RequestFactoryTests {
     @Test
     void createTokenRequestDifferentClientId() {
         when(clientDetails.getClientId()).thenReturn("my-client-id");
-        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() ->
-                defaultOAuth2RequestFactory.createTokenRequest(requestParameters, clientDetails));
+        assertThatThrownBy(() ->
+                defaultOAuth2RequestFactory.createTokenRequest(requestParameters, clientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientException.class));
     }
 
     @Test

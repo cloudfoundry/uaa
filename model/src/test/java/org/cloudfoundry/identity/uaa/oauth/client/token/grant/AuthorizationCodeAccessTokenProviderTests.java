@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.client.token.grant;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.grant.AuthorizationCodeAccessTokenProvider;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
@@ -75,8 +76,8 @@ class AuthorizationCodeAccessTokenProviderTests {
         request.setPreservedState(new Object());
         request.setStateKey("key");
         resource.setAccessTokenUri("http://localhost/oauth/token");
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                assertThat(provider.obtainAccessToken(resource, request).getValue()).isEqualTo("FOO"));
+        assertThatThrownBy(() ->
+                assertThat(provider.obtainAccessToken(resource, request).getValue()).isEqualTo("FOO")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -84,8 +85,8 @@ class AuthorizationCodeAccessTokenProviderTests {
         AccessTokenRequest request = new DefaultAccessTokenRequest();
         request.setAuthorizationCode("foo");
         resource.setAccessTokenUri("http://localhost/oauth/token");
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
-                assertThat(provider.obtainAccessToken(resource, request).getValue()).isEqualTo("FOO"));
+        assertThatThrownBy(() ->
+                assertThat(provider.obtainAccessToken(resource, request).getValue()).isEqualTo("FOO")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -107,8 +108,8 @@ class AuthorizationCodeAccessTokenProviderTests {
     void redirectNotSpecified() {
         AccessTokenRequest request = new DefaultAccessTokenRequest();
         resource.setUserAuthorizationUri("http://localhost/oauth/authorize");
-        assertThatExceptionOfType(UserRedirectRequiredException.class).isThrownBy(() ->
-                provider.obtainAccessToken(resource, request));
+        assertThatThrownBy(() ->
+                provider.obtainAccessToken(resource, request)).asInstanceOf(InstanceOfAssertFactories.throwable(UserRedirectRequiredException.class));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
@@ -9,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Test for InMemoryClientDetailsService
@@ -45,16 +46,16 @@ class InMemoryClientDetailsServiceTest {
 
     @Test
     void addClientDetailsNull() {
-        assertThatExceptionOfType(ClientRegistrationException.class).isThrownBy(() -> inMemoryClientDetailsService.addClientDetails(null));
+        assertThatThrownBy(() -> inMemoryClientDetailsService.addClientDetails(null)).asInstanceOf(InstanceOfAssertFactories.throwable(ClientRegistrationException.class));
     }
 
     @Test
     void addClientDetailsButExistsAlready() {
-        assertThatExceptionOfType(ClientAlreadyExistsException.class).isThrownBy(() -> inMemoryClientDetailsService.addClientDetails(new UaaClientDetails("admin", null, null, null, null)));
+        assertThatThrownBy(() -> inMemoryClientDetailsService.addClientDetails(new UaaClientDetails("admin", null, null, null, null))).asInstanceOf(InstanceOfAssertFactories.throwable(ClientAlreadyExistsException.class));
     }
 
     @Test
     void addClientDetailsButDoesNotExist() {
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> inMemoryClientDetailsService.loadClientByClientId("user"));
+        assertThatThrownBy(() -> inMemoryClientDetailsService.loadClientByClientId("user")).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 }

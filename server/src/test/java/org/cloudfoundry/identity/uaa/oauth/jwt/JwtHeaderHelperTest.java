@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension;
 import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension.RandomValue;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +18,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.Base64;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("https://tools.ietf.org/html/rfc7519#section-5")
 @DisplayName("JOSE Header")
@@ -179,7 +181,7 @@ class JwtHeaderHelperTest {
 
             @Test
             void invalidHeader() {
-                assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> JwtHeaderHelper.create(""));
+                assertThatThrownBy(() -> JwtHeaderHelper.create("")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
             }
         }
     }

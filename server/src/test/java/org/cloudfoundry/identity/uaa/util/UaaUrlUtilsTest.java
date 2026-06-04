@@ -1,5 +1,5 @@
 package org.cloudfoundry.identity.uaa.util;
-
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -533,7 +533,7 @@ class UaaUrlUtilsTest {
     void getHostForURI() {
         assertThat(UaaUrlUtils.getHostForURI("http://google.com")).isEqualTo("google.com");
         assertThat(UaaUrlUtils.getHostForURI("http://subdomain.uaa.com/nowhere")).isEqualTo("subdomain.uaa.com");
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> UaaUrlUtils.getHostForURI(UaaStringUtils.EMPTY_STRING));
+        assertThatThrownBy(() -> UaaUrlUtils.getHostForURI(UaaStringUtils.EMPTY_STRING)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -594,13 +594,13 @@ class UaaUrlUtilsTest {
     @Test
     void validateUriPathDecodingLimit() {
         // URI path encoded more than MAX_URI_DECODES times
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> UaaUrlUtils.normalizeUri("https://example.com/test1/%25252525252e"));
+        assertThatThrownBy(() -> UaaUrlUtils.normalizeUri("https://example.com/test1/%25252525252e")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void validateNormalizeUriIfNull() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> UaaUrlUtils.normalizeUri("nohost"));
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> UaaUrlUtils.normalizeUri(" ://host/path"));
+        assertThatThrownBy(() -> UaaUrlUtils.normalizeUri("nohost")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
+        assertThatThrownBy(() -> UaaUrlUtils.normalizeUri(" ://host/path")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -669,9 +669,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void invalidUrlExceptionIsThrown() {
-        assertThatExceptionOfType(InvalidUrlException.class).isThrownBy(
-                () -> UaaUrlUtils.fromUriString("invalid-url")
-        );
+        assertThatThrownBy(() -> UaaUrlUtils.fromUriString("invalid-url")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidUrlException.class));
     }
 
     private static void validateRedirectUri(List<String> urls, boolean result) {
