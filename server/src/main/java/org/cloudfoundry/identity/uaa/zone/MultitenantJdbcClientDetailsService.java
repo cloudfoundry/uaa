@@ -135,7 +135,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         ClientDetails details;
         try {
             details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId, zoneId);
-        } catch (EmptyResultDataAccessException | DataIntegrityViolationException e) {
+        } catch (EmptyResultDataAccessException | DataIntegrityViolationException _) {
             throw new NoSuchClientException("No client with requested id: " + clientId);
         }
 

@@ -115,7 +115,7 @@ public class AuthorizationManagersUtils {
          */
         public AnyOfAuthorizationManager hasScope(String... scope) {
             delegateAuthorizationManagers.add(
-                    (auth, ctx) -> new ScopeTrackingAuthorizationDecision(OAuth2ExpressionUtils.hasAnyScope(auth.get(), scope), scope)
+                    (auth, _) -> new ScopeTrackingAuthorizationDecision(OAuth2ExpressionUtils.hasAnyScope(auth.get(), scope), scope)
             );
             return this;
         }
@@ -126,7 +126,7 @@ public class AuthorizationManagersUtils {
          */
         public AnyOfAuthorizationManager hasScopeWithZoneId(String scope) {
             delegateAuthorizationManagers.add(
-                    (auth, ctx) -> {
+                    (auth, _) -> {
                         var securityMethods = new ContextSensitiveOAuth2SecurityExpressionMethods(auth.get());
                         return new ScopeTrackingAuthorizationDecision(securityMethods.hasScopeInAuthZone(scope), scope);
                     }

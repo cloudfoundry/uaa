@@ -93,14 +93,14 @@ public class ChangeEmailController {
 
         try {
             response = changeEmailService.completeVerification(code);
-        } catch (UaaException e) {
+        } catch (UaaException _) {
             return handleExceptionConsideringAuthentication(model, httpServletResponse);
         }
 
         UaaUser user;
         try {
             user = uaaUserDatabase.retrieveUserById(response.get("userId"));
-        } catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException _) {
             return handleExceptionConsideringAuthentication(model, httpServletResponse);
         }
 

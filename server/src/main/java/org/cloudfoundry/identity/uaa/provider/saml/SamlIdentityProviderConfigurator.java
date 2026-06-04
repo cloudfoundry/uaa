@@ -44,7 +44,7 @@ public class SamlIdentityProviderConfigurator {
     public AbstractIdentityProviderDefinition getIdentityProviderDefinitionsForOrigin(IdentityZone zone, String origin) {
         try {
             return providerProvisioning.retrieveByOrigin(origin, zone.getId()).getConfig();
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             return null;
         }
     }
@@ -52,7 +52,7 @@ public class SamlIdentityProviderConfigurator {
     public AbstractIdentityProviderDefinition getIdentityProviderDefinitionsForIssuer(IdentityZone zone, String issuer) {
         try {
             return providerProvisioning.retrieveByExternId(issuer, OriginKeys.SAML, zone.getId()).getConfig();
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             return null;
         }
     }
@@ -116,7 +116,7 @@ public class SamlIdentityProviderConfigurator {
     private boolean entityIdExists(String entityId, String zoneId) {
         try {
             return providerProvisioning.retrieveByExternId(entityId, OriginKeys.SAML, zoneId) != null;
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             return false;
         }
     }

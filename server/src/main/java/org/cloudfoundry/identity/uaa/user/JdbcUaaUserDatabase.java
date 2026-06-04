@@ -111,7 +111,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         try {
             String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY;
             return jdbcTemplate.queryForObject(sql, mapper, username.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new UsernameNotFoundException(username);
         }
     }
@@ -121,7 +121,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         try {
             String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY;
             return jdbcTemplate.queryForObject(sql, minimalMapper, username.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new UsernameNotFoundException(username);
         }
     }
@@ -130,7 +130,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public UaaUser retrieveUserById(String id) throws UsernameNotFoundException {
         try {
             return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, mapper, id, true, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new UsernameNotFoundException(id);
         }
     }
@@ -139,7 +139,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public UaaUserPrototype retrieveUserPrototypeById(String id) throws UsernameNotFoundException {
         try {
             return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, minimalMapper, id, true, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new UsernameNotFoundException(id);
         }
     }
@@ -174,7 +174,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public UserInfo getUserInfo(String id) {
         try {
             return jdbcTemplate.queryForObject("select user_id, info from user_info where user_id = ?", userInfoMapper, id);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             logger.debug("No custom attributes stored for user:{}", id);
             return null;
         }

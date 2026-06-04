@@ -68,7 +68,7 @@ class EmptyPasswordAwareEncoder implements PasswordEncoder {
     private boolean bcryptMatchesEmpty(String hash) {
         try {
             return BCrypt.checkpw("", hash);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             return false;
         }
     }

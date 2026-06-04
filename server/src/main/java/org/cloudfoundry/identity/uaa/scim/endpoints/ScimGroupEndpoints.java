@@ -158,7 +158,7 @@ public class ScimGroupEndpoints {
                     sortBy,
                     "ascending".equalsIgnoreCase(sortOrder),
                     identityZoneManager.getCurrentIdentityZoneId());
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             throw new ScimException("Invalid filter expression: [" + HtmlUtils.htmlEscape(filter) + "]",
                     HttpStatus.BAD_REQUEST);
         }
@@ -178,7 +178,7 @@ public class ScimGroupEndpoints {
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
                     mapper, Arrays.asList(ScimCore.SCHEMAS));
-        } catch (JsonPathException e) {
+        } catch (JsonPathException _) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
     }
@@ -349,7 +349,7 @@ public class ScimGroupEndpoints {
 
         try {
             return dao.getByName(displayName, identityZoneManager.getCurrentIdentityZoneId()).getId();
-        } catch (IncorrectResultSizeDataAccessException e) {
+        } catch (IncorrectResultSizeDataAccessException _) {
             throw new ScimException("Group not found:" + displayName, HttpStatus.NOT_FOUND);
         }
     }
@@ -617,7 +617,7 @@ public class ScimGroupEndpoints {
         }
         try {
             return Integer.valueOf(value);
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             throw new ScimException("Invalid version match header (should be a version number): " + etag,
                     HttpStatus.BAD_REQUEST);
         }

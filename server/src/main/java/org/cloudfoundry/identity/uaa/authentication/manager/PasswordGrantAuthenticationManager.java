@@ -98,7 +98,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
                         && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
                     return retrievedByOrigin;
                 }
-            } catch (EmptyResultDataAccessException e) {
+            } catch (EmptyResultDataAccessException _) {
                 // ignore
             }
         }

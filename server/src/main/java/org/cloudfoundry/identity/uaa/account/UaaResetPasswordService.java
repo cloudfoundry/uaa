@@ -96,7 +96,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         PasswordChange change;
         try {
             change = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
-        } catch (JsonUtils.JsonUtilException x) {
+        } catch (JsonUtils.JsonUtilException _) {
             throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
         }
         userId = change.getUserId();
@@ -131,7 +131,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
                     if (matchingRedirectUri != null) {
                         redirectLocation = matchingRedirectUri;
                     }
-                } catch (NoSuchClientException nsce) {
+                } catch (NoSuchClientException _) {
                 }
             }
             return new ResetPasswordResponse(user, redirectLocation, clientId);

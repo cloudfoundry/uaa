@@ -61,7 +61,7 @@ public class ChangePasswordController {
             }
             securityContext.setAuthentication(authentication);
             return "redirect:profile";
-        } catch (BadCredentialsException e) {
+        } catch (BadCredentialsException _) {
             model.addAttribute("message_code", "unauthorized");
         } catch (InvalidPasswordException e) {
             model.addAttribute("message", e.getMessagesAsOneString());

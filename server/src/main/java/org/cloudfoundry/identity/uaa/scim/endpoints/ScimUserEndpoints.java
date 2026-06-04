@@ -282,7 +282,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private ScimUser createScimUserWithAliasHandling(final ScimUser user) {
         final ScimUser scimUser;
         try {
-            scimUser = transactionTemplate.execute(txStatus -> {
+            scimUser = transactionTemplate.execute(_ -> {
                 final ScimUser originalScimUser = scimUserProvisioning.createUser(
                         user,
                         user.getPassword(),
@@ -328,7 +328,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         final ScimUser scimUser;
         try {
             scimUser = scimUserService.updateUser(userId, user);
-        } catch (final AliasPropertiesInvalidException e) {
+        } catch (final AliasPropertiesInvalidException _) {
             throw new ScimException("The fields 'aliasId' and/or 'aliasZid' are invalid.", HttpStatus.BAD_REQUEST);
         } catch (final OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
@@ -483,7 +483,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
         try {
             return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             throw new ScimException("Invalid version match header (should be a version number): " + etag,
                     HttpStatus.BAD_REQUEST);
         }
@@ -521,7 +521,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 }
                 input.add(user);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             String msg = "Invalid filter expression: [" + filter + "]";
             if (hasText(sortBy)) {
                 msg += " [" + sortBy + "]";
@@ -549,7 +549,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                     mapper,
                     Arrays.asList(ScimCore.SCHEMAS)
             );
-        } catch (JsonPathException e) {
+        } catch (JsonPathException _) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
     }
@@ -664,7 +664,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             synchronized (errorCounts) {
                 value = errorCounts.get(series);
                 if (value == null) {
-                    errorCounts.computeIfAbsent(series, k -> new AtomicInteger(1));
+                    errorCounts.computeIfAbsent(series, _ -> new AtomicInteger(1));
                     return;
                 }
             }

@@ -123,7 +123,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
     private ClientDetails getClient(String clientId) {
         try {
             return clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (InvalidClientException e) {
+        } catch (InvalidClientException _) {
             return null;
         }
     }

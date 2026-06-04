@@ -106,7 +106,7 @@ public abstract class UaaUrlUtils {
                             && contextPath.startsWith(originalContextPath + ZonePathContextRewritingFilter.ZONE_PATH_PREFIX);
                 }
             }
-        } catch (IllegalStateException ignored) {
+        } catch (IllegalStateException _) {
             // No request bound
         }
         return false;
@@ -186,7 +186,7 @@ public abstract class UaaUrlUtils {
             }
             hostnameFromRequestedUri = uri.getHost();
         }
-        catch (URISyntaxException ex) {
+        catch (URISyntaxException _) {
             return false;
         }
 
@@ -268,7 +268,7 @@ public abstract class UaaUrlUtils {
         try {
             new URL(url).toURI();
             return true;
-        } catch (MalformedURLException | URISyntaxException e) {
+        } catch (MalformedURLException | URISyntaxException _) {
             return false;
         }
     }
@@ -302,7 +302,7 @@ public abstract class UaaUrlUtils {
             if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) {
                 return trimmed;
             }
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException _) {
             // Invalid URI syntax, fall back to default
         }
         
@@ -400,7 +400,7 @@ public abstract class UaaUrlUtils {
         try {
             URL url = new URL(uri);
             return hostname.equals(url.getHost());
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException _) {
             return false;
         }
     }
@@ -477,7 +477,7 @@ public abstract class UaaUrlUtils {
                 return new URI(scheme, uri.getUserInfo(), uri.getHost(), -1, 
                               uri.getPath(), uri.getQuery(), uri.getFragment()).toString();
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // ignore
         }
         return url;

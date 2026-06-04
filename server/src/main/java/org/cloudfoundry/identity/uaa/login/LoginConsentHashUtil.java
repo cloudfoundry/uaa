@@ -109,7 +109,7 @@ public class LoginConsentHashUtil {
                 case "y" -> value * 365 * 24 * 60 * 60; // years (365 days)
                 default -> DEFAULT_SESSION_DURATION;
             };
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             return DEFAULT_SESSION_DURATION; // Default: if not parsable
         }
     }

@@ -164,7 +164,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
             } else {
                 identityZone = dao.retrieve(identityZoneId);
             }
-        } catch (ZoneDoesNotExistsException | EmptyResultDataAccessException ignored) {
+        } catch (ZoneDoesNotExistsException | EmptyResultDataAccessException _) {
         }
         return identityZone;
     }

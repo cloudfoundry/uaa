@@ -25,26 +25,28 @@ public final class OpenSamlXmlUtils {
 
     public static String getStringValue(String key, SamlIdentityProviderDefinition definition, XMLObject xmlObject) {
         String value = null;
-        if (xmlObject instanceof XSString xsString) {
-            value = xsString.getValue();
-        } else if (xmlObject instanceof XSAny xsAny) {
-            value = xsAny.getTextContent();
-        } else if (xmlObject instanceof XSInteger xsInteger) {
-            Integer i = xsInteger.getValue();
-            value = i != null ? i.toString() : null;
-        } else if (xmlObject instanceof XSBoolean xsBoolean) {
-            XSBooleanValue b = xsBoolean.getValue();
-            value = b != null && b.getValue() != null ? b.getValue().toString() : null;
-        } else if (xmlObject instanceof XSDateTime xsDateTime) {
-            Instant d = xsDateTime.getValue();
-            value = d != null ? d.toString() : null;
-        } else if (xmlObject instanceof XSQName xsQName) {
-            QName name = xsQName.getValue();
-            value = name != null ? name.toString() : null;
-        } else if (xmlObject instanceof XSURI xsUri) {
-            value = xsUri.getURI();
-        } else if (xmlObject instanceof XSBase64Binary xsBase64Binary) {
-            value = xsBase64Binary.getValue();
+        switch (xmlObject) {
+            case XSString xsString -> value = xsString.getValue();
+            case XSAny xsAny -> value = xsAny.getTextContent();
+            case XSInteger xsInteger -> {
+                Integer i = xsInteger.getValue();
+                value = i != null ? i.toString() : null;
+            }
+            case XSBoolean xsBoolean -> {
+                XSBooleanValue b = xsBoolean.getValue();
+                value = b != null && b.getValue() != null ? b.getValue().toString() : null;
+            }
+            case XSDateTime xsDateTime -> {
+                Instant d = xsDateTime.getValue();
+                value = d != null ? d.toString() : null;
+            }
+            case XSQName xsQName -> {
+                QName name = xsQName.getValue();
+                value = name != null ? name.toString() : null;
+            }
+            case XSURI xsUri -> value = xsUri.getURI();
+            case XSBase64Binary xsBase64Binary -> value = xsBase64Binary.getValue();
+            case null, default -> {}
         }
 
         if (value != null) {

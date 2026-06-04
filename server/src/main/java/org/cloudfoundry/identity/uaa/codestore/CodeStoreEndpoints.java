@@ -35,11 +35,11 @@ public class CodeStoreEndpoints {
     public ExpiringCode generateCode(@RequestBody ExpiringCode expiringCode) {
         try {
             return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), null, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (NullPointerException e) {
+        } catch (NullPointerException _) {
             throw new CodeStoreException("data and expiresAt are required.", HttpStatus.BAD_REQUEST);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             throw new CodeStoreException("expiresAt must be in the future.", HttpStatus.BAD_REQUEST);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DataIntegrityViolationException _) {
             throw new CodeStoreException("Duplicate code generated.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -50,7 +50,7 @@ public class CodeStoreEndpoints {
         ExpiringCode result;
         try {
             result = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (NullPointerException e) {
+        } catch (NullPointerException _) {
             throw new CodeStoreException("code is required.", HttpStatus.BAD_REQUEST);
         }
 

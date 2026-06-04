@@ -128,7 +128,7 @@ public class OauthIDPWrapperFactoryBean {
         provider.setActive(true);
         try {
             provider.setConfig(rawDef);
-        } catch (JsonUtils.JsonUtilException x) {
+        } catch (JsonUtils.JsonUtilException _) {
             throw new RuntimeException("Non serializable Oauth config");
         }
         IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);

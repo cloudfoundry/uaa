@@ -84,7 +84,7 @@ public class SamlConfiguration {
                 .forEach(SamlConfiguration::init);
             try {
                 OpenSamlInitializationService.initialize();
-            } catch (NoClassDefFoundError | NoSuchMethodError e) {
+            } catch (NoClassDefFoundError | NoSuchMethodError _) {
                 // ignore
             }
         }

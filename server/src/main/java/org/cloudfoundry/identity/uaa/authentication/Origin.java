@@ -50,7 +50,7 @@ public class Origin {
             if (id != null) {
                 return id.toString();
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
         }
         return null;
     }

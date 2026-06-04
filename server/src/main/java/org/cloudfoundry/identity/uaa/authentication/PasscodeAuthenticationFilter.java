@@ -210,7 +210,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                 try {
                     UaaUser user = uaaUserDatabase.retrieveUserById(pi.getUserId());
                     authorities = user.getAuthorities();
-                } catch (UsernameNotFoundException x) {
+                } catch (UsernameNotFoundException _) {
                     throw new BadCredentialsException("Invalid user.");
                 }
                 Authentication result = new UsernamePasswordAuthenticationToken(

@@ -78,7 +78,7 @@ public class LinkedMaskingMultiValueMap<K, V> implements MultiValueMap<K, V>, Se
 
     @Override
     public void add(K key, V value) {
-        List<V> values = this.targetMap.computeIfAbsent(key, k -> new LinkedList<>());
+        List<V> values = this.targetMap.computeIfAbsent(key, _ -> new LinkedList<>());
         values.add(value);
     }
 

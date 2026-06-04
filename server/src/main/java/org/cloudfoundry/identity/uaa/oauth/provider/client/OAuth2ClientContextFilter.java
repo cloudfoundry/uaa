@@ -128,7 +128,7 @@ public class OAuth2ClientContextFilter implements Filter, InitializingBean {
         UriComponents uri = null;
         try {
             uri = builder.replaceQueryParam("code").build(true);
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException _) {
             // ignore failures to parse the url (including query string). does't
             // make sense for redirection purposes anyway.
             return null;

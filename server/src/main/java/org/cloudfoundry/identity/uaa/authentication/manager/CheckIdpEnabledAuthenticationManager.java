@@ -49,7 +49,7 @@ public class CheckIdpEnabledAuthenticationManager implements AuthenticationManag
             if (!idp.isActive()) {
                 throw new ProviderNotFoundException("Identity Provider \"" + idp.getName() + "\" has been disabled by administrator.");
             }
-        } catch (EmptyResultDataAccessException x) {
+        } catch (EmptyResultDataAccessException _) {
             throw new ProviderNotFoundException("Unable to find identity provider for origin: " + getOrigin());
         }
         return delegate.authenticate(authentication);

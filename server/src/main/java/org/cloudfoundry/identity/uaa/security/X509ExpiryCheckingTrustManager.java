@@ -40,7 +40,7 @@ public class X509ExpiryCheckingTrustManager implements X509TrustManager {
                 }
             }
             delegate = x509Tm;
-        } catch (NoSuchAlgorithmException | KeyStoreException ignored) {
+        } catch (NoSuchAlgorithmException | KeyStoreException _) {
         }
     }
 

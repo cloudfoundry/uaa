@@ -355,12 +355,11 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                     }
                 }
             }
-            switch (placement) {
-                case POSITION: return position;
-                case BEFORE: return index;
-                case AFTER: return Math.min(chain.getFilters().size(), index + 1);
-            }
-            return index;
+            return switch (placement) {
+                case POSITION -> position;
+                case BEFORE -> index;
+                case AFTER -> Math.min(chain.getFilters().size(), index + 1);
+            };
         }
 
         public static FilterPosition position(int pos) {

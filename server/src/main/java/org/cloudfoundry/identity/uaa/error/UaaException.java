@@ -101,7 +101,7 @@ public class UaaException extends OAuth2Exception {
         if (errorParams.containsKey(STATUS_STRING)) {
             try {
                 status = Integer.valueOf(errorParams.get(STATUS_STRING));
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException _) {
                 // ignore
             }
         }

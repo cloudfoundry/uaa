@@ -337,7 +337,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                     RevocableToken revocableToken = revocableTokenProvisioning.retrieve(
                             subjectToken, IdentityZoneHolder.get().getId());
                     subjectToken = revocableToken.getValue();
-                } catch (EmptyResultDataAccessException e) {
+                } catch (EmptyResultDataAccessException _) {
                     log.debug("Opaque subject_token not found in revocable token store, passing through unchanged");
                 }
             }

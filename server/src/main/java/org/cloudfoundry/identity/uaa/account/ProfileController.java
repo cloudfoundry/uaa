@@ -149,7 +149,7 @@ public class ProfileController {
         for (DescribedApproval approval : approvals) {
             List<DescribedApproval> clientApprovals = result.computeIfAbsent(
                     approval.getClientId(),
-                    k -> new ArrayList<>()
+                    _ -> new ArrayList<>()
             );
 
             String scope = approval.getScope();

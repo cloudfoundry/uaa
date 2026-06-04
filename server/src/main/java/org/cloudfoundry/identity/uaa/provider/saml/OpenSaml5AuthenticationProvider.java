@@ -301,7 +301,7 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidatorWithParameters(
             Consumer<Map<String, Object>> validationContextParameters, boolean saml2bearer) {
         return createAssertionValidator(Saml2ErrorCodes.INVALID_ASSERTION,
-                assertionToken -> SAML20AssertionValidators.attributeValidator,
+                _ -> SAML20AssertionValidators.attributeValidator,
                 assertionToken -> createValidationContext(assertionToken, validationContextParameters, saml2bearer));
     }
 
@@ -462,7 +462,7 @@ public final class OpenSaml5AuthenticationProvider implements AuthenticationProv
             RelyingPartyRegistration registration = assertionToken.getToken().getRelyingPartyRegistration();
             SignatureTrustEngine engine = OpenSamlVerificationUtils.trustEngine(registration);
             return SAML20AssertionValidators.createSignatureValidator(engine);
-        }, assertionToken -> new ValidationContext(
+        }, _ -> new ValidationContext(
                 Collections.singletonMap(SAML2AssertionValidationParameters.SIGNATURE_REQUIRED, false)));
     }
 

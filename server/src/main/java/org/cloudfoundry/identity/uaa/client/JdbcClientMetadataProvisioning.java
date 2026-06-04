@@ -114,7 +114,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
             clientMetadata.setShowOnHomePage(rs.getBoolean("show_on_home_page"));
             try {
                 clientMetadata.setAppLaunchUrl(new URL(rs.getString("app_launch_url")));
-            } catch (MalformedURLException mue) {
+            } catch (MalformedURLException _) {
                 // it is safe to ignore this as client_metadata rows are always created from a ClientMetadata instance whose launch url property is strongly typed to URL
             }
             byte[] iconBytes = rs.getBytes("app_icon");

@@ -79,7 +79,7 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
         final IdentityProvider<?> identityProvider;
         try {
             identityProvider = identityProviderProvisioning.retrieve(id, zoneId);
-        } catch (final EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException _) {
             LOGGER.warn("The IdP with ID '{}' does not exist in the zone '{}'.", id, zoneId);
             return Optional.empty();
         }

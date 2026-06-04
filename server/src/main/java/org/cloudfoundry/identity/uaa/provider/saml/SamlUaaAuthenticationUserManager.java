@@ -211,7 +211,7 @@ public class SamlUaaAuthenticationUserManager implements ApplicationEventPublish
             samlConfig = (SamlIdentityProviderDefinition) idpConfig.getConfig();
             idp = (IdentityProvider<SamlIdentityProviderDefinition>) idpConfig;
             addNew = samlConfig.isAddShadowUserOnLogin();
-        } catch (EmptyResultDataAccessException x) {
+        } catch (EmptyResultDataAccessException _) {
             throw new ProviderNotFoundException("No SAML identity provider found in zone for alias:" + alias);
         }
 

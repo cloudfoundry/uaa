@@ -154,7 +154,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     template.update(SQL_DELETE_STATEMENT, code);
                 }
             }
-        } catch (EmptyResultDataAccessException ignored) {
+        } catch (EmptyResultDataAccessException _) {
         }
         throw new InvalidGrantException("Invalid authorization code: " + code);
     }
@@ -246,7 +246,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             logger.debug("[oauth_code] Removed {} expired entries.", expired);
             expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(now.minus(LEGACY_CODE_EXPIRATION_TIME)));
             logger.debug("[oauth_code] Removed {} old entries.", expired);
-        } catch (DeadlockLoserDataAccessException e) {
+        } catch (DeadlockLoserDataAccessException _) {
             logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
         }
     }

@@ -88,7 +88,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         ServletConfig servletConfig = null;
         try {
             servletConfig = applicationContext.getServletConfig();
-        } catch (UnsupportedOperationException ignore) {
+        } catch (UnsupportedOperationException _) {
             System.err.println("Unable to load Servlet Context - are you testing?");
         }
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
@@ -111,7 +111,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         }
 
         try {
-            System.out.println("Loading YAML environment properties from location: " + resources.toString());
+            IO.println("Loading YAML environment properties from location: " + resources.toString());
             YamlMapFactoryBean factory = new YamlMapFactoryBean();
             factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
 
@@ -138,14 +138,14 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 .getEnvironment()
                 .resolvePlaceholders(SECRETS_DIR_VAR);
 
-        System.out.println(SECRETS_DIR_VAR + " resolves to " + resolvedSecretsLocation);
+        IO.println(SECRETS_DIR_VAR + " resolves to " + resolvedSecretsLocation);
 
         final File[] secretFiles =
-                ofNullable(new File(resolvedSecretsLocation).listFiles((dir, name) -> name != null && name.endsWith(".yml")))
+                ofNullable(new File(resolvedSecretsLocation).listFiles((_, name) -> name != null && name.endsWith(".yml")))
                         .orElse(new File[]{});
 
         if (secretFiles.length == 0) {
-            System.out.println("Found no .yml files in " + SECRETS_DIR_VAR);
+            IO.println("Found no .yml files in " + SECRETS_DIR_VAR);
         }
 
         return Arrays.stream(secretFiles)
@@ -195,15 +195,15 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             if (location != null && !location.trim().isEmpty()) {
                 PropertySource<?> environmentPropertySource = environment.getPropertySources().get(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
                 if (location.startsWith("-D") && environmentPropertySource != null && location.equals(environmentPropertySource.getProperty("LOGGING_CONFIG"))) {
-                    System.out.println("Ignoring Log Config Location: " + location + ". Location is suspect to be a Tomcat startup script environment variable");
+                    IO.println("Ignoring Log Config Location: " + location + ". Location is suspect to be a Tomcat startup script environment variable");
                 } else {
-                    System.out.println("Setting Log Config Location: " + location + " based on logging.config setting.");
+                    IO.println("Setting Log Config Location: " + location + " based on logging.config setting.");
                     log4jConfigLocation = environment.getProperty("logging.config");
                 }
             }
         }
 
-        System.out.println("Loading log4j config from location: " + log4jConfigLocation);
+        IO.println("Loading log4j config from location: " + log4jConfigLocation);
         try {
             String resolvedLocation = SystemPropertyUtils.resolvePlaceholders(log4jConfigLocation);
             URL url = ResourceUtils.getURL(resolvedLocation);
@@ -244,7 +244,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     private static void setActiveProfiles(
             final ConfigurableEnvironment environment,
             final String[] profiles) {
-        System.out.println("Setting active profiles: " + Arrays.toString(profiles));
+        IO.println("Setting active profiles: " + Arrays.toString(profiles));
         environment.setActiveProfiles(profiles);
     }
 

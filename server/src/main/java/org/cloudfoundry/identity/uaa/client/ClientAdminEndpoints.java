@@ -199,9 +199,9 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     public ClientDetails getClientDetails(@PathVariable String client) {
         try {
             return removeSecret(clientDetailsService.retrieve(client, identityZoneManager.getCurrentIdentityZoneId()));
-        } catch (InvalidClientException e) {
+        } catch (InvalidClientException _) {
             throw new NoSuchClientException("No such client: " + client);
-        } catch (BadClientCredentialsException e) {
+        } catch (BadClientCredentialsException _) {
             // Defensive check, in case the clientDetailsService starts throwing
             // these instead
             throw new NoSuchClientException("No such client: " + client);
@@ -429,7 +429,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 }
                 clientDetails[i] = removeSecret(clientDetails[i]);
             }
-        } catch (InvalidClientException e) {
+        } catch (InvalidClientException _) {
             throw new NoSuchClientException("No such client: " + clientId);
         }
         clientSecretChanges.getAndAdd(change.length);
@@ -472,7 +472,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             if (count > clients.size()) {
                 count = clients.size();
             }
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             String msg = "Invalid filter expression: [" + filter + "]";
             if (StringUtils.hasText(sortBy)) {
                 msg += " [" + sortBy + "]";
@@ -492,7 +492,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         try {
             return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes,
                     attributeNameMapper, Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI));
-        } catch (SpelEvaluationException | SpelParseException e) {
+        } catch (SpelEvaluationException | SpelParseException _) {
             throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]",
                     HttpStatus.BAD_REQUEST.value());
         }
@@ -505,7 +505,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         ClientDetails clientDetails;
         try {
             clientDetails = clientDetailsService.retrieve(client_id, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (InvalidClientException e) {
+        } catch (InvalidClientException _) {
             throw new NoSuchClientException("No such client: " + client_id);
         }
 
@@ -552,7 +552,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         UaaClientDetails uaaUaaClientDetails;
         try {
             uaaUaaClientDetails = (UaaClientDetails) clientDetailsService.retrieve(client_id, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (InvalidClientException e) {
+        } catch (InvalidClientException _) {
             throw new NoSuchClientException("No such client: " + client_id);
         }
 
@@ -638,7 +638,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     private void incrementErrorCounts(Exception e) {
         String series = UaaStringUtils.getErrorName(e);
-        errorCounts.computeIfAbsent(series, k -> new AtomicInteger()).incrementAndGet();
+        errorCounts.computeIfAbsent(series, _ -> new AtomicInteger()).incrementAndGet();
     }
 
 
@@ -670,13 +670,13 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             if (curRequest != null) {
                 authentication.setDetails(new UaaAuthenticationDetails(curRequest, clientId));
             }
-        } catch (IllegalStateException x) {
+        } catch (IllegalStateException _) {
             //ignore - means no thread bound request found
         }
         try {
             Authentication auth = authenticationManager.authenticate(authentication);
             return auth.isAuthenticated();
-        } catch (AuthenticationException e) {
+        } catch (AuthenticationException _) {
             return false;
         } catch (Exception e) {
             logger.debug("Unable to authenticate/validate {}", clientId, e);

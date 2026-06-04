@@ -68,7 +68,7 @@ public class ResourceOwnerPasswordTokenGranter extends AbstractTokenGranter {
             // If the username/password are wrong the spec says we should send 400/invalid grant
             throw new InvalidGrantException(e.getMessage());
         }
-        catch (UsernameNotFoundException e) {
+        catch (UsernameNotFoundException _) {
             // If the user is not found, report a generic error message
             throw new InvalidGrantException("username not found");
         }

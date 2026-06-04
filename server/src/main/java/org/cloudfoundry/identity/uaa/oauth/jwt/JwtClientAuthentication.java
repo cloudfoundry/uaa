@@ -226,7 +226,7 @@ public class JwtClientAuthentication {
             JWKSet jwkSet = retrieveJwkSet(clientClaims);
             String expectedAud = Optional.ofNullable(jwtFederation.getAudience()).orElse(keyInfoService.getTokenEndpointUrl());
             return validateClientJWToken(jwtAssertion, jwkSet, JWT_RFC7523_CLAIMS, jwtFederation.getSubject(), jwtFederation.getIssuer(), expectedAud) != null;
-        } catch (MalformedURLException | IllegalArgumentException | URISyntaxException e) {
+        } catch (MalformedURLException | IllegalArgumentException | URISyntaxException _) {
             return false;
         }
     }
@@ -247,7 +247,7 @@ public class JwtClientAuthentication {
             if (idp.getConfig() instanceof OIDCIdentityProviderDefinition oidcDefinition) {
                 def = oidcDefinition;
             }
-        } catch (DataRetrievalFailureException dataRetrievalFailureException) {
+        } catch (DataRetrievalFailureException _) {
             // ignore, but retrieve trust by OIDC compliant issuer
         }
         if (def == null) {

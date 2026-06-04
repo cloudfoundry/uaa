@@ -165,7 +165,7 @@ public class CorsFilter extends OncePerRequestFilter {
         URI originURI;
         try {
             originURI = new URI(origin);
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException _) {
             log.debug("Request with invalid origin was rejected: %s".formatted(origin));
             response.sendError(FORBIDDEN.value(), "Invalid origin");
             return true;

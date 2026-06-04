@@ -129,7 +129,7 @@ public class DefaultRedirectResolver implements RedirectResolver {
                 return StringUtils.cleanPath(req.getPath()).startsWith(StringUtils.cleanPath(reg.getPath()));
             }
         }
-        catch (MalformedURLException ignored) {
+        catch (MalformedURLException _) {
         }
         return requestedRedirect.equals(redirectUri);
     }

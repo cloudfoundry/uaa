@@ -121,7 +121,7 @@ public class ClientAdminBootstrap implements
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
                 logger.debug("Adding autoapprove flag to client: {}", clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
-            } catch (NoSuchClientException n) {
+            } catch (NoSuchClientException _) {
                 logger.debug("Client not found, unable to set autoapprove: {}", clientId);
             }
         }
@@ -135,7 +135,7 @@ public class ClientAdminBootstrap implements
                 base.addAdditionalInformation(ClientConstants.ALLOW_PUBLIC, true);
                 logger.debug("Adding allowpublic flag to client: {}", clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
-            } catch (NoSuchClientException n) {
+            } catch (NoSuchClientException _) {
                 logger.debug("Client not found, unable to set allowpublic: {}", clientId);
             }
         }
@@ -326,7 +326,7 @@ public class ClientAdminBootstrap implements
                 logger.debug("Deleting client from manifest:{}", clientId);
                 EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth, IdentityZoneHolder.getCurrentZoneId());
                 publish(delete);
-            } catch (NoSuchClientException e) {
+            } catch (NoSuchClientException _) {
                 logger.debug("Ignoring delete for non existent client:{}", clientId);
             }
         }

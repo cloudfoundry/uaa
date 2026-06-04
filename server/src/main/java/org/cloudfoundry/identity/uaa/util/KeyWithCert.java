@@ -80,7 +80,7 @@ public class KeyWithCert {
             ver.update(data);
 
             return ver.verify(signature);
-        } catch (Exception e) {
+        } catch (Exception _) {
             return false;
         }
     }
@@ -101,15 +101,18 @@ public class KeyWithCert {
 
             Object object = pemParser.readObject();
 
-            if (object instanceof PEMEncryptedKeyPair pemEncryptedKeyPair) {
-                PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(passphrase.toCharArray());
-                KeyPair keyPair = converter.getKeyPair(pemEncryptedKeyPair.decryptKeyPair(decProv));
-                privateKey = keyPair.getPrivate();
-            } else if (object instanceof PEMKeyPair pemKeyPair) {
-                KeyPair keyPair = converter.getKeyPair(pemKeyPair);
-                privateKey = keyPair.getPrivate();
-            } else if (object instanceof PrivateKeyInfo privateKeyInfo) {
-                privateKey = converter.getPrivateKey(privateKeyInfo);
+            switch (object) {
+                case PEMEncryptedKeyPair pemEncryptedKeyPair -> {
+                    PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(passphrase.toCharArray());
+                    KeyPair keyPair = converter.getKeyPair(pemEncryptedKeyPair.decryptKeyPair(decProv));
+                    privateKey = keyPair.getPrivate();
+                }
+                case PEMKeyPair pemKeyPair -> {
+                    KeyPair keyPair = converter.getKeyPair(pemKeyPair);
+                    privateKey = keyPair.getPrivate();
+                }
+                case PrivateKeyInfo privateKeyInfo -> privateKey = converter.getPrivateKey(privateKeyInfo);
+                case null, default -> {}
             }
         } catch (IOException ex) {
             throw new CertificateException("Failed to read private key.", ex);

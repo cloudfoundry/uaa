@@ -65,9 +65,9 @@ public class SamlConfig {
     @JsonProperty("certificate")
     public void setCertificate(String certificate) {
         if (hasText(certificate)) {
-            keys.computeIfAbsent(LEGACY_KEY_ID, k -> new SamlKey());
+            keys.computeIfAbsent(LEGACY_KEY_ID, _ -> new SamlKey());
         }
-        keys.computeIfPresent(LEGACY_KEY_ID, (k, v) -> {
+        keys.computeIfPresent(LEGACY_KEY_ID, (_, v) -> {
             v.setCertificate(certificate);
             return v;
         });
@@ -76,9 +76,9 @@ public class SamlConfig {
     @JsonProperty("privateKey")
     public void setPrivateKey(String privateKey) {
         if (hasText(privateKey)) {
-            keys.computeIfAbsent(LEGACY_KEY_ID, k -> new SamlKey());
+            keys.computeIfAbsent(LEGACY_KEY_ID, _ -> new SamlKey());
         }
-        keys.computeIfPresent(LEGACY_KEY_ID, (k, v) -> {
+        keys.computeIfPresent(LEGACY_KEY_ID, (_, v) -> {
             v.setKey(privateKey);
             return v;
         });
@@ -87,9 +87,9 @@ public class SamlConfig {
     @JsonProperty("privateKeyPassword")
     public void setPrivateKeyPassword(String privateKeyPassword) {
         if (hasText(privateKeyPassword)) {
-            keys.computeIfAbsent(LEGACY_KEY_ID, k -> new SamlKey());
+            keys.computeIfAbsent(LEGACY_KEY_ID, _ -> new SamlKey());
         }
-        keys.computeIfPresent(LEGACY_KEY_ID, (k, v) -> {
+        keys.computeIfPresent(LEGACY_KEY_ID, (_, v) -> {
             v.setPassphrase(privateKeyPassword);
             return v;
         });

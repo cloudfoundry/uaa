@@ -217,7 +217,7 @@ public class UaaMetricsEmitter {
         try {
             logger.debug("Trying to enable notification");
             NotificationEmitter emitter = metricsUtils.getUaaMetricsSubscriber(server);
-            emitter.addNotificationListener((notification, handback) -> {
+            emitter.addNotificationListener((notification, _) -> {
                 String key = notification.getType();
                 String prefix = key.startsWith("/") ? key.substring(1) : key;
                 statsDClient.time("requests.%s.latency".formatted(prefix), (Long) notification.getSource());

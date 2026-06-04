@@ -57,7 +57,7 @@ public final class SamlKeyManagerFactory {
             for (SamlKey k : samlKeys) {
                 try {
                     result.add(convertKey(k));
-                } catch (CertificateRuntimeException e) {
+                } catch (CertificateRuntimeException _) {
                     // already logged in convertKey
                 }
             }

@@ -260,7 +260,7 @@ public class SpringSecurityLdapTemplate extends LdapTemplate {
                 }
                 results.add(dca);
             }
-        } catch (PartialResultException e) {
+        } catch (PartialResultException _) {
             LdapUtils.closeEnumeration(resultsEnum);
             logger.info("Ignoring PartialResultException");
         }

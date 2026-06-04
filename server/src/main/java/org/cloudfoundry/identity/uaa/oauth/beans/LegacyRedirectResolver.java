@@ -131,7 +131,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             if (hasWildcarPort) {
                 uriComponentsBuilder.port(99999);
             }
-        } catch (NullPointerException e) {
+        } catch (NullPointerException _) {
             throw new IllegalArgumentException("URI host and scheme must not be null");
         }
 
@@ -150,7 +150,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         MultiValueMap<String, String> originalParams = builder.build().getQueryParams();
         Map<String, List<String>> redactedParams = originalParams.entrySet()
                 .stream()
-                .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(v -> "REDACTED").toList()))
+                .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(_ -> "REDACTED").toList()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         builder.replaceQueryParams(new LinkedMultiValueMap<>(redactedParams));

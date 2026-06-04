@@ -32,7 +32,7 @@ public class MapCollector<T, K, V> implements Collector<T, HashMap<K, V>, HashMa
 
     @Override
     public BinaryOperator<HashMap<K, V>> combiner() {
-        return (left, right) -> {
+        return (left, _) -> {
             throw new IllegalStateException("Duplicate key %s".formatted(left));
         };
     }

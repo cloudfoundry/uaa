@@ -56,7 +56,7 @@ public class JdbcAuthorizationCodeServices extends RandomValueAuthorizationCodeS
                             return SerializationUtils.deserialize(rs.getBytes("authentication"));
                         }
                     }, code);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             return null;
         }
 

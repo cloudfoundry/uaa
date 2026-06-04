@@ -351,7 +351,7 @@ public class UaaConfiguration {
         }
     }
 
-    public static void main(String[] args) throws Exception {
+    void main(String[] args) throws Exception {
         if (args.length != 1) {
             throw new IllegalArgumentException("YAML file required");
         }
@@ -362,7 +362,7 @@ public class UaaConfiguration {
             ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
             Validator validator = factory.getValidator();
             Set<ConstraintViolation<UaaConfiguration>> errors = validator.validate(config);
-            System.out.println(errors);
+            IO.println(errors);
         }
     }
 }

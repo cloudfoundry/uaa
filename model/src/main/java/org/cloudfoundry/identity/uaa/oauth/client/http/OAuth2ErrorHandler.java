@@ -126,10 +126,10 @@ public class OAuth2ErrorHandler implements ResponseErrorHandler {
                         throw oauth2Exception;
                     }
                 }
-                catch (RestClientException e) {
+                catch (RestClientException _) {
                     // ignore
                 }
-                catch (HttpMessageConversionException e) {
+                catch (HttpMessageConversionException _) {
                     // ignore
                 }
 
@@ -145,7 +145,7 @@ public class OAuth2ErrorHandler implements ResponseErrorHandler {
                 // then delegate to the custom handler
                 errorHandler.handleError(url, method, bufferedResponse);
             }
-            catch (InvalidTokenException ex) {
+            catch (InvalidTokenException _) {
                 // Special case: an invalid token can be renewed so tell the caller what to do
                 throw new AccessTokenRequiredException(resource);
             }

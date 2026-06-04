@@ -71,7 +71,7 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
                 } else {
                     record.put(attributeName, values);
                 }
-            } catch (ArrayStoreException x) {
+            } catch (ArrayStoreException _) {
                 logger.debug("Attribute value is not a string for '{}'", attributeName);
             }
         }

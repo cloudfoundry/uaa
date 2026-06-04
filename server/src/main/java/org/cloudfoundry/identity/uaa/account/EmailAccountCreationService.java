@@ -80,7 +80,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         try {
             ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
-        } catch (ScimResourceAlreadyExistsException e) {
+        } catch (ScimResourceAlreadyExistsException _) {
             List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (!users.isEmpty()) {
                 if (users.getFirst().isVerified()) {

@@ -109,7 +109,7 @@ public class ResetPasswordController {
             email = e.getEmail();
             htmlContent = getResetUnavailableEmailHtml(email);
             userId = e.getUserId();
-        } catch (NotFoundException e) {
+        } catch (NotFoundException _) {
             logger.error("User with email address {} not found.", username);
         }
 
@@ -210,7 +210,7 @@ public class ResetPasswordController {
         String userId = data.get("user_id");
         try {
             userDatabase.retrieveUserById(userId);
-        } catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException _) {
             logger.debug("reset_password ExpiringCode[{}] user_id is invalid. Aborting.", code.getCode());
             return null;
         }

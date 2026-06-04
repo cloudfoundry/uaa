@@ -113,7 +113,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         }
         try {
             refreshApproval(approval, zoneId); // try to refresh the approval
-        } catch (DataIntegrityViolationException ex) { // could not find the
+        } catch (DataIntegrityViolationException _) { // could not find the
             // approval. add it.
             int count = jdbcTemplate.update(ADD_AUTHZ_SQL, ps -> {
                 ps.setString(1, approval.getUserId());

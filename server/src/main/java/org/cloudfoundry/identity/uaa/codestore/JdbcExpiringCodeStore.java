@@ -126,7 +126,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
                 expiringCode = null;
             }
             return expiringCode;
-        } catch (EmptyResultDataAccessException x) {
+        } catch (EmptyResultDataAccessException _) {
             return null;
         }
     }
@@ -148,7 +148,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
                 expiringCode = null;
             }
             return expiringCode;
-        } catch (EmptyResultDataAccessException x) {
+        } catch (EmptyResultDataAccessException _) {
             return null;
         }
     }

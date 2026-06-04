@@ -100,7 +100,7 @@ public class IsSelfCheck {
                 if (hasText(userIdFromToken) && userIdFromToken.equals(userIdFromAuthentication)) {
                     return true;
                 }
-            } catch (EmptyResultDataAccessException x) {
+            } catch (EmptyResultDataAccessException _) {
                 logger.debug("Token not found:{}", tokenId);
             }
         }

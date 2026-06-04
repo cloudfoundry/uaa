@@ -248,29 +248,18 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     }
 
     private String whereClauseFromFilter(SCIMFilter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
-        switch (filter.getFilterType()) {
-            case AND:
-                return "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " AND " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
-            case OR:
-                return "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " OR " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
-            case EQUALITY:
-                return comparisonClause(filter, "=", values, "", "", paramPrefix);
-            case CONTAINS:
-                return comparisonClause(filter, "LIKE", values, "%", "%", paramPrefix);
-            case STARTS_WITH:
-                return comparisonClause(filter, "LIKE", values, "", "%", paramPrefix);
-            case PRESENCE:
-                return getAttributeName(filter, mapper) + " IS NOT NULL";
-            case GREATER_THAN:
-                return comparisonClause(filter, ">", values, "", "", paramPrefix);
-            case GREATER_OR_EQUAL:
-                return comparisonClause(filter, ">=", values, "", "", paramPrefix);
-            case LESS_THAN:
-                return comparisonClause(filter, "<", values, "", "", paramPrefix);
-            case LESS_OR_EQUAL:
-                return comparisonClause(filter, "<=", values, "", "", paramPrefix);
-        }
-        return null;
+        return switch (filter.getFilterType()) {
+            case AND -> "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " AND " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
+            case OR -> "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " OR " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
+            case EQUALITY -> comparisonClause(filter, "=", values, "", "", paramPrefix);
+            case CONTAINS -> comparisonClause(filter, "LIKE", values, "%", "%", paramPrefix);
+            case STARTS_WITH -> comparisonClause(filter, "LIKE", values, "", "%", paramPrefix);
+            case PRESENCE -> getAttributeName(filter, mapper) + " IS NOT NULL";
+            case GREATER_THAN -> comparisonClause(filter, ">", values, "", "", paramPrefix);
+            case GREATER_OR_EQUAL -> comparisonClause(filter, ">=", values, "", "", paramPrefix);
+            case LESS_THAN -> comparisonClause(filter, "<", values, "", "", paramPrefix);
+            case LESS_OR_EQUAL -> comparisonClause(filter, "<=", values, "", "", paramPrefix);
+        };
     }
 
     private String comparisonClause(SCIMFilter filter,
@@ -309,7 +298,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         } else {
             try {
                 values.put(pName, Double.parseDouble(filter.getFilterValue()));
-            } catch (NumberFormatException x) {
+            } catch (NumberFormatException _) {
                 if ("true".equalsIgnoreCase(filter.getFilterValue())) {
                     values.put(pName, Boolean.TRUE);
                 } else if ("false".equalsIgnoreCase(filter.getFilterValue())) {
@@ -341,7 +330,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         try {
             DateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
             return timestampFormat.parse(s);
-        } catch (ParseException x) {
+        } catch (ParseException _) {
             return s;
         }
     }

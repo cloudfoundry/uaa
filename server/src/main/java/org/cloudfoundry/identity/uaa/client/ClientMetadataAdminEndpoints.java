@@ -44,7 +44,7 @@ public class ClientMetadataAdminEndpoints {
     public ClientMetadata retrieveClientMetadata(@PathVariable("client") String clientId) {
         try {
             return clientMetadataProvisioning.retrieve(clientId, IdentityZoneHolder.get().getId());
-        } catch (EmptyResultDataAccessException erdae) {
+        } catch (EmptyResultDataAccessException _) {
             throw new ClientMetadataException("No client metadata found for " + clientId, HttpStatus.NOT_FOUND);
         }
     }
@@ -72,7 +72,7 @@ public class ClientMetadataAdminEndpoints {
         }
         try {
             return clientMetadataProvisioning.update(clientMetadata, IdentityZoneHolder.get().getId());
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new ClientMetadataException("No client with ID " + clientMetadata.getClientId(),
                     HttpStatus.NOT_FOUND);
         }

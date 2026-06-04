@@ -139,7 +139,7 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
         catch (AccessTokenRequiredException | OAuth2AccessDeniedException e) {
             rethrow = e;
         }
-        catch (InvalidTokenException e) {
+        catch (InvalidTokenException _) {
             // Don't reveal the token value in case it is logged
             rethrow = new OAuth2AccessDeniedException("Invalid token for client=" + getClientId());
         }
@@ -148,7 +148,7 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
             try {
                 return super.doExecute(url, uriTemplate, method, requestCallback, responseExtractor);
             }
-            catch (InvalidTokenException e) {
+            catch (InvalidTokenException _) {
                 // Don't reveal the token value in case it is logged
                 rethrow = new OAuth2AccessDeniedException("Invalid token for client=" + getClientId());
             }

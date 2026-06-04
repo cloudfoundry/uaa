@@ -97,7 +97,7 @@ public class ScimGroupBootstrap implements InitializingBean {
             String messagesFilename = "messages.properties";
             try {
                 messageSource = new ResourcePropertySource(messagesFilename);
-            } catch (IOException ex) {
+            } catch (IOException _) {
                 messageSource = new PropertySource.StubPropertySource(messagesFilename);
             }
         }
@@ -229,7 +229,7 @@ public class ScimGroupBootstrap implements InitializingBean {
         for (ScimGroupMember member : members) {
             try {
                 membershipManager.addMember(group.getId(), member, identityZoneManager.getCurrentIdentityZoneId());
-            } catch (MemberAlreadyExistsException ex) {
+            } catch (MemberAlreadyExistsException _) {
                 logger.debug("{} already is member of group {}", member.getMemberId(), name);
             }
         }
@@ -279,7 +279,7 @@ public class ScimGroupBootstrap implements InitializingBean {
             ScimGroup gr = scimGroupProvisioning.getByName(name, identityZoneManager.getCurrentIdentityZoneId());
             gr.setMembers(membershipManager.getMembers(gr.getId(), false, identityZoneManager.getCurrentIdentityZoneId()));
             return gr;
-        } catch (ScimResourceNotFoundException | IncorrectResultSizeDataAccessException e) {
+        } catch (ScimResourceNotFoundException | IncorrectResultSizeDataAccessException _) {
             logger.debug("could not find group with name");
             return null;
         }

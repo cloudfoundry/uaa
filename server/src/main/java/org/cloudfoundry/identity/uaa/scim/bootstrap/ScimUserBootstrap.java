@@ -133,7 +133,7 @@ public class ScimUserBootstrap implements
         if (users.isEmpty() && StringUtils.hasText(user.getId())) {
             try {
                 users = Collections.singletonList(scimUserProvisioning.retrieve(user.getId(), identityZoneManager.getCurrentIdentityZoneId()));
-            } catch (ScimResourceNotFoundException x) {
+            } catch (ScimResourceNotFoundException _) {
                 logger.debug("Unable to find scim user based on ID:{}", user.getId());
             }
         }
@@ -266,7 +266,7 @@ public class ScimUserBootstrap implements
                 for (ScimGroup group : groupsMap.values()) {
                     try {
                         membershipManager.removeMemberById(group.getId(), exEvent.getUser().getId(), group.getZoneId());
-                    } catch (MemberNotFoundException ex) {
+                    } catch (MemberNotFoundException _) {
                         // do nothing
                     }
                 }
@@ -313,7 +313,7 @@ public class ScimUserBootstrap implements
             ScimGroupMember groupMember = new ScimGroupMember(scimUserId);
             groupMember.setOrigin(ofNullable(origin).orElse(OriginKeys.UAA));
             membershipManager.addMember(group.getId(), groupMember, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (MemberAlreadyExistsException | DuplicateKeyException ex) {
+        } catch (MemberAlreadyExistsException | DuplicateKeyException _) {
             // do nothing
         }
     }
@@ -332,7 +332,7 @@ public class ScimUserBootstrap implements
         try {
             group = scimGroupProvisioning.getByName(gName, identityZoneManager.getCurrentIdentityZoneId());
         }
-        catch (IncorrectResultSizeDataAccessException e) {
+        catch (IncorrectResultSizeDataAccessException _) {
             if (!addGroup) {
                 logger.debug("No group found with name:{}. Group membership will not be added.", gName);
                 return null;
@@ -359,14 +359,14 @@ public class ScimUserBootstrap implements
         ScimGroup group;
         try {
             group = scimGroupProvisioning.getByName(gName, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (IncorrectResultSizeDataAccessException ex) {
+        } catch (IncorrectResultSizeDataAccessException _) {
             // Group not found or multiple groups found - silently skip as per previous behavior
             logger.debug("Group '{}' not found or multiple groups found, skipping removal", gName);
             return;
         }
         try {
             membershipManager.removeMemberById(group.getId(), scimUserId, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (MemberNotFoundException ex) {
+        } catch (MemberNotFoundException _) {
             // do nothing
         }
     }
