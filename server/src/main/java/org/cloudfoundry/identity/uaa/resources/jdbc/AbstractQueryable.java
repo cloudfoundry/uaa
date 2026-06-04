@@ -96,9 +96,9 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         assertSafeGeneratedSql(sqlFragment);
 
         if (where.hasOrderBy()) {
-            return getBaseSqlQuery() + " where (" + sqlFragment.replace(ORDER_BY, ")" + ORDER_BY); // lgtm[java/sql-injection]
+            return getBaseSqlQuery() + " where (" + sqlFragment.replace(ORDER_BY, ")" + ORDER_BY);
         } else {
-            return getBaseSqlQuery() + " where (" + sqlFragment + ")"; // lgtm[java/sql-injection]
+            return getBaseSqlQuery() + " where (" + sqlFragment + ")";
         }
     }
 
