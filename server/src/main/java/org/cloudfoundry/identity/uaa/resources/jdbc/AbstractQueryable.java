@@ -88,10 +88,13 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
     }
 
     private String getQuerySQL(SearchQueryConverter.ProcessedFilter where) {
-        // The SQL fragment is produced by SimpleSearchQueryConverter, which validates attribute
-        // names against a hardcoded allow-list and binds every user-supplied value as a named
-        // parameter (see SimpleSearchQueryConverter#whereClauseFromFilter and #comparisonClause).
-        // assertSafeGeneratedSql adds a defense-in-depth check on the resulting fragment.
+        // The SQL fragment comes from the configured SearchQueryConverter (default
+        // SimpleSearchQueryConverter; replaceable via setQueryConverter). Every shipped
+        // implementation validates attribute names against a hardcoded allow-list and
+        // binds every user-supplied value as a named parameter (see e.g.
+        // SimpleSearchQueryConverter#whereClauseFromFilter and #comparisonClause).
+        // assertSafeGeneratedSql adds a defense-in-depth check on the resulting fragment
+        // so any future converter that violates that contract still cannot inject SQL.
         String sqlFragment = where.getSql();
         assertSafeGeneratedSql(sqlFragment);
 
