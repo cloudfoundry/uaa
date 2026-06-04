@@ -1,5 +1,8 @@
 plugins {
     war
+    alias(libs.plugins.springDependencyManagement)
+    alias(libs.plugins.jacocoLog)
+    alias(libs.plugins.sonarqube)
 }
 
 description = "CloudFoundry Identity Server JAR"
@@ -9,8 +12,6 @@ dependencies {
     implementation(project(":cloudfoundry-identity-model"))
 
     implementation(libs.tomcatJdbc)
-    compileOnly(libs.tomcatEmbed)
-
     implementation(libs.jacksonDatabind)
     implementation(libs.jsonPath) {
         exclude(module = "json-smart")
@@ -95,6 +96,7 @@ dependencies {
     implementation(libs.orgJson)
 
     implementation(libs.apacheHttpClient)
+    implementation(libs.commonsIo)
 
     testImplementation(project(mapOf("path" to ":cloudfoundry-identity-model", "configuration" to "testArtifacts")))
 
@@ -106,9 +108,6 @@ dependencies {
     testImplementation(libs.junit5JupiterParams)
     testImplementation(libs.junit5JupiterEngine)
     testImplementation(libs.unboundIdLdapSdk)
-    testRuntimeOnly(libs.jacocoAgent)
-    testRuntimeOnly(libs.junit5PlatformLauncher)
-
     testImplementation(libs.springTest)
     testImplementation(libs.bytebuddy)
     testImplementation(libs.bytebuddyagent)
@@ -119,14 +118,15 @@ dependencies {
 
     testImplementation(libs.tomcatElApi)
     testImplementation(libs.tomcatJasperEl)
-    testImplementation(libs.tomcatJdbc)
 
     testImplementation(libs.jsonPathAssert)
     testImplementation(libs.xmlUnit)
     testImplementation(libs.awaitility)
 
-    implementation(libs.commonsIo)
+    testRuntimeOnly(libs.jacocoAgent)
+    testRuntimeOnly(libs.junit5PlatformLauncher)
 
+    compileOnly(libs.tomcatEmbed)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 }

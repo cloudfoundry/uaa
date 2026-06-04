@@ -3,17 +3,13 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 plugins {
-    id("io.spring.dependency-management") version "1.1.7" apply false
-    id("org.springframework.boot") version "4.0.6" apply false
-    id("org.barfuin.gradle.jacocolog") version "4.0.2" apply false
-    id("org.sonarqube") version "7.3.1.8318" apply false
+    alias(libs.plugins.springDependencyManagement) apply false
+    alias(libs.plugins.springBoot) apply false
+    alias(libs.plugins.jacocoLog) apply false
+    alias(libs.plugins.sonarqube) // Applied to root for global configuration
 }
 
 allprojects {
-    apply(plugin = "io.spring.dependency-management")
-    apply(plugin = "org.barfuin.gradle.jacocolog")
-    apply(plugin = "org.sonarqube")
-
     repositories {
         mavenCentral()
         maven {
@@ -31,8 +27,9 @@ subprojects {
             .toString().trim().lowercase()
     val uaaVerboseTestEvents = !listOf("false", "0", "off", "no").contains(uaaVerboseTestRaw)
 
+    // Apply Java plugin with consistent configuration across all modules
     apply(plugin = "java")
-    
+
     configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_25
         targetCompatibility = JavaVersion.VERSION_25
@@ -141,15 +138,15 @@ subprojects {
 
         // Log slow tests to help identify bottlenecks
         addTestListener(object : TestListener {
-            override fun beforeSuite(suite: org.gradle.api.tasks.testing.TestDescriptor) {}
-            override fun beforeTest(testDescriptor: org.gradle.api.tasks.testing.TestDescriptor) {}
-            override fun afterTest(testDescriptor: org.gradle.api.tasks.testing.TestDescriptor, result: org.gradle.api.tasks.testing.TestResult) {
+            override fun beforeSuite(suite: TestDescriptor) {}
+            override fun beforeTest(testDescriptor: TestDescriptor) {}
+            override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {
                 val duration = result.endTime - result.startTime
                 if (duration > 10000) { // 10 seconds
                     logger.warn("SLOW TEST: ${testDescriptor.className}.${testDescriptor.name} took ${duration}ms")
                 }
             }
-            override fun afterSuite(suite: org.gradle.api.tasks.testing.TestDescriptor, result: org.gradle.api.tasks.testing.TestResult) {
+            override fun afterSuite(suite: TestDescriptor, result: TestResult) {
                 if (suite.parent == null) {
                     val duration = result.endTime - result.startTime
                     val testLabel = if (result.testCount == 1L) "unit-test" else "unit-tests"

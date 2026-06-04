@@ -1,3 +1,9 @@
+plugins {
+    alias(libs.plugins.springDependencyManagement)
+    alias(libs.plugins.jacocoLog)
+    alias(libs.plugins.sonarqube)
+}
+
 description = "CloudFoundry Identity Model JAR"
 
 dependencies {

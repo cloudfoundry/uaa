@@ -1,5 +1,7 @@
 plugins {
-    java
+    alias(libs.plugins.springDependencyManagement)
+    alias(libs.plugins.jacocoLog)
+    alias(libs.plugins.sonarqube)
 }
 
 repositories {
@@ -12,6 +14,8 @@ dependencies {
     implementation(libs.springBootStarterWeb)
     implementation(libs.springBootStarterLog4j2)
     implementation(libs.statsdClient)
+    implementation(libs.jacksonDatabind)
+
     testImplementation(libs.springBootStarterTest) {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
@@ -20,16 +24,15 @@ dependencies {
     testImplementation(libs.junit5JupiterParams)
     testImplementation(libs.junit5JupiterEngine)
     testImplementation(libs.unboundIdLdapSdk)
-    testRuntimeOnly(libs.jacocoAgent)
-    testRuntimeOnly(libs.junit5PlatformLauncher)
-    
     testImplementation(libs.mockitoJunit5)
     testImplementation(libs.bytebuddy)
     testImplementation(libs.bytebuddyagent)
 
+    testRuntimeOnly(libs.jacocoAgent)
+    testRuntimeOnly(libs.junit5PlatformLauncher)
+
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
-    implementation(libs.jacksonDatabind)
 }
 
 tasks.named<Test>("test") {

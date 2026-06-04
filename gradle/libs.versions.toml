@@ -220,13 +220,8 @@ xmlUnit = { module = "org.xmlunit:xmlunit-assertj" }
 braveContextSlf4j = { module = "io.zipkin.brave:brave-context-slf4j", version.ref = "brave" }
 braveInstrumentation = { module = "io.zipkin.brave:brave-instrumentation-servlet-jakarta", version.ref = "brave" }
 
-# Gradle Plugin Classpaths (for buildscript, move to [plugins] later)
-gradleJacocoPlugin = { module = "org.barfuin.gradle.jacocolog:gradle-jacoco-log", version.ref = "jacoco" }
-sonarqubePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin", version.ref = "sonarqube" }
-springBootGradlePlugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "springBoot" }
-springDependencyManagementGradlePlugin = { module = "io.spring.gradle:dependency-management-plugin", version.ref = "springDependencyManagement" }
-
 [plugins]
 springBoot = { id = "org.springframework.boot", version.ref = "springBoot" }
-jacocoLog = { id = "org.barfuin.gradle.jacocolog", version.ref = "jacocoGradlePlugin" }
+springDependencyManagement = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
+jacocoLog = { id = "org.barfuin.gradle.jacocolog", version.ref = "jacoco" }
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }

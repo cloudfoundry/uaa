@@ -1,7 +1,9 @@
 plugins {
-    java
     war
-    id("org.springframework.boot")
+    alias(libs.plugins.springBoot)
+    alias(libs.plugins.springDependencyManagement)
+    alias(libs.plugins.jacocoLog)
+    alias(libs.plugins.sonarqube)
 }
 
 tasks.named<War>("war") {

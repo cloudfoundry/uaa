@@ -2,7 +2,10 @@ val identityServer = parent!!.subprojects.find { "cloudfoundry-identity-server" 
 
 plugins {
     war
-    id("org.springframework.boot")
+    alias(libs.plugins.springBoot)
+    alias(libs.plugins.springDependencyManagement)
+    alias(libs.plugins.jacocoLog)
+    alias(libs.plugins.sonarqube)
 }
 
 tasks.named<ProcessResources>("processResources") {
@@ -63,10 +66,6 @@ dependencies {
     implementation(libs.thymeleafExtrasSpringSecurity) {
         exclude(module = "ognl")
     }
-    runtimeOnly(libs.aspectJWeaver)
-    runtimeOnly(libs.postgresql)
-    runtimeOnly(libs.mariaJdbcDriver)
-
     implementation(libs.braveInstrumentation)
     implementation(libs.braveContextSlf4j)
 
@@ -75,12 +74,13 @@ dependencies {
 
     implementation(libs.springWeb)
     implementation(libs.springWebMvc)
-
-    compileOnly(libs.tomcatEmbed)
     implementation(libs.bouncyCastleFipsProv)
 
-    testImplementation(identityServer.sourceSets.test.get().output)
+    runtimeOnly(libs.aspectJWeaver)
+    runtimeOnly(libs.postgresql)
+    runtimeOnly(libs.mariaJdbcDriver)
 
+    testImplementation(identityServer.sourceSets.test.get().output)
     testImplementation(libs.springBootStarterTest) {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
@@ -89,9 +89,6 @@ dependencies {
     testImplementation(libs.junit5JupiterParams)
     testImplementation(libs.junit5JupiterEngine)
     testImplementation(libs.unboundIdLdapSdk)
-    testRuntimeOnly(libs.jacocoAgent)
-    testRuntimeOnly(libs.junit5PlatformLauncher)
-
     testImplementation(project(":cloudfoundry-identity-model"))
     testImplementation(project(":cloudfoundry-identity-metrics-data"))
     testImplementation(libs.apacheLdapApi) {
@@ -132,6 +129,10 @@ dependencies {
     testImplementation(libs.awaitility)
     testImplementation(libs.nimbusJwt)
 
+    testRuntimeOnly(libs.jacocoAgent)
+    testRuntimeOnly(libs.junit5PlatformLauncher)
+
+    compileOnly(libs.tomcatEmbed)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 }

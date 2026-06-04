@@ -1,3 +1,9 @@
+plugins {
+    alias(libs.plugins.springDependencyManagement)
+    alias(libs.plugins.jacocoLog)
+    alias(libs.plugins.sonarqube)
+}
+
 description = "CloudFoundry Identity Metrics Data Jar"
 
 dependencies {
@@ -12,6 +18,7 @@ dependencies {
     testImplementation(libs.junit5JupiterParams)
     testImplementation(libs.junit5JupiterEngine)
     testImplementation(libs.unboundIdLdapSdk)
+
     testRuntimeOnly(libs.jacocoAgent)
     testRuntimeOnly(libs.junit5PlatformLauncher)
 
