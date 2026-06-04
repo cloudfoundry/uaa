@@ -80,13 +80,13 @@ subprojects {
                 // Dependencies not managed by any BOM
                 // OpenSAML modules - align for migration
                 if (requested.group == "org.opensaml" && requested.name.startsWith("opensaml-")) {
-                    useVersion("5.2.2")
+                    useVersion(libs.versions.opensaml.get())
                     because("Pinning all opensaml modules to the same version for OpenSAML 5 migration.")
                 }
                 // Cryptacular - avoid regressions, explicit downgrade to 1.2.6
                 else if (requested.group == "org.cryptacular" && requested.name == "cryptacular") {
-                    useVersion("1.2.6")
-                    because("Pinning cryptacular to 1.2.6 to avoid regressions from newer OpenSAML versions.")
+                    useVersion(libs.versions.cryptacular.get())
+                    because("Pinning cryptacular to avoid regressions from newer OpenSAML versions.")
                 }
             }
         }
