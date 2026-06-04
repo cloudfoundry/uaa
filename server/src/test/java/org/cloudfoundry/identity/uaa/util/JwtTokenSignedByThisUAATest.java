@@ -787,6 +787,6 @@ public class JwtTokenSignedByThisUAATest {
     void nullUserIsCaught() {
         assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
                 buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-                        .checkUser(uid -> null));
+                        .checkUser(_ -> null));
     }
 }

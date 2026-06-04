@@ -30,7 +30,7 @@ class SessionControllerIntegrationTests {
     void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        } catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException _) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -43,7 +43,7 @@ class SessionControllerIntegrationTests {
                 "/session?clientId=admin&messageOrigin=http://localhost:8080");
 
         WebDriverWait wait = webDriver.createWebDriverWait();
-        Object type = wait.until(driver -> {
+        Object type = wait.until(_ -> {
             Object t = webDriver.getJavascriptExecutor().executeScript(
                     "return typeof(handleMessage);");
             return "function".equals(String.valueOf(t)) ? t : null;
@@ -60,13 +60,13 @@ class SessionControllerIntegrationTests {
         // Use WebDriverWait to wait for the variable to exist (prevents race conditions)
         // return null instead of crashing if undefined (better assertion handling)
         WebDriverWait wait = webDriver.createWebDriverWait();
-        Object clientId = wait.until(driver -> webDriver.getJavascriptExecutor().executeScript(
+        Object clientId = wait.until(_ -> webDriver.getJavascriptExecutor().executeScript(
                 "return (typeof clientId !== 'undefined') ? clientId : null;"));
 
         assertThat(clientId).as("Global variable 'clientId' should match URL param")
                 .hasToString("admin");
 
-        Object origin = wait.until(driver -> webDriver.getJavascriptExecutor().executeScript(
+        Object origin = wait.until(_ -> webDriver.getJavascriptExecutor().executeScript(
                 "return (typeof messageOrigin !== 'undefined') ? messageOrigin : null;"));
 
         assertThat(origin).as("Global variable 'messageOrigin' should match URL param")

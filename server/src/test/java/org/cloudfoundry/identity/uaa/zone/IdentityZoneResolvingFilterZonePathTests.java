@@ -65,7 +65,7 @@ class IdentityZoneResolvingFilterZonePathTests {
     }
 
     private FilterChain chainThatCapturesHolder() {
-        return (req, res) -> {
+        return (_, _) -> {
             chainInvoked.set(true);
             zoneInHolderWhenChainInvoked.set(IdentityZoneHolder.get());
         };

@@ -116,7 +116,7 @@ public final class InMemoryLdapServer implements Closeable {
     public boolean isRunning() {
         try {
             return this.directoryServer.getConnection().isConnected();
-        } catch (LDAPException e) {
+        } catch (LDAPException _) {
             return false;
         }
     }

@@ -391,7 +391,7 @@ class JdbcUaaUserDatabaseTests {
             validateBob(5, jdbcUaaUserDatabase.retrieveUserByName("bob", OriginKeys.UAA), l);
 
             for (int i = 5; i < 10; i++) {
-                System.out.println(i);
+                IO.println(i);
                 addAuthority("testAuth" + l + i, jdbcTemplate, "zone-the-bob", BOB_ID);
             }
             validateBob(10, jdbcUaaUserDatabase.retrieveUserByName("bob", OriginKeys.UAA), l);

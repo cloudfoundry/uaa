@@ -117,7 +117,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         try {
             manager.authenticate(success);
             fail("Expected AccountNotVerifiedException ");
-        } catch (AccountNotVerifiedException x) {
+        } catch (AccountNotVerifiedException _) {
             //expected
         }
         verify(mockManager, times(0)).authenticate(any(Authentication.class));
@@ -134,7 +134,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         try {
             manager.authenticate(success);
             fail("Expected AuthenticationPolicyRejectionException ");
-        } catch (AuthenticationPolicyRejectionException x) {
+        } catch (AuthenticationPolicyRejectionException _) {
             //expected
         }
         verify(mockManager, times(0)).authenticate(any(Authentication.class));
@@ -190,7 +190,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         try {
             manager.authenticate(success);
             fail("Was expecting a " + ProviderNotFoundException.class);
-        } catch (ProviderNotFoundException x) {
+        } catch (ProviderNotFoundException _) {
             //expected
         }
         verifyNoInteractions(uaaAuthenticationMgr);

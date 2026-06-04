@@ -128,7 +128,7 @@ class UaaMetricsEmitterIT {
                         results.put(fragment, message);
                     }
                 });
-            } catch (SocketTimeoutException e) {
+            } catch (SocketTimeoutException _) {
                 //expected so that we keep looping
             }
         } while (results.size() < fragments.size() && (System.nanoTime() < (startTime + UaaMetricsEmitterIT.WAIT_FOR_MESSAGE)));

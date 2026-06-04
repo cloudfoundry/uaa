@@ -141,7 +141,7 @@ class UaaHttpRequestUtilsTest {
         RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE));
         try {
             template.getForObject(url, String.class);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // ignored
         }
         assertThat(routePlanner.routes).hasSize(1);
@@ -167,7 +167,7 @@ class UaaHttpRequestUtilsTest {
                 try (var socket = ss.accept()) {
                     // Sleep longer than the read timeout so the client times out first.
                     Thread.sleep(readTimeoutMs * 10L);
-                } catch (Exception ignored) {}
+                } catch (Exception _) {}
             });
             acceptThread.setDaemon(true);
             acceptThread.start();
@@ -204,7 +204,7 @@ class UaaHttpRequestUtilsTest {
                     out.write(response.getBytes(StandardCharsets.US_ASCII));
                     out.flush();
                     clientSocket.close();
-                } catch (Exception ignored) {}
+                } catch (Exception _) {}
             });
             serverThread.setDaemon(true);
             serverThread.start();

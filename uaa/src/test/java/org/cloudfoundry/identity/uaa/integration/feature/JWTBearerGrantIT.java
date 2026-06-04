@@ -67,7 +67,7 @@ class JWTBearerGrantIT {
     private static boolean doesSupportZoneDNS() {
         try {
             return Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[]{127, 0, 0, 1});
-        } catch (UnknownHostException e) {
+        } catch (UnknownHostException _) {
             return false;
         }
     }
@@ -78,7 +78,7 @@ class JWTBearerGrantIT {
         assertThat(doesSupportZoneDNS()).as("/etc/hosts should contain the host 'testzone3/4.localhost' for this test to work").isTrue();
         try {
             webDriver.get(baseUrl + "/logout.do");
-        } catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException _) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }

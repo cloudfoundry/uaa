@@ -67,7 +67,7 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
         assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
+        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().getFirst().getValue());
         assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
 
         Map<String, Object> act = (Map<String, Object>) claims.get("act");
@@ -123,7 +123,7 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
         assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
+        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().getFirst().getValue());
         assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
     }
 
@@ -182,7 +182,7 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
         assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
+        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().getFirst().getValue());
         assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
     }
 
@@ -250,7 +250,7 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
         assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
+        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().getFirst().getValue());
         assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
 
         Map<String, Object> subjectTokenClaims = JsonUtils.readValueAsMap(JwtHelper.decode(idToken).getClaims());
@@ -318,7 +318,7 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
         assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
+        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().getFirst().getValue());
         assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
         assertThat(claims.get("client_id")).isEqualTo(audience.getClientId());
         assertThat(claims.get("cid")).isEqualTo(audience.getClientId());

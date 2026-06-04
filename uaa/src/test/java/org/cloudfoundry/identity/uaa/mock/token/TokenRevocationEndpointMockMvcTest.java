@@ -87,7 +87,7 @@ class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTests {
             assertThat(tokenRevocationEvent.getAuditEvent().getOrigin()).contains(client.getClientId());
             revocableTokenProvisioning.retrieve(jti, IdentityZoneHolder.get().getId());
             fail("Expected EmptyResultDataAccessException to be thrown for revoked token");
-        } catch (EmptyResultDataAccessException ignored) {
+        } catch (EmptyResultDataAccessException _) {
             // expected
         } finally {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
@@ -203,7 +203,7 @@ class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         try {
             revocableTokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
             fail("Token should have been deleted");
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             // expected
         }
     }
@@ -265,7 +265,7 @@ class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
         try {
             revocableTokenProvisioning.retrieve(opaqueUserToken, IdentityZoneHolder.get().getId());
-        } catch (EmptyResultDataAccessException ignored) {
+        } catch (EmptyResultDataAccessException _) {
         }
     }
 

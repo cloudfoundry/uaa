@@ -181,7 +181,7 @@ class SamlMetadataEndpointTest {
         when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request);
-        System.out.println(response.getBody());
+        IO.println(response.getBody());
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
         xmlAssert.valueByXPath("/md:EntityDescriptor/@ID").isEqualTo(ENTITY_ID);
         xmlAssert.valueByXPath("/md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:SignatureMethod/@Algorithm").isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA256);

@@ -63,7 +63,7 @@ class PathFragmentToLimiterMappingsTest {
         Instant start = Instant.now();
         LimiterMapping found = mapper.get(servletPath);
         int calls = selector.calls;
-        System.out.println(Duration.between(start, Instant.now()).toNanos() + "ns: " + calls + " -> " + servletPath);
+        IO.println(Duration.between(start, Instant.now()).toNanos() + "ns: " + calls + " -> " + servletPath);
         if (expectedFound) {
             assertThat(found).isNotNull();
         } else {

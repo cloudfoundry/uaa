@@ -113,7 +113,7 @@ class MultitenantJdbcClientDetailsServiceTests {
             when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
             try {
                 service.removeClientDetails("some-client-id");
-            } catch (Exception ignored) {
+            } catch (Exception _) {
             }
             verify(service, times(1)).deleteByClient(eq("some-client-id"), eq(zoneId));
             reset(service);
@@ -130,7 +130,7 @@ class MultitenantJdbcClientDetailsServiceTests {
             when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
             try {
                 service.deleteByClient("some-client-id", "zone-id");
-            } catch (Exception ignored) {
+            } catch (Exception _) {
             }
             verify(service, times(1)).deleteByClient(eq("some-client-id"), eq("zone-id"));
             verify(spyJdbcTemplate, times(1)).update(DEFAULT_DELETE_STATEMENT, "some-client-id", "zone-id");

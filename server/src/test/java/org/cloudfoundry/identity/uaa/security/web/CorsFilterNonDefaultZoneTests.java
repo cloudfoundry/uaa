@@ -456,7 +456,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     private static FilterChain newMockFilterChain() {
-        return (request, response) -> {
+        return (_, _) -> {
             // Do nothing.
         };
     }

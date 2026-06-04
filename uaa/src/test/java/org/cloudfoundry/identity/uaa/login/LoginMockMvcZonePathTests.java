@@ -752,7 +752,7 @@ public class LoginMockMvcZonePathTests {
         zonedUser.setPrimaryEmail("marissa@test.org");
         zonedUser.setPassword("koala");
         scimUserProvisioning.createUser(zonedUser, "koala", zone.getId());
-        ScimUser user = scimUserProvisioning.retrieveByUsernameAndZone("marissa", zone.getId()).get(0);
+        ScimUser user = scimUserProvisioning.retrieveByUsernameAndZone("marissa", zone.getId()).getFirst();
         String password = "koala";
         MockHttpSession session = new MockHttpSession();
         long beforeAuthTime = System.currentTimeMillis();
@@ -2254,7 +2254,7 @@ public class LoginMockMvcZonePathTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("email_sent?code=email_change"))
                 .andReturn().getRequest().getSession(false);
-        System.out.println("session = " + session);
+        IO.println("session = " + session);
     }
 
     @ParameterizedTest

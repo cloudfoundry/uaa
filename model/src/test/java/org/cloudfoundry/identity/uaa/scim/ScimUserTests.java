@@ -556,7 +556,7 @@ class ScimUserTests {
         try {
             user.patch(patch);
             fail("username is a required field, can't nullify it.");
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException _) {
             // ignore
         }
         assertThat(user.getUserName()).isNotNull();

@@ -98,7 +98,7 @@ class KeyInfoServiceTests {
         keyInfoService.getKeys().values().forEach(keyInfo -> {
             try {
                 jwkList.add(JWK.parse(keyInfo.getJwkMap()));
-            } catch (ParseException e) {
+            } catch (ParseException _) {
                 // ignore
             }
         });

@@ -66,7 +66,7 @@ class ExpirationBucketsTest {
 
         try {
             bucket = buckets.getBucket(second);
-        } catch (BucketRingBoundsException expected) {
+        } catch (BucketRingBoundsException _) {
             // Ignore
             return;
         }

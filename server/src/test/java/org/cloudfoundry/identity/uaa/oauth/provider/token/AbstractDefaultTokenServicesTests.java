@@ -50,7 +50,7 @@ public abstract class AbstractDefaultTokenServicesTests {
     @Test
     public void clientSpecificRefreshTokenExpiry() {
         getTokenServices().setRefreshTokenValiditySeconds(1000);
-        getTokenServices().setClientDetailsService(clientId -> {
+        getTokenServices().setClientDetailsService(_ -> {
             UaaClientDetails client = new UaaClientDetails();
             client.setRefreshTokenValiditySeconds(100);
             client.setAuthorizedGrantTypes(Arrays.asList("authorization_code", "refresh_token"));

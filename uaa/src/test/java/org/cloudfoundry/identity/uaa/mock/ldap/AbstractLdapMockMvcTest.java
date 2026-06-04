@@ -1146,7 +1146,7 @@ public abstract class AbstractLdapMockMvcTest {
             group.setZoneId(zone.getId());
             try {
                 group = gp.create(group, IdentityZoneHolder.get().getId());
-            } catch (ScimResourceAlreadyExistsException e) {
+            } catch (ScimResourceAlreadyExistsException _) {
                 String filter = "displayName eq \"" + internalName + "\"";
                 group = gp.query(filter, IdentityZoneHolder.get().getId()).getFirst();
             }

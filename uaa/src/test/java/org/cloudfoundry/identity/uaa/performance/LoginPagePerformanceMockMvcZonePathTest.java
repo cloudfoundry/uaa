@@ -137,7 +137,7 @@ class LoginPagePerformanceMockMvcZonePathTest {
         stopWatch.stop();
         long totalTimeMillis = stopWatch.getTotalTimeMillis();
 
-        System.out.println(totalTimeMillis + "ms");
+        IO.println(totalTimeMillis + "ms");
     }
 
     private static String createOIDCProvider(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, AlphanumericRandomValueStringGenerator generator, IdentityZone zone, String responseType, String domain) throws Exception {

@@ -124,7 +124,7 @@ class StaleUrlCacheTests {
 
     @Test
     void entry_refreshes_after_time() {
-        when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
+        when(mockTimeService.getCurrentTimeMillis()).thenAnswer(_ -> System.currentTimeMillis());
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content1, content2, content3);
 
         // populate the cache

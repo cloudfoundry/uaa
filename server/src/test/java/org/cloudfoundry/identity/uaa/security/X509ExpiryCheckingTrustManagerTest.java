@@ -41,7 +41,7 @@ class X509ExpiryCheckingTrustManagerTest {
         try {
             manager.checkServerTrusted(x509Certificates, "string");
             fail("");
-        } catch (CertificateExpiredException e) {
+        } catch (CertificateExpiredException _) {
             verify(mockedDelegate).checkServerTrusted(x509Certificates, "string");
             verify(certificate).checkValidity();
         }

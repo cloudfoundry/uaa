@@ -77,8 +77,8 @@ class OpenApiConfigurationTest {
         OpenAPI openAPI = openApiConfiguration.uaaOpenAPI();
 
         assertThat(openAPI.getServers()).hasSize(1);
-        assertThat(openAPI.getServers().get(0).getUrl()).isEqualTo("https://uaa.example.com");
-        assertThat(openAPI.getServers().get(0).getDescription()).isEqualTo("UAA Server");
+        assertThat(openAPI.getServers().getFirst().getUrl()).isEqualTo("https://uaa.example.com");
+        assertThat(openAPI.getServers().getFirst().getDescription()).isEqualTo("UAA Server");
     }
 
     @Test
@@ -86,7 +86,7 @@ class OpenApiConfigurationTest {
         OpenAPI openAPI = openApiConfiguration.uaaOpenAPI();
 
         assertThat(openAPI.getSecurity()).hasSize(1);
-        assertThat(openAPI.getSecurity().get(0).get("bearerAuth")).isNotNull();
+        assertThat(openAPI.getSecurity().getFirst().get("bearerAuth")).isNotNull();
     }
 
     @Test

@@ -202,7 +202,7 @@ class PasswordGrantAuthenticationManagerTest {
         try {
             instance.authenticate(auth);
             fail("No Exception thrown.");
-        } catch (BadCredentialsException ignored) {
+        } catch (BadCredentialsException _) {
         }
 
         ArgumentCaptor<AbstractUaaEvent> eventArgumentCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);

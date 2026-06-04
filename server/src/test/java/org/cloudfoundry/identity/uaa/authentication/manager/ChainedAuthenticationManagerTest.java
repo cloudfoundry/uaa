@@ -104,7 +104,7 @@ class ChainedAuthenticationManagerTest {
         try {
             authMgr.authenticate(failure);
             fail("Should have thrown exception");
-        } catch (BadCredentialsException ignored) {
+        } catch (BadCredentialsException _) {
         }
 
         verify(authenticateThrow, times(1)).authenticate(any(Authentication.class));

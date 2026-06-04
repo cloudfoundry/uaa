@@ -291,7 +291,7 @@ class UaaTokenStoreTests {
             assertThat(template.queryForObject("SELECT count(*) FROM oauth_code", Integer.class)).isEqualTo(count);
             try {
                 store.consumeAuthorizationCode(lastCode);
-            } catch (Exception ignore) {
+            } catch (Exception _) {
                 // ignored
             }
             assertThat(template.queryForObject("SELECT count(*) FROM oauth_code", Integer.class)).isEqualTo(count - 1);
@@ -315,7 +315,7 @@ class UaaTokenStoreTests {
                 String code = store.createAuthorizationCode(clientAuthentication);
                 try {
                     store.consumeAuthorizationCode(code);
-                } catch (InvalidGrantException ignored) {
+                } catch (InvalidGrantException _) {
                     // ignored
                 }
             }
@@ -340,7 +340,7 @@ class UaaTokenStoreTests {
         for (int i = 0; i < 10; i++) {
             try {
                 store.performExpirationCleanIfEnoughTimeHasElapsed();
-            } catch (Exception sqlException) {
+            } catch (Exception _) {
                 // ignore
             }
         }
@@ -361,7 +361,7 @@ class UaaTokenStoreTests {
     private static void performExpirationClean(UaaTokenStore store) {
         try {
             store.performExpirationCleanIfEnoughTimeHasElapsed();
-        } catch (Exception sqlException) {
+        } catch (Exception _) {
             // ignore
         }
     }

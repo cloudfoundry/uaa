@@ -50,11 +50,11 @@ public class UaaWebDriver implements WebDriver {
         new FluentWait<>(this.delegate).withTimeout(WAIT_TIMEOUT)
                 .pollingEvery(POLLING_TIME)
                 .withMessage(() -> "Waiting for navigation after clicking on [%s]. Current URL [%s].".formatted(locator, delegate.getCurrentUrl()))
-                .until((d) -> {
+                .until(_ -> {
                     try {
                         clickableElement.isDisplayed();
                         return false;
-                    } catch (StaleElementReferenceException e) {
+                    } catch (StaleElementReferenceException _) {
                         return true;
                     } catch (WebDriverException e) {
                         return e.getMessage().contains("-32000");
@@ -158,7 +158,7 @@ public class UaaWebDriver implements WebDriver {
         }
         try {
             return ((RemoteWebDriver) this.delegate).getSessionId();
-        } catch (Exception e) {
+        } catch (Exception _) {
             // If the WebDriver has been quit or closed, getSessionId() may throw an exception
             // Return null to indicate the session is no longer available
             return null;

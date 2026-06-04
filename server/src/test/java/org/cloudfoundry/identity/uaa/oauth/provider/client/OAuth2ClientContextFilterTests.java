@@ -207,7 +207,7 @@ class OAuth2ClientContextFilterTests {
         request.setQueryString("foo=bar&code=XXXX&parm=%xx");
         try {
             assertThat(filter.calculateCurrentUri(request)).isNull();
-        } catch (IllegalStateException ex) {
+        } catch (IllegalStateException _) {
             // OAuth2ClientContextFilter.calculateCurrentUri() internally uses
             // ServletUriComponentsBuilder.fromRequest(), which behaves differently in Spring Framework 5
             // and throws an IllegalStateException for a malformed URI.

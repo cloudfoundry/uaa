@@ -27,7 +27,7 @@ class YamlProcessorTest {
 
             Iterable<Object> objects = yaml.loadAll(inputStream);
             for (Object o : objects) {
-                System.out.println(o);
+                IO.println(o);
             }
         });
     }

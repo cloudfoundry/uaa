@@ -71,7 +71,7 @@ class ResetPasswordIT {
     void logoutAndClearCookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        } catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException _) {
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.manage().deleteAllCookies();

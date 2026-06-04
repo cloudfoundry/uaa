@@ -382,7 +382,7 @@ public abstract class AbstractTokenMockMvcTests {
         ScimGroupMember gm = new ScimGroupMember(user.getId());
         try {
             groupMembershipManager.addMember(group.getId(), gm, zoneId);
-        } catch (MemberAlreadyExistsException ignored) {
+        } catch (MemberAlreadyExistsException _) {
 
         }
     }
@@ -405,7 +405,7 @@ public abstract class AbstractTokenMockMvcTests {
             try {
                 clientDetailsService.loadClientByClientId(clientId);
                 break;
-            } catch (NoSuchClientException e) {
+            } catch (NoSuchClientException _) {
                 Thread.sleep(500);
             }
         }

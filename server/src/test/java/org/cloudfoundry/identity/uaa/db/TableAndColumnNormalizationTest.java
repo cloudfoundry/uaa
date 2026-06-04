@@ -45,7 +45,7 @@ class MySQLConfiguration {
     @Order(TestDatabaseNameCustomizer.ORDER + 1)
     @Profile("mysql")
     JdbcUrlCustomizer mysqlHardcodedJdbcUrlCustomizer() {
-        return url -> "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true&permitMysqlScheme=true";
+        return _ -> "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true&permitMysqlScheme=true";
     }
 }
 

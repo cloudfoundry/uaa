@@ -140,7 +140,7 @@ public class TokenExchangeOverrideAuthManagerMockMvcTests extends TokenExchangeM
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
         assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
+        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().getFirst().getValue());
         assertThat(claims.get("origin")).isEqualTo("override-origin");
     }
 

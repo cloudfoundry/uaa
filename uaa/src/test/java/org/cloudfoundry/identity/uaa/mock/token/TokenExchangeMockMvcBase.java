@@ -129,7 +129,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
 
             try {
                 return JwtHelper.decode(token);
-            } catch (RuntimeException e) {
+            } catch (RuntimeException _) {
                 Assertions.fail(
                         String.format("Unable to decode token: %s for server: %s and key: %s", token, serverKey, tokenKey)
                 );
@@ -142,7 +142,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
         //simulate an outside IDP
         AuthorizationServer thirdParty = getAuthorizationServer(
                 "3rd",
-                provider -> null,
+                _ -> null,
                 (client) -> {
                     client.setScope(List.of("openid"));
                     client.setAuthorizedGrantTypes(List.of("password", "refresh_token"));
@@ -169,7 +169,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
                     client.setAutoApproveScopes(List.of("openid"));
                     return client;
                 },
-                user -> null
+                _ -> null
         );
 
         //create foundation UAA
@@ -195,7 +195,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
                     client.setAutoApproveScopes(List.of("openid"));
                     return client;
                 },
-                user -> null
+                _ -> null
         );
 
         //get an id_token from third party UAA
@@ -413,7 +413,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
         claims.setJti(UUID.randomUUID().toString().replace("-", ""));
         claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
         claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
-        JsonWebKey jsonWebKey = clientJwtConfiguration.getJwkSet().getKeys().get(0);
+        JsonWebKey jsonWebKey = clientJwtConfiguration.getJwkSet().getKeys().getFirst();
         KeyInfo signingKeyInfo = getPrivateKey(issuer);
         return signingKeyInfo.verifierCertificate().isPresent() ?
                 JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :

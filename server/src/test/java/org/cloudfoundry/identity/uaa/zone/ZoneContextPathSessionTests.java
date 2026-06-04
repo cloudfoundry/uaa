@@ -951,7 +951,7 @@ class ZoneContextPathSessionTests {
             request2.setContextPath("/uaa/z/zone2");
             request2.setSession(containerSession);
             MockHttpServletResponse response2 = new MockHttpServletResponse();
-            filter.doFilter(request2, response2, (req, resp) -> {
+            filter.doFilter(request2, response2, (req, _) -> {
                 ((HttpServletRequest) req).getSession(true).setAttribute("user", "bob");
             });
 
@@ -968,7 +968,7 @@ class ZoneContextPathSessionTests {
             MockHttpSession containerSession = new MockHttpSession();
             request.setSession(containerSession);
 
-            filter.doFilter(request, response, (req, resp) -> {
+            filter.doFilter(request, response, (req, _) -> {
                 HttpServletRequest httpReq = (HttpServletRequest) req;
                 httpReq.getSession(true).setAttribute("data", "val");
                 containerSession.invalidate();
@@ -992,7 +992,7 @@ class ZoneContextPathSessionTests {
             MockHttpServletRequest zoneReq = new MockHttpServletRequest();
             zoneReq.setContextPath("/uaa/z/zone1");
             zoneReq.setSession(containerSession);
-            filter.doFilter(zoneReq, new MockHttpServletResponse(), (req, resp) -> {
+            filter.doFilter(zoneReq, new MockHttpServletResponse(), (req, _) -> {
                 ((HttpServletRequest) req).getSession(true).setAttribute("user", "zone1-user");
             });
 
@@ -1000,7 +1000,7 @@ class ZoneContextPathSessionTests {
             MockHttpServletRequest logoutReq = new MockHttpServletRequest();
             logoutReq.setContextPath("/uaa/z/zone1");
             logoutReq.setSession(containerSession);
-            filter.doFilter(logoutReq, new MockHttpServletResponse(), (req, resp) -> {
+            filter.doFilter(logoutReq, new MockHttpServletResponse(), (req, _) -> {
                 ((HttpServletRequest) req).getSession(false).invalidate();
             });
 

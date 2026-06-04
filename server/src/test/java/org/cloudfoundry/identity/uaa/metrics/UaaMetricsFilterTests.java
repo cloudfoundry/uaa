@@ -238,7 +238,7 @@ class UaaMetricsFilterTests {
         map.add("/identity-zones", "/identity-zones");
         map.add("/identity-zones", "/identity-zones/some/value");
         map.add("/saml/login", "/saml/login/value");
-        map.forEach((key, value) -> {
+        map.forEach((_, value) -> {
             for (String s : value) {
                 setRequestData(s);
                 assertThat(filter.getUriGroup(request).getGroup()).as("Testing URL: " + s).isEqualTo(FALLBACK.getGroup());

@@ -111,7 +111,7 @@ public class TestClient {
         config.setJwtClientAuthentication(oidcKeyInfo);
         try {
             config.setTokenUrl(new URL(baseUrl + "/oauth/token"));
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException _) {
             return "";
         }
         LegacyTokenKey.setLegacySigningKey(jwks, baseUrl);

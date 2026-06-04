@@ -84,7 +84,7 @@ public class Page {
     private void clickLogout(String baseUrl) {
         try {
             ((UaaWebDriver) driver).pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-logout");
-        } catch (WebDriverException e) {
+        } catch (WebDriverException _) {
             driver.get(baseUrl + "/logout.do");
         }
     }

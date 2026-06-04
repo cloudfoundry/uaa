@@ -1360,7 +1360,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         final IdentityProvider<?> idp;
         try {
             idp = identityProviderProvisioning.retrieve(id, zoneId);
-        } catch (final Exception e) {
+        } catch (final Exception _) {
             return Optional.empty();
         }
         return Optional.of(idp);

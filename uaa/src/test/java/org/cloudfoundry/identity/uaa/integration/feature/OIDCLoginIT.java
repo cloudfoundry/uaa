@@ -127,7 +127,7 @@ public class OIDCLoginIT {
     public static boolean doesSupportZoneDNS() {
         try {
             return Arrays.equals(Inet4Address.getByName("oidcloginit.localhost").getAddress(), new byte[]{127, 0, 0, 1});
-        } catch (UnknownHostException e) {
+        } catch (UnknownHostException _) {
             return false;
         }
     }

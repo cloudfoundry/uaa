@@ -51,7 +51,7 @@ class ZonePathContextRewritingFilterTests {
         request.setRequestURI("/uaa/login");
         request.setServletPath("/login");  // container would set this; filter passes request as-is
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -67,7 +67,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z");  // does not start with /z/ so not treated as zone path
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
@@ -79,7 +79,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/");  // starts with /z/ but no subdomain segment
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         assertThat(requestPassedToChain.get()).isNull();
@@ -91,7 +91,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         assertThat(requestPassedToChain.get()).isNull();
@@ -103,7 +103,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z//login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         assertThat(requestPassedToChain.get()).isNull();
@@ -118,7 +118,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerPort(8080);
         request.setScheme("http");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -138,7 +138,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerName("localhost");
         request.setServerPort(8080);
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -155,7 +155,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/" + DEFAULT_ZONE_SUBDOMAIN_PATH.toUpperCase() + "/profile");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -170,7 +170,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa" + ZONE_PATH_PREFIX + DEFAULT_ZONE_SUBDOMAIN_PATH + "/");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -189,7 +189,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerPort(8080);
         request.setScheme("http");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -206,7 +206,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -225,7 +225,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerPort(8443);
         request.setScheme("https");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -243,7 +243,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerName("localhost");
         request.setServerPort(8080);
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -260,7 +260,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerName("localhost");
         request.setServerPort(8080);
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -277,7 +277,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerName("localhost");
         request.setServerPort(8080);
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -295,7 +295,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerPort(443);
         request.setScheme("https");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -311,7 +311,7 @@ class ZonePathContextRewritingFilterTests {
         request.setServerPort(8080);
         request.setScheme("http");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -324,7 +324,7 @@ class ZonePathContextRewritingFilterTests {
         request.setRequestURI("/z/rootzone/oauth/token");
         request.setServerName("localhost");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -339,7 +339,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         assertThat(request.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isNull();
@@ -350,7 +350,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/my-zone-name/login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -366,7 +366,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -378,7 +378,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("");
         request.setRequestURI("/z/testzone/login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -390,7 +390,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/");
         request.setRequestURI("/z/rootzone/oauth/token");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -402,7 +402,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -416,7 +416,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> {
+        FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("TestCookie", "value");
             c.setPath("/");
             ((HttpServletResponse) res).addCookie(c);
@@ -433,7 +433,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> {
+        FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("X", "v");
             c.setPath("/uaa/other");
             ((HttpServletResponse) res).addCookie(c);
@@ -450,7 +450,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> {
+        FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("S", "v");
             ((HttpServletResponse) res).addCookie(c);
         };
@@ -466,7 +466,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/login");
 
-        FilterChain chain = (req, res) -> {
+        FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("A", "b");
             c.setPath("/");
             ((HttpServletResponse) res).addCookie(c);
@@ -483,7 +483,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("");
         request.setRequestURI("/z/myzone/login");
 
-        FilterChain chain = (req, res) -> {
+        FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("C", "d");
             c.setPath("/");
             ((HttpServletResponse) res).addCookie(c);
@@ -500,7 +500,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/");
         request.setRequestURI("/z/rootzone/login");
 
-        FilterChain chain = (req, res) -> {
+        FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("K", "v");
             c.setPath("/");
             ((HttpServletResponse) res).addCookie(c);
@@ -517,7 +517,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> {
+        FilterChain chain = (_, res) -> {
             HttpServletResponse httpRes = (HttpServletResponse) res;
             Cookie c1 = new Cookie("One", "1");
             c1.setPath("/");
@@ -541,7 +541,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "MyCookie=val; Path=/; HttpOnly");
+        FilterChain chain = (_, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "MyCookie=val; Path=/; HttpOnly");
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
@@ -554,7 +554,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "Session=abc; HttpOnly");
+        FilterChain chain = (_, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "Session=abc; HttpOnly");
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
@@ -566,7 +566,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "X=1; Path=/uaa/other");
+        FilterChain chain = (_, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "X=1; Path=/uaa/other");
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
@@ -578,7 +578,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> ((HttpServletResponse) res).setHeader("Set-Cookie", "Foo=bar; Path=/; Secure");
+        FilterChain chain = (_, res) -> ((HttpServletResponse) res).setHeader("Set-Cookie", "Foo=bar; Path=/; Secure");
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
@@ -591,7 +591,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "Current-User=encoded; Path=/; HttpOnly");
+        FilterChain chain = (_, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "Current-User=encoded; Path=/; HttpOnly");
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
@@ -604,7 +604,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/login");
 
-        FilterChain chain = (req, res) -> ((HttpServletResponse) res).setHeader("Set-Cookie", "Current-User=val; Path=/");
+        FilterChain chain = (_, res) -> ((HttpServletResponse) res).setHeader("Set-Cookie", "Current-User=val; Path=/");
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
@@ -616,7 +616,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("");
         request.setRequestURI("/z/myzone/login");
 
-        FilterChain chain = (req, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "A=B; Path=/");
+        FilterChain chain = (_, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "A=B; Path=/");
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
@@ -631,7 +631,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         disabledFilter.doFilter(request, response, chain);
 
         assertThat(requestPassedToChain.get()).isNull();
@@ -644,7 +644,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         disabledFilter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -658,7 +658,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         enabledFilter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();
@@ -672,7 +672,7 @@ class ZonePathContextRewritingFilterTests {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/z/myzone/login");
 
-        FilterChain chain = (req, res) -> requestPassedToChain.set((HttpServletRequest) req);
+        FilterChain chain = (req, _) -> requestPassedToChain.set((HttpServletRequest) req);
         filter.doFilter(request, response, chain);
 
         HttpServletRequest passed = requestPassedToChain.get();

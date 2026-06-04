@@ -45,7 +45,7 @@ class InitialConfigTest {
     void create() {
         InitialConfig ic = InitialConfig.create();
         assertThat(ic).isNotNull();
-        System.out.println("InitialConfigTest.create, RateLimitingEnabled: " + ic.isRateLimitingEnabled());
+        IO.println("InitialConfigTest.create, RateLimitingEnabled: " + ic.isRateLimitingEnabled());
     }
 
     @Test

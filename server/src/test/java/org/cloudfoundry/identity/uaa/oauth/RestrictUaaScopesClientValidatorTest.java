@@ -72,14 +72,14 @@ class RestrictUaaScopesClientValidatorTest {
             try {
                 validator.validate(client, m);
                 fail("Scope:" + s + " should not be valid during " + m + " mode.");
-            } catch (InvalidClientDetailsException x) {
+            } catch (InvalidClientDetailsException _) {
                 //expected
             }
         }
         for (ClientDetailsValidator.Mode m : nonRestrictModes) {
             try {
                 validator.validate(client, m);
-            } catch (InvalidClientDetailsException x) {
+            } catch (InvalidClientDetailsException _) {
                 fail("Scope:" + s + " should be valid during " + m + " mode.");
             }
         }

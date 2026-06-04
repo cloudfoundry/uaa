@@ -1391,7 +1391,7 @@ class ScimGroupEndpointsMockMvcTests {
                 ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
                 try {
                     scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
-                } catch (MemberAlreadyExistsException ignored) {
+                } catch (MemberAlreadyExistsException _) {
                 }
             }
         } finally {
@@ -1432,7 +1432,7 @@ class ScimGroupEndpointsMockMvcTests {
                 ScimGroupMember member = new ScimGroupMember(newGroup.getId(), ScimGroupMember.Type.GROUP);
                 try {
                     scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
-                } catch (MemberAlreadyExistsException ignored) {
+                } catch (MemberAlreadyExistsException _) {
                 }
             }
         } finally {

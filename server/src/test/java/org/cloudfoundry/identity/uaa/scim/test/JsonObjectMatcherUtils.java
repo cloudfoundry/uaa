@@ -54,7 +54,7 @@ public class JsonObjectMatcherUtils extends BaseMatcher<String> {
         JSONObject actual = null;
         try {
             actual = new JSONObject(new JSONTokener(item.toString()));
-        } catch (JSONException e) {
+        } catch (JSONException _) {
             return false;
         }
 
@@ -70,7 +70,7 @@ public class JsonObjectMatcherUtils extends BaseMatcher<String> {
                 if (!Objects.equals(expected.get(name), actual.get(name))) {
                     return false;
                 }
-            } catch (JSONException e) {
+            } catch (JSONException _) {
                 return false;
             }
         }

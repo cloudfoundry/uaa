@@ -112,7 +112,7 @@ class ErrorRoutingIT {
             while ((charsRead = reader.read(buffer, 0, bufferSize)) != -1) {
                 sb.append(buffer, 0, charsRead);
             }
-        } catch (IOException ie) {
+        } catch (IOException _) {
             IOUtils.close(connection);
         }
         return sb.toString();

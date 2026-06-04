@@ -263,7 +263,7 @@ class ClientAdminEndpointsValidatorTests {
     private void testValidatorForInvalidURL(String url) {
         try {
             testValidatorForURL(url);
-        } catch (InvalidClientDetailsException e) {
+        } catch (InvalidClientDetailsException _) {
             return;
         }
         fail("Url %s should not be allowed".formatted(url));

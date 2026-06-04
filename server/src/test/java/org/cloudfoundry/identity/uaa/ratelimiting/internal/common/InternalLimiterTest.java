@@ -234,7 +234,7 @@ class InternalLimiterTest {
                 coordinator.waitForStart();
                 for (int i = 0; !checkList(toProcess); i++) {
                     if ((i & 31) == 0) {
-                        System.out.print(threadNumber);
+                        IO.print(threadNumber);
                     }
                 }
                 coordinator.done();

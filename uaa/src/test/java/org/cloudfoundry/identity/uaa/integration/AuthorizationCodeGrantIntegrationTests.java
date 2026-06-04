@@ -209,7 +209,7 @@ class AuthorizationCodeGrantIntegrationTests {
             IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning, "app", "appclientsecret",
                     testAccounts.getUserName(), testAccounts.getPassword(),
                     null, null, null, null, false);
-        } catch (AssertionError error) {
+        } catch (AssertionError _) {
             // expected
             return;
         }

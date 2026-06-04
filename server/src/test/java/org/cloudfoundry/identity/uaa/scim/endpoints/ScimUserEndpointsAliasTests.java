@@ -274,7 +274,7 @@ class ScimUserEndpointsAliasTests {
         void shouldThrow_IfAliasIsLocked() {
             when(scimUserAliasHandler.aliasPropertiesAreValid(originalUser, existingOriginalUser))
                     .thenReturn(true);
-            when(transactionTemplate.execute(any())).then(invocationOnMock -> {
+            when(transactionTemplate.execute(any())).then(_ -> {
                 throw new OptimisticLockingFailureException("The alias is locked.");
             });
 

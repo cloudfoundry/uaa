@@ -59,7 +59,7 @@ class UaaUserTests {
 
             @Test
             void defaultsUsernameToUnknownWhenNoEmailPresent() {
-                UaaUser user = UaaUser.createWithDefaults(u -> {
+                UaaUser user = UaaUser.createWithDefaults(_ -> {
                 });
                 assertThat(user.getUsername()).isEqualTo(UaaUser.DEFAULT_USER_NAME);
             }

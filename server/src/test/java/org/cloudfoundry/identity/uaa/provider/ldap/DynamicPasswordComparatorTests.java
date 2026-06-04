@@ -59,7 +59,7 @@ class DynamicPasswordComparatorTests {
         try {
             comparator.encode("test");
             fail("Method and test not implemented yet.");
-        } catch (UnsupportedOperationException ignored) {
+        } catch (UnsupportedOperationException _) {
         }
     }
 
@@ -68,7 +68,7 @@ class DynamicPasswordComparatorTests {
         try {
             comparator.matches("test", "test");
             fail("Method and test not implemented yet.");
-        } catch (UnsupportedOperationException ignored) {
+        } catch (UnsupportedOperationException _) {
         }
 
     }

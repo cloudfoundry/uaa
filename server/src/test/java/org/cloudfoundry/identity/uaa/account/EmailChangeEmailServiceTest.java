@@ -279,7 +279,7 @@ class EmailChangeEmailServiceTest {
         Map<String, String> response = null;
         try {
             response = emailChangeEmailService.completeVerification("the_secret_code");
-        } catch (NoSuchClientException e) {
+        } catch (NoSuchClientException _) {
             assertThat(response).doesNotContainKey("redirect_url");
         }
     }

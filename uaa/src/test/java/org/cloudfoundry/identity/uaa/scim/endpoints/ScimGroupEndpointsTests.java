@@ -551,7 +551,7 @@ class ScimGroupEndpointsTests {
         try {
             scimGroupEndpoints.updateGroup(g1, g1.getId(), "*", new MockHttpServletResponse());
             fail("must have thrown exception");
-        } catch (ScimException ex) {
+        } catch (ScimException _) {
             // ensure that displayName was not updated
             g1 = scimGroupEndpoints.getGroup(g1.getId(), new MockHttpServletResponse());
             validateGroup(g1, "clients.read", 0);
@@ -620,7 +620,7 @@ class ScimGroupEndpointsTests {
 
         try {
             scimGroupEndpoints.updateGroup(g1, g1.getId(), String.valueOf(g1.getVersion() + 23), new MockHttpServletResponse());
-        } catch (ScimException ex) {
+        } catch (ScimException _) {
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
@@ -683,7 +683,7 @@ class ScimGroupEndpointsTests {
 
         try {
             scimGroupEndpoints.deleteGroup(g.getId(), String.valueOf(g.getVersion() + 3), new MockHttpServletResponse());
-        } catch (ScimException ex) {
+        } catch (ScimException _) {
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
         deleteGroup("clients.read");

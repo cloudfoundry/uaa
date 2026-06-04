@@ -59,7 +59,7 @@ class OAuth2AccessTokenJackson2SerializerTests extends BaseOAuth2AccessTokenJack
             accessToken.getScope().clear();
             try {
                 accessToken.getScope().add(null);
-            } catch (NullPointerException e) {
+            } catch (NullPointerException _) {
                 // short circuit NPE from Java 7 (which is correct but only relevant for this test)
                 throw new IllegalArgumentException("Scopes cannot be null or empty. Got [null]");
             }

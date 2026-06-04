@@ -161,7 +161,7 @@ class OAuth2RestTemplateTests {
     @Test
     void noRetryAccessDeniedExceptionForNoExistingToken() {
         restTemplate.setAccessTokenProvider(new StubAccessTokenProvider());
-        restTemplate.setRequestFactory((uri, httpMethod) -> {
+        restTemplate.setRequestFactory((_, _) -> {
             throw new AccessTokenRequiredException(resource);
         });
         assertThatExceptionOfType(AccessTokenRequiredException.class).isThrownBy(() ->
@@ -300,7 +300,7 @@ class OAuth2RestTemplateTests {
             OAuth2AccessToken newToken = restTemplate.getAccessToken();
             assertThat(newToken).isNotNull();
             fail("Expected UserRedirectRequiredException");
-        } catch (UserRedirectRequiredException e) {
+        } catch (UserRedirectRequiredException _) {
             // planned
         }
         // context token should be reset as it is invalid at this point

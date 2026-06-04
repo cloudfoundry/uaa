@@ -1632,7 +1632,7 @@ class LoginInfoEndpointTests {
                 (String str) -> {
                     try {
                         return Modifier.isPublic(LoginInfoEndpoint.SavedAccountOptionModel.class.getDeclaredField(str).getModifiers());
-                    } catch (NoSuchFieldException e) {
+                    } catch (NoSuchFieldException _) {
                         return false;
                     }
                 };

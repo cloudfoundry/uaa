@@ -632,7 +632,7 @@ class InvitationsEndpointMockMvcZonePathTests {
         MvcResult inviteResult = mockMvc.perform(postReq).andExpect(status().isOk()).andReturn();
         InvitationsResponse inviteResponse = readValue(inviteResult.getResponse().getContentAsString(), InvitationsResponse.class);
         assertThat(inviteResponse.getNewInvites()).hasSize(1);
-        String acceptUrl = inviteResponse.getNewInvites().get(0).getInviteLink().toString();
+        String acceptUrl = inviteResponse.getNewInvites().getFirst().getInviteLink().toString();
         String code = acceptUrl.contains("code=") ? acceptUrl.substring(acceptUrl.indexOf("code=") + 5).split("&")[0] : null;
         assertThat(code).isNotNull();
 
@@ -702,7 +702,7 @@ class InvitationsEndpointMockMvcZonePathTests {
         MvcResult inviteResult = mockMvc.perform(postReq).andExpect(status().isOk()).andReturn();
         InvitationsResponse inviteResponse = readValue(inviteResult.getResponse().getContentAsString(), InvitationsResponse.class);
         assertThat(inviteResponse.getNewInvites()).hasSize(1);
-        String acceptUrl = inviteResponse.getNewInvites().get(0).getInviteLink().toString();
+        String acceptUrl = inviteResponse.getNewInvites().getFirst().getInviteLink().toString();
         String code = acceptUrl.contains("code=") ? acceptUrl.substring(acceptUrl.indexOf("code=") + 5).split("&")[0] : null;
         assertThat(code).isNotNull();
 

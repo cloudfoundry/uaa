@@ -860,10 +860,10 @@ class UaaTokenServicesTests {
             try {
                 jdbcClientDetailsService.loadClientByClientId(clientId);
                 return true;
-            } catch (NoSuchClientException e) {
+            } catch (NoSuchClientException _) {
                 try {
                     Thread.sleep(500);
-                } catch (InterruptedException interruptedException) {
+                } catch (InterruptedException _) {
                     return false;
                 }
             }

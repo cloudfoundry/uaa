@@ -680,7 +680,7 @@ class UaaUrlUtilsTest {
         Map<String, String> failed = getUnsuccessfulUrls(urls, result);
         if (!failed.isEmpty()) {
             StringBuilder builder = new StringBuilder("\n");
-            failed.forEach((key, value) -> builder.append(value).append("\n"));
+            failed.forEach((_, value) -> builder.append(value).append("\n"));
             fail(builder.toString());
         }
     }

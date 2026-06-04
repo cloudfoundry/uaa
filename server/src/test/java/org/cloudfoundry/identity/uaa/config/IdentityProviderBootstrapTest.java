@@ -318,7 +318,7 @@ class IdentityProviderBootstrapTest {
             try {
                 provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZone.getUaaZoneId());
                 fail("Provider '%s' should not exist.".formatted(provider.getKey()));
-            } catch (EmptyResultDataAccessException ignored) {
+            } catch (EmptyResultDataAccessException _) {
             }
 
         }

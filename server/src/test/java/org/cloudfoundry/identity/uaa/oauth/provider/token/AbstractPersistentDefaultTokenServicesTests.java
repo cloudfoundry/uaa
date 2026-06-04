@@ -25,7 +25,7 @@ public abstract class AbstractPersistentDefaultTokenServicesTests extends Abstra
     public void tokenEnhancerUpdatesStoredTokens() {
         final ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken("testToken", new Date(
                 System.currentTimeMillis() + 100000));
-        getTokenServices().setTokenEnhancer((accessToken, authentication) -> {
+        getTokenServices().setTokenEnhancer((accessToken, _) -> {
             DefaultOAuth2AccessToken result = new DefaultOAuth2AccessToken(accessToken);
             result.setRefreshToken(refreshToken);
             return result;
@@ -41,7 +41,7 @@ public abstract class AbstractPersistentDefaultTokenServicesTests extends Abstra
 
     @Test
     public void refreshedTokenIsEnhanced() {
-        getTokenServices().setTokenEnhancer((accessToken, authentication) -> {
+        getTokenServices().setTokenEnhancer((accessToken, _) -> {
             DefaultOAuth2AccessToken result = new DefaultOAuth2AccessToken(accessToken);
             result.setValue("I'mEnhanced");
             return result;

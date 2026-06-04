@@ -43,7 +43,7 @@ class V2_7_3__StoreSubDomainAsLowerCase_Tests {
     void closeConnection() {
         try {
             connection.close();
-        } catch (Exception ignore) {
+        } catch (Exception _) {
             // ignore
         }
     }
@@ -135,7 +135,7 @@ class V2_7_3__StoreSubDomainAsLowerCase_Tests {
                 IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain + generator.generate(), subdomain);
                 identityZone.setSubdomain(subdomain);
                 createIdentityZoneThroughSQL(identityZone);
-            } catch (DuplicateKeyException x) {
+            } catch (DuplicateKeyException _) {
                 assumeTrue(false, "DB is not case sensitive. No need for this test");
             }
         }

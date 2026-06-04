@@ -189,7 +189,7 @@ class JdbcIdentityZoneProvisioningTests {
         try {
             jdbcIdentityZoneProvisioning.create(identityZone);
             fail("Should have thrown exception");
-        } catch (ZoneAlreadyExistsException e) {
+        } catch (ZoneAlreadyExistsException _) {
             // success
         }
     }
@@ -203,7 +203,7 @@ class JdbcIdentityZoneProvisioningTests {
             identityZone.setId(new RandomValueStringGenerator().generate());
             jdbcIdentityZoneProvisioning.create(identityZone);
             fail("Should have thrown exception");
-        } catch (ZoneAlreadyExistsException e) {
+        } catch (ZoneAlreadyExistsException _) {
             // success
         }
     }

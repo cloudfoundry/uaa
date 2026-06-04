@@ -78,7 +78,7 @@ public class TestUtils {
         JdbcTemplate jdbcTemplate;
         try {
             jdbcTemplate = applicationContext.getBean(JdbcTemplate.class);
-        } catch (NoSuchBeanDefinitionException ignored) {
+        } catch (NoSuchBeanDefinitionException _) {
             return;
         }
 
@@ -118,7 +118,7 @@ public class TestUtils {
         try {
             ClientAdminBootstrap bootstrap = applicationContext.getBean(ClientAdminBootstrap.class);
             bootstrap.afterPropertiesSet();
-        } catch (Exception ignored) {
+        } catch (Exception _) {
 
         }
     }
@@ -127,7 +127,7 @@ public class TestUtils {
         try {
             InitializingBean bootstrap = applicationContext.getBean(clazz);
             bootstrap.afterPropertiesSet();
-        } catch (Exception ignored) {
+        } catch (Exception _) {
 
         }
     }
@@ -144,10 +144,10 @@ public class TestUtils {
         try {
             IdentityZoneHolder.setProvisioning(applicationContext.getBean(JdbcIdentityZoneProvisioning.class));
             IdentityZoneHolder.setSamlKeyManagerFactory(applicationContext.getBean(SamlKeyManagerFactory.class));
-        } catch (NoSuchBeanDefinitionException ignored) {
+        } catch (NoSuchBeanDefinitionException _) {
             try {
                 IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(applicationContext.getBean(JdbcTemplate.class)));
-            } catch (NoSuchBeanDefinitionException ignoredAgain) {
+            } catch (NoSuchBeanDefinitionException _) {
                 IdentityZoneHolder.setProvisioning(null);
             }
         }

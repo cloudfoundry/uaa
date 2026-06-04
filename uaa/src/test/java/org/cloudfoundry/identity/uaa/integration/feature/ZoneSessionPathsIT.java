@@ -123,11 +123,11 @@ class ZoneSessionPathsIT {
     void tearDown() {
         try {
             IntegrationTestUtils.deleteZone(baseUrl, ZONE1, adminToken);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
         }
         try {
             IntegrationTestUtils.deleteZone(baseUrl, ZONE2, adminToken);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
         }
     }
 
@@ -305,7 +305,7 @@ class ZoneSessionPathsIT {
         webDriver.get(zonePathUrl(ZONE2) + "/logout.do");
 
         Set<Cookie> cookiesList = webDriver.manage().getCookies();
-        System.out.println("Cookies: " + cookiesList);
+        IO.println("Cookies: " + cookiesList);
 
         webDriver.get(zonePathUrl(ZONE1) + "/profile");
         assertThat(webDriver.getCurrentUrl())

@@ -548,7 +548,7 @@ class OpenSaml5AuthenticationProviderUaaTests {
         try {
             userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML);
             fail("user should not exist");
-        } catch (UsernameNotFoundException ignored) {
+        } catch (UsernameNotFoundException _) {
             // expected
         }
         authenticate();
