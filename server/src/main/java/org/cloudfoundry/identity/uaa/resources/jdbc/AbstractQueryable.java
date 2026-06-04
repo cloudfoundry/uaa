@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.google.common.primitives.Ints.tryParse;
@@ -101,6 +102,13 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         }
     }
 
+    // Matches a leading DML/DDL keyword followed by any whitespace (including \t, \n) or
+    // a "(", which together cover the realistic ways such a keyword could be smuggled past
+    // a literal-space prefix check (e.g. "select\tfoo", "select(", "SELECT\nfoo").
+    private static final Pattern DISALLOWED_LEADING_CLAUSE = Pattern.compile(
+            "^(select|insert|update|delete|drop|alter|create|truncate|merge|union|grant|revoke|exec|execute|call|with|replace|rename|comment)(\\s|\\().*",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
     protected static void assertSafeGeneratedSql(String sqlFragment) {
         if (!StringUtils.hasText(sqlFragment)) {
             throw new IllegalArgumentException("Invalid filter: empty SQL fragment");
@@ -116,13 +124,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         }
 
         String trimmed = normalized.trim();
-        if (trimmed.startsWith("select ")
-                || trimmed.startsWith("insert ")
-                || trimmed.startsWith("update ")
-                || trimmed.startsWith("delete ")
-                || trimmed.startsWith("drop ")
-                || trimmed.startsWith("alter ")
-                || trimmed.startsWith("create ")) {
+        if (DISALLOWED_LEADING_CLAUSE.matcher(trimmed).matches()) {
             throw new IllegalArgumentException("Invalid filter: unexpected SQL clause in generated query");
         }
     }
