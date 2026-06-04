@@ -15,7 +15,6 @@ greenmail = "2.1.8"
 guava = "33.6.0-jre"
 jacoco = "4.0.2"
 jacocoAgent = "0.8.14"
-jacocoGradlePlugin = "4.0.2"
 nimbusJwt = "10.9.1"
 opensaml = "5.2.2"
 orgJson = "20260522"
@@ -25,7 +24,6 @@ sonarqube = "7.3.1.8318"
 springBoot = "4.0.6"
 springDependencyManagement = "1.1.7"
 springDocOpenapi = "3.0.3"
-springRetry = "2.0.12"
 statsdClient = "3.1.0"
 tomcat = "11.0.22"
 unboundIdScimSdk = "2.0.0"
@@ -80,7 +78,6 @@ eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "ecl
 # FasterXML Jackson
 jacksonAnnotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
 jacksonDatabind = { module = "tools.jackson.core:jackson-databind" }
-jacksonDataformatYaml = { module = "tools.jackson.dataformat:jackson-dataformat-yaml" }
 
 # Flyway
 flywayCore = { module = "org.flywaydb:flyway-core" }
@@ -128,7 +125,6 @@ lombok = { module = "org.projectlombok:lombok" }
 mariaJdbcDriver = { module = "org.mariadb.jdbc:mariadb-java-client" }
 
 # Mockito
-mockito = { module = "org.mockito:mockito-core" }
 mockitoJunit5 = { module = "org.mockito:mockito-junit-jupiter" }
 
 # Nimbus JOSE+JWT
@@ -159,7 +155,6 @@ springBeans = { module = "org.springframework:spring-beans" }
 springContext = { module = "org.springframework:spring-context" }
 springContextSupport = { module = "org.springframework:spring-context-support" }
 springJdbc = { module = "org.springframework:spring-jdbc" }
-springRetry = { module ="org.springframework.retry:spring-retry", version.ref = "springRetry" }
 springTest = { module = "org.springframework:spring-test" }
 springTx = { module = "org.springframework:spring-tx" }
 springWeb = { module = "org.springframework:spring-web" }
@@ -174,7 +169,6 @@ springBootStarter = { module = "org.springframework.boot:spring-boot-starter" }
 springBootStarterLog4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2" }
 springBootStarterMail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 springBootStarterTest = { module = "org.springframework.boot:spring-boot-starter-test" }
-springBootStarterTomcat = { module = "org.springframework.boot:spring-boot-starter-tomcat" }
 springBootStarterTomcatRuntime = { module = "org.springframework.boot:spring-boot-starter-tomcat-runtime" }
 springBootStarterWeb = { module = "org.springframework.boot:spring-boot-starter-web" }
 springBootTransaction = { module = "org.springframework.boot:spring-boot-transaction" }
