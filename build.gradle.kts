@@ -27,12 +27,12 @@ subprojects {
             .toString().trim().lowercase()
     val uaaVerboseTestEvents = !listOf("false", "0", "off", "no").contains(uaaVerboseTestRaw)
 
-    // Apply Java plugin with consistent configuration across all modules
-    apply(plugin = "java")
-
-    configure<JavaPluginExtension> {
-        sourceCompatibility = JavaVersion.VERSION_25
-        targetCompatibility = JavaVersion.VERSION_25
+    // Configure Java version for all projects with Java plugin applied
+    plugins.withType<JavaPlugin> {
+        configure<JavaPluginExtension> {
+            sourceCompatibility = JavaVersion.VERSION_25
+            targetCompatibility = JavaVersion.VERSION_25
+        }
     }
 
     // Use afterEvaluate to access version catalog after project evaluation
@@ -96,9 +96,9 @@ subprojects {
         options.compilerArgs.addAll(listOf("-Xlint:none", "-nowarn", "-parameters"))
     }
 
-    tasks.named<Test>("test") {
+    tasks.withType<Test>().configureEach {
         // when failFast = true AND retry is on, there is a serious issue:
-        // gradle might stop the test run due to the failFast but still concludes with BUILD SUCCESSFUL (if the retry is successful)
+        // Gradle might stop the test run due to the failFast but still concludes with BUILD SUCCESSFUL (if the retry is successful)
         failFast = false
         useJUnitPlatform()
         // Increased to 1536m for Spring Boot 4 compatibility

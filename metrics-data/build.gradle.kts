@@ -1,4 +1,5 @@
 plugins {
+    java
     alias(libs.plugins.springDependencyManagement)
     alias(libs.plugins.jacocoLog)
     alias(libs.plugins.sonarqube)
