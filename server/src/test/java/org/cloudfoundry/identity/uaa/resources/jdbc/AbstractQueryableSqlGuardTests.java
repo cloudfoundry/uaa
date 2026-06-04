@@ -178,6 +178,30 @@ class AbstractQueryableSqlGuardTests {
                 .hasMessageContaining("unexpected leading token");
     }
 
+    /**
+     * Extended wrapper-breakout bypass raised by Copilot review: a fragment can also
+     * close the surrounding {@code "where ("} wrapper early by starting with one or
+     * more {@code "("} immediately followed by {@code ")"} (e.g. {@code "()) or 1=1 or (1=1"}).
+     * After stripping leading whitespace and any leading {@code "("}, the next
+     * non-whitespace token must not be {@code ")"}.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "()) or 1=1 or (1=1",
+            "(()) or 1=1 or ((1=1",
+            "((())) or 1=1",
+            "( )) or 1=1 or (1=1",       // whitespace between ( and )
+            "(\t)) or 1=1 or (1=1",      // tab between ( and )
+            "(\n)) or 1=1 or (1=1",      // newline between ( and )
+            "  ()) or 1=1 or (1=1",      // leading whitespace before (
+            "())"                        // bare ()) — closes wrapper twice
+    })
+    void rejectsParenWrappedCloseParenBreakout(String fragment) {
+        assertThatThrownBy(() -> GuardHarness.invoke(fragment))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("unexpected leading token");
+    }
+
     // ---------- Typical generated SCIM filter fragments are accepted ----------
 
     @ParameterizedTest

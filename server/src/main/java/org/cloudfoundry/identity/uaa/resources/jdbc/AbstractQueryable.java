@@ -137,6 +137,13 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         }
 
         String trimmed = LEADING_PARENS_OR_WHITESPACE.matcher(normalized).replaceFirst("");
+        // Also reject the extended wrapper-breakout where one or more leading `(` are
+        // immediately followed by `)` (e.g. `"()) or 1=1 or (1=1"` or `"(()) or ..."`):
+        // after stripping leading whitespace and `(`, the next non-whitespace token is `)`,
+        // which closes the caller's `where (` wrapper one paren-level too early.
+        if (trimmed.startsWith(")")) {
+            throw new IllegalArgumentException("Invalid filter: unexpected leading token in generated query");
+        }
         if (DISALLOWED_LEADING_CLAUSE.matcher(trimmed).matches()) {
             throw new IllegalArgumentException("Invalid filter: unexpected SQL clause in generated query");
         }
