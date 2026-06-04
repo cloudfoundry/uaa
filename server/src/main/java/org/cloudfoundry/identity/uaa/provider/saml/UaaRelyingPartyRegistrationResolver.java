@@ -118,6 +118,16 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
                 relyingPartyRegistrationId = resolvedEntityId;
             }
         }
+        // Fallback for IDP-initiated SSO: when the ACS URL carries the IDP alias instead of
+        // the SP alias (e.g. /saml/SSO/alias/{idpAlias}), the endsWith check above does not
+        // fire and relyingPartyRegistrationId stays null. Use the URL path segment directly so
+        // ConfiguratorRelyingPartyRegistrationRepository can find the IDP by origin key / alias.
+        if (relyingPartyRegistrationId == null && resolvedEntityId != null && samlResponseParameter != null) {
+            if (log.isTraceEnabled()) {
+                log.trace("Falling back to URL alias '{}' as registrationId", resolvedEntityId);
+            }
+            relyingPartyRegistrationId = resolvedEntityId;
+        }
         return relyingPartyRegistrationId;
     }
 

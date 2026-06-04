@@ -7,6 +7,8 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensaml.saml.saml2.core.Response;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,29 +27,46 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Regression test for the bug where a SAML IDP stored with a {@code null} {@code external_key}
- * column (which happens when an IDP is persisted without {@code idpEntityId} being set, as
- * {@code BootstrapSamlIdentityProviderData} did for URL-type metadata) cannot be resolved when a
- * SAML response arrives at the legacy SSO alias endpoint.
+ * Regression tests: a SAML IDP bootstrapped from {@code uaa.yml} with a URL-type
+ * metadata location cannot be resolved when a SAML response arrives at the legacy alias endpoint.
  *
- * <p>Root cause: {@code BootstrapSamlIdentityProviderData.setIdentityProviders} only called
- * {@code def.setIdpEntityId(...)} for {@code DATA} (inline XML) metadata type. For {@code URL}
- * type the field was never set. {@link org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning}
- * stores {@code external_key = saml.getIdpEntityId()}, so URL-type bootstrap IDPs end up with
- * {@code external_key = null}. The fix adds a dynamic metadata fallback in
- * {@link org.cloudfoundry.identity.uaa.provider.saml.ConfiguratorRelyingPartyRegistrationRepository}:
- * when {@code idpEntityId} (read from {@code external_key}) is {@code null}, the entity ID is
- * resolved on-the-fly from the stored metadata XML so that the lookup succeeds.
+ * <p><b>Root cause:</b> {@code BootstrapSamlIdentityProviderData.setIdentityProviders} only calls
+ * {@code def.setIdpEntityId(...)} for {@code DATA} (inline XML) metadata, never for {@code URL}
+ * type. {@link org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning} stores
+ * {@code external_key = saml.getIdpEntityId()}, so URL-type bootstrap IDPs end up with
+ * {@code external_key = null}.
+ *
+ * <p>This manifests in two distinct failure modes depending on which ACS URL the IDP uses:
+ * <ol>
+ *   <li><b>IDP-alias URL</b> ({@code /saml/SSO/alias/{idpAlias}}): The SP-alias {@code endsWith}
+ *       check in {@code resolveFromRequest} fails, the resolver returns {@code null}, and Spring
+ *       Security throws {@code relying_party_registration_not_found}. Fixed by adding a fallback
+ *       in {@link org.cloudfoundry.identity.uaa.provider.saml.UaaRelyingPartyRegistrationResolver}
+ *       that uses the URL alias as the registration ID.</li>
+ *   <li><b>SP-alias URL</b> ({@code /saml/SSO/alias/{spAlias}}): The issuer is extracted from
+ *       the SAML response body and used as the registration ID; because {@code external_key} is
+ *       null the entity-ID-based lookup fails, the default-stub registration is returned instead,
+ *       and Spring Security throws {@code invalid_issuer}. Fixed by
+ *       {@link org.cloudfoundry.identity.uaa.provider.saml.ConfiguratorRelyingPartyRegistrationRepository}
+ *       falling back to resolving the entity ID on-the-fly from the stored metadata.</li>
+ * </ol>
  */
 @DefaultTestContext
 class BootstrapSamlIdpSsoMockMvcTests {
 
-    /**
-     * Entity ID of the test IDP. Must not overlap with the entity IDs already registered in
-     * {@code mockmvc_unittest_properties.yml} ({@code https://some.idp.test/saml/idp} and
-     * {@code https://some.idp.test/saml2/idp}).
-     */
+    /** Entity ID advertised in {@link #IDP_METADATA}. */
     private static final String IDP_ENTITY_ID = "https://test-saml-idp.example.org/metadata";
+
+    /**
+     * Alias (origin key) of the test IDP.
+     *
+     * <p>The SP entity-ID alias from the default test properties is
+     * {@code "integration-saml-entity-id"}. {@code "test-bootstrap-idp"} does <em>not</em> end
+     * with that string, so when it appears as the last path segment of the ACS URL,
+     * {@code resolveFromRequest}'s {@code endsWith} check fails and — without the fix in
+     * {@code UaaRelyingPartyRegistrationResolver} — the resolver returns {@code null}.
+     */
+    private static final String IDP_ALIAS = "test-bootstrap-idp";
 
     /**
      * PKCS8-encoded RSA private key for the test IDP, generated solely for this test.
@@ -85,9 +104,8 @@ class BootstrapSamlIdpSsoMockMvcTests {
             """;
 
     /**
-     * Self-signed X.509 certificate for the test IDP (CN=test-saml-idp.example.org), generated
-     * alongside {@link #IDP_PRIVATE_KEY}. Also embedded as a DER base64 value inside
-     * {@link #IDP_METADATA} so that Spring Security can verify assertion signatures.
+     * Self-signed X.509 certificate for the test IDP (CN=test-saml-idp.example.org).
+     * Also embedded as DER base64 in {@link #IDP_METADATA}.
      */
     private static final String IDP_CERTIFICATE = """
             -----BEGIN CERTIFICATE-----
@@ -140,47 +158,96 @@ class BootstrapSamlIdpSsoMockMvcTests {
     @Autowired
     private JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
 
-    /**
-     * Verifies that a SAML IDP stored in the DB without {@code external_key} set (simulating a
-     * URL-type bootstrap IDP whose {@code idpEntityId} was never populated) can still authenticate
-     * a user when a SAML response arrives at the legacy SSO alias endpoint.
-     *
-     * <p>Without the fix in {@code ConfiguratorRelyingPartyRegistrationRepository}, the IDP cannot
-     * be matched by issuer because {@code idpEntityId} (sourced from {@code external_key}) is
-     * {@code null}. The {@code defaultRepo} then returns a stub registration whose asserting-party
-     * entity ID is the SP itself, causing {@code Saml2AuthenticationException[invalid_issuer]} and
-     * a redirect to {@code /uaa/saml_error}.
-     */
-    @Test
-    void samlResponse_fromBootstrapIdpWithNullExternalKey_authenticatesSuccessfully() throws Exception {
-        // Persist a SAML IDP whose external_key will be null, simulating a URL-type bootstrap IDP
-        // stored by BootstrapSamlIdentityProviderData without calling setIdpEntityId().
+    @BeforeEach
+    void setUp() {
+        // Persist a SAML IDP without calling setIdpEntityId(): this leaves external_key null,
+        // reproducing exactly the state that BootstrapSamlIdentityProviderData creates for
+        // URL-type metadata IDPs configured in uaa.yml.
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(IDP_METADATA)
-                .setIdpEntityAlias("test-bootstrap-idp")
+                .setIdpEntityAlias(IDP_ALIAS)
                 .setZoneId(IdentityZone.getUaaZoneId());
-        // Intentionally NOT calling def.setIdpEntityId(IDP_ENTITY_ID): this leaves external_key
-        // null in the DB, reproducing the state created by URL-type bootstrap IDPs.
 
         IdentityProvider<SamlIdentityProviderDefinition> idp = new IdentityProvider<SamlIdentityProviderDefinition>()
                 .setType(OriginKeys.SAML)
-                .setOriginKey("test-bootstrap-idp")
+                .setOriginKey(IDP_ALIAS)
                 .setActive(true)
                 .setName("Test Bootstrap SAML IDP")
                 .setIdentityZoneId(IdentityZone.getUaaZoneId())
                 .setConfig(def);
         jdbcIdentityProviderProvisioning.create(idp, IdentityZone.getUaaZoneId());
+    }
 
-        // Build a SAML response signed with this IDP's own private key. The matching certificate
-        // is embedded in IDP_METADATA, so once the correct registration is resolved the signature
-        // verification will pass. Key material is passed as PEM strings to avoid introducing a
-        // dependency on spring-security-saml2-service-provider in this module.
+    @AfterEach
+    void tearDown() {
+        jdbcIdentityProviderProvisioning.deleteByOrigin(IDP_ALIAS, IdentityZone.getUaaZoneId());
+    }
+
+    /**
+     * <b>Failure mode 1 — IDP-alias ACS URL ({@code relying_party_registration_not_found}).</b>
+     *
+     * <p>When the IDP posts its SAML response to {@code /saml/SSO/alias/test-bootstrap-idp}
+     * (the IDP alias), {@code resolveFromRequest} checks whether the URL path ends with the SP
+     * entity-ID alias ({@code "integration-saml-entity-id"}). It does not, so without the fix
+     * {@code relyingPartyRegistrationId} stays {@code null}, the resolver returns {@code null},
+     * and Spring Security logs:
+     * <pre>
+     *   Saml2AuthenticationException{error=[relying_party_registration_not_found]
+     *     No relying party registration found}
+     * </pre>
+     *
+     * <p>The fix in {@link org.cloudfoundry.identity.uaa.provider.saml.UaaRelyingPartyRegistrationResolver}
+     * adds a fallback: when the {@code endsWith} check fails but a {@code SAMLResponse} parameter
+     * is present, the URL alias is used as the registration ID.
+     * {@link org.cloudfoundry.identity.uaa.provider.saml.ConfiguratorRelyingPartyRegistrationRepository}
+     * then finds the IDP by origin key and authentication succeeds.
+     */
+    @Test
+    void samlResponse_viaIdpAliasUrl_authenticatesSuccessfully() throws Exception {
         Response samlResponse = responseWithAssertions(IDP_ENTITY_ID, IDP_PRIVATE_KEY, IDP_CERTIFICATE);
         String encodedSamlResponse = serializedResponse(samlResponse);
 
-        // POST to the legacy ACS URL. The fix in ConfiguratorRelyingPartyRegistrationRepository
-        // resolves the entity ID from the stored metadata XML when external_key is null, finds the
-        // IDP, builds the correct RelyingPartyRegistration, and authentication succeeds.
+        MockHttpSession session = (MockHttpSession) mockMvc.perform(
+                        post("/uaa/saml/SSO/alias/" + IDP_ALIAS)
+                                .contextPath("/uaa")
+                                .header(HOST, "localhost:8080")
+                                .param("SAMLResponse", encodedSamlResponse))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/uaa/"))
+                .andReturn().getRequest().getSession(false);
+
+        assertAuthenticated(session);
+    }
+
+    /**
+     * <b>Failure mode 2 — SP-alias ACS URL ({@code invalid_issuer}).</b>
+     *
+     * <p>When the IDP posts to the canonical SP ACS URL
+     * ({@code /saml/SSO/alias/integration-saml-entity-id}), {@code resolveFromRequest} correctly
+     * extracts the issuer ({@link #IDP_ENTITY_ID}) from the SAML response body and uses it as
+     * the registration ID. The lookup then calls
+     * {@code configurator.getIdentityProviderDefinitionsForIssuer}, which queries by
+     * {@code external_key}. Because {@code external_key} is {@code null} for URL-type bootstrap
+     * IDPs, the query returns nothing. The loop also fails ({@code idpEntityId == null}), the
+     * {@code defaultRepo} returns a stub registration whose asserting-party entity ID is the SP
+     * itself, and Spring Security logs:
+     * <pre>
+     *   Saml2AuthenticationException{error=[invalid_issuer]
+     *     Invalid issuer [https://test-saml-idp.example.org/metadata] ...}
+     * </pre>
+     *
+     * <p>The fix in
+     * {@link org.cloudfoundry.identity.uaa.provider.saml.ConfiguratorRelyingPartyRegistrationRepository}
+     * resolves the entity ID on-the-fly from the stored metadata XML when {@code idpEntityId}
+     * (sourced from {@code external_key}) is {@code null}, so the correct registration is found
+     * and authentication succeeds.
+     */
+    @Test
+    void samlResponse_viaSpAliasUrl_authenticatesSuccessfully() throws Exception {
+        Response samlResponse = responseWithAssertions(IDP_ENTITY_ID, IDP_PRIVATE_KEY, IDP_CERTIFICATE);
+        String encodedSamlResponse = serializedResponse(samlResponse);
+
         MockHttpSession session = (MockHttpSession) mockMvc.perform(
                         post("/uaa/saml/SSO/alias/integration-saml-entity-id")
                                 .contextPath("/uaa")
@@ -191,11 +258,17 @@ class BootstrapSamlIdpSsoMockMvcTests {
                 .andExpect(redirectedUrl("/uaa/"))
                 .andReturn().getRequest().getSession(false);
 
-        // Verify the user is actually authenticated. UAA stores the security context in the
-        // zone-namespaced sub-session (ZonePathHttpSession) keyed by context path "/uaa". Reading
-        // it requires MockMvcUtils.getZoneSession(), which applies the same prefix that
-        // ZoneContextPathSessionRequestWrapper used when storing it — the same pattern used
-        // throughout other UAA MockMvc tests (e.g. PasswordChangeEndpointMockMvcTests).
+        assertAuthenticated(session);
+    }
+
+    /**
+     * Asserts the user is authenticated by reading the {@link org.springframework.security.core.context.SecurityContext}
+     * from the zone-namespaced sub-session. UAA stores session attributes under a context-path
+     * prefix via {@link org.cloudfoundry.identity.uaa.zone.ZonePathHttpSession};
+     * {@link MockMvcUtils#getZoneSession} applies the matching prefix — the same pattern used
+     * throughout other UAA MockMvc tests (e.g. {@code PasswordChangeEndpointMockMvcTests}).
+     */
+    private void assertAuthenticated(MockHttpSession session) {
         assertThat(session).isNotNull();
         SecurityContext ctx = (SecurityContext) MockMvcUtils.getZoneSession(session, "/uaa")
                 .getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
