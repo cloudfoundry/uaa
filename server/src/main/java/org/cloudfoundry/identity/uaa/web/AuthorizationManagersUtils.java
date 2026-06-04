@@ -24,6 +24,9 @@ import org.springframework.security.web.access.intercept.RequestAuthorizationCon
  */
 public class AuthorizationManagersUtils {
 
+    private AuthorizationManagersUtils() {
+    }
+
     /**
      * Grants access if any of the registered authorization managers grants access.
      */

@@ -132,6 +132,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
                         redirectLocation = matchingRedirectUri;
                     }
                 } catch (NoSuchClientException _) {
+                    // ignore
                 }
             }
             return new ResetPasswordResponse(user, redirectLocation, clientId);

@@ -46,7 +46,9 @@ public final class OpenSamlXmlUtils {
             }
             case XSURI xsUri -> value = xsUri.getURI();
             case XSBase64Binary xsBase64Binary -> value = xsBase64Binary.getValue();
-            case null, default -> {}
+            case null, default -> {
+                // ignore
+            }
         }
 
         if (value != null) {

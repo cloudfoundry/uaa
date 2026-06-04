@@ -129,6 +129,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
                 String changeEmailRedirectUrl = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
                 redirectLocation = findMatchingRedirectUri(redirectUris, redirectUri, changeEmailRedirectUrl);
             } catch (NoSuchClientException _) {
+                // ignore
             }
         }
 

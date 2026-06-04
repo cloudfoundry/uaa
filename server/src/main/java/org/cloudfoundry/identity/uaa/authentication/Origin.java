@@ -51,6 +51,7 @@ public class Origin {
                 return id.toString();
             }
         } catch (Exception _) {
+            // ignore
         }
         return null;
     }

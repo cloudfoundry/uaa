@@ -155,6 +155,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 }
             }
         } catch (EmptyResultDataAccessException _) {
+            // ignore
         }
         throw new InvalidGrantException("Invalid authorization code: " + code);
     }

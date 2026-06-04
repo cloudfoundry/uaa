@@ -130,6 +130,7 @@ public class DefaultRedirectResolver implements RedirectResolver {
             }
         }
         catch (MalformedURLException _) {
+            // ignore
         }
         return requestedRedirect.equals(redirectUri);
     }

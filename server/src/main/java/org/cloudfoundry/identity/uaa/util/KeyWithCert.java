@@ -112,7 +112,9 @@ public class KeyWithCert {
                     privateKey = keyPair.getPrivate();
                 }
                 case PrivateKeyInfo privateKeyInfo -> privateKey = converter.getPrivateKey(privateKeyInfo);
-                case null, default -> {}
+                case null, default -> {
+                    // ignore
+                }
             }
         } catch (IOException ex) {
             throw new CertificateException("Failed to read private key.", ex);
