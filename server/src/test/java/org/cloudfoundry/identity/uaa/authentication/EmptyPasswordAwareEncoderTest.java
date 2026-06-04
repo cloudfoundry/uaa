@@ -59,6 +59,24 @@ class EmptyPasswordAwareEncoderTest {
     }
 
     @Test
+    void nullRawPassword_returnsFalseWithoutDelegating() {
+        PasswordEncoder failingDelegate = new PasswordEncoder() {
+            @Override
+            public String encode(CharSequence rawPassword) {
+                throw new AssertionError("encode should not be called");
+            }
+
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                throw new AssertionError("matches should not be called for null rawPassword");
+            }
+        };
+        EmptyPasswordAwareEncoder guarded = new EmptyPasswordAwareEncoder(failingDelegate);
+        assertThat(guarded.matches(null, bcrypt.encode(""))).isFalse();
+        assertThat(guarded.matches(null, null)).isFalse();
+    }
+
+    @Test
     void nonEmptyRawPassword_delegatesToWrappedEncoder() {
         String encoded = bcrypt.encode("secret");
         assertThat(encoder.matches("secret", encoded)).isTrue();
