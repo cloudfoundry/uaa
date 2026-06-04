@@ -25,6 +25,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
 import jakarta.servlet.ServletContext;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -38,9 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer.YML_ENV_VAR_NAME;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.Mockito.description;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -268,13 +267,13 @@ class YamlServletProfileInitializerTest {
     class WithFakeStdOut {
 
         private PrintStream originalOut;
-        private PrintStream mockPrintStream;
+        private ByteArrayOutputStream outputStream;
 
         @BeforeEach
         void setUp() {
             originalOut = System.out;
-            mockPrintStream = mock(PrintStream.class);
-            System.setOut(mockPrintStream);
+            outputStream = new ByteArrayOutputStream();
+            System.setOut(new PrintStream(outputStream));
         }
 
         @AfterEach
@@ -311,8 +310,8 @@ class YamlServletProfileInitializerTest {
             initializer.initialize(context);
             assertThat(environment.getProperty("logging.config")).isEqualTo("-Djava.util.logging.config=/some/path/logging.properties");
 
-            verify(mockPrintStream, description("Expected to find a log entry indicating that the LOGGING_CONFIG variable was found."))
-                    .println("Ignoring Log Config Location: -Djava.util.logging.config=/some/path/logging.properties. Location is suspect to be a Tomcat startup script environment variable");
+            String output = outputStream.toString();
+            assertThat(output).contains("Ignoring Log Config Location: -Djava.util.logging.config=/some/path/logging.properties. Location is suspect to be a Tomcat startup script environment variable");
         }
     }
 
