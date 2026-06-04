@@ -194,7 +194,10 @@ class AbstractQueryableSqlGuardTests {
             "(\t)) or 1=1 or (1=1",      // tab between ( and )
             "(\n)) or 1=1 or (1=1",      // newline between ( and )
             "  ()) or 1=1 or (1=1",      // leading whitespace before (
-            "())"                        // bare ()) — closes wrapper twice
+            "())",                       // bare ()) — closes wrapper twice
+            // Verbatim variants from the Copilot review
+            "()) or 1=1 or (",
+            "( ) or 1=1 or ("
     })
     void rejectsParenWrappedCloseParenBreakout(String fragment) {
         assertThatThrownBy(() -> GuardHarness.invoke(fragment))
