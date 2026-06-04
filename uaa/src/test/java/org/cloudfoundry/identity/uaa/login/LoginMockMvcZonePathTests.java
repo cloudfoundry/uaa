@@ -154,7 +154,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext
 // public for LimitedModeLoginMockMvcTests
 @EnabledIfZonePathsEnabled
-class LoginMockMvcZonePathTests {
+public class LoginMockMvcZonePathTests {
 
     @Autowired
     private WebApplicationContext webApplicationContext;

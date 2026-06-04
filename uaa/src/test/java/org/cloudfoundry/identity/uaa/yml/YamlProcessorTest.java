@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.yml;
 
-import org.cloudfoundry.identity.uaa.integration.feature.ImplicitGrantIT;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
@@ -13,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 class YamlProcessorTest {
     /**
-     * Integration tests using spring, such as {@link ImplicitGrantIT}, have been taking around 20 seconds to start up.
+     * Integration tests using spring, such as {@link org.cloudfoundry.identity.uaa.integration.feature.ImplicitGrantIT}, have been taking around 20 seconds to start up.
      * This is due to the {@link Yaml} parser having a hard time parsing uaa.yml, which contains very long comments.
      * This test ensures that the parser will parse swiftly.
      */
