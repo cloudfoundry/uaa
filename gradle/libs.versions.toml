@@ -15,6 +15,7 @@ greenmail = "2.1.8"
 guava = "33.6.0-jre"
 jacoco = "4.0.2"
 jacocoAgent = "0.8.14"
+jacocoGradlePlugin = "4.0.2"
 nimbusJwt = "10.9.1"
 opensaml = "5.2.2"
 orgJson = "20260522"
@@ -225,3 +226,7 @@ sonarqubePlugin = { module = "org.sonarsource.scanner.gradle:sonarqube-gradle-pl
 springBootGradlePlugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "springBoot" }
 springDependencyManagementGradlePlugin = { module = "io.spring.gradle:dependency-management-plugin", version.ref = "springDependencyManagement" }
 
+[plugins]
+springBoot = { id = "org.springframework.boot", version.ref = "springBoot" }
+jacocoLog = { id = "org.barfuin.gradle.jacocolog", version.ref = "jacocoGradlePlugin" }
+sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }

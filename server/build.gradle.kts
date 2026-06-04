@@ -1,4 +1,6 @@
-apply(plugin: "war")
+plugins {
+    war
+}
 
 description = "CloudFoundry Identity Server JAR"
 
@@ -7,11 +9,11 @@ dependencies {
     implementation(project(":cloudfoundry-identity-model"))
 
     implementation(libs.tomcatJdbc)
-    providedCompile(libs.tomcatEmbed)
+    compileOnly(libs.tomcatEmbed)
 
     implementation(libs.jacksonDatabind)
     implementation(libs.jsonPath) {
-        exclude(module: "json-smart")
+        exclude(module = "json-smart")
     }
     implementation(libs.springBeans)
     implementation(libs.springContext)
@@ -46,24 +48,24 @@ dependencies {
     implementation(libs.aspectJWeaver)
 
     implementation(libs.thymeLeaf) {
-        exclude(module: "ognl")
+        exclude(module = "ognl")
     }
     implementation(libs.thymeleafSpring) {
-        exclude(module: "ognl")
+        exclude(module = "ognl")
     }
     implementation(libs.thymeleafDialect) {
-        exclude(module: "ognl")
+        exclude(module = "ognl")
     }
     implementation(libs.thymeleafExtrasSpringSecurity) {
-        exclude(module: "ognl")
+        exclude(module = "ognl")
     }
 
     implementation(libs.unboundIdScimSdk) {
-        exclude(module: "servlet-api")
-        exclude(module: "commons-logging")
-        exclude(module: "httpclient")
-        exclude(module: "wink-client-apache-httpclient")
-        exclude(module: "json")
+        exclude(module = "servlet-api")
+        exclude(module = "commons-logging")
+        exclude(module = "httpclient")
+        exclude(module = "wink-client-apache-httpclient")
+        exclude(module = "json")
     }
 
     implementation(libs.hibernateValidator)
@@ -80,8 +82,8 @@ dependencies {
     implementation(libs.springSecurityLdap)
     implementation(libs.springLdapCore)
     implementation(libs.apacheLdapApi) {
-        exclude(module: "slf4j-api")
-        exclude(module: "mina-core")
+        exclude(module = "slf4j-api")
+        exclude(module = "mina-core")
     }
 
     implementation(libs.passay)
@@ -94,10 +96,20 @@ dependencies {
 
     implementation(libs.apacheHttpClient)
 
-    testImplementation(project(path: ":cloudfoundry-identity-model", configuration: "testArtifacts"))
+    testImplementation(project(mapOf("path" to ":cloudfoundry-identity-model", "configuration" to "testArtifacts")))
+
+    testImplementation(libs.springBootStarterTest) {
+        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
+    }
+    testImplementation(libs.hamcrest)
+    testImplementation(libs.junit5JupiterApi)
+    testImplementation(libs.junit5JupiterParams)
+    testImplementation(libs.junit5JupiterEngine)
+    testImplementation(libs.unboundIdLdapSdk)
+    testRuntimeOnly(libs.jacocoAgent)
+    testRuntimeOnly(libs.junit5PlatformLauncher)
 
     testImplementation(libs.springTest)
-
     testImplementation(libs.bytebuddy)
     testImplementation(libs.bytebuddyagent)
     testImplementation(libs.mockitoJunit5)
@@ -114,44 +126,55 @@ dependencies {
     testImplementation(libs.awaitility)
 
     implementation(libs.commonsIo)
+
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
 }
 
-configurations.all {
-    exclude(group: "org.beanshell", module: "bsh-core")
-    exclude(group: "org.apache-extras.beanshell", module: "bsh")
-    exclude(group: "com.fasterxml.woodstox", module: "woodstox-core")
-    exclude(group: "commons-beanutils", module: "commons-beanutils")
-    exclude(group: "commons-collections", module: "commons-collections")
+configurations.configureEach {
+    exclude(group = "org.beanshell", module = "bsh-core")
+    exclude(group = "org.apache-extras.beanshell", module = "bsh")
+    exclude(group = "com.fasterxml.woodstox", module = "woodstox-core")
+    exclude(group = "commons-beanutils", module = "commons-beanutils")
+    exclude(group = "commons-collections", module = "commons-collections")
 
     // Exclude non-FIPS bouncycastle libs, and use Shadow library for FIPS compliance
-    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
-    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
-    exclude(group: "org.bouncycastle", module: "bcutil-jdk15on")
-    exclude(group: "org.bouncycastle", module: "bcprov-jdk18on")
-    exclude(group: "org.bouncycastle", module: "bcpkix-jdk18on")
-    exclude(group: "org.bouncycastle", module: "bcutil-jdk18on")
+    exclude(group = "org.bouncycastle", module = "bcpkix-jdk15on")
+    exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
+    exclude(group = "org.bouncycastle", module = "bcutil-jdk15on")
+    exclude(group = "org.bouncycastle", module = "bcprov-jdk18on")
+    exclude(group = "org.bouncycastle", module = "bcpkix-jdk18on")
+    exclude(group = "org.bouncycastle", module = "bcutil-jdk18on")
 }
 
-jar {
+tasks.named<Jar>("jar") {
     exclude("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
 }
 
-processResources {
+tasks.named<ProcessResources>("processResources") {
     //maven replaces project.artifactId in the log4j2.properties file
     //https://www.pivotaltracker.com/story/show/74344574
-    filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-server') : line }
+    filter { line: String ->
+        if (line.contains("\${project.artifactId}")) {
+            line.replace("\${project.artifactId}", "cloudfoundry-identity-server")
+        } else {
+            line
+        }
+    }
 }
 
-integrationTest {}.onlyIf { //disable since we don't have any
-    false
+tasks.register<Test>("integrationTest") {
+    onlyIf { //disable since we don't have any
+        false
+    }
 }
 
-task tomcatListenerJar(type: Jar) {
-    archiveBaseName = "tomcat-listener"
-    from(sourceSets.main.output)
+val tomcatListenerJar by tasks.registering(Jar::class) {
+    archiveBaseName.set("tomcat-listener")
+    from(sourceSets.main.get().output)
     include("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
 }
 
 artifacts {
-    archives(tomcatListenerJar)
+    add("archives", tomcatListenerJar)
 }
