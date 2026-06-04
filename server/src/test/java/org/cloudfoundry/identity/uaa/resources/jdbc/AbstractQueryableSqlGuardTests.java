@@ -156,6 +156,28 @@ class AbstractQueryableSqlGuardTests {
                 .hasMessageContaining("unexpected SQL clause");
     }
 
+    /**
+     * Wrapper-breakout bypass raised by Copilot review: the caller composes
+     * {@code "where (" + fragment + ")"}, so a fragment whose first non-whitespace
+     * character is {@code ")"} would close the wrapper and inject arbitrary
+     * boolean logic without using {@code ;}, comments, or DML/DDL keywords.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {
+            ") or 1=1 or (",
+            ") OR 1=1 OR (",
+            ")",
+            " ) or 'a'='a' or (",
+            "\t) or 1=1 or (",
+            "\n) or 1=1 or (",
+            "))) or 1=1 or ((("
+    })
+    void rejectsLeadingCloseParenWrapperBreakout(String fragment) {
+        assertThatThrownBy(() -> GuardHarness.invoke(fragment))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("unexpected leading token");
+    }
+
     // ---------- Typical generated SCIM filter fragments are accepted ----------
 
     @ParameterizedTest

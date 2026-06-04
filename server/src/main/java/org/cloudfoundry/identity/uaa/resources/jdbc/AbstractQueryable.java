@@ -127,6 +127,15 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
             throw new IllegalArgumentException("Invalid filter: disallowed SQL token in generated query");
         }
 
+        // The caller wraps the fragment as `where (` + fragment + `)`. A fragment whose
+        // first non-whitespace character is `)` would break out of that wrapper (e.g.
+        // `) or 1=1 or (`) and change the surrounding query logic without using any of
+        // the tokens above. Reject it explicitly.
+        String leadingTrimmed = normalized.stripLeading();
+        if (leadingTrimmed.startsWith(")")) {
+            throw new IllegalArgumentException("Invalid filter: unexpected leading token in generated query");
+        }
+
         String trimmed = LEADING_PARENS_OR_WHITESPACE.matcher(normalized).replaceFirst("");
         if (DISALLOWED_LEADING_CLAUSE.matcher(trimmed).matches()) {
             throw new IllegalArgumentException("Invalid filter: unexpected SQL clause in generated query");
