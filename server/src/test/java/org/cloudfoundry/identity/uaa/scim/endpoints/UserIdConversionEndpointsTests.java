@@ -39,9 +39,7 @@ import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static java.util.UUID.randomUUID;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -84,9 +82,7 @@ class UserIdConversionEndpointsTests {
 
     @Test
     void sanitizeExceptionInFilter() {
-        assertThatExceptionOfType(ScimException.class)
-                .isThrownBy(() -> endpoints.findUsers("<svg onload=alert(document.domain)>", "ascending", 0, 100, false))
-                .withMessage("Invalid filter '&lt;svg onload=alert(document.domain)&gt;'");
+        assertThatThrownBy(() -> endpoints.findUsers("<svg onload=alert(document.domain)>", "ascending", 0, 100, false)).isInstanceOf(ScimException.class).hasMessage("Invalid filter '&lt;svg onload=alert(document.domain)&gt;'");
     }
 
     @Test
@@ -164,9 +160,7 @@ class UserIdConversionEndpointsTests {
             "id eq \"foo\" or origin co \"uaa\""
     })
     void badFilterWildcardsNotAllowed(final String filter) {
-        assertThatExceptionOfType(ScimException.class)
-                .isThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false))
-                .withMessage("Wildcards are not allowed in filter.");
+        assertThatThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false)).isInstanceOf(ScimException.class).hasMessage("Wildcards are not allowed in filter.");
     }
 
     @ParameterizedTest
@@ -176,9 +170,7 @@ class UserIdConversionEndpointsTests {
             "id lt \"foo\""
     })
     void badFilterUnsupportedOperator(final String filter) {
-        assertThatExceptionOfType(ScimException.class)
-                .isThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false))
-                .withMessage("Invalid operator.");
+        assertThatThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false)).isInstanceOf(ScimException.class).hasMessage("Invalid operator.");
     }
 
     @ParameterizedTest
@@ -186,9 +178,7 @@ class UserIdConversionEndpointsTests {
             "id sq \"foo\""
     })
     void badFilterUnrecognizedOperator(final String filter) {
-        assertThatExceptionOfType(ScimException.class)
-                .isThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false))
-                .withMessageStartingWith("Invalid filter '");
+        assertThatThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false)).isInstanceOf(ScimException.class).hasMessageStartingWith("Invalid filter '");
     }
 
     @ParameterizedTest
@@ -199,9 +189,7 @@ class UserIdConversionEndpointsTests {
             "groups.display eq \"foo\""
     })
     void badFilterDoesNotContainClauseWithIdOrUserName(final String filter) {
-        assertThatExceptionOfType(ScimException.class)
-                .isThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false))
-                .withMessage("Invalid filter attribute.");
+        assertThatThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false)).isInstanceOf(ScimException.class).hasMessage("Invalid filter attribute.");
     }
 
     @Test
@@ -252,7 +240,7 @@ class UserIdConversionEndpointsTests {
                     filter, "ascending", startIndex, resultsPerPage, includeInactive
             );
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull().isInstanceOf(SearchResults.class);
+            assertThat(response.getBody()).isInstanceOf(SearchResults.class);
             return (SearchResults<Map<String, Object>>) response.getBody();
         };
 
@@ -280,7 +268,7 @@ class UserIdConversionEndpointsTests {
         // check next page -> should be empty
         final SearchResults<Map<String, Object>> responseBody = fetchNextPage.apply(currentStartIndex);
         assertThat(responseBody.getTotalResults()).isEqualTo(expectedUsers.size());
-        assertThat(responseBody.getResources()).isNotNull().isEmpty();
+        assertThat(responseBody.getResources()).isEmpty();
 
         final List<Map<String, Object>> expectedResponse = expectedUsers.stream().map(scimUser -> Map.of(
                 "id", (Object) scimUser.getId(),

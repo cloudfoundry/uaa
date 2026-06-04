@@ -27,14 +27,11 @@ import org.springframework.web.client.ResponseErrorHandler;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 /**
@@ -178,7 +175,7 @@ class OAuth2ErrorHandlerTests {
     }
 
     @Test
-    void bodyCanBeUsedByCustomHandler() throws UnsupportedEncodingException {
+    void bodyCanBeUsedByCustomHandler() throws Exception {
         final String appSpecificBodyContent = "{\"some_status\":\"app error\"}";
         OAuth2ErrorHandler handler = new OAuth2ErrorHandler(new ResponseErrorHandler() {
             public boolean hasError(ClientHttpResponse response) throws IOException {
@@ -205,7 +202,7 @@ class OAuth2ErrorHandlerTests {
     }
 
     @Test
-    void handleErrorWithMissingHeader() throws IOException {
+    void handleErrorWithMissingHeader() throws Exception {
         final HttpHeaders headers = new HttpHeaders();
         when(response.getHeaders()).thenReturn(headers);
         when(response.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
@@ -240,7 +237,7 @@ class OAuth2ErrorHandlerTests {
     }
 
     @Test
-    void handleMessageConversionExceptions() throws UnsupportedEncodingException {
+    void handleMessageConversionExceptions() throws Exception {
         HttpMessageConverter<?> extractor = new HttpMessageConverter() {
             @Override
             public boolean canRead(Class clazz, MediaType mediaType) {

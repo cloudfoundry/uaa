@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.json.BasicJsonTester;
 import org.springframework.test.util.ReflectionTestUtils;
-import tools.jackson.core.JacksonException;
 
 import java.lang.reflect.Field;
 
@@ -51,7 +50,7 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
     }
 
     @Test
-    void allNulls() throws JacksonException {
+    void allNulls() throws Exception {
         OpenIdConfiguration openIdConfiguration = new OpenIdConfiguration(null, null);
 
         for (Field field : OpenIdConfiguration.class.getDeclaredFields()) {

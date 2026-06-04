@@ -66,7 +66,7 @@ class UaaExceptionTests {
                 .containsEntry("additional2", "additional2")
                 .containsEntry("additional3", "additional3");
 
-        assertThat(x.getSummary()).isNotNull()
+        assertThat(x.getSummary())
                 .contains("error=\"error\"")
                 .contains("additional3=\"additional3\"");
     }

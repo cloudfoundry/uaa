@@ -284,7 +284,7 @@ class PrivateKeyJwtClientAuthIT {
         // When
         String response = getPasswordGrantToken("admin", "access_token", UNAUTHORIZED);
         // Then
-        assertThat(response).isNotNull()
+        assertThat(response)
                 .contains("401");
     }
 
@@ -293,7 +293,7 @@ class PrivateKeyJwtClientAuthIT {
         // When
         String response = getClientCredentialsGrantToken("any-other-not-existing-client", "access_token", UNAUTHORIZED);
         // Then
-        assertThat(response).isNotNull()
+        assertThat(response)
                 .contains("401");
     }
 

@@ -23,9 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.saml2.core.Saml2ParameterNames;
 import org.springframework.security.web.savedrequest.SavedRequest;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpSession;
-import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
@@ -78,7 +76,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     }
 
     @Test
-    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl() throws ServletException, IOException {
+    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl() throws Exception {
         String redirectUri = "https://test.com/test2";
         request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
 
@@ -90,7 +88,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     }
 
     @Test
-    void onAuthenticationSuccess_noSavedRequest_noRelayStateUrl() throws ServletException, IOException {
+    void onAuthenticationSuccess_noSavedRequest_noRelayStateUrl() throws Exception {
         request.setParameter(Saml2ParameterNames.RELAY_STATE, "123");
         request.getSession().setAttribute("SPRING_SECURITY_LAST_EXCEPTION", "exception");
 
@@ -105,7 +103,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     }
 
     @Test
-    void onAuthenticationSuccess_withSavedRequest_targetUrlParameter() throws ServletException, IOException {
+    void onAuthenticationSuccess_withSavedRequest_targetUrlParameter() throws Exception {
         String redirectUri = "https://test.com/test3";
         SavedRequest savedRequest = mock(SavedRequest.class);
         when(savedRequest.getRedirectUrl()).thenReturn(redirectUri);

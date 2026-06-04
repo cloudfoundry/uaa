@@ -4,9 +4,6 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.junit.jupiter.api.Test;
-import tools.jackson.core.JacksonException;
-
-import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.HamcrestCondition.matching;
@@ -62,7 +59,7 @@ public abstract class JsonTranslation<T> {
     }
 
     @Test
-    void toJson() throws JacksonException {
+    void toJson() throws Exception {
         validate();
         assertThat(subjectClass.getResourceAsStream(jsonFileName)).as("file <%s/%s> must exist on classpath".formatted(subjectClass.getPackage().getName().replace(".", "/"), jsonFileName)).isNotNull();
 
@@ -72,7 +69,7 @@ public abstract class JsonTranslation<T> {
     }
 
     @Test
-    void fromJson() throws IOException {
+    void fromJson() throws Exception {
         validate();
         assertThat(subjectClass.getResourceAsStream(jsonFileName)).as("file <%s/%s> must exist on classpath".formatted(subjectClass.getPackage().getName().replace(".", "/"), jsonFileName)).isNotNull();
 
@@ -84,7 +81,7 @@ public abstract class JsonTranslation<T> {
     }
 
     @Test
-    void withNullFields_checkIsEmptyJson() throws IllegalAccessException, InstantiationException, JacksonException {
+    void withNullFields_checkIsEmptyJson() throws Exception {
         assumeTrue(EXPECT_EMPTY_JSON.equals(withAllNullFields),
                 "To configure this test, use %s instead of %s".formatted(EXPECT_EMPTY_JSON, withAllNullFields));
         validate();
@@ -94,7 +91,7 @@ public abstract class JsonTranslation<T> {
     }
 
     @Test
-    void withNullFields_compareToFile() throws JacksonException, IllegalAccessException, InstantiationException {
+    void withNullFields_compareToFile() throws Exception {
         assumeTrue(EXPECT_NULLS_IN_JSON.equals(withAllNullFields),
                 "To configure this test, use %s instead of %s".formatted(EXPECT_NULLS_IN_JSON, withAllNullFields));
         validate();

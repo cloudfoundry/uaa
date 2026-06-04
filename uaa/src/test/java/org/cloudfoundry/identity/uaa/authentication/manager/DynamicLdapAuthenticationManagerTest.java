@@ -44,6 +44,6 @@ class DynamicLdapAuthenticationManagerTest {
         ChainedAuthenticationManager chainedAuthenticationManager = (ChainedAuthenticationManager) manager;
         ProviderManager providerManager = (ProviderManager) chainedAuthenticationManager.getDelegates()[0].getAuthenticationManager();
         assertThat(providerManager.getProviders()).hasSize(1);
-        assertThat(providerManager.getProviders().getFirst()).isInstanceOf(LdapAuthenticationProvider.class);
+        assertThat(providerManager.getProviders()).first().isInstanceOf(LdapAuthenticationProvider.class);
     }
 }

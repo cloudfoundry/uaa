@@ -1,5 +1,5 @@
 package org.cloudfoundry.identity.uaa.login;
-
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
@@ -71,7 +71,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -386,7 +386,7 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void discoverIdentityProvider_propagatesUsernameToExternalOidcProvider() throws MalformedURLException {
+    void discoverIdentityProvider_propagatesUsernameToExternalOidcProvider() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("username", "testuser@fake.com");
@@ -532,7 +532,7 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"), null);
         Map<String, Object> links = (Map<String, Object>) extendedModelMap.asMap().get("links");
-        assertThat(links).isNotNull()
+        assertThat(links)
                 .containsEntry("login", "http://someurl");
         assertThat(extendedModelMap.get("idpDefinitions")).isInstanceOf(Collection.class);
     }
@@ -947,7 +947,8 @@ class LoginInfoEndpointTests {
     @Test
     void loginWithInvalidMediaType() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        assertThatExceptionOfType(HttpMediaTypeNotAcceptableException.class).isThrownBy(() -> endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_XML)));
+        assertThatThrownBy(() -> endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_XML)))
+                .asInstanceOf(InstanceOfAssertFactories.throwable(HttpMediaTypeNotAcceptableException.class));
     }
 
     @Test
@@ -1817,7 +1818,7 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void testLoginConsentAddedToModelWhenEnabled() throws Exception {
+    void loginConsentAddedToModelWhenEnabled() throws Exception {
         // Set up login consent configuration
         BrandingInformation branding = new BrandingInformation();
         LoginConsent loginConsent = new LoginConsent();
@@ -1850,7 +1851,7 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void testLoginConsentNotAddedWhenDisabled() throws Exception {
+    void loginConsentNotAddedWhenDisabled() throws Exception {
         // Set up login consent configuration (disabled)
         BrandingInformation branding = new BrandingInformation();
         LoginConsent loginConsent = new LoginConsent();
@@ -1874,7 +1875,7 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void testLoginConsentNotAddedWhenNull() throws Exception {
+    void loginConsentNotAddedWhenNull() throws Exception {
         // No branding configuration
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         config.setBranding(null);

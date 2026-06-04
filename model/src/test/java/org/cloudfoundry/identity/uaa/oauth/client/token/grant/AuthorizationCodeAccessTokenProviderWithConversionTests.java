@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.client.token.grant;
 
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.cloudfoundry.identity.uaa.oauth.client.grant.AuthorizationCodeAccessTokenProvider;

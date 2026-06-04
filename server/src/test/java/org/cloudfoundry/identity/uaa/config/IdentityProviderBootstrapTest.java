@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.config;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -43,9 +44,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -156,7 +156,7 @@ class IdentityProviderBootstrapTest {
         assertThat(ldapProvider.getLastModified()).isNotNull();
         assertThat(ldapProvider.getType()).isEqualTo(LDAP);
         assertThat(ldapProvider.getConfig().getEmailDomain()).contains("test.domain");
-        assertThat(ldapProvider.getConfig().getExternalGroupsWhitelist()).isEqualTo(Collections.singletonList("value"));
+        assertThat(ldapProvider.getConfig().getExternalGroupsWhitelist()).containsExactlyElementsOf(Collections.singletonList("value"));
         assertThat(ldapProvider.getConfig().getAttributeMappings()).containsEntry("given_name", "first_name");
         assertThat(ldapProvider.getConfig().getProviderDescription()).isEqualTo("Test LDAP Provider Description");
         assertThat(ldapProvider.getConfig().isStoreCustomAttributes()).isFalse();
@@ -315,12 +315,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setOriginsToDelete(new LinkedList<>(oauthProviderConfig.keySet()));
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            try {
-                provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZone.getUaaZoneId());
-                fail("Provider '%s' should not exist.".formatted(provider.getKey()));
-            } catch (EmptyResultDataAccessException _) {
-            }
-
+            assertThatThrownBy(() -> provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZone.getUaaZoneId())).isInstanceOf(EmptyResultDataAccessException.class);
         }
     }
 
@@ -405,7 +400,8 @@ class IdentityProviderBootstrapTest {
 
         setOauthIDPWrappers();
         bootstrap.setSamlProviders(configurator);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> bootstrap.afterPropertiesSet());
+        assertThatThrownBy(() -> bootstrap.afterPropertiesSet())
+                .asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     private AbstractExternalOAuthIdentityProviderDefinition setCommonProperties(AbstractExternalOAuthIdentityProviderDefinition definition) throws MalformedURLException {

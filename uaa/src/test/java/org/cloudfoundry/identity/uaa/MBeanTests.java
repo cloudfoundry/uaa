@@ -32,7 +32,7 @@ class MBeanTests {
     }
 
     @Test
-    void testDataSourceExporter() throws Exception {
+    void dataSourceExporter() throws Exception {
         ObjectName objectName = new ObjectName("spring.application:type=DataSource,name=dataSource");
 
         assertThat(mBeanServer.isRegistered(objectName)).isTrue();

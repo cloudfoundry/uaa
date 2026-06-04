@@ -99,7 +99,7 @@ class LdapLoginIT {
     }
 
     @Test
-    public void ldapLogin_with_StartTLS() throws Exception {
+    void ldapLogin_with_StartTLS() throws Exception {
         Long beforeTest = System.currentTimeMillis();
         performLdapLogin("testzone2", LDAP_URL, "marissa4", "ldap4", LDAP_TLS_SIMPLE);
         Long afterTest = System.currentTimeMillis();
@@ -110,7 +110,7 @@ class LdapLoginIT {
     }
 
     @Test
-    public void ldapLogin_with_TLS() throws Exception {
+    void ldapLogin_with_TLS() throws Exception {
         Long beforeTest = System.currentTimeMillis();
         performLdapLogin("testzone2", LDAPS_URL, "marissa5", "ldap5", LDAP_TLS_NONE);
         Long afterTest = System.currentTimeMillis();
@@ -121,7 +121,7 @@ class LdapLoginIT {
     }
 
     @Test
-    public void ldap_login_using_utf8_characters() throws Exception {
+    void ldap_login_using_utf8_characters() throws Exception {
         performLdapLogin("testzone2", LDAP_URL, "\u7433\u8D3A", "koala", LDAP_TLS_NONE);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
     }

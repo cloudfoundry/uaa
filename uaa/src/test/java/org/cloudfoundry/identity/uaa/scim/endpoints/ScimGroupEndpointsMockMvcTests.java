@@ -1323,7 +1323,6 @@ class ScimGroupEndpointsMockMvcTests {
         for (String s : expected) {
             String[] data = s.split("\\|");
             assertThat(data)
-                    .isNotNull()
                     .hasSize(2);
             String displayName = data[0];
             String externalId = data[1];
@@ -1392,6 +1391,7 @@ class ScimGroupEndpointsMockMvcTests {
                 try {
                     scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
                 } catch (MemberAlreadyExistsException _) {
+                    // ignore
                 }
             }
         } finally {
@@ -1433,6 +1433,7 @@ class ScimGroupEndpointsMockMvcTests {
                 try {
                     scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
                 } catch (MemberAlreadyExistsException _) {
+                    // ignore
                 }
             }
         } finally {

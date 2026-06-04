@@ -233,7 +233,7 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    void shouldTimeoutOnReadWhenFetchingMetadataURL() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    void shouldTimeoutOnReadWhenFetchingMetadataURL() throws Exception {
         slowHttpServer.run();
         // set read timeout to value that will cause read timeout before 1s
         samlConfiguration.setSocketReadTimeout(100);
@@ -250,7 +250,7 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    void shouldTimeoutOnConnectingWhenFetchingMetadataURL() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    void shouldTimeoutOnConnectingWhenFetchingMetadataURL() throws Exception {
         slowHttpServer.run();
         // Set connection timeout to very low value to cause connect timeout
         samlConfiguration.setSocketConnectionTimeout(1);

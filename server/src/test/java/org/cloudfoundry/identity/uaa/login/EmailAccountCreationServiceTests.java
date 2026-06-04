@@ -45,9 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyInt;
@@ -420,8 +418,9 @@ class EmailAccountCreationServiceTests {
 
         String emailBody = captorEmailBody("Activate your " + companyName + " account");
 
-        assertThat(emailBody).contains(companyName + " account");
-        assertThat(emailBody).contains("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>");
+        assertThat(emailBody)
+                .contains(companyName + " account")
+                .contains("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>");
     }
 
 }

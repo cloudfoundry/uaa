@@ -40,20 +40,20 @@ class HealthzEndpointTests {
     }
 
     @Test
-    void getHealthz() throws SQLException {
+    void getHealthz() throws Exception {
         when(dataSource.getConnection()).thenThrow(new SQLException("DB is Down"));
         assertThat(endpoint.getHealthz(response)).isEqualTo("UAA running. Database failed to start.\n");
     }
 
     @Test
-    void getHealthz_connectionSuccess() throws SQLException {
+    void getHealthz_connectionSuccess() throws Exception {
         endpoint.isDataSourceConnectionAvailable();
         assertThat(endpoint.getHealthz(response)).isEqualTo("ok\n");
         verify(dataSource).getConnection();
     }
 
     @Test
-    void getHealthz_connectionFailed() throws SQLException {
+    void getHealthz_connectionFailed() throws Exception {
         when(dataSource.getConnection()).thenThrow(new SQLException());
         endpoint.isDataSourceConnectionAvailable();
         assertThat(endpoint.getHealthz(response)).isEqualTo("Database Connection failed.\n");
@@ -61,7 +61,7 @@ class HealthzEndpointTests {
     }
 
     @Test
-    void shutdownSendsStopping() throws InterruptedException {
+    void shutdownSendsStopping() throws Exception {
         long now = System.currentTimeMillis();
         shutdownHook.start();
         shutdownHook.join();
@@ -86,7 +86,7 @@ class HealthzEndpointTests {
         }
 
         @Test
-        void shutdownWithoutSleep() throws InterruptedException {
+        void shutdownWithoutSleep() throws Exception {
             long now = System.currentTimeMillis();
             shutdownHook.start();
             shutdownHook.join();

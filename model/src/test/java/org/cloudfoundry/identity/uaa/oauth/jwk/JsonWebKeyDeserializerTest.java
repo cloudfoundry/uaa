@@ -41,7 +41,7 @@ class JsonWebKeyDeserializerTest {
         JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(uaaLegacyJwkSet, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
         });
         assertThat(keys).isNotNull();
-        assertThat(keys.getKeys()).isNotNull()
+        assertThat(keys.getKeys())
                 .hasSize(1);
         for (JsonWebKey key : keys.getKeys()) {
             assertThat(key).isNotNull();
@@ -56,7 +56,7 @@ class JsonWebKeyDeserializerTest {
         JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(keyCloakJwkSet, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
         });
         assertThat(keys).isNotNull();
-        assertThat(keys.getKeys()).isNotNull()
+        assertThat(keys.getKeys())
                 .hasSize(1);
         for (JsonWebKey key : keys.getKeys()) {
             assertThat(key).isNotNull();
@@ -72,7 +72,7 @@ class JsonWebKeyDeserializerTest {
         JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(keyOctedJwkSet, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
         });
         assertThat(keys).isNotNull();
-        assertThat(keys.getKeys()).isNotNull()
+        assertThat(keys.getKeys())
                 .hasSize(1);
         for (JsonWebKey key : keys.getKeys()) {
             assertThat(key).isNotNull();

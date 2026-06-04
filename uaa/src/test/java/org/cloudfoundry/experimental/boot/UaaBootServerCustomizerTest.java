@@ -16,7 +16,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import java.net.Inet4Address;
-import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -39,19 +38,20 @@ class UaaBootServerCustomizerTest {
         Collection<Valve> valves = captor.getValue().getEngineValves();
         assertThat(valves).isNotEmpty();
         Optional<Valve> valve = valves.stream().filter(v -> v.getClass().equals(ErrorReportValve.class)).findFirst();
-        assertThat(valve.isPresent()).isTrue();
+        assertThat(valve).isPresent();
         ErrorReportValve errorReportValve = (ErrorReportValve) valve.get();
         assertThat(errorReportValve.isShowReport()).isFalse();
         assertThat(errorReportValve.isShowServerInfo()).isFalse();
     }
 
     @Test
-    void localhostConnectorAdded() throws UnknownHostException {
+    void localhostConnectorAdded() throws Exception {
         ArgumentCaptor<TomcatServletWebServerFactory> captor = ArgumentCaptor.forClass(TomcatServletWebServerFactory.class);
         Mockito.verify(customizer, Mockito.atMostOnce()).customize(captor.capture());
         List<Connector> connectors = captor.getValue().getAdditionalConnectors();
-        assertThat(connectors).isNotEmpty();
-        assertThat(connectors).hasSize(1);
+        assertThat(connectors)
+                .isNotEmpty()
+                .hasSize(1);
         Connector httpConnector = connectors.getFirst();
         assertThat(httpConnector.getProperty("class")).isEqualTo(Http11NioProtocol.class);
         assertThat(httpConnector.getPort()).isEqualTo(8081);

@@ -24,7 +24,6 @@ import org.springframework.security.saml2.provider.service.web.RelyingPartyRegis
 import org.xmlunit.assertj.XmlAssert;
 
 import java.security.Security;
-import java.security.cert.CertificateEncodingException;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -177,7 +176,7 @@ class SamlMetadataEndpointTest {
     }
 
     @Test
-    void sha256Signature() throws CertificateEncodingException {
+    void sha256Signature() throws Exception {
         when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request);

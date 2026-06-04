@@ -35,9 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY;
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
@@ -163,16 +161,16 @@ class JdbcUaaUserDatabaseTests {
         jdbcUaaUserDatabase.storeUserInfo(id, info);
         UserInfo info2 = jdbcUaaUserDatabase.getUserInfo(id);
         assertThat(info2).isEqualTo(info);
-        assertThat(info2.getUserAttributes()).isEqualTo(userAttributes);
-        assertThat(info2.getRoles()).isEqualTo(roles);
+        assertThat(info2.getUserAttributes()).containsExactlyInAnyOrderEntriesOf(userAttributes);
+        assertThat(info2.getRoles()).containsExactlyElementsOf(roles);
 
         roles.add("role4");
         userAttributes.add("multi", "4");
         jdbcUaaUserDatabase.storeUserInfo(id, info);
         UserInfo info3 = jdbcUaaUserDatabase.getUserInfo(id);
         assertThat(info3).isEqualTo(info);
-        assertThat(info3.getUserAttributes()).isEqualTo(userAttributes);
-        assertThat(info3.getRoles()).isEqualTo(roles);
+        assertThat(info3.getUserAttributes()).containsExactlyInAnyOrderEntriesOf(userAttributes);
+        assertThat(info3.getRoles()).containsExactlyElementsOf(roles);
     }
 
     @Test
@@ -205,7 +203,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     @DisabledIfProfile("mysql")
-    void hsqlPostgresqlCaseSensitive() throws SQLException {
+    void hsqlPostgresqlCaseSensitive() throws Exception {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
                 dbUtils);
@@ -220,7 +218,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     @EnabledIfProfile("mysql")
-    void mysqlCaseInsensitive() throws SQLException {
+    void mysqlCaseInsensitive() throws Exception {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
                 dbUtils);
@@ -236,7 +234,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
         // TODO: this should be parameterized
-    void getValidUserCaseInsensitive() throws SQLException {
+    void getValidUserCaseInsensitive() throws Exception {
         for (boolean caseInsensitive : Arrays.asList(true, false)) {
             try {
                 var dbProps = new DatabaseProperties();
@@ -290,7 +288,7 @@ class JdbcUaaUserDatabaseTests {
     }
 
     @Test
-    void getUserWithMultipleExtraAuthorities() throws SQLException {
+    void getUserWithMultipleExtraAuthorities() throws Exception {
         addAuthority("additional", jdbcTemplate, "zone-the-first", JOE_ID);
         addAuthority("anotherOne", jdbcTemplate, "zone-the-first", JOE_ID);
         JdbcTemplate spiedJdbcTemplate = Mockito.spy(jdbcTemplate);

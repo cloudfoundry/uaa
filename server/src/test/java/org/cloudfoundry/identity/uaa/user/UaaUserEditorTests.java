@@ -17,7 +17,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class UaaUserEditorTests {
     private static final UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);

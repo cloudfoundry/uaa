@@ -69,7 +69,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.text.ParseException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -705,7 +704,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    void fetchOidcMetadata() throws OidcMetadataFetchingException {
+    void fetchOidcMetadata() throws Exception {
         OIDCIdentityProviderDefinition mockedProviderDefinition = mock(OIDCIdentityProviderDefinition.class);
         OidcMetadataFetcher mockedOidcMetadataFetcher = mock(OidcMetadataFetcher.class);
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), mockedOidcMetadataFetcher, false);
@@ -753,7 +752,7 @@ class ExternalOAuthAuthenticationManagerTest {
 
 
     @Test
-    void getOidcProxyIdpForTokenExchangeSuccess() throws MalformedURLException {
+    void getOidcProxyIdpForTokenExchangeSuccess() throws Exception {
         IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("login_hint", new UaaLoginHint("idp").toString());
@@ -770,7 +769,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    void getOidcProxyIdpForTokenExchangeNotEnabled() throws MalformedURLException {
+    void getOidcProxyIdpForTokenExchangeNotEnabled() throws Exception {
         IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("login_hint", new UaaLoginHint("idp").toString());
@@ -788,7 +787,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    void getOidcProxyIdpForTokenExchangeDbException() throws MalformedURLException {
+    void getOidcProxyIdpForTokenExchangeDbException() throws Exception {
         IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("login_hint", new UaaLoginHint("idp").toString());
@@ -802,7 +801,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    void getOidcProxyIdpForTokenExchangeNoResult() throws MalformedURLException {
+    void getOidcProxyIdpForTokenExchangeNoResult() throws Exception {
         IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("login_hint", new UaaLoginHint("idp").toString());
@@ -854,7 +853,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    void oidcPasswordGrantProviderJwtClientCredentials() throws ParseException, JOSEException, MalformedURLException {
+    void oidcPasswordGrantProviderJwtClientCredentials() throws Exception {
         // Given
         KeyInfoService keyInfoService = mockKeyInfoService();
         ResponseEntity responseEntity = mock(ResponseEntity.class);
@@ -882,15 +881,15 @@ class ExternalOAuthAuthenticationManagerTest {
         /* verify client assertion according OIDC private_key_jwt */
         assertThat(httpEntityBody).isNotNull();
         final List<Object> clientAssertion = httpEntityBody.get("client_assertion");
-        assertThat(clientAssertion).isNotNull().isNotEmpty();
+        assertThat(clientAssertion).isNotEmpty();
         JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) clientAssertion.getFirst()).getJWTClaimsSet();
-        assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
+        assertThat(jwtClaimsSet.getAudience()).containsExactlyElementsOf(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
     }
 
     @Test
-    void oidcJwtBearerProviderJwtClientCredentials() throws ParseException, JOSEException, MalformedURLException {
+    void oidcJwtBearerProviderJwtClientCredentials() throws Exception {
         // Given
         KeyInfoService keyInfoService = mockKeyInfoService();
         ResponseEntity responseEntity = mock(ResponseEntity.class);
@@ -921,15 +920,15 @@ class ExternalOAuthAuthenticationManagerTest {
         /* verify client assertion according OIDC private_key_jwt */
         assertThat(httpEntityBody).isNotNull();
         final List<Object> clientAssertion = httpEntityBody.get("client_assertion");
-        assertThat(clientAssertion).isNotNull().isNotEmpty();
+        assertThat(clientAssertion).isNotEmpty();
         JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) clientAssertion.getFirst()).getJWTClaimsSet();
-        assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
+        assertThat(jwtClaimsSet.getAudience()).containsExactlyElementsOf(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
     }
 
     @Test
-    void oidcJwtBearerProviderProxyThrowException() throws JOSEException, MalformedURLException {
+    void oidcJwtBearerProviderProxyThrowException() throws Exception {
         // Given
         KeyInfoService keyInfoService = mockKeyInfoService();
         UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
@@ -953,13 +952,13 @@ class ExternalOAuthAuthenticationManagerTest {
         HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
         HttpHeaders httpHeaders = httpEntity.getHeaders();
         assertThat(httpHeaders.containsHeader("Authorization")).isTrue();
-        assertThat(httpHeaders.get("Authorization")).isEqualTo(Collections.singletonList("Basic aWRlbnRpdHk6c2VjcmV0"));
+        assertThat(httpHeaders.get("Authorization")).containsExactlyElementsOf(Collections.singletonList("Basic aWRlbnRpdHk6c2VjcmV0"));
         assertThat(httpHeaders.containsHeader("Accept")).isTrue();
-        assertThat(httpHeaders.get("Content-Type")).isEqualTo(Collections.singletonList("application/x-www-form-urlencoded"));
+        assertThat(httpHeaders.get("Content-Type")).containsExactlyElementsOf(Collections.singletonList("application/x-www-form-urlencoded"));
     }
 
     @Test
-    void oidcPasswordGrantWithForwardHeader() throws JOSEException, MalformedURLException {
+    void oidcPasswordGrantWithForwardHeader() throws Exception {
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = mockOidcIdentityProvider();
         OIDCIdentityProviderDefinition config = identityProvider.getConfig();
         KeyInfoService keyInfoService = mockKeyInfoService();
@@ -1009,17 +1008,17 @@ class ExternalOAuthAuthenticationManagerTest {
                 .containsEntry("password", Collections.singletonList("koala"));
 
         HttpHeaders headers = httpEntity.getHeaders();
-        assertThat(headers.getAccept()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_JSON));
+        assertThat(headers.getAccept()).containsExactlyElementsOf(Collections.singletonList(MediaType.APPLICATION_JSON));
         assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
         assertAuthorizationHeaderIsSetAndStartsWithBasic(headers);
         assertThat(headers.containsHeader("X-Forwarded-For")).isTrue();
         final List<String> xForwardedForHeaders = headers.get("X-Forwarded-For");
         assertThat(xForwardedForHeaders).hasSize(1);
-        assertThat(xForwardedForHeaders.getFirst()).isEqualTo("203.0.113.1");
+        assertThat(xForwardedForHeaders).first().isEqualTo("203.0.113.1");
     }
 
     @Test
-    void oidcPasswordGrant_credentialsMustBeStringButNoSecretNeeded() throws MalformedURLException, JOSEException {
+    void oidcPasswordGrant_credentialsMustBeStringButNoSecretNeeded() throws Exception {
         RestTemplate restTemplate = mock(RestTemplate.class);
         ResponseEntity responseEntity = mock(ResponseEntity.class);
 
@@ -1042,7 +1041,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    void oidcPasswordGrantWithPrompts() throws MalformedURLException, JOSEException {
+    void oidcPasswordGrantWithPrompts() throws Exception {
         KeyInfoService keyInfoService = mockKeyInfoService();
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = mockOidcIdentityProvider();
         OIDCIdentityProviderDefinition config = identityProvider.getConfig();
@@ -1114,7 +1113,7 @@ class ExternalOAuthAuthenticationManagerTest {
                 .doesNotContainKey("missingvalue");
 
         HttpHeaders headers = httpEntity.getHeaders();
-        assertThat(headers.getAccept()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_JSON));
+        assertThat(headers.getAccept()).containsExactlyElementsOf(Collections.singletonList(MediaType.APPLICATION_JSON));
         assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
         assertAuthorizationHeaderIsSetAndStartsWithBasic(headers);
         assertThat(headers.containsHeader("X-Forwarded-For")).isFalse();

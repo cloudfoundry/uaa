@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -117,7 +117,7 @@ class AuthzAuthenticationManagerTests {
         assertThat(((UaaAuthentication) result).getAuthenticationMethods()).containsExactlyInAnyOrder("pwd");
 
         List<ApplicationEvent> events = eventCaptor.getAllValues();
-        assertThat(events.getFirst()).isInstanceOf(IdentityProviderAuthenticationSuccessEvent.class);
+        assertThat(events).first().isInstanceOf(IdentityProviderAuthenticationSuccessEvent.class);
         assertThat(((IdentityProviderAuthenticationSuccessEvent) events.getFirst()).getUser().getUsername()).isEqualTo("auser");
     }
 

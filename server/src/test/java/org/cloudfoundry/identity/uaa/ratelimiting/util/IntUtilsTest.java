@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.util;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class IntUtilsTest {
 

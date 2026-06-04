@@ -14,13 +14,12 @@ import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -65,7 +64,7 @@ class ImplicitAccessTokenProviderTests {
     }
 
     @Test
-    void implicitResponseExtractor() throws IOException {
+    void implicitResponseExtractor() throws Exception {
         assertThat(provider.getResponseExtractor().extractData(new MockClientHttpResponse(new byte[0], 200))).isNull();
     }
 

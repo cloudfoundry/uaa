@@ -37,7 +37,6 @@ class UaaConfigurationTokenKeyTest {
         assertThat(keys).isNotNull();
         Map<String, Object> keyId1 = (Map<String, Object>) keys.get("key-id-1");
         assertThat(keyId1)
-                .isNotNull()
                 .containsEntry("signingCert", "cert")
                 .containsEntry("signingKey", "key")
                 .containsEntry("signingAlg", "PS256");

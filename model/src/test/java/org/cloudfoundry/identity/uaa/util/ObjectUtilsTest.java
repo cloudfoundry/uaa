@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.util;
 import org.junit.jupiter.api.Test;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +24,7 @@ class ObjectUtilsTest {
     }
 
     @Test
-    void getDocumentBuilder() throws ParserConfigurationException {
+    void getDocumentBuilder() throws Exception {
         DocumentBuilder builder = ObjectUtils.getDocumentBuilder();
         assertThat(builder).isNotNull();
         assertThat(builder.getDOMImplementation()).isNotNull();

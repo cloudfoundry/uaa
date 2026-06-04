@@ -225,7 +225,7 @@ class ScimGroupEndpointsIntegrationTests {
     }
 
     @Test
-    void createAllowedGroupSucceeds() throws URISyntaxException {
+    void createAllowedGroupSucceeds() throws Exception {
         String testZoneId = "testzone1";
         assertThat(doesSupportZoneDNS()).as("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1").isTrue();
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
@@ -242,7 +242,7 @@ class ScimGroupEndpointsIntegrationTests {
     }
 
     @Test
-    void createNotAllowedGroupFailsCorrectly() throws URISyntaxException {
+    void createNotAllowedGroupFailsCorrectly() throws Exception {
         String testZoneId = "testzone1";
         assertThat(doesSupportZoneDNS()).as("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1").isTrue();
         final String notAllowed = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
@@ -267,7 +267,7 @@ class ScimGroupEndpointsIntegrationTests {
     }
 
     @Test
-    void relyOnDefaultGroupsShouldAllowedGroupSucceed() throws URISyntaxException {
+    void relyOnDefaultGroupsShouldAllowedGroupSucceed() throws Exception {
         String testZoneId = "testzone1";
         assertThat(doesSupportZoneDNS()).as("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1").isTrue();
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
@@ -293,7 +293,7 @@ class ScimGroupEndpointsIntegrationTests {
     }
 
     @Test
-    void changeDefaultGroupsAllowedGroupsUsageShouldSucceed() throws URISyntaxException {
+    void changeDefaultGroupsAllowedGroupsUsageShouldSucceed() throws Exception {
         String testZoneId = "testzone1";
         assertThat(doesSupportZoneDNS()).as("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1").isTrue();
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");

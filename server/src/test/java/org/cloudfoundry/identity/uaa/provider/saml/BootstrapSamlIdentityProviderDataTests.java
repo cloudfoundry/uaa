@@ -240,8 +240,8 @@ public class BootstrapSamlIdentityProviderDataTests {
                     Map<String, Object> attributeMappings = new HashMap<>();
                     attributeMappings.put("given_name", "first_name");
                     attributeMappings.put("external_groups", Collections.singletonList("roles"));
-                    assertThat(idp.getAttributeMappings()).isEqualTo(attributeMappings);
-                    assertThat(idp.getExternalGroupsWhitelist()).isEqualTo(asList("admin", "user"));
+                    assertThat(idp.getAttributeMappings()).containsExactlyInAnyOrderEntriesOf(attributeMappings);
+                    assertThat(idp.getExternalGroupsWhitelist()).containsExactlyElementsOf(asList("admin", "user"));
                     assertThat(idp.isShowSamlLink()).isTrue();
                     assertThat(idp.isMetadataTrustCheck()).isTrue();
                     assertThat(idp.getEmailDomain()).contains("test.com", "test.org");
@@ -282,7 +282,7 @@ public class BootstrapSamlIdentityProviderDataTests {
                 }
                 case "custom-authncontext": {
                     assertThat(idp.getAuthnContext()).hasSize(2);
-                    assertThat(idp.getAuthnContext().getFirst()).isEqualTo("custom-context");
+                    assertThat(idp.getAuthnContext()).first().isEqualTo("custom-context");
                     assertThat(idp.getAuthnContext().get(1)).isEqualTo("another-context");
                     break;
                 }

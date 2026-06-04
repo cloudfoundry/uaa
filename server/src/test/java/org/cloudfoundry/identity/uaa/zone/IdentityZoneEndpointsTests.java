@@ -64,7 +64,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void create_zone() throws InvalidIdentityZoneDetailsException {
+    void create_zone() throws Exception {
         when(mockIdentityZoneProvisioning.create(any())).then(invocation -> invocation.getArgument(0));
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
@@ -87,7 +87,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void group_creation_called_on_create() throws InvalidIdentityZoneDetailsException {
+    void group_creation_called_on_create() throws Exception {
         when(mockIdentityZoneProvisioning.create(any())).then(invocation -> invocation.getArgument(0));
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
@@ -98,7 +98,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void group_creation_called_on_update() throws InvalidIdentityZoneDetailsException {
+    void group_creation_called_on_update() throws Exception {
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
@@ -140,7 +140,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void extend_zone_allowed_groups_on_update() throws InvalidIdentityZoneDetailsException {
+    void extend_zone_allowed_groups_on_update() throws Exception {
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
@@ -157,7 +157,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void reduce_zone_allowed_groups_on_update_should_fail() throws InvalidIdentityZoneDetailsException {
+    void reduce_zone_allowed_groups_on_update_should_fail() throws Exception {
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
         identityZone = createZone();

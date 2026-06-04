@@ -58,11 +58,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.mockito.ArgumentMatchers.any;
@@ -297,7 +293,7 @@ class JdbcScimUserProvisioningTests {
             );
             assertThat(result).isNotNull();
             final List<String> usernames = result.stream().map(ScimUser::getUserName).toList();
-            assertThat(usernames).isSorted();
+            assertThat(usernames).isSorted().actual();
             return usernames;
         };
 
@@ -1073,7 +1069,7 @@ class JdbcScimUserProvisioningTests {
                 .isInstanceOf(ScimResourceAlreadyExistsException.class)
                 .hasMessage("Username already in use: user@example.com")
                 .satisfies(e -> assertThat(((ScimResourceAlreadyExistsException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT))
-                .satisfies(e -> assertThat(((ScimResourceAlreadyExistsException) e).getExtraInfo()).isEqualTo(userDetails));
+                .satisfies(e -> assertThat(((ScimResourceAlreadyExistsException) e).getExtraInfo()).containsExactlyInAnyOrderEntriesOf(userDetails));
     }
 
     @Test
@@ -1489,9 +1485,8 @@ class JdbcScimUserProvisioningTests {
         scimUser.setEmails(singletonList(email));
         scimUser.setPassword(randomString());
         scimUser.setZoneId("wrongZone-" + randomString());
-        assertThatNoException().isThrownBy(() -> {
-            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
-        });
+        assertThatNoException().isThrownBy(() ->
+            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId));
         assertThatThrownBy(() -> jdbcScimUserProvisioning.update(userId, scimUser, currentIdentityZoneId))
                 .isInstanceOf(ScimResourceNotFoundException.class)
                 .hasMessageContaining("does not exist");

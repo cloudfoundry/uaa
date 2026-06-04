@@ -32,9 +32,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -296,13 +294,10 @@ class OAuth2RestTemplateTests {
                 throw new UserRedirectRequiredException("https://www.foo.com/", Collections.<String, String>emptyMap());
             }
         });
-        try {
+        assertThatThrownBy(() -> {
             OAuth2AccessToken newToken = restTemplate.getAccessToken();
             assertThat(newToken).isNotNull();
-            fail("Expected UserRedirectRequiredException");
-        } catch (UserRedirectRequiredException _) {
-            // planned
-        }
+        }).isInstanceOf(UserRedirectRequiredException.class);
         // context token should be reset as it is invalid at this point
         assertThat(restTemplate.getOAuth2ClientContext().getAccessToken()).isNull();
     }

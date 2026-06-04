@@ -191,7 +191,7 @@ class ExternalOAuthProviderConfiguratorTests {
 
     @ParameterizedTest
     @MethodSource
-    void retrieveActiveByTypes(final String[] types) throws OidcMetadataFetchingException {
+    void retrieveActiveByTypes(final String[] types) throws Exception {
         final String zoneId = RandomStringUtils.randomAlphanumeric(8);
 
         // eliminate duplicates
@@ -357,8 +357,7 @@ class ExternalOAuthProviderConfiguratorTests {
         when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
         when(identityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
         assertThatThrownBy(() -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()))
-                .isInstanceOf(IncorrectResultSizeDataAccessException.class)
-                .hasMessage("Active provider with issuer[%s] not found".formatted(issuer));
+                .isInstanceOf(IncorrectResultSizeDataAccessException.class).hasMessage("Active provider with issuer[%s] not found", issuer);
     }
 
     @Test
@@ -375,8 +374,7 @@ class ExternalOAuthProviderConfiguratorTests {
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
         assertThatThrownBy(() -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()))
-                .isInstanceOf(IncorrectResultSizeDataAccessException.class)
-                .hasMessage("Duplicate providers with issuer[%s] not found".formatted(issuer));
+                .isInstanceOf(IncorrectResultSizeDataAccessException.class).hasMessage("Duplicate providers with issuer[%s] not found", issuer);
     }
 
     @Test
@@ -458,27 +456,27 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @Test
-    void oidcIdPPkceEqual() throws CloneNotSupportedException {
+    void oidcIdPPkceEqual() throws Exception {
         OIDCIdentityProviderDefinition oidc1 = (OIDCIdentityProviderDefinition) oidc.clone();
         assertThat(oidc1).isEqualTo(oidc);
     }
 
     @Test
-    void oidcIdPPkceNotEqual() throws CloneNotSupportedException {
+    void oidcIdPPkceNotEqual() throws Exception {
         OIDCIdentityProviderDefinition oidc1 = (OIDCIdentityProviderDefinition) oidc.clone();
         oidc.setPkce(false);
         assertThat(oidc1).isNotEqualTo(oidc);
     }
 
     @Test
-    void oidcIdPPkceHashCodeNotEqual() throws CloneNotSupportedException {
+    void oidcIdPPkceHashCodeNotEqual() throws Exception {
         OIDCIdentityProviderDefinition oidc1 = (OIDCIdentityProviderDefinition) oidc.clone();
         oidc.setPkce(false);
         assertThat(oidc1).doesNotHaveSameHashCodeAs(oidc);
     }
 
     @Test
-    void oidcIdPPkceHashCodeEqual() throws CloneNotSupportedException {
+    void oidcIdPPkceHashCodeEqual() throws Exception {
         OIDCIdentityProviderDefinition oidc1 = (OIDCIdentityProviderDefinition) oidc.clone();
         assertThat(oidc1).hasSameHashCodeAs(oidc);
     }
@@ -496,7 +494,7 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @Test
-    void getIdpAuthenticationUrl_withOnlyDiscoveryUrlForOIDCProvider() throws MalformedURLException, OidcMetadataFetchingException {
+    void getIdpAuthenticationUrl_withOnlyDiscoveryUrlForOIDCProvider() throws Exception {
         String discoveryUrl = "https://accounts.google.com/.well-known/openid-configuration";
         oidc.setDiscoveryUrl(URI.create(discoveryUrl).toURL());
         oidc.setAuthUrl(null);
@@ -556,7 +554,7 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @Test
-    void excludeUnreachableOidcProvider() throws OidcMetadataFetchingException {
+    void excludeUnreachableOidcProvider() throws Exception {
         when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
 
         doThrow(new NullPointerException("")).when(mockOidcMetadataFetcher)

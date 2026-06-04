@@ -15,9 +15,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -68,7 +66,7 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
     @MethodSource("parameters")
     @SuppressWarnings("deprecation")
     @ParameterizedTest
-    void whenSuccessfullyAuthenticated_accountGetsSavedViaCookie(boolean secure) throws IOException, ServletException, CurrentUserCookieFactory.CurrentUserCookieEncodingException {
+    void whenSuccessfullyAuthenticated_accountGetsSavedViaCookie(boolean secure) throws Exception {
         IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
         Date yesterday = new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24));
         UaaUser user = new UaaUser(
@@ -127,12 +125,12 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         Optional<String> actualCurrentUserCookieHeaderValue = response.getHeaders("Set-Cookie").stream()
                 .filter(headerValue -> headerValue.startsWith("Current-User"))
                 .findAny();
-        assertThat(actualCurrentUserCookieHeaderValue).contains("Current-User=%7B%22userId%22%3A%22user-id%22%7D; SameSite=Strict");
+        assertThat(actualCurrentUserCookieHeaderValue).hasValue("Current-User=%7B%22userId%22%3A%22user-id%22%7D; SameSite=Strict");
     }
 
     @MethodSource("parameters")
     @ParameterizedTest
-    void empty_Account_Cookie(boolean secure) throws IOException, ServletException {
+    void empty_Account_Cookie(boolean secure) throws Exception {
         IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(false);
         Date yesterday = new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24));
         UaaUser user = new UaaUser(

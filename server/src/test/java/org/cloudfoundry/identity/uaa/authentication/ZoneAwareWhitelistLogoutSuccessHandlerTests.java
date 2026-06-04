@@ -33,8 +33,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import jakarta.servlet.ServletException;
-import java.io.IOException;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -179,7 +177,7 @@ class ZoneAwareWhitelistLogoutSuccessHandlerTests {
             "'',true,1",
             "'',false,0",
             ",true,0"})
-    void external_logout(String url, boolean rpInitiated, int onSuccessCalls) throws ServletException, IOException {
+    void external_logout(String url, boolean rpInitiated, int onSuccessCalls) throws Exception {
         when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn(url);
         when(oAuthLogoutHandler.getPerformRpInitiatedLogout(null)).thenReturn(rpInitiated);
         handler.onLogoutSuccess(request, response, null);
@@ -187,7 +185,7 @@ class ZoneAwareWhitelistLogoutSuccessHandlerTests {
     }
 
     @Test
-    void logout() throws ServletException, IOException {
+    void logout() throws Exception {
         handler.onLogoutSuccess(request, response, null);
         verify(oAuthLogoutHandler, times(0)).onLogoutSuccess(request, response, null);
     }

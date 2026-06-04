@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -16,6 +15,7 @@ import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @EnabledIfZonePathsEnabled
-public class ZonePathTokenMockMvcTests extends AbstractTokenMockMvcTests {
+class ZonePathTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
@@ -55,7 +55,7 @@ public class ZonePathTokenMockMvcTests extends AbstractTokenMockMvcTests {
                 .andReturn().getResponse().getContentAsString();
         Map<String, Object> response = JsonUtils.readValueAsMap(tokenResult);
         Jwt tokenClaims = JwtHelper.decode((String) response.get("access_token"));
-        Assertions.assertThat(tokenClaims.getClaimSet().getStringClaim(ISS))
+        assertThat(tokenClaims.getClaimSet().getStringClaim(ISS))
                 .isEqualTo("http://%s.localhost:8080/uaa/oauth/token".formatted(testZone.getSubdomain()));
     }
 }

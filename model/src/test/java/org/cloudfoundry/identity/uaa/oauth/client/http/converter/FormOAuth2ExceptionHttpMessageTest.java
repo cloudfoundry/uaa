@@ -10,11 +10,10 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.http.MockHttpOutputMessage;
 
-import java.io.IOException;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class FormOAuth2ExceptionHttpMessageTest {
 
@@ -41,11 +40,11 @@ class FormOAuth2ExceptionHttpMessageTest {
 
     @Test
     void getSupportedMediaTypes() {
-        assertThat(converter.getSupportedMediaTypes()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_FORM_URLENCODED));
+        assertThat(converter.getSupportedMediaTypes()).containsExactlyElementsOf(Collections.singletonList(MediaType.APPLICATION_FORM_URLENCODED));
     }
 
     @Test
-    void read() throws IOException {
+    void read() throws Exception {
         assertThat(converter.read(OAuth2Exception.class, new MockHttpInputMessage("".getBytes()))).isNotNull();
     }
 
@@ -56,7 +55,7 @@ class FormOAuth2ExceptionHttpMessageTest {
     }
 
     @Test
-    void write() throws IOException {
+    void write() throws Exception {
         HttpOutputMessage outputMessage = new MockHttpOutputMessage();
         OAuth2Exception e = new BadClientCredentialsException();
         e.addAdditionalInformation("key", "value");

@@ -209,12 +209,7 @@ class TokenRevocationEndpointMockMvcZonePathTest extends AbstractTokenMockMvcTes
                         .header("Authorization", "Bearer " + revokeAccessToken))
                 .andExpect(status().isOk());
 
-        try {
-            revocableTokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId());
-            fail("Token should have been deleted");
-        } catch (EmptyResultDataAccessException _) {
-            // expected
-        }
+        assertThatThrownBy(() -> revocableTokenProvisioning.retrieve(tokenToBeRevoked, IdentityZoneHolder.get().getId())).isInstanceOf(EmptyResultDataAccessException.class);
     }
 
     @Test
@@ -275,6 +270,7 @@ class TokenRevocationEndpointMockMvcZonePathTest extends AbstractTokenMockMvcTes
         try {
             revocableTokenProvisioning.retrieve(opaqueUserToken, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException _) {
+            // ignore
         }
     }
 

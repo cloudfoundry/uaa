@@ -39,9 +39,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService.DEFAULT_DELETE_STATEMENT;
@@ -114,6 +112,7 @@ class MultitenantJdbcClientDetailsServiceTests {
             try {
                 service.removeClientDetails("some-client-id");
             } catch (Exception _) {
+                // ignore
             }
             verify(service, times(1)).deleteByClient(eq("some-client-id"), eq(zoneId));
             reset(service);
@@ -131,6 +130,7 @@ class MultitenantJdbcClientDetailsServiceTests {
             try {
                 service.deleteByClient("some-client-id", "zone-id");
             } catch (Exception _) {
+                // ignore
             }
             verify(service, times(1)).deleteByClient(eq("some-client-id"), eq("zone-id"));
             verify(spyJdbcTemplate, times(1)).update(DEFAULT_DELETE_STATEMENT, "some-client-id", "zone-id");
@@ -255,8 +255,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         additionalInfoMap.put("lastModified", lastModifiedDate);
         additionalInfoMap.put(REQUIRED_USER_GROUPS, StringUtils.commaDelimitedListToSet(dbRequestedUserGroups));
 
-        assertThat(clientDetails.getAdditionalInformation()).containsEntry("lastModified", lastModifiedDate)
-                .isEqualTo(additionalInfoMap);
+        assertThat(clientDetails.getAdditionalInformation()).containsEntry("lastModified", lastModifiedDate).containsExactlyInAnyOrderEntriesOf(additionalInfoMap);
     }
 
     @Test
@@ -303,7 +302,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         ClientDetails clientDetails = service
                 .loadClientByClientId("clientIdWithSingleDetails");
 
-        assertThat(clientDetails).isNotNull()
+        assertThat(clientDetails)
                 .isInstanceOf(UaaClientDetails.class);
 
         UaaClientDetails uaaUaaClientDetails = (UaaClientDetails) clientDetails;
@@ -345,7 +344,7 @@ class MultitenantJdbcClientDetailsServiceTests {
                     s);
             ClientDetails updatedClient = service.loadClientByClientId(clientId);
             Object userGroups = updatedClient.getAdditionalInformation().get(REQUIRED_USER_GROUPS);
-            assertThat(userGroups).isNotNull()
+            assertThat(userGroups)
                     .isInstanceOf(Collection.class);
             assertThat(((Collection) userGroups)).isEmpty();
         }

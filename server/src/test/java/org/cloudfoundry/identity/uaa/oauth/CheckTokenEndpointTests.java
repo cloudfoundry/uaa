@@ -73,10 +73,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.AdditionalMatchers.not;
@@ -677,7 +674,7 @@ class CheckTokenEndpointTests {
         tokenServices.setUaaTokenEnhancer(new TestTokenEnhancer());
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), List.of(), request);
-        assertThat(result.getExtAttr()).as("external attributes not present").isNotNull()
+        assertThat(result.getExtAttr()).as("external attributes not present")
                 .containsEntry("purpose", "test");
     }
 
@@ -1102,7 +1099,7 @@ class CheckTokenEndpointTests {
                 UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), List.of(), request);
-        assertThat(azAttributes).isEqualTo(result.getAzAttr());
+        assertThat(azAttributes).containsExactlyInAnyOrderEntriesOf(result.getAzAttr());
     }
 
     @MethodSource("data")

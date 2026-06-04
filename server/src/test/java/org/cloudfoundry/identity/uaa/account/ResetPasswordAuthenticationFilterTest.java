@@ -14,9 +14,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.sql.Timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -168,7 +166,7 @@ class ResetPasswordAuthenticationFilterTest {
     }
 
     @Test
-    void different_uri_skip_filter() throws ServletException, IOException {
+    void different_uri_skip_filter() throws Exception {
         var request = MockMvcRequestBuilders.post("/wrong_url")
                 .buildRequest(new MockServletContext());
 

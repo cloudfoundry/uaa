@@ -4,23 +4,23 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 
 class UserConfigValidatorTest {
 
     @Test
-    void defaultConfig() throws InvalidIdentityZoneConfigurationException {
+    void defaultConfig() throws Exception {
         UserConfigValidator.validate(new UserConfig()); // defaultGroups not empty, allowedGroups is null
     }
 
     @Test
-    void nullConfig() throws InvalidIdentityZoneConfigurationException {
+    void nullConfig() throws Exception {
         UserConfigValidator.validate(null);
     }
 
     @Test
-    void allowedGroupsEmpty() throws InvalidIdentityZoneConfigurationException {
+    void allowedGroupsEmpty() throws Exception {
         UserConfig userConfig = new UserConfig();
         userConfig.setAllowedGroups(Collections.emptyList());
         UserConfigValidator.validate(userConfig);

@@ -15,7 +15,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +41,7 @@ abstract class ExpiringCodeStoreTests {
         ExpiringCode expiringCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId());
 
         assertThat(expiringCode).isNotNull();
-        assertThat(expiringCode.getCode()).isNotNull().isNotBlank();
+        assertThat(expiringCode.getCode()).isNotBlank();
         assertThat(expiringCode.getExpiresAt()).isEqualTo(expiresAt);
         assertThat(expiringCode.getData()).isEqualTo(data);
     }

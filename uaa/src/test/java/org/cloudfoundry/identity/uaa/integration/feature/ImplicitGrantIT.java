@@ -46,9 +46,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 // public for YamlProcessorTest
-public class ImplicitGrantIT {
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
+class ImplicitGrantIT {
 
     @Autowired
     TestAccounts testAccounts;

@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -86,7 +86,7 @@ class RemoteTokenServicesTests {
         assertThat(result.getOAuth2Request().getClientId()).isEqualTo("remote");
         assertThat(result.getUserAuthentication().getName()).isEqualTo("olds");
         assertThat(((RemoteUserAuthentication) result.getUserAuthentication()).getId()).isEqualTo("HDGFJSHGDF");
-        assertThat(result.getOAuth2Request().getRequestParameters()).isNotNull()
+        assertThat(result.getOAuth2Request().getRequestParameters())
                 .containsKey(ClaimConstants.ISS);
     }
 

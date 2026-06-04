@@ -138,7 +138,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 final Optional<IdentityProvider<?>> createdIdp = allIdps.stream()
                         .filter(it -> it.getOriginKey().equals(existingIdp.getOriginKey()))
                         .findFirst();
-                assertThat(createdIdp).contains(existingIdp);
+                assertThat(createdIdp).hasValue(existingIdp);
                 assertThat(createdIdp.get().getAliasZid()).isEqualTo(zone2.getId());
             }
         }
@@ -355,8 +355,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
             // after the failed creation, the IdP must not exist
             final List<IdentityProvider<?>> idpsInZoneAfterFailedCreation = readAllIdpsInZone(zone);
-            assertThat(idpsInZoneAfterFailedCreation.stream().map(IdentityProvider::getOriginKey).collect(toSet()))
-                    .doesNotContain(idp.getOriginKey());
+            assertThat(idpsInZoneAfterFailedCreation.stream().map(IdentityProvider::getOriginKey)).doesNotContain(idp.getOriginKey());
         }
     }
 
@@ -991,7 +990,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
         private MvcResult updateIdpAndReturnResult(final IdentityZone zone, final IdentityProvider<?> updatePayload) throws Exception {
             final String id = updatePayload.getId();
-            assertThat(id).isNotNull().isNotBlank();
+            assertThat(id).isNotBlank();
 
             final MockHttpServletRequestBuilder updateRequestBuilder = put("/identity-providers/" + id)
                     .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()))
@@ -1033,7 +1032,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     zone.getId(),
                     idp.getId()
             );
-            assertThat(idpAfterFailedUpdateOpt).contains(idpBeforeUpdate);
+            assertThat(idpAfterFailedUpdateOpt).hasValue(idpBeforeUpdate);
 
             // if an alias IdP was present before update, check if it also remains unchanged
             if (aliasIdpBeforeUpdate != null) {
@@ -1041,7 +1040,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                         idpBeforeUpdate.getAliasZid(),
                         idpBeforeUpdate.getAliasId()
                 );
-                assertThat(aliasIdpAfterFailedUpdateOpt).contains(aliasIdpBeforeUpdate);
+                assertThat(aliasIdpAfterFailedUpdateOpt).hasValue(aliasIdpBeforeUpdate);
             }
         }
     }
@@ -1192,7 +1191,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
         private void assertIdpDoesNotExist(final String id, final String zoneId) throws Exception {
             final Optional<IdentityProvider<?>> idp = readIdpFromZoneIfExists(zoneId, id);
-            assertThat(idp).isNotPresent();
+            assertThat(idp).isEmpty();
         }
     }
 
@@ -1332,8 +1331,8 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
     private void assertIdpAndAliasHaveSameRelyingPartySecretInDb(final IdentityProvider<?> originalIdp) {
         assertThat(originalIdp.getType()).isEqualTo(OIDC10);
-        assertThat(originalIdp.getAliasId()).isNotNull().isNotBlank();
-        assertThat(originalIdp.getAliasZid()).isNotNull().isNotBlank();
+        assertThat(originalIdp.getAliasId()).isNotBlank();
+        assertThat(originalIdp.getAliasZid()).isNotBlank();
 
         final Optional<String> relyingPartySecretOriginalIdpOpt = readIdpViaDb(originalIdp.getId(), originalIdp.getIdentityZoneId())
                 .map(IdentityProvider::getConfig)

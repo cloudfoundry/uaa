@@ -13,7 +13,7 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

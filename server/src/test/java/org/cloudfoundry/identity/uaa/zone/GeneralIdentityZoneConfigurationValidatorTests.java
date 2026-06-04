@@ -227,7 +227,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @MethodSource("parameters")
     @ParameterizedTest
-    void validate_with_legacy_key_active(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+    void validate_with_legacy_key_active(IdentityZoneValidator.Mode mode) throws Exception {
         validator.validate(zone, mode);
     }
 
@@ -252,7 +252,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @MethodSource("parameters")
     @ParameterizedTest
-    void validateConsent_withNotNullTextAndNullLink(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+    void validateConsent_withNotNullTextAndNullLink(IdentityZoneValidator.Mode mode) throws Exception {
         zone.getConfig().getBranding().setConsent(new Consent("Terms and Conditions", null));
         validator.validate(zone, mode);
     }
@@ -277,7 +277,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @MethodSource("parameters")
     @ParameterizedTest
-    void validate_without_legacy_key(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+    void validate_without_legacy_key(IdentityZoneValidator.Mode mode) throws Exception {
         samlConfig.setKeys(emptyMap());
         assertThat(samlConfig.getActiveKeyId()).isNull();
         samlConfig.addKey("key-1", new SamlKey(KEY_1, PASSPHRASE_1, CERTIFICATE_1));
@@ -331,7 +331,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @MethodSource("parameters")
     @ParameterizedTest
-    void validate_nonUaaZone_withoutIssuer_andNoActiveKey_succeeds(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+    void validate_nonUaaZone_withoutIssuer_andNoActiveKey_succeeds(IdentityZoneValidator.Mode mode) throws Exception {
         // non-UAA zone without issuer -> condition not triggered, should pass
         zone.setId("custom-zone");
         zone.getConfig().setIssuer("http://localhost:8080/uaa");
@@ -344,7 +344,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @MethodSource("parameters")
     @ParameterizedTest
-    void validate_uaaZone_withIssuer_andNoActiveKey_succeeds(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+    void validate_uaaZone_withIssuer_andNoActiveKey_succeeds(IdentityZoneValidator.Mode mode) throws Exception {
         // UAA zone is exempt from the issuer check -> should pass even without an active key
         zone.setId(IdentityZone.getUaaZoneId());
         zone.getConfig().setIssuer("http://uaa.example.com/issuer");
@@ -395,7 +395,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @MethodSource("parameters")
     @ParameterizedTest
-    void validate_with_token_key_and_certificate(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+    void validate_with_token_key_and_certificate(IdentityZoneValidator.Mode mode) throws Exception {
         setupTokenPolicyWithCertificate(LEGACY_KEY, LEGACY_CERTIFICATE, "RS256");
 
         IdentityZoneConfiguration identityZoneConfiguration = validator.validate(zone, mode);
@@ -407,7 +407,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @MethodSource("parameters")
     @ParameterizedTest
-    void validate_with_token_key_without_certificate(IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
+    void validate_with_token_key_without_certificate(IdentityZoneValidator.Mode mode) throws Exception {
         setupTokenPolicyWithCertificate("secretkey", null, "HS512");
 
         IdentityZoneConfiguration identityZoneConfiguration = validator.validate(zone, mode);

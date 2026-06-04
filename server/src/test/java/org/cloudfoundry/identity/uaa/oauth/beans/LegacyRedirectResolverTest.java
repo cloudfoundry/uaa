@@ -23,9 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import static org.apache.logging.log4j.Level.WARN;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

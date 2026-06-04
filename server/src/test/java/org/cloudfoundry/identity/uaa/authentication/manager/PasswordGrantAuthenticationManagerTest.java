@@ -36,7 +36,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,9 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
@@ -199,11 +196,7 @@ class PasswordGrantAuthenticationManagerTest {
         when(rt.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenThrow(exception);
         when(externalOAuthAuthenticationManager.oauthTokenRequest(eq(null), eq(idp), eq(GRANT_TYPE_PASSWORD), any(MultiValueMap.class))).thenThrow(exception);
 
-        try {
-            instance.authenticate(auth);
-            fail("No Exception thrown.");
-        } catch (BadCredentialsException _) {
-        }
+        assertThatThrownBy(() -> instance.authenticate(auth)).isInstanceOf(BadCredentialsException.class);
 
         ArgumentCaptor<AbstractUaaEvent> eventArgumentCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(eventPublisher, times(1)).publishEvent(eventArgumentCaptor.capture());
@@ -295,7 +288,7 @@ class PasswordGrantAuthenticationManagerTest {
     }
 
     @Test
-    void oidcPasswordGrantNoUserCredentials() throws MalformedURLException {
+    void oidcPasswordGrantNoUserCredentials() throws Exception {
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
         when(loginHint.getOrigin()).thenReturn("oidcprovider");
         Authentication auth = mock(Authentication.class);

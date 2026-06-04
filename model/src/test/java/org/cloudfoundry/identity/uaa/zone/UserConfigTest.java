@@ -22,9 +22,9 @@ class UserConfigTest {
         UserConfig userConfig = new UserConfig();
         userConfig.setDefaultGroups(List.of("openid"));
         userConfig.setAllowedGroups(List.of("uaa.user"));
-        assertThat(userConfig.getDefaultGroups()).isEqualTo(List.of("openid"));
-        assertThat(userConfig.getAllowedGroups()).isEqualTo(List.of("uaa.user"));
-        assertThat(userConfig.resultingAllowedGroups()).isEqualTo(Set.of("openid", "uaa.user"));
+        assertThat(userConfig.getDefaultGroups()).containsExactlyElementsOf(List.of("openid"));
+        assertThat(userConfig.getAllowedGroups()).containsExactlyElementsOf(List.of("uaa.user"));
+        assertThat(userConfig.resultingAllowedGroups()).hasSameElementsAs(Set.of("openid", "uaa.user"));
     }
 
     @Test
@@ -33,8 +33,8 @@ class UserConfigTest {
         userConfig.setDefaultGroups(null);
         userConfig.setAllowedGroups(List.of("uaa.user"));
         assertThat(userConfig.getDefaultGroups()).isNull();
-        assertThat(userConfig.getAllowedGroups()).isEqualTo(List.of("uaa.user"));
-        assertThat(userConfig.resultingAllowedGroups()).isEqualTo(Set.of("uaa.user"));
+        assertThat(userConfig.getAllowedGroups()).containsExactlyElementsOf(List.of("uaa.user"));
+        assertThat(userConfig.resultingAllowedGroups()).hasSameElementsAs(Set.of("uaa.user"));
     }
 
     @Test

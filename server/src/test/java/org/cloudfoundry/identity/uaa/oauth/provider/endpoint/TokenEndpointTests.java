@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -154,7 +154,7 @@ class TokenEndpointTests {
     }
 
     @Test
-    void getAccessTokenWithSupportedRequestParametersNotPost() throws HttpRequestMethodNotSupportedException {
+    void getAccessTokenWithSupportedRequestParametersNotPost() throws Exception {
         endpoint.setAllowedRequestMethods(new HashSet<>(List.of(HttpMethod.GET)));
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", CLIENT_ID);
@@ -215,7 +215,7 @@ class TokenEndpointTests {
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getHeaders().get("Content-Type").getFirst()).isEqualTo("application/json");
+        assertThat(response.getHeaders().get("Content-Type")).first().isEqualTo("application/json");
     }
 
     @Test

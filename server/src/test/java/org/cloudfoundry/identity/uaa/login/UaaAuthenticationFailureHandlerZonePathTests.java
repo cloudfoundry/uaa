@@ -15,9 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
@@ -98,7 +96,7 @@ class UaaAuthenticationFailureHandlerZonePathTests {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void onAuthenticationFailure_ForcePasswordChange(ZoneRequestPathMode mode) throws IOException, ServletException {
+    void onAuthenticationFailure_ForcePasswordChange(ZoneRequestPathMode mode) throws Exception {
         mode.applyRequestPath(request, "/login.do");
         UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
         PasswordChangeRequiredException exception = new PasswordChangeRequiredException(uaaAuthentication, "mock");
@@ -113,7 +111,7 @@ class UaaAuthenticationFailureHandlerZonePathTests {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void redirectUrls(ZoneRequestPathMode mode) throws ServletException, IOException {
+    void redirectUrls(ZoneRequestPathMode mode) throws Exception {
         var handler = new UaaAuthenticationFailureHandler(cookieFactory);
         String redirectPrefix = mode.redirectPrefix();
 
@@ -147,7 +145,7 @@ class UaaAuthenticationFailureHandlerZonePathTests {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void redirectUrlsWithContextPath(ZoneRequestPathMode mode) throws ServletException, IOException {
+    void redirectUrlsWithContextPath(ZoneRequestPathMode mode) throws Exception {
         var handler = new UaaAuthenticationFailureHandler(cookieFactory);
         request.setContextPath("/uaa");
         String redirectPrefix = "/uaa" + mode.redirectPrefix();

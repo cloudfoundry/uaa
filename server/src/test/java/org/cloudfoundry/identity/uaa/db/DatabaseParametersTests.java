@@ -41,7 +41,7 @@ class DatabaseParametersTests {
     }
 
     @Test
-    void testWhileIdle() {
+    void whileIdle() {
         assertThat(dataSource.isTestWhileIdle()).isTrue();
     }
 

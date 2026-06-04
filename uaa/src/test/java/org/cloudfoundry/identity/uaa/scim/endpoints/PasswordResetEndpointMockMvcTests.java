@@ -103,7 +103,6 @@ class PasswordResetEndpointMockMvcTests {
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
         assertThat(data)
-                .isNotNull()
                 .containsEntry("user_id", scimUser.getId())
                 .containsEntry("username", scimUser.getUserName())
                 .containsEntry(OAuth2Utils.CLIENT_ID, "login")
@@ -134,7 +133,6 @@ class PasswordResetEndpointMockMvcTests {
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
         assertThat(data)
-                .isNotNull()
                 .containsEntry(OAuth2Utils.CLIENT_ID, "another-client");
     }
 
@@ -159,7 +157,6 @@ class PasswordResetEndpointMockMvcTests {
         });
 
         assertThat(resultingCodeData)
-                .isNotNull()
                 .containsEntry("client_id", "app")
                 .containsEntry("username", email)
                 .containsEntry("user_id", scimUser.getId())

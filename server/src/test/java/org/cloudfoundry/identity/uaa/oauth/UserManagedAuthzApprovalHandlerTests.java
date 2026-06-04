@@ -245,7 +245,7 @@ class UserManagedAuthzApprovalHandlerTests {
                 currentIdentityZoneId);
 
         assertThat(handler.isApproved(request, mockAuthentication)).isTrue();
-        assertThat(request.getScope()).isEqualTo(new HashSet<>(Arrays.asList("cloud_controller.read", "openid")));
+        assertThat(request.getScope()).hasSameElementsAs(new HashSet<>(Arrays.asList("cloud_controller.read", "openid")));
     }
 
     @Test
@@ -321,7 +321,7 @@ class UserManagedAuthzApprovalHandlerTests {
         // The request is approved because the user has approved all the scopes
         // requested
         assertThat(handler.isApproved(request, mockAuthentication)).isTrue();
-        assertThat(request.getScope()).isEqualTo(new HashSet<>(Arrays.asList("openid", "cloud_controller.read", "cloud_controller.write")));
+        assertThat(request.getScope()).hasSameElementsAs(new HashSet<>(Arrays.asList("openid", "cloud_controller.read", "cloud_controller.write")));
     }
 
     @Test
@@ -363,7 +363,7 @@ class UserManagedAuthzApprovalHandlerTests {
         // The request is approved because the user has acted on all requested
         // scopes
         assertThat(handler.isApproved(request, mockAuthentication)).isTrue();
-        assertThat(request.getScope()).isEqualTo(new HashSet<>(Arrays.asList("openid", "cloud_controller.read")));
+        assertThat(request.getScope()).hasSameElementsAs(new HashSet<>(Arrays.asList("openid", "cloud_controller.read")));
     }
 
     @Test
@@ -555,7 +555,7 @@ class UserManagedAuthzApprovalHandlerTests {
         // The request is approved because the user has approved all the scopes
         // requested
         assertThat(handler.isApproved(request, mockAuthentication)).isTrue();
-        assertThat(request.getScope()).isEqualTo(new HashSet<>(Collections.singletonList("openid")));
+        assertThat(request.getScope()).hasSameElementsAs(new HashSet<>(Collections.singletonList("openid")));
     }
 
 }

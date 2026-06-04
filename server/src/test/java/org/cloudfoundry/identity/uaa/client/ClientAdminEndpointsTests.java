@@ -53,10 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -316,7 +313,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void get_restricted_scopes_list() {
-        assertThat(endpoints.getRestrictedClientScopes()).isEqualTo(new UaaScopes().getUaaScopes());
+        assertThat(endpoints.getRestrictedClientScopes()).containsExactlyElementsOf(new UaaScopes().getUaaScopes());
     }
 
     @Test
@@ -550,7 +547,7 @@ class ClientAdminEndpointsTests {
         input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
         ClientDetails result = endpoints.getClientDetails(input.getClientId());
         assertThat(result.getClientSecret()).isNull();
-        assertThat(result.getAdditionalInformation()).isEqualTo(input.getAdditionalInformation());
+        assertThat(result.getAdditionalInformation()).containsExactlyInAnyOrderEntriesOf(input.getAdditionalInformation());
     }
 
     @Test
@@ -1025,7 +1022,7 @@ class ClientAdminEndpointsTests {
         // When
         assertThat(result.getClientSecret()).isNull();
         ClientDetailsModification modification = (ClientDetailsModification) result;
-        assertThat(modification.getClientJwtCredentials()).size().isEqualTo(1);
+        assertThat(modification.getClientJwtCredentials()).hasSize(1);
         assertThat(modification.getJwkSet()).isNull();
         assertThat(modification.getJwksUri()).isEqualTo("http://localhost:8080/uaa/token_keys");
         ClientJwtCredential clientJwtCredential = modification.getClientJwtCredentials().getFirst();

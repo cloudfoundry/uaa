@@ -212,22 +212,22 @@ public class KeyWithCertTest {
     }
 
     @Test
-    void validCert() throws CertificateException {
+    void validCert() throws Exception {
         assertThat(new KeyWithCert(ENCRYPTED_KEY, PASSWORD, GOOD_CERT)).isNotNull();
     }
 
     @Test
-    void ellipticCurve() throws CertificateException {
+    void ellipticCurve() throws Exception {
         assertThat(new KeyWithCert(EC_PRIVATE_KEY, "", EC_CERTIFICATE)).isNotNull();
     }
 
     @Test
-    void embeddedPrivateKey() throws CertificateException {
+    void embeddedPrivateKey() throws Exception {
         assertThat(new KeyWithCert(OPEN_SSL_PRIVATE_KEY, "", OPEN_SSL_CERT)).isNotNull();
     }
 
     @Test
-    void certOnly() throws CertificateException {
+    void certOnly() throws Exception {
         assertThat(new KeyWithCert(GOOD_CERT))
                 .isNotNull()
                 .extracting(KeyWithCert::getCertificate)

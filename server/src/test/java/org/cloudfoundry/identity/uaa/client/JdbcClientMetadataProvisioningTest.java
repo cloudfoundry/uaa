@@ -16,9 +16,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 
 @WithDatabaseContext

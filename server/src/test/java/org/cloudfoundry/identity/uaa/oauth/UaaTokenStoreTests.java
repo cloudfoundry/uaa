@@ -36,7 +36,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -50,7 +49,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -128,7 +127,6 @@ class UaaTokenStoreTests {
         assertThat(userAuthentication.getUserAttributes().get("btest")).containsExactlyInAnyOrder("test1", "test2", "test3");
 
         assertThat(userAuthentication.getExternalGroups())
-                .hasSize(3)
                 .containsExactlyInAnyOrder("group1", "group2", "group3");
     }
 
@@ -331,7 +329,7 @@ class UaaTokenStoreTests {
     }
 
     @Test
-    void countingTheExecutedSqlDeleteStatements() throws SQLException {
+    void countingTheExecutedSqlDeleteStatements() throws Exception {
         // Given, mocked data source to count how often it is used, call performExpirationClean 10 times.
         DataSource mockedDataSource = mock(DataSource.class);
         Instant before = Instant.now();

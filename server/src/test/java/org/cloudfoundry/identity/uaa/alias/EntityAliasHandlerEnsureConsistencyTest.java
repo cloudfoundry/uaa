@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.alias;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,8 +12,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 
 public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWithAlias> {
@@ -90,9 +90,9 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
             arrangeZoneDoesNotExist(customZoneId);
 
-            assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
-                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
-            );
+            assertThatThrownBy(() ->
+                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity))
+                .asInstanceOf(InstanceOfAssertFactories.throwable(EntityAliasFailedException.class));
         }
 
         @Test
@@ -126,9 +126,9 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             final T originalEntity = shallowCloneEntity(existingEntity);
             originalEntity.setAliasZid(customZoneId);
 
-            assertThatIllegalStateException().isThrownBy(() ->
-                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
-            ).withMessage("Trying to create a new alias while alias feature is disabled.");
+            assertThatThrownBy(() -> aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Trying to create a new alias while alias feature is disabled.");
         }
     }
 
@@ -149,9 +149,8 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             arrangeEntityDoesNotExist(aliasId, customZoneId);
             arrangeZoneDoesNotExist(customZoneId);
 
-            assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
-                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
-            );
+            assertThatThrownBy(() -> aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity))
+                    .asInstanceOf(InstanceOfAssertFactories.throwable(EntityAliasFailedException.class));
         }
     }
 
@@ -168,9 +167,9 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             final T originalEntity = shallowCloneEntity(existingEntity);
             changeNonAliasProperties(originalEntity);
 
-            assertThatIllegalStateException().isThrownBy(() ->
-                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
-            ).withMessage("Performing update on entity with alias while alias feature is disabled.");
+            assertThatThrownBy(() -> aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Performing update on entity with alias while alias feature is disabled.");
         }
 
         @Test
@@ -182,9 +181,9 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             originalEntity.setAliasId(null);
             originalEntity.setAliasZid(null);
 
-            assertThatIllegalStateException().isThrownBy(() ->
-                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
-            ).withMessage("Performing update on entity with alias while alias feature is disabled.");
+            assertThatThrownBy(() -> aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Performing update on entity with alias while alias feature is disabled.");
         }
     }
 

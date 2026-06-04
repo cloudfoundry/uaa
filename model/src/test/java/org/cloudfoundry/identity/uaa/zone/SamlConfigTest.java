@@ -123,7 +123,7 @@ class SamlConfigTest {
                 .returns(passphrase, SamlKey::getPassphrase)
                 .returns(certificate, SamlKey::getCertificate);
         assertThat(config.getActiveKey()).isSameAs(keys.get(keyId));
-        assertThat(config.getKeyList()).hasSize(1).containsExactly(key);
+        assertThat(config.getKeyList()).containsExactly(key);
     }
 
     @Test

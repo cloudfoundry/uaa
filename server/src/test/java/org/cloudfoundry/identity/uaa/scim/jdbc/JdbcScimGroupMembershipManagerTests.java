@@ -42,9 +42,7 @@ import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
@@ -164,7 +162,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void deleteByMember() throws SQLException {
+    void deleteByMember() throws Exception {
         addMember("g1", "m3", "USER", LDAP, jdbcTemplate, uaaIdentityZone.getId());
         addMember("g1", "g2", "GROUP", LDAP, jdbcTemplate, uaaIdentityZone.getId());
         addMember("g3", "m2", "USER", UAA, jdbcTemplate, uaaIdentityZone.getId());
@@ -175,7 +173,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void deleteByMemberAndOrigin() throws SQLException {
+    void deleteByMemberAndOrigin() throws Exception {
         addMember("g1", "m3", "USER", LDAP, jdbcTemplate, uaaIdentityZone.getId());
         addMember("g1", "g2", "GROUP", LDAP, jdbcTemplate, uaaIdentityZone.getId());
         addMember("g3", "m2", "USER", UAA, jdbcTemplate, uaaIdentityZone.getId());
@@ -188,7 +186,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canDeleteWithOrigin() throws SQLException {
+    void canDeleteWithOrigin() throws Exception {
         addMembers(jdbcTemplate, uaaIdentityZone.getId());
         validateCount(4, jdbcTemplate, uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.deleteMembersByOrigin(OriginKeys.UAA, uaaIdentityZone.getId());
@@ -196,7 +194,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canDeleteWithOrigin2() throws SQLException {
+    void canDeleteWithOrigin2() throws Exception {
         addMembers(jdbcTemplate, uaaIdentityZone.getId());
         validateCount(4, jdbcTemplate, uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.deleteMembersByOrigin(OriginKeys.ORIGIN, uaaIdentityZone.getId());
@@ -204,7 +202,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canDeleteWithOrigin3() throws SQLException {
+    void canDeleteWithOrigin3() throws Exception {
         addMembers(jdbcTemplate, uaaIdentityZone.getId());
         validateCount(4, jdbcTemplate, uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.removeMembersByMemberId("m3", uaaIdentityZone.getId());
@@ -212,7 +210,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void cannotDeleteWithFilterOutsideZone() throws SQLException {
+    void cannotDeleteWithFilterOutsideZone() throws Exception {
         addMembers(jdbcTemplate, uaaIdentityZone.getId());
         validateCount(4, jdbcTemplate, uaaIdentityZone.getId());
         IdentityZoneHolder.set(otherIdentityZone);
@@ -232,7 +230,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void userDeleteClearsMemberships_InUaaZone() throws SQLException {
+    void userDeleteClearsMemberships_InUaaZone() throws Exception {
         UaaUserPrototype prototype = new UaaUserPrototype()
                 .withUsername("username")
                 .withEmail("test@test.com");
@@ -247,7 +245,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void userDeleteClearsMemberships_InOtherZone() throws SQLException {
+    void userDeleteClearsMemberships_InOtherZone() throws Exception {
         UaaUserPrototype prototype = new UaaUserPrototype()
                 .withUsername("username")
                 .withEmail("test@test.com");
@@ -262,7 +260,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void zoneDeleteClearsMemberships_InUaaZone() throws SQLException {
+    void zoneDeleteClearsMemberships_InUaaZone() throws Exception {
         addMembers(OriginKeys.LDAP, jdbcTemplate, uaaIdentityZone.getId());
         validateCount(4, jdbcTemplate, uaaIdentityZone.getId());
 
@@ -272,7 +270,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void zoneDeleteClearsMemberships_InOtherZone() throws SQLException {
+    void zoneDeleteClearsMemberships_InOtherZone() throws Exception {
         addMembers(OriginKeys.LDAP, jdbcTemplate, otherIdentityZone.getId());
         validateCount(4, jdbcTemplate, otherIdentityZone.getId());
 
@@ -282,7 +280,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void providerDeleteClearsMemberships_InUaaZone() throws SQLException {
+    void providerDeleteClearsMemberships_InUaaZone() throws Exception {
         addMembers(OriginKeys.LDAP, jdbcTemplate, uaaIdentityZone.getId());
         validateCount(4, "ZoneID: " + uaaIdentityZone.getId(), jdbcTemplate, uaaIdentityZone.getId());
         IdentityProvider provider = new IdentityProvider()
@@ -296,7 +294,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void providerDeleteClearsMemberships_InOtherZone() throws SQLException {
+    void providerDeleteClearsMemberships_InOtherZone() throws Exception {
         addMembers(OriginKeys.LDAP, jdbcTemplate, otherIdentityZone.getId());
         validateCount(4, "ZoneID: " + otherIdentityZone.getId(), jdbcTemplate, otherIdentityZone.getId());
         IdentityProvider provider = new IdentityProvider()
@@ -310,7 +308,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void zoneDeleted() throws SQLException {
+    void zoneDeleted() throws Exception {
         String zoneAdminId = generator.generate();
         addGroup(zoneAdminId, "zones." + otherIdentityZone.getId() + ".admin", uaaIdentityZone.getId(), jdbcTemplate);
         addMember(zoneAdminId, "m1", "USER", OriginKeys.UAA, jdbcTemplate, uaaIdentityZone.getId());
@@ -343,7 +341,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void providerDeleted() throws SQLException {
+    void providerDeleted() throws Exception {
         String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
@@ -368,7 +366,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void cannotDeleteUaaZone() throws SQLException {
+    void cannotDeleteUaaZone() throws Exception {
         String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(jdbcTemplate, uaaIdentityZone.getId());
@@ -382,7 +380,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void cannotDeleteUaaProvider() throws SQLException {
+    void cannotDeleteUaaProvider() throws Exception {
         String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
@@ -415,7 +413,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canAddMember() throws SQLException {
+    void canAddMember() throws Exception {
         validateCount(0, jdbcTemplate, uaaIdentityZone.getId());
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
         ScimGroupMember m2 = jdbcScimGroupMembershipManager.addMember("g2", m1, uaaIdentityZone.getId());
@@ -435,7 +433,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canAddMemberValidateOriginAndZoneId() throws SQLException {
+    void canAddMemberValidateOriginAndZoneId() throws Exception {
         otherIdentityZone.getConfig().getUserConfig().setDefaultGroups(emptyList());
         IdentityZoneHolder.set(otherIdentityZone);
         validateCount(0, jdbcTemplate, otherIdentityZone.getId());
@@ -520,7 +518,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canUpdateOrAddMembers() throws SQLException {
+    void canUpdateOrAddMembers() throws Exception {
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m4", ScimGroupMember.Type.USER), uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP), uaaIdentityZone.getId());
@@ -554,7 +552,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canRemoveMemberById() throws SQLException {
+    void canRemoveMemberById() throws Exception {
         addMember("g1", "m1", "USER", "READER", jdbcTemplate, uaaIdentityZone.getId());
         validateCount(1, jdbcTemplate, uaaIdentityZone.getId());
 
@@ -564,7 +562,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canRemoveNestedGroupMember() throws SQLException {
+    void canRemoveNestedGroupMember() throws Exception {
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP), uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER), uaaIdentityZone.getId());
@@ -581,7 +579,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void canRemoveAllMembers() throws SQLException {
+    void canRemoveAllMembers() throws Exception {
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP), uaaIdentityZone.getId());
         jdbcScimGroupMembershipManager.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER), uaaIdentityZone.getId());
@@ -621,7 +619,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void groupsWithMemberAndMaxSqlParameter() throws SQLException {
+    void groupsWithMemberAndMaxSqlParameter() throws Exception {
         int oldValue = jdbcScimGroupMembershipManager.getMaxSqlParameters();
         for (int l : List.of(-1, 10)) {
             jdbcScimGroupMembershipManager.setMaxSqlParameters(l);

@@ -54,8 +54,7 @@ class LimiterByCompoundKeyTest {
     private InternalLimiter getLimiter(String callerId) {
         CompoundKey compoundKey = CompoundKey.from(LIMITER_NAME, WINDOW_TYPE, callerId);
         InternalLimiter limiter = limiterByCompoundKey.get(compoundKey, factory, limiterCreationTracker);
-        assertThat(limiter).isNotNull();
-        return limiter;
+        return assertThat(limiter).isNotNull().actual();
     }
 
     private Params addLimiterAndAdvanceClockBy1Sec(String callerId) {

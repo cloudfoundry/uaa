@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken.BEARER_TYPE;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -120,7 +120,7 @@ class UaaTokenTests {
         accessTokenRequest.addAll(parameters);
         accessTokenRequest.clear();
         accessTokenRequest.add("key", "value");
-        assertThat(accessTokenRequest.keySet()).isEqualTo(Set.of("key"));
+        assertThat(accessTokenRequest.keySet()).hasSameElementsAs(Set.of("key"));
         assertThat(accessTokenRequest.values()).hasToString(List.of(List.of("value")).toString());
 
         // parameters
@@ -136,7 +136,7 @@ class UaaTokenTests {
         accessTokenRequest.clear();
         parameters = new LinkedMultiValueMap<>();
         parameters.addAll("key", List.of("value"));
-        assertThat(new DefaultAccessTokenRequest(null)).isEqualTo(accessTokenRequest);
+        assertThat(new DefaultAccessTokenRequest(null)).containsExactlyInAnyOrderEntriesOf(accessTokenRequest);
         DefaultAccessTokenRequest newAccessTokenRequest = new DefaultAccessTokenRequest(Map.of("scope", new String[]{"x"}, "client_id", new String[]{"x"}));
         assertThat(newAccessTokenRequest).isNotEqualTo(accessTokenRequest);
         assertThat(newAccessTokenRequest.toString()).isNotEqualTo(accessTokenRequest.toString());
@@ -146,8 +146,8 @@ class UaaTokenTests {
         }
         accessTokenRequest.remove("key");
         assertThat(accessTokenRequest).doesNotContainKey("key")
-                .doesNotContainKey("key");
-        assertThat(accessTokenRequest.containsValue("value")).isFalse();
+                .doesNotContainKey("key")
+                .doesNotContainValue(List.of("value"));
     }
 
     @Test

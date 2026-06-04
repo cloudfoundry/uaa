@@ -11,9 +11,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-import jakarta.servlet.ServletException;
-import java.io.IOException;
-
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
@@ -26,7 +23,7 @@ import static org.mockito.Mockito.when;
 class ClientParametersAuthenticationFilterTest {
 
     @Test
-    void doesNotContinueWithFilterChain_IfAuthenticationException() throws IOException, ServletException {
+    void doesNotContinueWithFilterChain_IfAuthenticationException() throws Exception {
         ClientParametersAuthenticationFilter filter = new ClientParametersAuthenticationFilter();
 
         AuthenticationEntryPoint authenticationEntryPoint = mock(AuthenticationEntryPoint.class);
@@ -50,7 +47,7 @@ class ClientParametersAuthenticationFilterTest {
     }
 
     @Test
-    void storeClientAuthenticationMethod() throws IOException, ServletException {
+    void storeClientAuthenticationMethod() throws Exception {
         ClientParametersAuthenticationFilter filter = new ClientParametersAuthenticationFilter();
 
         AuthenticationEntryPoint authenticationEntryPoint = mock(AuthenticationEntryPoint.class);
@@ -78,7 +75,7 @@ class ClientParametersAuthenticationFilterTest {
     }
 
     @Test
-    void storeClientAuthenticationMethodNoDetails() throws IOException, ServletException {
+    void storeClientAuthenticationMethodNoDetails() throws Exception {
         ClientParametersAuthenticationFilter filter = new ClientParametersAuthenticationFilter();
 
         AuthenticationEntryPoint authenticationEntryPoint = mock(AuthenticationEntryPoint.class);
@@ -103,7 +100,7 @@ class ClientParametersAuthenticationFilterTest {
     }
 
     @Test
-    void storeClientAuthenticationMethodNoMethod() throws IOException, ServletException {
+    void storeClientAuthenticationMethodNoMethod() throws Exception {
         ClientParametersAuthenticationFilter filter = new ClientParametersAuthenticationFilter();
 
         AuthenticationEntryPoint authenticationEntryPoint = mock(AuthenticationEntryPoint.class);

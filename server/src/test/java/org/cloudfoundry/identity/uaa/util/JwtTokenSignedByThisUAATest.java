@@ -65,9 +65,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
@@ -529,7 +527,7 @@ public class JwtTokenSignedByThisUAATest {
         when(validator.getDelegates()).thenReturn(List.of(verifier));
 
         List<String> scopes = buildIdTokenValidator(getToken(), validator, new KeyInfoService("https://localhost")).requestedScopes();
-        assertThat(scopes).isEqualTo(Lists.newArrayList("openid"));
+        assertThat(scopes).containsExactlyElementsOf(Lists.newArrayList("openid"));
     }
 
     @Test

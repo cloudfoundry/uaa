@@ -10,9 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -274,14 +272,14 @@ class ClientJwtConfigurationTest {
     }
 
     @Test
-    void equals() throws CloneNotSupportedException {
+    void equals() throws Exception {
         ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("http://localhost:8080/uaa");
         ClientJwtConfiguration key2 = (ClientJwtConfiguration) key1.clone();
         assertThat(key2).isEqualTo(key1);
     }
 
     @Test
-    void serializableObjectCalls() throws CloneNotSupportedException {
+    void serializableObjectCalls() throws Exception {
         ClientJwtConfiguration key1 = JsonUtils.readValue(defaultJsonUri, ClientJwtConfiguration.class);
         ClientJwtConfiguration key2 = (ClientJwtConfiguration) key1.clone();
         assertThat(key2).isEqualTo(key1);

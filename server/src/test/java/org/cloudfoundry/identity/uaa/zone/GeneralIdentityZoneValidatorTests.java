@@ -36,7 +36,7 @@ class GeneralIdentityZoneValidatorTests {
     GeneralIdentityZoneValidator validator;
 
     @Test
-    void validateRightMode() throws InvalidIdentityZoneDetailsException, InvalidIdentityZoneConfigurationException {
+    void validateRightMode() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "domain");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         zone.setConfig(config);
@@ -98,7 +98,7 @@ class GeneralIdentityZoneValidatorTests {
     }
 
     @Test
-    void otherZoneInactiveSucceeds() throws InvalidIdentityZoneConfigurationException, InvalidIdentityZoneDetailsException {
+    void otherZoneInactiveSucceeds() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "domain");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         zone.setConfig(config);

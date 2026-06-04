@@ -154,7 +154,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext
 // public for LimitedModeLoginMockMvcTests
 @EnabledIfZonePathsEnabled
-public class LoginMockMvcZonePathTests {
+class LoginMockMvcZonePathTests {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -421,13 +421,15 @@ public class LoginMockMvcZonePathTests {
         String body = result.getResponse().getContentAsString();
 
         if (mode == ZoneResolutionMode.ZONE_PATH) {
-            org.hamcrest.MatcherAssert.assertThat(body, containsString("action=\"/z/" + subdomain + "/login.do\""));
-            org.hamcrest.MatcherAssert.assertThat(body, containsString("/z/" + subdomain + "/create_account"));
-            org.hamcrest.MatcherAssert.assertThat(body, containsString("/z/" + subdomain + "/forgot_password"));
+            assertThat(body)
+                    .contains("action=\"/z/" + subdomain + "/login.do\"")
+                    .contains("/z/" + subdomain + "/create_account")
+                    .contains("/z/" + subdomain + "/forgot_password");
         } else {
-            org.hamcrest.MatcherAssert.assertThat(body, containsString("action=\"/login.do\""));
-            org.hamcrest.MatcherAssert.assertThat(body, containsString("/create_account"));
-            org.hamcrest.MatcherAssert.assertThat(body, containsString("/forgot_password"));
+            assertThat(body)
+                    .contains("action=\"/login.do\"")
+                    .contains("/create_account")
+                    .contains("/forgot_password");
         }
     }
 
@@ -1355,8 +1357,13 @@ public class LoginMockMvcZonePathTests {
                 .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string(faviconPath))
                 .andExpect(xpath("//head/link[@href='" + cssPath + "']").exists());
         String body = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login")).andReturn().getResponse().getContentAsString();
-        org.hamcrest.MatcherAssert.assertThat("Login page should contain product-logo or login form", body,
-                CoreMatchers.anyOf(containsString("product-logo"), containsString("username"), containsString("password")));
+        assertThat(body)
+                .as("Login page should contain product-logo or login form")
+                .satisfiesAnyOf(
+                        arg -> assertThat(arg).contains("product-logo"),
+                        arg -> assertThat(arg).contains("username"),
+                        arg -> assertThat(arg).contains("password")
+                );
     }
 
     @Nested
@@ -1575,7 +1582,7 @@ public class LoginMockMvcZonePathTests {
                         : result -> {
                             @SuppressWarnings("unchecked")
                             Map<String, ?> links = (Map<String, ?>) result.getModelAndView().getModel().get("links");
-                            assertThat(links).isNotNull().containsKey("createAccountLink");
+                            assertThat(links).containsKey("createAccountLink");
                             assertThat(String.valueOf(links.get("createAccountLink"))).contains("create_account");
                         });
         config.getLinks().getSelfService().setSignup("http://www.example.com/signup");
@@ -1587,7 +1594,7 @@ public class LoginMockMvcZonePathTests {
                         : result -> {
                             @SuppressWarnings("unchecked")
                             Map<String, ?> links = (Map<String, ?>) result.getModelAndView().getModel().get("links");
-                            assertThat(links).isNotNull().containsKey("createAccountLink");
+                            assertThat(links).containsKey("createAccountLink");
                             assertThat(String.valueOf(links.get("createAccountLink"))).contains("example.com/signup");
                         });
     }
@@ -2901,8 +2908,9 @@ public class LoginMockMvcZonePathTests {
         Map<String, String> queryParams =
                 UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
-        assertThat(location).startsWith(mode == ZoneResolutionMode.ZONE_PATH ? "/z/" : "/login");
-        assertThat(location).contains("/login");
+        assertThat(location)
+                .startsWith(mode == ZoneResolutionMode.ZONE_PATH ? "/z/" : "/login")
+                .contains("/login");
         assertThat(queryParams).containsEntry("login_hint", loginHint)
                 .containsEntry("discoveryPerformed", "true");
     }
@@ -2929,8 +2937,9 @@ public class LoginMockMvcZonePathTests {
         Map<String, String> queryParams =
                 UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
-        assertThat(location).startsWith(mode == ZoneResolutionMode.ZONE_PATH ? "/z/" : "/login");
-        assertThat(location).contains("/login");
+        assertThat(location)
+                .startsWith(mode == ZoneResolutionMode.ZONE_PATH ? "/z/" : "/login")
+                .contains("/login");
         assertThat(queryParams)
                 .containsEntry("discoveryPerformed", "true")
                 .doesNotContainKey("login_hint");

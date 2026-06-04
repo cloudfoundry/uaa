@@ -25,6 +25,7 @@ public class PollutionPreventionExtension implements AfterAllCallback, BeforeAll
         try {
             return SpringExtension.getApplicationContext(extensionContext);
         } catch (IllegalStateException _) {
+            // ignore
         }
         return null;
     }

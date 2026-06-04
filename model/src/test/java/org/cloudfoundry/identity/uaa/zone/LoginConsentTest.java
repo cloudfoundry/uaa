@@ -12,7 +12,7 @@ class LoginConsentTest {
     private final ObjectMapper objectMapper = new JsonMapper();
 
     @Test
-    void testDefaultConstructor() {
+    void defaultConstructor() {
         LoginConsent consent = new LoginConsent();
         assertThat(consent.isEnabled()).isFalse();
         assertThat(consent.getTitle()).isNotNull();
@@ -24,7 +24,7 @@ class LoginConsentTest {
     }
 
     @Test
-    void testFullConstructor() {
+    void fullConstructor() {
         LoginConsent consent = new LoginConsent(
             true,
             "Test Title",
@@ -45,7 +45,7 @@ class LoginConsentTest {
     }
 
     @Test
-    void testSettersAndGetters() {
+    void settersAndGetters() {
         LoginConsent consent = new LoginConsent();
         
         consent.setEnabled(true);
@@ -66,7 +66,7 @@ class LoginConsentTest {
     }
 
     @Test
-    void testJsonSerialization() throws Exception {
+    void jsonSerialization() throws Exception {
         LoginConsent consent = new LoginConsent(
                 true,
                 "Test Title",
@@ -78,14 +78,14 @@ class LoginConsentTest {
         );
 
         String json = objectMapper.writeValueAsString(consent);
-        assertThat(json).isNotNull()
+        assertThat(json)
                 .contains("\"enabled\":true")
                 .contains("\"title\":\"Test Title\"")
                 .contains("\"text\":\"Test Text\"");
     }
 
     @Test
-    void testJsonDeserialization() throws Exception {
+    void jsonDeserialization() throws Exception {
         String json = """
             {
                 "enabled": true,
@@ -110,14 +110,14 @@ class LoginConsentTest {
     }
 
     @Test
-    void testJsonSerializationWithNulls() throws Exception {
+    void jsonSerializationWithNulls() throws Exception {
         LoginConsent consent = new LoginConsent();
         consent.setEnabled(true);
         consent.setTitle("Title");
         consent.setText("Text");
 
         String json = objectMapper.writeValueAsString(consent);
-        assertThat(json).isNotNull()
+        assertThat(json)
                 // Non-null fields should be included
                 .contains("\"enabled\":true")
                 .contains("\"title\":\"Title\"")
@@ -126,7 +126,7 @@ class LoginConsentTest {
     }
 
     @Test
-    void testEquals() {
+    void equals() {
         LoginConsent consent1 = new LoginConsent(true, "Title", "Text", "Accept", "Decline", "https://example.com", "12h");
         LoginConsent consent2 = new LoginConsent(true, "Title", "Text", "Accept", "Decline", "https://example.com", "12h");
         LoginConsent consent3 = new LoginConsent(true, "Different", "Text", "Accept", "Decline", "https://example.com", "12h");
@@ -150,7 +150,7 @@ class LoginConsentTest {
         LoginConsent consent = new LoginConsent(true, "Title", "Test Text", "Accept", "Decline", "https://example.com", "12h");
         String toString = consent.toString();
 
-        assertThat(toString).isNotNull()
+        assertThat(toString)
                 .contains("enabled=true")
                 .contains("title=Title")
                 .contains("acceptButtonText=Accept");

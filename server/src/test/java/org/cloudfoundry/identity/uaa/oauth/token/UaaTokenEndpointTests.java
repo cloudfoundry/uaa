@@ -16,9 +16,7 @@ import java.security.Principal;
 import java.util.Set;
 
 import static java.util.Collections.emptyMap;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -66,7 +64,6 @@ class UaaTokenEndpointTests {
     void setAllowedRequestMethods() {
         Set<HttpMethod> methods = (Set<HttpMethod>) ReflectionTestUtils.getField(endpoint, "allowedRequestMethods");
         assertThat(methods)
-                .hasSize(2)
                 .containsExactlyInAnyOrder(POST, GET);
     }
 

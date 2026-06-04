@@ -82,10 +82,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.HamcrestCondition.matching;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.CLIENT_AUTHORITIES;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.CLIENT_ID;
@@ -216,7 +213,7 @@ class DeprecatedUaaTokenServicesTests {
         verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
         verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         assertThat(rt.getAllValues()).hasSize(2);
-        assertThat(rt.getAllValues().getFirst()).isNotNull();
+        assertThat(rt.getAllValues()).first().isNotNull();
         assertThat(rt.getAllValues().getFirst().getResponseType()).isEqualTo(RevocableToken.TokenType.ACCESS_TOKEN);
         assertThat(rt.getAllValues().getFirst().getFormat()).isEqualTo(OPAQUE.getStringValue());
         assertThat(result.getValue()).isEqualTo("id");
@@ -352,9 +349,9 @@ class DeprecatedUaaTokenServicesTests {
         verify(idTokenCreator).create(eq(clientDetails), any(), userAuthenticationDataArgumentCaptor.capture(), any());
         UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
         Set<String> expectedRoles = Sets.newHashSet("custom_role");
-        assertThat(userData.roles).isEqualTo(expectedRoles);
-        assertThat(userData.userAttributes).isEqualTo(userAttributes);
-        assertThat(userData.contextClassRef).isEqualTo(acrValue);
+        assertThat(userData.roles).hasSameElementsAs(expectedRoles);
+        assertThat(userData.userAttributes).containsExactlyInAnyOrderEntriesOf(userAttributes);
+        assertThat(userData.contextClassRef).hasSameElementsAs(acrValue);
     }
 
     @MethodSource("data")
@@ -626,8 +623,9 @@ class DeprecatedUaaTokenServicesTests {
         Jwt parsedToken = JwtHelper.decode(jwt);
         Map<String, Object> claims = JsonUtils.readValue(parsedToken.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-        assertThat(claims).containsEntry("claim1", "value1");
-        assertThat(claims).containsEntry("claim2", "value1_modified");
+        assertThat(claims)
+                .containsEntry("claim1", "value1")
+                .containsEntry("claim2", "value1_modified");
     }
 
     @MethodSource("data")

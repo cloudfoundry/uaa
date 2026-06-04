@@ -840,8 +840,7 @@ class IdentityProviderEndpointsTest {
             cloneIdp.setAliasId(idp.getAliasId());
             cloneIdp.setAliasZid(idp.getAliasZid());
             cloneIdp.setActive(idp.isActive());
-            assertThat(cloneIdp).isEqualTo(idp);
-            return cloneIdp;
+            return assertThat(cloneIdp).isEqualTo(idp).actual();
         }
     }
 
@@ -857,8 +856,8 @@ class IdentityProviderEndpointsTest {
             IdentityProvider created = response.getBody();
             assertThat(created).isNotNull();
             assertThat(created.getType()).isEqualTo(type);
-            assertThat(created.getConfig()).isNotNull();
-            assertThat(created.getConfig()).isInstanceOf(AbstractExternalOAuthIdentityProviderDefinition.class);
+            assertThat(created.getConfig())
+                    .isInstanceOf(AbstractExternalOAuthIdentityProviderDefinition.class);
             assertThat(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret()).isNull();
             assertThat(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getAuthMethod()).isEqualTo(ClientAuthentication.CLIENT_SECRET_BASIC);
         }
@@ -876,8 +875,8 @@ class IdentityProviderEndpointsTest {
             IdentityProvider created = response.getBody();
             assertThat(created).isNotNull();
             assertThat(created.getType()).isEqualTo(type);
-            assertThat(created.getConfig()).isNotNull();
-            assertThat(created.getConfig()).isInstanceOf(AbstractExternalOAuthIdentityProviderDefinition.class);
+            assertThat(created.getConfig()).isNotNull()
+                    .isInstanceOf(AbstractExternalOAuthIdentityProviderDefinition.class);
             assertThat(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret()).isNull();
             assertThat(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getAuthMethod()).isEqualTo(ClientAuthentication.CLIENT_SECRET_BASIC);
             externalOAuthDefinition.getConfig().setRelyingPartySecret(null);

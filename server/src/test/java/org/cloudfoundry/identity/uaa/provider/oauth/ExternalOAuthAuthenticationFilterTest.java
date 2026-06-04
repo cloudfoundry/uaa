@@ -14,14 +14,12 @@ import org.springframework.web.HttpSessionRequiredException;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.RequestDispatcher;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import java.io.IOException;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -46,7 +44,7 @@ class ExternalOAuthAuthenticationFilterTest {
     class WhenAuthenticationSucceeds {
 
         @Test
-        void itShouldCallTheNextFilter() throws IOException, ServletException {
+        void itShouldCallTheNextFilter() throws Exception {
             externalOAuthAuthenticationFilter = new ExternalOAuthAuthenticationFilter(externalOAuthAuthenticationManager, null);
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
@@ -60,7 +58,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itCallsTheSuccessHandler() throws IOException, ServletException {
+        void itCallsTheSuccessHandler() throws Exception {
             AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
             Authentication mockAuthentication = mock(Authentication.class);
             when(externalOAuthAuthenticationManager.authenticate(any())).thenReturn(mockAuthentication);
@@ -89,7 +87,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itShouldNotCallTheNextFilter() throws IOException, ServletException {
+        void itShouldNotCallTheNextFilter() throws Exception {
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, OAUTH_STATE);
@@ -111,7 +109,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfNoSession() throws IOException, ServletException {
+        void itThrowsIfNoSession() throws Exception {
             HttpServletRequest mockRequest = mockRedirectRequest(false, ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, OAUTH_STATE);
@@ -124,7 +122,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfNoStateInSession() throws IOException, ServletException {
+        void itThrowsIfNoStateInSession() throws Exception {
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, OAUTH_STATE);
@@ -137,7 +135,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfNoStateInRequest() throws IOException, ServletException {
+        void itThrowsIfNoStateInRequest() throws Exception {
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInSession(request.getSession(), ORIGIN_KEY, OAUTH_STATE);
@@ -150,7 +148,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfStateIsMismatched() throws IOException, ServletException {
+        void itThrowsIfStateIsMismatched() throws Exception {
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, "surprise");
@@ -173,7 +171,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itRedirects() throws IOException, ServletException {
+        void itRedirects() throws Exception {
             RequestDispatcher mockRequestDispatcher = mock(RequestDispatcher.class);
 
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
@@ -190,7 +188,7 @@ class ExternalOAuthAuthenticationFilterTest {
 
         @Test
         void itRedirects_EvenWhenTheStateHasNotYetBeenPulledFromTheHashFragmentYet()
-                throws IOException, ServletException {
+                throws Exception {
             RequestDispatcher mockRequestDispatcher = mock(RequestDispatcher.class);
 
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request ->

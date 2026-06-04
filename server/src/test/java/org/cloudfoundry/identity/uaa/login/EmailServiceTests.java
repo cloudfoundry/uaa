@@ -59,7 +59,7 @@ class EmailServiceTests {
         assertThat(fromAddress.getAddress()).isEqualTo("admin@login.example.com");
         assertThat(fromAddress.getPersonal()).isEqualTo("Cloud Foundry");
         assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO)).hasSize(1);
-        assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO).getFirst()).isEqualTo(new InternetAddress("user@example.com"));
+        assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO)).first().isEqualTo(new InternetAddress("user@example.com"));
         assertThat(mimeMessageWrapper.getContentString()).isEqualTo("<html><body>hi</body></html>");
     }
 

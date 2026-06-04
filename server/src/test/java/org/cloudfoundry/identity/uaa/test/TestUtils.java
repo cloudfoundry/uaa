@@ -119,7 +119,7 @@ public class TestUtils {
             ClientAdminBootstrap bootstrap = applicationContext.getBean(ClientAdminBootstrap.class);
             bootstrap.afterPropertiesSet();
         } catch (Exception _) {
-
+            // ignore
         }
     }
 
@@ -128,7 +128,7 @@ public class TestUtils {
             InitializingBean bootstrap = applicationContext.getBean(clazz);
             bootstrap.afterPropertiesSet();
         } catch (Exception _) {
-
+            // ignore
         }
     }
 

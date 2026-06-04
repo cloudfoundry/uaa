@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -44,7 +44,7 @@ class PasscodeInformationTest {
         assertThat(passcodeInformation.getUsername()).isEqualTo(uaaPrincipal.getName());
         assertThat(passcodeInformation.getOrigin()).isEqualTo(uaaPrincipal.getOrigin());
         assertThat(passcodeInformation.getUserId()).isEqualTo(uaaPrincipal.getId());
-        assertThat(passcodeInformation.getSamlAuthorities()).isEqualTo(Collections.emptyList());
+        assertThat(passcodeInformation.getSamlAuthorities()).containsExactlyElementsOf(Collections.emptyList());
     }
 
     @Test

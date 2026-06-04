@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
-public class RateLimiterMockMvcTest {
+class RateLimiterMockMvcTest {
 
     @Autowired
     WebApplicationContext webApplicationContext;
@@ -52,7 +52,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void happyTokenPathWithoutSlash() throws Exception {
+    void happyTokenPathWithoutSlash() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus")
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON);
@@ -63,7 +63,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void happyTokenPathWithSlash() throws Exception {
+    void happyTokenPathWithSlash() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus/")
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON);
@@ -74,7 +74,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void failBasicAuthPathWithSlash() throws Exception {
+    void failBasicAuthPathWithSlash() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus/")
                 .header("Authorization", getAuthorizationHeader("admin", "adminsecret"))
                 .accept(APPLICATION_JSON);
@@ -84,7 +84,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void failBasicAuthPathWithoutSlash() throws Exception {
+    void failBasicAuthPathWithoutSlash() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus")
                 .header("Authorization", getAuthorizationHeader("admin", "adminsecret"))
                 .accept(APPLICATION_JSON);
@@ -94,7 +94,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void improperClientWithoutScopeShouldFail() throws Exception {
+    void improperClientWithoutScopeShouldFail() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus")
                 .header("Authorization", "Bearer " + loginClientToken)
                 .accept(APPLICATION_JSON);
@@ -104,7 +104,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void missingScopeInTokenShouldFail() throws Exception {
+    void missingScopeInTokenShouldFail() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus")
                 .header("Authorization", "Bearer " + noUaaAdminToken)
                 .accept(APPLICATION_JSON);
@@ -114,7 +114,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void improperClientBasicAuthShouldFail() throws Exception {
+    void improperClientBasicAuthShouldFail() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus")
                 .header("Authorization", getAuthorizationHeader("login", "loginsecret"))
                 .accept(APPLICATION_JSON);
@@ -124,7 +124,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void improperClientTokenAuthShouldFail() throws Exception {
+    void improperClientTokenAuthShouldFail() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus")
                 .header("Authorization", "Bearer " + loginClientToken)
                 .accept(APPLICATION_JSON);
@@ -134,7 +134,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void zoneClientTokenAuthShouldFail() throws Exception {
+    void zoneClientTokenAuthShouldFail() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus")
                 .with(new SetServerNameRequestPostProcessor(zone.getIdentityZone().getSubdomain() + ".localhost"))
                 .header("Authorization", "Bearer " + zone.getZoneAdminToken())
@@ -145,7 +145,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void zoneUaaAdminClientTokenAuthShouldFail() throws Exception {
+    void zoneUaaAdminClientTokenAuthShouldFail() throws Exception {
         String zoneUaaAdminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
                 mockMvc, "admin", "adminsecret", "uaa.admin", zone.getIdentityZone().getSubdomain(), false
         );
@@ -159,7 +159,7 @@ public class RateLimiterMockMvcTest {
     }
 
     @Test
-    public void zoneClientBasicAuthShouldFail() throws Exception {
+    void zoneClientBasicAuthShouldFail() throws Exception {
         MockHttpServletRequestBuilder get = get("/RateLimitingStatus")
                 .with(new SetServerNameRequestPostProcessor(zone.getIdentityZone().getSubdomain() + ".localhost"))
                 .header("Authorization", getAuthorizationHeader("admin", "adminsecret"))

@@ -18,7 +18,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.sql.Timestamp;
@@ -26,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -102,7 +101,7 @@ class ScimUtilsTest {
         class WhenZoneIsUaa {
 
             @Test
-            void getVerificationURL() throws MalformedURLException {
+            void getVerificationURL() throws Exception {
                 URL actual = ScimUtils.getVerificationURL(mockExpiringCode, IdentityZone.getUaa());
                 URL expected = URI.create("http://localhost:8080/uaa/verify_user?code=code").toURL();
                 assertThat(actual).hasToString(expected.toString());
@@ -112,7 +111,7 @@ class ScimUtilsTest {
         @Nested
         class WhenZoneIsNotUaa {
             @Test
-            void getVerificationURL() throws MalformedURLException {
+            void getVerificationURL() throws Exception {
                 IdentityZone mockIdentityZone = mock(IdentityZone.class);
                 when(mockIdentityZone.isUaa()).thenReturn(false);
                 when(mockIdentityZone.getSubdomain()).thenReturn("subdomain");

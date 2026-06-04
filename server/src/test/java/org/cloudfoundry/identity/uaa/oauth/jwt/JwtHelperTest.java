@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 
@@ -63,15 +63,15 @@ class JwtHelperTest {
 
         Claims claimSingle = UaaTokenUtils.getClaimsFromTokenString(audSingle.getEncoded());
         assertThat(claimSingle).isNotNull();
-        assertThat(claimSingle.getAud()).isEqualTo(Arrays.asList("single"));
+        assertThat(claimSingle.getAud()).containsExactlyElementsOf(Arrays.asList("single"));
 
         Claims claimArray = UaaTokenUtils.getClaimsFromTokenString(audArray.getEncoded());
         assertThat(claimArray).isNotNull();
-        assertThat(claimArray.getAud()).isEqualTo(Arrays.asList("one"));
+        assertThat(claimArray.getAud()).containsExactlyElementsOf(Arrays.asList("one"));
 
         Claims claimArrayThree = UaaTokenUtils.getClaimsFromTokenString(audArrayThree.getEncoded());
         assertThat(claimArrayThree).isNotNull();
-        assertThat(claimArrayThree.getAud()).isEqualTo(Arrays.asList("one", "two", "three"));
+        assertThat(claimArrayThree.getAud()).containsExactlyElementsOf(Arrays.asList("one", "two", "three"));
     }
 
     @Test

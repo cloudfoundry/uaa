@@ -68,7 +68,7 @@ import java.util.stream.Stream;
 
 import static org.apache.logging.log4j.Level.DEBUG;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.HamcrestCondition.matching;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ISSUER_URI;
@@ -270,8 +270,9 @@ class UaaTokenServicesTests {
                     Jwt parsedToken = JwtHelper.decode(jwt);
                     Map<String, Object> claims = JsonUtils.readValue(parsedToken.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-                    assertThat(claims).containsEntry("claim1", "value1");
-                    assertThat(claims).containsEntry("claim2", "value2");
+                    assertThat(claims)
+                            .containsEntry("claim1", "value1")
+                            .containsEntry("claim2", "value2");
                 } finally {
                     tokenServices.setUaaTokenEnhancers(new ArrayList<>());
                 }
@@ -320,8 +321,9 @@ class UaaTokenServicesTests {
                     Jwt parsedToken = JwtHelper.decode(jwt);
                     Map<String, Object> claims = JsonUtils.readValue(parsedToken.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-                    assertThat(claims).containsEntry("claim1", "value1");
-                    assertThat(claims).containsEntry("claim2", "value1_modified");
+                    assertThat(claims)
+                            .containsEntry("claim1", "value1")
+                            .containsEntry("claim2", "value1_modified");
                 } finally {
                     tokenServices.setUaaTokenEnhancers(new ArrayList<>());
                 }
@@ -603,7 +605,7 @@ class UaaTokenServicesTests {
                 assertThat(refreshedToken).isNotNull();
 
                 Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getIdTokenValue(), Map.class);
-                assertThat(claims).isNotEmpty()
+                assertThat(claims)
                         .containsKey(ClaimConstants.ACR)
                         .containsKey(ClaimConstants.ACR);
                 assertThat((Map<String, Object>) claims.get(ClaimConstants.ACR)).containsKey("values");
@@ -726,7 +728,7 @@ class UaaTokenServicesTests {
                 assertThat(refreshedToken).isNotNull();
 
                 Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getIdTokenValue(), Map.class);
-                assertThat(claims).isNotEmpty()
+                assertThat(claims)
                         .containsKey(ClaimConstants.AMR)
                         .containsKey(ClaimConstants.AMR);
                 List<String> actualAmrs = (List<String>) claims.get(ClaimConstants.AMR);

@@ -27,13 +27,13 @@ class LazyEnumerationToListTest {
 
     private void checkNull(LazyEnumerationToList<Integer> el) {
         assertThat(el).isNotNull();
-        assertThat(el.get()).isEqualTo(Collections.emptyList());
+        assertThat(el.get()).containsExactlyElementsOf(Collections.emptyList());
         assertThat(el.hasValue()).isFalse();
     }
 
     private void checkNonNull(LazyEnumerationToList<Integer> el) {
         assertThat(el).isNotNull();
-        assertThat(el.get()).isEqualTo(SOURCE);
+        assertThat(el.get()).containsExactlyElementsOf(SOURCE);
         assertThat(el.hasValue()).isTrue();
     }
 }

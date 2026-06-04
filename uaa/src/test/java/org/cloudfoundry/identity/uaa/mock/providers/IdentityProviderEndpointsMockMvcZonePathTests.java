@@ -82,7 +82,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.clients.AdminClientCreator.SECRET;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
@@ -218,9 +218,9 @@ class IdentityProviderEndpointsMockMvcZonePathTests {
         assertThat(created.getConfig()).isNotNull();
         createIdentityProvider(null, created, accessToken, status().isConflict());
         SamlIdentityProviderDefinition samlCreated = created.getConfig();
-        assertThat(samlCreated.getEmailDomain()).isEqualTo(Arrays.asList("test.com", "test2.com"));
-        assertThat(samlCreated.getExternalGroupsWhitelist()).isEqualTo(externalGroupsWhitelist);
-        assertThat(samlCreated.getAttributeMappings()).isEqualTo(attributeMappings);
+        assertThat(samlCreated.getEmailDomain()).containsExactlyElementsOf(Arrays.asList("test.com", "test2.com"));
+        assertThat(samlCreated.getExternalGroupsWhitelist()).containsExactlyElementsOf(externalGroupsWhitelist);
+        assertThat(samlCreated.getAttributeMappings()).containsExactlyInAnyOrderEntriesOf(attributeMappings);
         assertThat(samlCreated.getZoneId()).isEqualTo(IdentityZone.getUaaZoneId());
         assertThat(samlCreated.getIdpEntityAlias()).isEqualTo(provider.getOriginKey());
 

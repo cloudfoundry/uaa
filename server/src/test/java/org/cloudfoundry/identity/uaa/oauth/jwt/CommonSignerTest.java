@@ -15,7 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -29,12 +28,11 @@ import org.junit.jupiter.api.Test;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 
 class CommonSignerTest {
@@ -93,7 +91,7 @@ class CommonSignerTest {
     }
 
     @Test
-    void mac_signing() throws JOSEException, ParseException {
+    void mac_signing() throws Exception {
         final String jwtFromIo = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiSm9obiBEb2UiLCJzdWIiOiIxMjM0NTY3ODkwIn0.hUTNPTwAP4RQFr_d_GOwXrVOJsX1-PWAvHSsg-CSQPk";
         CommonSigner signer = new CommonSigner(null, macSigningKey, DEFAULT_UAA_URL);
         assertThat(signer.algorithm()).isEqualTo("HS256");
@@ -112,12 +110,12 @@ class CommonSignerTest {
     @Test
     void mac_signing_options() {
         CommonSigner signer = new CommonSigner(null, macSigningKey, "http://localhost/uaa");
-        assertThat(signer.supportedJWSAlgorithms()).isEqualTo(UaaMacSigner.SUPPORTED_ALGORITHMS);
+        assertThat(signer.supportedJWSAlgorithms()).hasSameElementsAs(UaaMacSigner.SUPPORTED_ALGORITHMS);
         assertThat(signer.getJCAContext()).isNotNull();
     }
 
     @Test
-    void nimbus_singing_with_single_aud_value() throws JOSEException, ParseException {
+    void nimbus_singing_with_single_aud_value() throws Exception {
         // given
         Map<String, Object> objectMap = Map.of("sub", "1234567890", "name", "John Doe", "aud", List.of("single"));
         // when
@@ -134,7 +132,7 @@ class CommonSignerTest {
     }
 
     @Test
-    void uaa_singing_with_single_aud_value() throws ParseException {
+    void uaa_singing_with_single_aud_value() throws Exception {
         // given
         Map<String, Object> objectMap = Map.of("sub", "1234567890", "name", "John Doe", "aud", List.of("single"));
         // when

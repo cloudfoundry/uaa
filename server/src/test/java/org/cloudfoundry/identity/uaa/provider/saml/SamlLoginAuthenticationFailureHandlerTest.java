@@ -9,8 +9,6 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 
-import jakarta.servlet.ServletException;
-import java.io.IOException;
 import java.io.Serial;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +20,7 @@ import static org.mockito.Mockito.when;
 class SamlLoginAuthenticationFailureHandlerTest {
 
     @Test
-    void errorRedirect() throws IOException, ServletException {
+    void errorRedirect() throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -46,7 +44,7 @@ class SamlLoginAuthenticationFailureHandlerTest {
     }
 
     @Test
-    void errorRedirectWithExistingQueryParameters() throws IOException, ServletException {
+    void errorRedirectWithExistingQueryParameters() throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -70,7 +68,7 @@ class SamlLoginAuthenticationFailureHandlerTest {
     }
 
     @Test
-    void someOtherErrorCondition() throws IOException, ServletException {
+    void someOtherErrorCondition() throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -99,7 +97,7 @@ class SamlLoginAuthenticationFailureHandlerTest {
     }
 
     @Test
-    void noSession() throws IOException, ServletException {
+    void noSession() throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -115,7 +113,7 @@ class SamlLoginAuthenticationFailureHandlerTest {
     }
 
     @Test
-    void noSavedRequest() throws IOException, ServletException {
+    void noSavedRequest() throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -138,7 +136,7 @@ class SamlLoginAuthenticationFailureHandlerTest {
     }
 
     @Test
-    void noRedirectURI() throws IOException, ServletException {
+    void noRedirectURI() throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);

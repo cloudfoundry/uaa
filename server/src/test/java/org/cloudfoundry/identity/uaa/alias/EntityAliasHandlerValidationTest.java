@@ -12,8 +12,7 @@ import org.springframework.lang.Nullable;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerValidationTest.NoExistingAliasBase.ExistingEntityArgument.ENTITY_WITH_EMPTY_ALIAS_PROPS;
 
 public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias> {
@@ -77,9 +76,9 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
             setZoneId(requestBody, null);
 
             final T existingEntity = resolveExistingEntityArgument(existingEntityArg);
-            assertThatIllegalArgumentException().isThrownBy(() ->
-                    aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)
-            ).withMessage("The zone ID of the request body must not be empty.");
+            assertThatThrownBy(() -> aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("The zone ID of the request body must not be empty.");
         }
 
         protected final T resolveExistingEntityArgument(@NonNull final ExistingEntityArgument existingEntityArgument) {
@@ -169,9 +168,8 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
             final T requestBody = buildEntityWithAliasProps(IdentityZone.getUaaZoneId(), null, CUSTOM_ZONE_ID);
             changeNonAliasProperties(requestBody);
 
-            assertThatIllegalStateException().isThrownBy(() ->
-                    aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)
-            );
+            assertThatThrownBy(() ->
+                    aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)).isInstanceOf(IllegalStateException.class);
         }
 
         @Test

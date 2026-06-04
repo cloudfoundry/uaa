@@ -168,7 +168,7 @@ class UserTokenGrantIT {
     }
 
     private void checkRefreshToken(String token) {
-        assertThat(token).isNotNull()
+        assertThat(token)
                 .hasSize(34)
                 .endsWith("-r");
     }

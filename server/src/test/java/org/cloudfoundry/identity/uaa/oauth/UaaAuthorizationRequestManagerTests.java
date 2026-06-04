@@ -40,9 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -135,8 +133,8 @@ class UaaAuthorizationRequestManagerTests {
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("aud1.test"));
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
-        assertThat(new TreeSet<>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
-        assertThat(new TreeSet<>(request.getResourceIds())).isEqualTo(StringUtils.commaDelimitedListToSet("aud1,aud2"));
+        assertThat(new TreeSet<>(request.getScope())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
+        assertThat(new TreeSet<>(request.getResourceIds())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("aud1,aud2"));
     }
 
     @Test
@@ -175,8 +173,8 @@ class UaaAuthorizationRequestManagerTests {
         assertThat(request.getClientId()).isEqualTo(recipient.getClientId());
         assertThat(request.getRequestParameters()).containsEntry(CLIENT_ID, recipient.getClientId())
                 .containsEntry(TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID, client.getClientId());
-        assertThat(new TreeSet<>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("requested.scope"));
-        assertThat(new TreeSet<>(request.getResourceIds())).isEqualTo(StringUtils.commaDelimitedListToSet(recipient.getClientId() + ",requested"));
+        assertThat(new TreeSet<>(request.getScope())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("requested.scope"));
+        assertThat(new TreeSet<>(request.getResourceIds())).hasSameElementsAs(StringUtils.commaDelimitedListToSet(recipient.getClientId() + ",requested"));
         assertThat(request.getRequestParameters()).containsEntry("expires_in", "44000");
     }
 
@@ -189,7 +187,7 @@ class UaaAuthorizationRequestManagerTests {
     void scopeIncludesAuthoritiesForUser() {
         client.setScope(StringUtils.commaDelimitedListToSet("one,two,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("foo.bar"));
+        assertThat(new TreeSet<String>(request.getScope())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("foo.bar"));
         factory.validateParameters(request.getRequestParameters(), client);
     }
 
@@ -200,7 +198,7 @@ class UaaAuthorizationRequestManagerTests {
         IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid", "foo.bar"));
         client.setScope(StringUtils.commaDelimitedListToSet("foo.bar,spam.baz,space.1.developer"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("foo.bar"));
+        assertThat(new TreeSet<String>(request.getScope())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("foo.bar"));
         factory.validateParameters(request.getRequestParameters(), client);
     }
 
@@ -210,7 +208,7 @@ class UaaAuthorizationRequestManagerTests {
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection) AuthorityUtils.commaSeparatedStringToAuthorityList("space.1.developer,space.2.developer,space.1.admin"));
         client.setScope(StringUtils.commaDelimitedListToSet("space.*.developer"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("space.1.developer,space.2.developer"));
+        assertThat(new TreeSet<String>(request.getScope())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("space.1.developer,space.2.developer"));
         factory.validateParameters(request.getRequestParameters(), client);
     }
 
@@ -221,7 +219,7 @@ class UaaAuthorizationRequestManagerTests {
         IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid", "space.1.developer"));
         client.setScope(StringUtils.commaDelimitedListToSet("space.*.developer"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("space.1.developer"));
+        assertThat(new TreeSet<String>(request.getScope())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("space.1.developer"));
         factory.validateParameters(request.getRequestParameters(), client);
     }
 
@@ -232,15 +230,15 @@ class UaaAuthorizationRequestManagerTests {
         IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid", "foo.bar"));
         client.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
-        assertThat(new TreeSet<String>(request.getResourceIds())).isEqualTo(StringUtils.commaDelimitedListToSet("openid,foo"));
+        assertThat(new TreeSet<String>(request.getScope())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
+        assertThat(new TreeSet<String>(request.getResourceIds())).hasSameElementsAs(StringUtils.commaDelimitedListToSet("openid,foo"));
     }
 
     @Test
     void emptyScopeOkForClientWithNoScopes() {
         client.setScope(StringUtils.commaDelimitedListToSet("")); // empty
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet(""));
+        assertThat(new TreeSet<String>(request.getScope())).hasSameElementsAs(StringUtils.commaDelimitedListToSet(""));
     }
 
     @Test

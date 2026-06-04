@@ -36,7 +36,7 @@ import java.util.Map;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.mockito.Mockito.mock;
 
@@ -193,7 +193,7 @@ class ChainedSignatureVerifierTests {
         verifier = new ChainedSignatureVerifier(keySet);
         List<SignatureVerifier> delegates = new ArrayList<>((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
         assertThat(delegates).hasSize(1);
-        assertThat(delegates.getFirst()).isNotNull();
+        assertThat(delegates).first().isNotNull();
         assertThat(delegates.getFirst().algorithm()).isEqualTo("ES256");
     }
 

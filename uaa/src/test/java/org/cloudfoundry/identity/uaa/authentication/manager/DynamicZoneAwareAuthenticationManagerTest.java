@@ -23,8 +23,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -114,12 +113,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager(true);
         when(uaaAuthenticationMgr.authenticate(any(Authentication.class))).thenThrow(new AccountNotVerifiedException("mock"));
         DynamicLdapAuthenticationManager mockManager = manager.getLdapAuthenticationManager(null, null);
-        try {
-            manager.authenticate(success);
-            fail("Expected AccountNotVerifiedException ");
-        } catch (AccountNotVerifiedException _) {
-            //expected
-        }
+        assertThatThrownBy(() -> manager.authenticate(success)).isInstanceOf(AccountNotVerifiedException.class);
         verify(mockManager, times(0)).authenticate(any(Authentication.class));
     }
 
@@ -131,12 +125,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager(true);
         when(uaaAuthenticationMgr.authenticate(any(Authentication.class))).thenThrow(new AuthenticationPolicyRejectionException("mock"));
         DynamicLdapAuthenticationManager mockManager = manager.getLdapAuthenticationManager(null, null);
-        try {
-            manager.authenticate(success);
-            fail("Expected AuthenticationPolicyRejectionException ");
-        } catch (AuthenticationPolicyRejectionException _) {
-            //expected
-        }
+        assertThatThrownBy(() -> manager.authenticate(success)).isInstanceOf(AuthenticationPolicyRejectionException.class);
         verify(mockManager, times(0)).authenticate(any(Authentication.class));
     }
 
@@ -187,12 +176,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         DynamicLdapAuthenticationManager mockManager = manager.getLdapAuthenticationManager(null, null);
         when(mockManager.authenticate(any(Authentication.class))).thenReturn(success);
         when(mockManager.getDefinition()).thenReturn(ldapIdentityProviderDefinition);
-        try {
-            manager.authenticate(success);
-            fail("Was expecting a " + ProviderNotFoundException.class);
-        } catch (ProviderNotFoundException _) {
-            //expected
-        }
+        assertThatThrownBy(() -> manager.authenticate(success)).isInstanceOf(ProviderNotFoundException.class);
         verifyNoInteractions(uaaAuthenticationMgr);
         verifyNoInteractions(mockManager);
     }

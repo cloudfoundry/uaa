@@ -11,9 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 
 @WithDatabaseContext
 class JdbcIdentityZoneProvisioningTests {
@@ -186,12 +184,7 @@ class JdbcIdentityZoneProvisioningTests {
         IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one", "there-can-be-only-one");
         identityZone.setId(randomValueStringGenerator.generate());
         jdbcIdentityZoneProvisioning.create(identityZone);
-        try {
-            jdbcIdentityZoneProvisioning.create(identityZone);
-            fail("Should have thrown exception");
-        } catch (ZoneAlreadyExistsException _) {
-            // success
-        }
+        assertThatThrownBy(() -> jdbcIdentityZoneProvisioning.create(identityZone)).isInstanceOf(ZoneAlreadyExistsException.class);
     }
 
     @Test
@@ -199,13 +192,10 @@ class JdbcIdentityZoneProvisioningTests {
         IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one", "there-can-be-only-one");
         identityZone.setId(randomValueStringGenerator.generate());
         jdbcIdentityZoneProvisioning.create(identityZone);
-        try {
+        assertThatThrownBy(() -> {
             identityZone.setId(new RandomValueStringGenerator().generate());
             jdbcIdentityZoneProvisioning.create(identityZone);
-            fail("Should have thrown exception");
-        } catch (ZoneAlreadyExistsException _) {
-            // success
-        }
+        }).isInstanceOf(ZoneAlreadyExistsException.class);
     }
 
     @Test

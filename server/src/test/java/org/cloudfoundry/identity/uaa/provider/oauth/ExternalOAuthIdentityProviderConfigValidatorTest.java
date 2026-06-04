@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class ExternalOAuthIdentityProviderConfigValidatorTest {
     private AbstractExternalOAuthIdentityProviderDefinition definition;

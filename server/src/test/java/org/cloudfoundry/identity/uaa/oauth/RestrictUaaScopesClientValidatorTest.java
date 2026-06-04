@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode.CREATE;
 import static org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode.DELETE;
@@ -69,12 +70,7 @@ class RestrictUaaScopesClientValidatorTest {
 
     protected void validateClient(List<ClientDetailsValidator.Mode> restrictModes, List<ClientDetailsValidator.Mode> nonRestrictModes, UaaClientDetails client, String s) {
         for (ClientDetailsValidator.Mode m : restrictModes) {
-            try {
-                validator.validate(client, m);
-                fail("Scope:" + s + " should not be valid during " + m + " mode.");
-            } catch (InvalidClientDetailsException _) {
-                //expected
-            }
+            assertThatThrownBy(() -> validator.validate(client, m)).isInstanceOf(InvalidClientDetailsException.class);
         }
         for (ClientDetailsValidator.Mode m : nonRestrictModes) {
             try {

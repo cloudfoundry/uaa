@@ -8,7 +8,6 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GroupMembershipAuthoritiesNullableTest {
 
     @Test
-    void authoritiesNullable(@Autowired DataSource dataSource) throws SQLException {
+    void authoritiesNullable(@Autowired DataSource dataSource) throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             ResultSet rs;

@@ -182,7 +182,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void create_includesStandardClaims() throws IdTokenCreationException {
+    void create_includesStandardClaims() throws Exception {
         IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData, tokenActor);
 
         assertThat(idToken).isNotNull();
@@ -198,7 +198,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void create_includesAdditionalClaims() throws IdTokenCreationException {
+    void create_includesAdditionalClaims() throws Exception {
         IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData, tokenActor);
 
         assertThat(idToken).isNotNull();
@@ -206,8 +206,8 @@ class IdTokenCreatorTest {
         assertThat(idToken.familyName).isEqualTo(familyName);
         assertThat(idToken.previousLogonTime).isEqualTo(previousLogonTime);
         assertThat(idToken.phoneNumber).isEqualTo(phoneNumber);
-        assertThat(idToken.roles).isEqualTo(roles);
-        assertThat(idToken.userAttributes).isEqualTo(userAttributes);
+        assertThat(idToken.roles).hasSameElementsAs(roles);
+        assertThat(idToken.userAttributes).containsExactlyInAnyOrderEntriesOf(userAttributes);
         assertThat(idToken.scope).contains("openid");
         assertThat(idToken.emailVerified).isTrue();
         assertThat(idToken.nonce).isEqualTo(nonce);
@@ -219,18 +219,18 @@ class IdTokenCreatorTest {
         assertThat(idToken.origin).isEqualTo(origin);
         assertThat(idToken.jti).isEqualTo("accessTokenId");
         assertThat(idToken.revSig).isEqualTo("a039bd5");
-        assertThat(idToken.getTokenActor().get(ClaimConstants.ISS)).isEqualTo(tokenActor.getIssuer());
+        assertThat(idToken.getTokenActor()).containsEntry(ClaimConstants.ISS, tokenActor.getIssuer());
     }
 
     @Test
-    void create_includesEmailVerified() throws IdTokenCreationException {
+    void create_includesEmailVerified() throws Exception {
         user.setVerified(false);
         IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData, tokenActor);
         assertThat(idToken.emailVerified).isFalse();
     }
 
     @Test
-    void create_doesntPopulateRolesWhenScopeDoesntContainRoles() throws IdTokenCreationException {
+    void create_doesntPopulateRolesWhenScopeDoesntContainRoles() throws Exception {
         scopes.clear();
         scopes.add("openid");
 
@@ -240,7 +240,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void create_setsRolesToNullIfThereAreNoRoles() throws IdTokenCreationException {
+    void create_setsRolesToNullIfThereAreNoRoles() throws Exception {
         roles.clear();
 
         IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData, tokenActor);
@@ -249,7 +249,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void create_setsRolesToNullIfRolesAreNull() throws IdTokenCreationException {
+    void create_setsRolesToNullIfRolesAreNull() throws Exception {
         userAuthenticationData = new UserAuthenticationData(
                 authTime,
                 amr,
@@ -268,7 +268,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void create_doesntPopulateUserAttributesWhenScopeDoesntContainUserAttributes() throws IdTokenCreationException {
+    void create_doesntPopulateUserAttributesWhenScopeDoesntContainUserAttributes() throws Exception {
         scopes.clear();
         scopes.add("openid");
 
@@ -278,7 +278,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void create_doesntSetUserAttributesIfTheyAreNull() throws IdTokenCreationException {
+    void create_doesntSetUserAttributesIfTheyAreNull() throws Exception {
         userAuthenticationData = new UserAuthenticationData(
                 authTime,
                 amr,
@@ -297,7 +297,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void create_doesntPopulateNamesAndPhone_whenNoProfileScopeGiven() throws IdTokenCreationException {
+    void create_doesntPopulateNamesAndPhone_whenNoProfileScopeGiven() throws Exception {
         scopes.remove("profile");
 
         IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData, tokenActor);
@@ -308,7 +308,7 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void create_doesntIncludesExcludedClaims() throws IdTokenCreationException {
+    void create_doesntIncludesExcludedClaims() throws Exception {
         excludedClaims.add(ClaimConstants.USER_ID);
         excludedClaims.add(ClaimConstants.AUD);
         excludedClaims.add(ClaimConstants.ISS);

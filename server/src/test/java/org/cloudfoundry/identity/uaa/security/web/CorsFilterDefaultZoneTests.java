@@ -26,8 +26,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -107,7 +105,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void requestExpectStandardCorsResponse() throws ServletException, IOException {
+    void requestExpectStandardCorsResponse() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
@@ -123,7 +121,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void requestWithMaliciousOrigin() throws ServletException, IOException {
+    void requestWithMaliciousOrigin() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
@@ -140,7 +138,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void requestExpectXhrCorsResponse() throws ServletException, IOException {
+    void requestExpectXhrCorsResponse() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
@@ -157,7 +155,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void sameOriginRequest() throws ServletException, IOException {
+    void sameOriginRequest() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
@@ -173,7 +171,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void requestWithForbiddenOrigin() throws ServletException, IOException {
+    void requestWithForbiddenOrigin() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
@@ -190,7 +188,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void requestWithForbiddenUri() throws ServletException, IOException {
+    void requestWithForbiddenUri() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/login");
@@ -207,7 +205,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void requestWithMethodNotAllowed() throws ServletException, IOException {
+    void requestWithMethodNotAllowed() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/uaa/userinfo");
@@ -224,7 +222,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void preFlightExpectStandardCorsResponse() throws ServletException, IOException {
+    void preFlightExpectStandardCorsResponse() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
         corsFilter.getDefaultConfiguration().setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
 
@@ -243,7 +241,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void preFlightExpectXhrCorsResponse() throws ServletException, IOException {
+    void preFlightExpectXhrCorsResponse() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
         corsFilter.getXhrConfiguration().setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
@@ -261,7 +259,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void preFlightWrongOriginSpecified() throws ServletException, IOException {
+    void preFlightWrongOriginSpecified() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
@@ -279,7 +277,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void preFlightRequestNoRequestMethod() throws ServletException, IOException {
+    void preFlightRequestNoRequestMethod() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
@@ -296,7 +294,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void preFlightRequestMethodNotAllowed() throws ServletException, IOException {
+    void preFlightRequestMethodNotAllowed() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
@@ -314,7 +312,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void preFlightRequestHeaderNotAllowed() throws ServletException, IOException {
+    void preFlightRequestHeaderNotAllowed() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
@@ -332,7 +330,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void preFlightRequestUriNotWhitelisted() throws ServletException, IOException {
+    void preFlightRequestUriNotWhitelisted() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/login");
@@ -350,7 +348,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void preFlightOriginNotWhitelisted() throws ServletException, IOException {
+    void preFlightOriginNotWhitelisted() throws Exception {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
@@ -368,7 +366,7 @@ class CorsFilterDefaultZoneTests {
     }
 
     @Test
-    void doInitializeWithNoPropertiesSet() throws ServletException, IOException {
+    void doInitializeWithNoPropertiesSet() throws Exception {
 
         CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, false);
 

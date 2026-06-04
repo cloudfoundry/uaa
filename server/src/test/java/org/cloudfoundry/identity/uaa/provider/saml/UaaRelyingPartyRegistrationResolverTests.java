@@ -15,6 +15,7 @@
  */
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -37,8 +38,7 @@ import org.springframework.util.StringUtils;
 import java.security.Security;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -99,7 +99,8 @@ class UaaRelyingPartyRegistrationResolverTests {
         request.setRequestURI("/some/path/cloudfoundry-saml-login");
         request.setMethod("POST");
         request.setParameter("SAMLResponse", "PGJhc2U2ND4=");
-        assertThatExceptionOfType(Saml2AuthenticationException.class).isThrownBy(() -> resolver.resolve(request, null));
+        assertThatThrownBy(() -> resolver.resolve(request, null))
+                .asInstanceOf(InstanceOfAssertFactories.throwable(Saml2AuthenticationException.class));
     }
 
     @Test
@@ -143,7 +144,7 @@ class UaaRelyingPartyRegistrationResolverTests {
 
     @Test
     void constructorWhenNullRelyingPartyRegistrationThenIllegalArgument() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new UaaRelyingPartyRegistrationResolver(null, null, null));
+        assertThatThrownBy(() -> new UaaRelyingPartyRegistrationResolver(null, null, null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest

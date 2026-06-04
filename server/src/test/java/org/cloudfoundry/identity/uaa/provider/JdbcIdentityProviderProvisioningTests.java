@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
@@ -432,7 +432,7 @@ class JdbcIdentityProviderProvisioningTests {
         final List<IdentityProvider> result = jdbcIdentityProviderProvisioning.retrieveActiveByTypes(otherZoneId1,
                 types);
         final Set<String> idsInResult = result.stream().map(IdentityProvider::getId).collect(toSet());
-        assertThat(idsInResult).hasSize(expectedIdpIds.size());
+        assertThat(idsInResult).hasSameSizeAs(expectedIdpIds);
         for (final String id : expectedIdpIds) {
             assertThat(idsInResult).contains(id);
         }

@@ -17,9 +17,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.Base64;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 
 @Tag("https://tools.ietf.org/html/rfc7519#section-5")
 @DisplayName("JOSE Header")

@@ -1448,6 +1448,6 @@ class AuditCheckMockMvcTests {
         Matcher patternMatcher = groupLogPattern.matcher(actualLogMessage);
         assertThat(patternMatcher.find()).isTrue();
         Set<String> memberIdsFromLogMessage = StringUtils.commaDelimitedListToSet(patternMatcher.group(1).replaceAll("\"", ""));
-        assertThat(memberIdsFromLogMessage).isEqualTo(Sets.newHashSet(expectedUserIds));
+        assertThat(memberIdsFromLogMessage).hasSameElementsAs(Sets.newHashSet(expectedUserIds));
     }
 }

@@ -96,7 +96,6 @@ public class ResetPasswordControllerMockMvcZonePathTests {
 
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
-                .isNotNull()
                 .hasSize(1);
         PasswordChange change = new PasswordChange(users.getFirst().getId(), users.getFirst().getUserName(), users.getFirst().getPasswordLastModified(), "", "");
 
@@ -112,7 +111,6 @@ public class ResetPasswordControllerMockMvcZonePathTests {
     void resettingPasswordDoesNotUpdateLastLogonTime() throws Exception {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
-                .isNotNull()
                 .hasSize(1);
         Long lastLogonBeforeReset = users.getFirst().getLastLogonTime();
         PasswordChange change = new PasswordChange(users.getFirst().getId(), users.getFirst().getUserName(), users.getFirst().getPasswordLastModified(), "", "");
@@ -138,7 +136,6 @@ public class ResetPasswordControllerMockMvcZonePathTests {
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
-                .isNotNull()
                 .hasSize(1);
         ScimUser user = users.getFirst();
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
@@ -349,7 +346,6 @@ public class ResetPasswordControllerMockMvcZonePathTests {
     void resettingAPasswordNoCsrfParameter() throws Exception {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
-                .isNotNull()
                 .hasSize(1);
         ExpiringCode code = codeStore.generateCode(users.getFirst().getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
 
@@ -362,7 +358,6 @@ public class ResetPasswordControllerMockMvcZonePathTests {
     void resettingAPasswordUsingTimestampForUserModification() throws Exception {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
-                .isNotNull()
                 .hasSize(1);
         PasswordChange passwordChange = new PasswordChange(users.getFirst().getId(), users.getFirst().getUserName(), null, null, null);
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
@@ -380,7 +375,6 @@ public class ResetPasswordControllerMockMvcZonePathTests {
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
-                .isNotNull()
                 .hasSize(1);
         ScimUser user = users.getFirst();
         PasswordChange passwordChange = new PasswordChange(user.getId(), user.getUserName(), null, null, null);
@@ -408,7 +402,6 @@ public class ResetPasswordControllerMockMvcZonePathTests {
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
         List<ScimUser> users = userProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
-                .isNotNull()
                 .hasSize(1);
         ScimUser user = users.getFirst();
         PasswordChange passwordChange = new PasswordChange(user.getId(), user.getUserName(), null, null, null);

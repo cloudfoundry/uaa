@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import java.net.MalformedURLException;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 class TokenEndpointBuilderTest {
 

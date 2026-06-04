@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
@@ -81,7 +80,7 @@ class CachingPasswordEncoderTest {
     }
 
     @Test
-    void cacheIs10XFasterThanNonCached() throws NoSuchAlgorithmException {
+    void cacheIs10XFasterThanNonCached() throws Exception {
         passwordEncoder = new BCryptPasswordEncoder();
         cachingPasswordEncoder = new CachingPasswordEncoder(passwordEncoder);
 

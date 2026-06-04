@@ -105,7 +105,7 @@ class UserInfoEndpointMockMvcTests {
     }
 
     @Test
-    void testPostUserInfo() throws Exception {
+    void postUserInfo() throws Exception {
         UserInfoResponse userInfoResponse = performUserInfoRequest(post("/userinfo"), "openid");
 
         assertThat(userInfoResponse.getUserName()).isEqualTo(user.getUserName());
@@ -115,9 +115,7 @@ class UserInfoEndpointMockMvcTests {
     void attributesWithRolesAndUserAttributes() throws Exception {
         UserInfoResponse userInfo = getUserInfo("openid user_attributes roles");
         Map<String, List<String>> uas = userInfo.getUserAttributes();
-        assertThat(uas)
-                .isNotNull()
-                .isEqualTo(userAttributes);
+        assertThat(uas).containsExactlyInAnyOrderEntriesOf(userAttributes);
 
         Object r = userInfo.getRoles();
         assertThat(r)

@@ -378,12 +378,10 @@ public abstract class AbstractLdapMockMvcTest {
 
         IdentityZoneHolder.set(zone.getZone().getIdentityZone());
         Authentication auth = manager.authenticate(token);
-        assertThat(auth).isNotNull()
-                .isInstanceOf(UaaAuthentication.class);
+        assertThat(auth).isInstanceOf(UaaAuthentication.class);
         UaaAuthentication uaaAuth = (UaaAuthentication) auth;
         Set<String> externalGroups = uaaAuth.getExternalGroups();
         assertThat(externalGroups)
-                .hasSize(2)
                 .containsExactlyInAnyOrder("admins", "thirdmarissa");
 
         //default whitelist
@@ -443,7 +441,7 @@ public abstract class AbstractLdapMockMvcTest {
                 .as("Expected cost center attribute").containsKey(costCenters)
                 .as("Expected manager attribute").containsKey(managers);
         assertThat(authentication.getUserAttributes().getFirst(costCenters)).isEqualTo(denverCo);
-        assertThat(authentication.getUserAttributes().get(managers)).as("Expected 2 manager attribute values").hasSize(2)
+        assertThat(authentication.getUserAttributes().get(managers)).as("Expected 2 manager attribute values")
                 .containsExactlyInAnyOrder(johnTheSloth, kariTheAntEater);
 
         assertThat(getFamilyName(username)).isEqualTo("8885550986");
@@ -1128,7 +1126,7 @@ public abstract class AbstractLdapMockMvcTest {
         Set<String> actualAuthorities = UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()).stream()
                 .filter(a -> a != null && !a.startsWith("FACTOR_"))
                 .collect(java.util.stream.Collectors.toSet());
-        assertThat(actualAuthorities).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
+        assertThat(actualAuthorities).hasSameElementsAs(defaultAuthorities);
         IdentityZoneHolder.clear();
     }
 
@@ -1173,7 +1171,7 @@ public abstract class AbstractLdapMockMvcTest {
         Set<String> actualAuthorities = UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()).stream()
                 .filter(a -> a != null && !a.startsWith("FACTOR_"))
                 .collect(java.util.stream.Collectors.toSet());
-        assertThat(actualAuthorities).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
+        assertThat(actualAuthorities).hasSameElementsAs(defaultAuthorities);
     }
 
     @Test
@@ -1267,7 +1265,7 @@ public abstract class AbstractLdapMockMvcTest {
         Set<String> actualAuthorities = UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()).stream()
                 .filter(a -> a != null && !a.startsWith("FACTOR_"))
                 .collect(java.util.stream.Collectors.toSet());
-        assertThat(actualAuthorities).containsExactlyInAnyOrderElementsOf(defaultAuthorities);
+        assertThat(actualAuthorities).hasSameElementsAs(defaultAuthorities);
     }
 
     String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {

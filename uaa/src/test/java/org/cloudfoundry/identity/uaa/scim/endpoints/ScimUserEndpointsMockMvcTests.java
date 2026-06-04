@@ -147,7 +147,7 @@ class ScimUserEndpointsMockMvcTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"/Users", "/Users/"})
-    public void canCreateUsersWithEndpointEndingWithSlash(String url) throws Exception {
+    void canCreateUsersWithEndpointEndingWithSlash(String url) throws Exception {
         ScimUser user = getScimUser();
         String password = hasText(user.getPassword()) ? user.getPassword() : "pas5word";
         user.setPassword(password);
@@ -1085,7 +1085,6 @@ class ScimUserEndpointsMockMvcTests {
         assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         final Map<String, Object> responseBody = JsonUtils.readValueAsMap(response.getContentAsString());
         assertThat(responseBody)
-                .isNotNull()
                 .containsEntry("error_description", "Cannot change user's origin in update operation.")
                 .containsEntry("error", "invalid_scim_resource")
                 .containsEntry("message", "Cannot change user's origin in update operation.");

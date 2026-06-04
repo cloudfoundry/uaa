@@ -7,9 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 
 class TokenPolicyTest {
@@ -24,12 +22,12 @@ class TokenPolicyTest {
         String json = JsonUtils.writeValueAsString(tokenPolicy);
         Map properties = JsonUtils.readValue(json, Map.class);
 
-        assertThat(properties).isNotNull()
+        assertThat(properties)
                 .containsEntry("accessTokenValidity", 1234)
                 .containsEntry("refreshTokenValidity", 9876)
                 .containsKey("keys");
         Map keys = (Map) properties.get("keys");
-        assertThat(keys).isNotNull()
+        assertThat(keys)
                 .hasSize(1);
         assertThat(((Map) keys.get("aKeyId"))).containsEntry("signingKey", "KeyKeyKey");
     }

@@ -9,7 +9,6 @@ import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -57,13 +56,13 @@ class AutologinRequestConverterTest {
     }
 
     @Test
-    void readInternalNoJson() throws IOException {
+    void readInternalNoJson() throws Exception {
         AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
         assertThat(autologin).isNotNull();
     }
 
     @Test
-    void readInternalFromJson() throws IOException {
+    void readInternalFromJson() throws Exception {
         InputStream inputStream = new ByteArrayInputStream("{ \"username\": \"user\",\"password\": \"pwd\" }".getBytes(StandardCharsets.UTF_8));
         when(httpHeaders.get(HttpHeaders.CONTENT_TYPE)).thenReturn(jsonMediaType);
         when(inputMessage.getBody()).thenReturn(inputStream);
@@ -74,7 +73,7 @@ class AutologinRequestConverterTest {
     }
 
     @Test
-    void readInternalFromJsonButNull() throws IOException {
+    void readInternalFromJsonButNull() throws Exception {
         when(httpHeaders.get(HttpHeaders.CONTENT_TYPE)).thenReturn(jsonMediaType);
         when(inputMessage.getBody()).thenReturn(null);
         AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
@@ -84,7 +83,7 @@ class AutologinRequestConverterTest {
     }
 
     @Test
-    void writeInternal() throws IOException {
+    void writeInternal() throws Exception {
         OutputStream outputStream = mock(OutputStream.class);
         HttpOutputMessage outputMessage = mock(HttpOutputMessage.class);
         when(outputMessage.getHeaders()).thenReturn(httpHeaders);
@@ -97,7 +96,7 @@ class AutologinRequestConverterTest {
     }
 
     @Test
-    void writeInternalNoValuesInAutoLoginRequest() throws IOException {
+    void writeInternalNoValuesInAutoLoginRequest() throws Exception {
         OutputStream outputStream = mock(OutputStream.class);
         HttpOutputMessage outputMessage = mock(HttpOutputMessage.class);
         when(outputMessage.getHeaders()).thenReturn(httpHeaders);

@@ -78,9 +78,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Arrays.asList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -430,7 +428,7 @@ class ScimUserEndpointsTests {
 
         //1. this method, 2. user scimUserEndpoints, 3. user provisioning
         assertThat(passwords.getAllValues()).hasSize(3);
-        assertThat(passwords.getAllValues().getFirst()).isEqualTo("bla bla");
+        assertThat(passwords.getAllValues()).first().isEqualTo("bla bla");
         assertThat(passwords.getAllValues().get(1)).isEmpty();
     }
 

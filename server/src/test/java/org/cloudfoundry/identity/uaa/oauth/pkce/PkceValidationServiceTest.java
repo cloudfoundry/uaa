@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -117,7 +117,7 @@ class PkceValidationServiceTest {
     @Test
     void pkceValidationServiceConstructorWithCodeChallengeMethodsMap() {
         Set<String> testHashSet = new HashSet<>(Arrays.asList("S256", "plain"));
-        assertThat(pkceValidationService.getSupportedCodeChallengeMethods()).isEqualTo(testHashSet);
+        assertThat(pkceValidationService.getSupportedCodeChallengeMethods()).hasSameElementsAs(testHashSet);
     }
 
     @Test

@@ -58,7 +58,7 @@ class LinkedMaskingMultiValueMapTests {
         map.add("key", "value1");
         map.addAll("key", Arrays.asList("value2", "value3"));
         assertThat(map.size()).isOne();
-        assertThat(map.get("key")).hasSize(3)
+        assertThat(map.get("key"))
                 .containsExactly("value1", "value2", "value3");
     }
 
@@ -70,9 +70,9 @@ class LinkedMaskingMultiValueMapTests {
         map.add("key1", "existing value");
         map.addAll(toCopy);
         assertThat(map).hasSize(2);
-        assertThat(map.get("key1")).hasSize(2)
+        assertThat(map.get("key1"))
                 .containsExactly("existing value", "value1");
-        assertThat(map.get("key2")).hasSize(1)
+        assertThat(map.get("key2"))
                 .containsExactly("value2");
     }
 
@@ -97,15 +97,15 @@ class LinkedMaskingMultiValueMapTests {
     @Test
     void equals() {
         map.set("key1", "value1");
-        assertThat(map).isEqualTo(map);
+        assertThat(map).containsExactlyInAnyOrderEntriesOf(map);
         MultiValueMap<String, String> o1 = new LinkedMaskingMultiValueMap<>();
         o1.set("key1", "value1");
-        assertThat(o1).isEqualTo(map);
-        assertThat(map).isEqualTo(o1);
+        assertThat(o1).containsExactlyInAnyOrderEntriesOf(map);
+        assertThat(map).containsExactlyInAnyOrderEntriesOf(o1);
         Map<String, List<String>> o2 = new HashMap<>();
         o2.put("key1", Collections.singletonList("value1"));
-        assertThat(o2).isEqualTo(map);
-        assertThat(map).isEqualTo(o2);
+        assertThat(o2).containsExactlyInAnyOrderEntriesOf(map);
+        assertThat(map).containsExactlyInAnyOrderEntriesOf(o2);
     }
 
     @Test

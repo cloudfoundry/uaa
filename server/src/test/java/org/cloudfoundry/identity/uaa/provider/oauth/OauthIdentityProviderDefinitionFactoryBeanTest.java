@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
@@ -103,7 +103,7 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         idpDefinitionMap.put("groupMappingMode", "AS_SCOPES");
         idpDefinitionMap.put("attributeMappings", externalGroupMapping);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(providerDefinition.getAttributeMappings()).isEqualTo(externalGroupMapping);
+        assertThat(providerDefinition.getAttributeMappings()).containsExactlyInAnyOrderEntriesOf(externalGroupMapping);
         assertThat(providerDefinition.getGroupMappingMode()).hasToString("AS_SCOPES");
     }
 
@@ -114,7 +114,7 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         );
         idpDefinitionMap.put("attributeMappings", externalGroupMapping);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(providerDefinition.getAttributeMappings()).isEqualTo(externalGroupMapping);
+        assertThat(providerDefinition.getAttributeMappings()).containsExactlyInAnyOrderEntriesOf(externalGroupMapping);
         assertThat(providerDefinition.getGroupMappingMode()).isNull();
     }
 

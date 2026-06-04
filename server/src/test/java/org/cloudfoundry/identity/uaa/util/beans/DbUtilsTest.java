@@ -14,7 +14,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -36,7 +36,7 @@ class DbUtilsTest {
     }
 
     @Test
-    void canQuoteHsqldbIdentifiers() throws SQLException {
+    void canQuoteHsqldbIdentifiers() throws Exception {
         when(databaseMetaData.getURL()).thenReturn("jdbc:hsqldb:mem:uaa");
 
         String quotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
@@ -44,7 +44,7 @@ class DbUtilsTest {
     }
 
     @Test
-    void canCacheForHsqldb() throws SQLException {
+    void canCacheForHsqldb() throws Exception {
         when(databaseMetaData.getURL())
                 .thenReturn("jdbc:hsqldb:mem:uaa", "SHOULD NOT SEE THIS");
         dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
@@ -63,7 +63,7 @@ class DbUtilsTest {
         }
 
         @Test
-        void canQuoteWithBackticks_ForMysql() throws SQLException {
+        void canQuoteWithBackticks_ForMysql() throws Exception {
             when(databaseMetaData.getIdentifierQuoteString()).thenReturn(BACKTICK);
 
             String quotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
@@ -71,7 +71,7 @@ class DbUtilsTest {
         }
 
         @Test
-        void canQuoteWithDoubleQuote_ForPostgres() throws SQLException {
+        void canQuoteWithDoubleQuote_ForPostgres() throws Exception {
             when(databaseMetaData.getIdentifierQuoteString()).thenReturn(DOUBLE_QUOTE);
 
             String quotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
@@ -79,7 +79,7 @@ class DbUtilsTest {
         }
 
         @Test
-        void canCache() throws SQLException {
+        void canCache() throws Exception {
             when(databaseMetaData.getIdentifierQuoteString()).thenReturn(BACKTICK, DOUBLE_QUOTE);
             dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
 
@@ -90,13 +90,13 @@ class DbUtilsTest {
         @ParameterizedTest
         @ValueSource(strings = {SINGLE_QUOTE, "", BACKTICK + DOUBLE_QUOTE})
         @NullSource
-        void rejectsInvalidQuoteStrings(String quoteString) throws SQLException {
+        void rejectsInvalidQuoteStrings(String quoteString) throws Exception {
             when(databaseMetaData.getIdentifierQuoteString()).thenReturn(quoteString);
             assertThatExceptionOfType(Throwable.class).isThrownBy(() -> dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate));
         }
 
         @Test
-        void abortsWhenCannotGetMetaData() throws MetaDataAccessException {
+        void abortsWhenCannotGetMetaData() throws Exception {
             when(metaDataExtractor.extractDatabaseMetaData(any())).thenThrow(MetaDataAccessException.class);
             assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate));
         }

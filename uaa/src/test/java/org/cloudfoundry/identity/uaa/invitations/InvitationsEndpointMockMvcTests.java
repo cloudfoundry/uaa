@@ -526,7 +526,7 @@ class InvitationsEndpointMockMvcTests {
             assertThat(expiringCode.getIntent()).isEqualTo(ExpiringCodeType.INVITATION.name());
             Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
             });
-            assertThat(data).isNotNull()
+            assertThat(data)
                     .containsKey(USER_ID)
                     .containsEntry(EMAIL, emails[i])
                     .containsEntry(ORIGIN, UAA)

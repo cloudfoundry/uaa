@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.config;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
@@ -30,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate1;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.key1;
@@ -91,7 +92,7 @@ public class IdentityZoneConfigurationBootstrapTests {
     }
 
     @Test
-    void multipleKeys() throws InvalidIdentityZoneDetailsException {
+    void multipleKeys() throws Exception {
         bootstrap.setSamlSpPrivateKey(key1());
         bootstrap.setSamlSpCertificate(certificate1());
         bootstrap.setSamlSpPrivateKeyPassphrase(passphrase1());
@@ -131,7 +132,8 @@ public class IdentityZoneConfigurationBootstrapTests {
         keys.put(null, key1);
         bootstrap.setActiveKeyId(null);
         bootstrap.setSamlKeys(keys);
-        assertThatExceptionOfType(InvalidIdentityZoneDetailsException.class).isThrownBy(() -> bootstrap.afterPropertiesSet());
+        assertThatThrownBy(() -> bootstrap.afterPropertiesSet())
+                .asInstanceOf(InstanceOfAssertFactories.throwable(InvalidIdentityZoneDetailsException.class));
     }
 
     @Test
@@ -145,9 +147,9 @@ public class IdentityZoneConfigurationBootstrapTests {
         keys.put("key1", key1);
         bootstrap.setActiveKeyId(null);
         bootstrap.setSamlKeys(keys);
-        assertThatExceptionOfType(InvalidIdentityZoneDetailsException.class)
-                .isThrownBy(() -> bootstrap.afterPropertiesSet())
-                .withMessage("The zone configuration is invalid. Identity zone cannot be updated with partial Saml CertKey config.");
+        assertThatThrownBy(() -> bootstrap.afterPropertiesSet())
+                .isInstanceOf(InvalidIdentityZoneDetailsException.class)
+                .hasMessage("The zone configuration is invalid. Identity zone cannot be updated with partial Saml CertKey config.");
     }
 
     @Test
@@ -277,7 +279,7 @@ public class IdentityZoneConfigurationBootstrapTests {
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         assertThat(config.getLinks().getLogout().getRedirectUrl()).isEqualTo("/configured_login");
         assertThat(config.getLinks().getLogout().getRedirectParameterName()).isEqualTo("test");
-        assertThat(config.getLinks().getLogout().getWhitelist()).isEqualTo(Collections.singletonList("http://single-url"));
+        assertThat(config.getLinks().getLogout().getWhitelist()).containsExactlyElementsOf(Collections.singletonList("http://single-url"));
         assertThat(config.getLinks().getLogout().isDisableRedirectParameter()).isFalse();
     }
 
@@ -290,7 +292,7 @@ public class IdentityZoneConfigurationBootstrapTests {
         bootstrap.setPrompts(prompts);
         bootstrap.afterPropertiesSet();
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
-        assertThat(config.getPrompts()).isEqualTo(prompts);
+        assertThat(config.getPrompts()).containsExactlyElementsOf(prompts);
     }
 
     @Test
@@ -304,7 +306,7 @@ public class IdentityZoneConfigurationBootstrapTests {
     @Test
     void issuerConfiguration() throws Exception {
         String testIssuer = "http://test.example.com/uaa";
-        
+
         // Set up token policy with keys to satisfy validation
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
         Map<String, String> keys = new HashMap<>();
@@ -312,7 +314,7 @@ public class IdentityZoneConfigurationBootstrapTests {
         tokenPolicy.setKeys(keys);
         tokenPolicy.setActiveKeyId("testkey");
         bootstrap.setTokenPolicy(tokenPolicy);
-        
+
         bootstrap.setIssuer(testIssuer);
         bootstrap.afterPropertiesSet();
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
@@ -339,7 +341,7 @@ public class IdentityZoneConfigurationBootstrapTests {
     void issuerConfiguration_defaultZoneWithTokenPolicy() throws Exception {
         // This test verifies that the default zone can have an issuer set with a proper token policy
         String testIssuer = "http://localhost:8080/uaa";
-        
+
         // Set up token policy with keys to satisfy validation
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
         Map<String, String> keys = new HashMap<>();
@@ -347,10 +349,10 @@ public class IdentityZoneConfigurationBootstrapTests {
         tokenPolicy.setKeys(keys);
         tokenPolicy.setActiveKeyId("defaultkey");
         bootstrap.setTokenPolicy(tokenPolicy);
-        
+
         bootstrap.setIssuer(testIssuer);
         bootstrap.afterPropertiesSet();
-        
+
         IdentityZone defaultZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertThat(defaultZone.isUaa()).isTrue();
         assertThat(defaultZone.getConfig().getIssuer()).isEqualTo(testIssuer);

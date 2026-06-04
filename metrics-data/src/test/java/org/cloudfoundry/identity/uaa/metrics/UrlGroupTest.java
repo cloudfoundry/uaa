@@ -25,10 +25,11 @@ class UrlGroupTest {
     @Test
     void getMap() {
 
-        assertThat(map.get("group")).isEqualTo("group");
-        assertThat(map.get("category")).isEqualTo("category");
-        assertThat(map.get("limit")).isEqualTo(1L);
-        assertThat(map.get("pattern")).isEqualTo("/**");
+        assertThat(map)
+                .containsEntry("group", "group")
+                .containsEntry("category", "category")
+                .containsEntry("limit", 1L)
+                .containsEntry("pattern", "/**");
     }
 
     @Test
@@ -36,7 +37,7 @@ class UrlGroupTest {
         group = UrlGroup.from(map);
         assertThat(group.getGroup()).isEqualTo("group");
         assertThat(group.getCategory()).isEqualTo("category");
-        assertThat(group.getLimit()).isEqualTo(1L);
+        assertThat(group.getLimit()).isOne();
         assertThat(group.getPattern()).isEqualTo("/**");
     }
 }

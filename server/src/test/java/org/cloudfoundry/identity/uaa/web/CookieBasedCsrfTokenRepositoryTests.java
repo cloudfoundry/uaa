@@ -145,9 +145,10 @@ class CookieBasedCsrfTokenRepositoryTests {
         // Spring Framework 7: MockHttpServletResponse.getCookie() no longer parses
         // Set-Cookie headers added via addHeader(). Check the header directly instead.
         String setCookieHeader = response.getHeader("Set-Cookie");
-        assertThat(setCookieHeader).contains("X-Uaa-Csrf=");
-        // Max-Age=0 or Expires at Unix epoch indicates expired/deleted cookie
-        assertThat(setCookieHeader).satisfiesAnyOf(
+        assertThat(setCookieHeader)
+                .contains("X-Uaa-Csrf=")
+                // Max-Age=0 or Expires at Unix epoch indicates expired/deleted cookie
+                .satisfiesAnyOf(
             header -> assertThat(header).contains("Max-Age=0"),
             header -> assertThat(header).contains("Expires=Thu, 1 Jan 1970")
         );

@@ -164,10 +164,12 @@ class UaaHttpRequestUtilsTest {
         try (ServerSocket ss = new ServerSocket(0, 1, loopback)) {
             int port = ss.getLocalPort();
             Thread acceptThread = new Thread(() -> {
-                try (var socket = ss.accept()) {
+                try (var _ = ss.accept()) {
                     // Sleep longer than the read timeout so the client times out first.
                     Thread.sleep(readTimeoutMs * 10L);
-                } catch (Exception _) {}
+                } catch (Exception _) {
+                    // ignore
+                }
             });
             acceptThread.setDaemon(true);
             acceptThread.start();
@@ -199,12 +201,16 @@ class UaaHttpRequestUtilsTest {
                     // Read until end of HTTP request headers
                     var headerReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.US_ASCII));
                     String line;
-                    while ((line = headerReader.readLine()) != null && !line.isEmpty()) {}
+                    while ((line = headerReader.readLine()) != null && !line.isEmpty()) {
+                        // do nothing
+                    }
                     String response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
                     out.write(response.getBytes(StandardCharsets.US_ASCII));
                     out.flush();
                     clientSocket.close();
-                } catch (Exception _) {}
+                } catch (Exception _) {
+                    // ignore
+                }
             });
             serverThread.setDaemon(true);
             serverThread.start();

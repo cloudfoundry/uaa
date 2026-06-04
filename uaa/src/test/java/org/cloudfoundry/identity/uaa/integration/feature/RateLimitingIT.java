@@ -66,7 +66,7 @@ class RateLimitingIT {
     }
 
     @Test
-    void infoEndpointRateLimited() throws InterruptedException {
+    void infoEndpointRateLimited() throws Exception {
         RestOperations restTemplate = serverRunning.getRestTemplate();
 
         // Wait for a fresh rate-limit window to avoid interference from prior requests
