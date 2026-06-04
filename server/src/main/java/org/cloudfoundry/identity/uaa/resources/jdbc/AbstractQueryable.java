@@ -101,7 +101,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         }
     }
 
-    private void assertSafeGeneratedSql(String sqlFragment) {
+    protected static void assertSafeGeneratedSql(String sqlFragment) {
         if (!StringUtils.hasText(sqlFragment)) {
             throw new IllegalArgumentException("Invalid filter: empty SQL fragment");
         }
