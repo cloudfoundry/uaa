@@ -1,3 +1,6 @@
+import org.gradle.process.ExecOperations
+import javax.inject.Inject
+
 val identityServer = parent!!.subprojects.find { "cloudfoundry-identity-server" == it.name }!!
 
 plugins {
@@ -239,10 +242,24 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>("boot
     }
 }
 
+interface InjectedExecOps {
+    @get:Inject val execOps: ExecOperations
+}
+
 tasks.register<Test>("integrationTest") {
     // Use the test source set and classpath
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
+    
+    val injected = project.objects.newInstance<InjectedExecOps>()
+    
+    // Helper function to kill UAA process
+    fun killUaa() {
+        injected.execOps.exec {
+            workingDir = rootProject.projectDir
+            executable = "scripts/kill_uaa.sh"
+        }
+    }
     
     filter {
         includeTestsMatching("org.cloudfoundry.identity.uaa.integration.*")
@@ -266,7 +283,7 @@ tasks.register<Test>("integrationTest") {
             return@doFirst
         }
         logger.lifecycle("Killing UAA before auto-start")
-        rootProject.tasks.named("killUaa").get().actions.forEach { it.execute(rootProject.tasks.named("killUaa").get()) }
+        killUaa()
 
         val bootPidFile = rootProject.file("build/boot.pid")
         val bootLogFile = rootProject.file("build/boot.log")
@@ -303,7 +320,7 @@ tasks.register<Test>("integrationTest") {
         }
 
         logger.lifecycle("Killing UAA after failed auto-start")
-        rootProject.tasks.named("killUaa").get().actions.forEach { it.execute(rootProject.tasks.named("killUaa").get()) }
+        killUaa()
         throw GradleException("UAA failed to start within $maxWaitSeconds seconds. Check ${bootLogFile.absolutePath}")
     }
 
@@ -313,7 +330,7 @@ tasks.register<Test>("integrationTest") {
             return@doLast
         }
         logger.lifecycle("Stopping UAA application...")
-        rootProject.tasks.named("killUaa").get().actions.forEach { it.execute(rootProject.tasks.named("killUaa").get()) }
+        killUaa()
         rootProject.file("build/boot.pid").delete()
     }
     
