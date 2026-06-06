@@ -184,8 +184,22 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
 
             IdentityProvider<SamlIdentityProviderDefinition> provider = parseSamlProvider(def);
             if (def.getType() == SamlIdentityProviderDefinition.MetadataLocation.DATA) {
+                // Inline XML: parse is synchronous; let exceptions propagate to fail fast on bad config.
                 RelyingPartyRegistration metadataDelegate = samlConfigurator.getExtendedMetadataDelegate(def);
                 def.setIdpEntityId(metadataDelegate.getAssertingPartyMetadata().getEntityId());
+            } else {
+                // URL-type: remote fetch may fail transiently at startup (IdP unreachable, DNS not
+                // ready, etc.). Log an error so operators know the entity ID could not be stored in
+                // external_key, but continue so the server does not refuse to start.
+                try {
+                    RelyingPartyRegistration metadataDelegate = samlConfigurator.getExtendedMetadataDelegate(def);
+                    def.setIdpEntityId(metadataDelegate.getAssertingPartyMetadata().getEntityId());
+                } catch (Exception e) {
+                    log.error("Could not resolve entity ID for SAML IDP '{}' at startup from '{}'; " +
+                                    "external_key will be null. SAML logins via SP-alias ACS URL may fail " +
+                                    "until the metadata URL becomes reachable: {}",
+                            alias, metaDataLocation, e.getMessage());
+                }
             }
             IdentityProviderWrapper<SamlIdentityProviderDefinition> wrapper = new IdentityProviderWrapper<>(provider);
             wrapper.setOverride(override == null || override);
