@@ -56,7 +56,6 @@ velocity = { module = "org.apache.velocity:velocity-engine-core", version.ref = 
 xmlSecurity = { module = "org.apache.santuario:xmlsec", version.ref = "xmlSecurity" }
 
 # AspectJ
-aspectJRt = { module = "org.aspectj:aspectjrt" }
 aspectJWeaver = { module = "org.aspectj:aspectjweaver" }
 
 # Awaitility
