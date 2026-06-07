@@ -42,10 +42,6 @@ dependencies {
 
     implementation(libs.guava)
 
-    // OpenAPI documentation
-    implementation(libs.springDocOpenapi)
-
-    implementation(libs.aspectJRt)
     implementation(libs.aspectJWeaver)
 
     implementation(libs.thymeLeaf) {
