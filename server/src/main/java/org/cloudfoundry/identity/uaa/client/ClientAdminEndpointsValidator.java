@@ -188,7 +188,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             ClientDetails caller = null;
             try {
                 caller = clientDetailsService.retrieve(callerId, identityZoneManager.getCurrentIdentityZoneId());
-            } catch (Exception e) {
+            } catch (Exception _) {
                 // best effort to get the caller, but the caller might not belong to this zone.
             }
             if (callerId != null && caller != null) {
@@ -284,20 +284,20 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             if (cjc != null) {
                 try {
                     ClientJwtConfiguration fromNested;
-                    if (cjc instanceof String s) {
-                        fromNested = ClientJwtConfiguration.readValue(s);
-                    } else if (cjc instanceof Map<?, ?> map) {
-                        fromNested = ClientJwtConfiguration.readValue(
-                                JsonUtils.writeValueAsString(cjc));
-                        ClientJwtConfiguration credsOnly = ClientJwtConfiguration.fromJwtCredsValue(
-                                map.get(ClientJwtConfiguration.JWT_CREDS));
-                        if (credsOnly != null) {
-                            fromNested = ClientJwtConfiguration.merge(
-                                    fromNested != null ? fromNested : new ClientJwtConfiguration(),
-                                    credsOnly, false);
+                    switch (cjc) {
+                        case String s -> fromNested = ClientJwtConfiguration.readValue(s);
+                        case Map<?, ?> map -> {
+                            fromNested = ClientJwtConfiguration.readValue(
+                                    JsonUtils.writeValueAsString(cjc));
+                            ClientJwtConfiguration credsOnly = ClientJwtConfiguration.fromJwtCredsValue(
+                                    map.get(ClientJwtConfiguration.JWT_CREDS));
+                            if (credsOnly != null) {
+                                fromNested = ClientJwtConfiguration.merge(
+                                        fromNested != null ? fromNested : new ClientJwtConfiguration(),
+                                        credsOnly, false);
+                            }
                         }
-                    } else {
-                        throw new InvalidClientDetailsException(
+                        case null, default -> throw new InvalidClientDetailsException(
                                 "Invalid client_jwt_config in additionalInformation: expected String or Map");
                     }
                     if (fromNested != null) {

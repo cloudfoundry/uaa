@@ -25,7 +25,7 @@ abstract class WebMvcRuntime {
         try {
             Class.forName("org.springframework.web.method.HandlerMethod");
             return new WebMvc31(); // intentionally doesn't access the type prior to the above guard
-        } catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException _) {
             // pre spring-webmvc v3.1
         }
 

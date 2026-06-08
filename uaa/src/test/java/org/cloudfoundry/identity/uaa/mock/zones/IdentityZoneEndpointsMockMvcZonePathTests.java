@@ -667,7 +667,7 @@ class IdentityZoneEndpointsMockMvcZonePathTests {
         String id = generator.generate();
 
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
-        assertThat(created.getConfig().getTokenPolicy().getKeys()).isEqualTo(emptyMap());
+        assertThat(created.getConfig().getTokenPolicy().getKeys()).containsExactlyInAnyOrderEntriesOf(emptyMap());
         assertThat(created.getConfig().getTokenPolicy().getActiveKeyId()).isEqualTo("kid");
         assertThat(created.getConfig().getSamlConfig().getPrivateKey()).isNull();
         assertThat(created.getConfig().getSamlConfig().getPrivateKeyPassword()).isNull();
@@ -689,7 +689,7 @@ class IdentityZoneEndpointsMockMvcZonePathTests {
 
         IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
         assertThat(updated.getDescription()).isEqualTo("updated description");
-        assertThat(updated.getConfig().getTokenPolicy().getKeys()).isEqualTo(emptyMap());
+        assertThat(updated.getConfig().getTokenPolicy().getKeys()).containsExactlyInAnyOrderEntriesOf(emptyMap());
         assertThat(updated.getConfig().getTokenPolicy().getActiveKeyId()).isEqualTo("key1");
         assertThat(updated.getConfig().getSamlConfig().getPrivateKey()).isNull();
         assertThat(updated.getConfig().getSamlConfig().getPrivateKeyPassword()).isNull();
@@ -1767,7 +1767,7 @@ class IdentityZoneEndpointsMockMvcZonePathTests {
                                 .accept(APPLICATION_JSON))
                 .andExpect(status().isOk());
         IdentityZone deletedZone = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), IdentityZone.class);
-        assertThat(deletedZone.getConfig().getTokenPolicy().getKeys()).isEqualTo(emptyMap());
+        assertThat(deletedZone.getConfig().getTokenPolicy().getKeys()).containsExactlyInAnyOrderEntriesOf(emptyMap());
         assertThat(deletedZone.getConfig().getSamlConfig().getPrivateKey()).isNull();
         assertThat(deletedZone.getConfig().getSamlConfig().getPrivateKeyPassword()).isNull();
         assertThat(deletedZone.getConfig().getSamlConfig().getCertificate()).isEqualTo(SERVICE_PROVIDER_CERTIFICATE);
@@ -2129,7 +2129,7 @@ class IdentityZoneEndpointsMockMvcZonePathTests {
         });
         assertThat(zoneResult).isEqualTo(identityZone);
         assertThat(zoneResult.getConfig().getSamlConfig().getPrivateKey()).isNull();
-        assertThat(zoneResult.getConfig().getTokenPolicy().getKeys()).isEqualTo(emptyMap());
+        assertThat(zoneResult.getConfig().getTokenPolicy().getKeys()).containsExactlyInAnyOrderEntriesOf(emptyMap());
 
         String userAccessTokenReadAndAdmin = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read " + "zones." + identityZone.getId() + ".admin ");
         result = mockMvc.perform(

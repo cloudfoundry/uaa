@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import tools.jackson.core.type.TypeReference;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
 
@@ -8,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 
 class JsonWebKeyTests {
@@ -34,7 +35,7 @@ class JsonWebKeyTests {
     void webKeyPublicNoTypeException() {
         // given
         Map<String, Object> jsonMap = Map.of("kid", "uaa-key");
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> new JsonWebKey(jsonMap));
+        assertThatThrownBy(() -> new JsonWebKey(jsonMap)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

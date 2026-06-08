@@ -15,7 +15,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
@@ -38,14 +37,14 @@ class RateLimitingFilterTest {
     }
 
     @Test
-    void inactiveByDefault() throws ServletException, IOException {
+    void inactiveByDefault() throws Exception {
         instanceNoConfig.doFilter(mock(HttpServletRequest.class), mock(HttpServletResponse.class), mock(FilterChain.class));
 
         verify(limiter, times(0)).checkRequest(any());
     }
 
     @Test
-    void withConfigActive() throws ServletException, IOException {
+    void withConfigActive() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
@@ -60,7 +59,7 @@ class RateLimitingFilterTest {
     }
 
     @Test
-    void withConfigLimitsWith429() throws ServletException, IOException {
+    void withConfigLimitsWith429() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
@@ -79,7 +78,7 @@ class RateLimitingFilterTest {
     }
 
     @Test
-    void statusReturnsWithoutFurtherProcessing() throws ServletException, IOException {
+    void statusReturnsWithoutFurtherProcessing() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getServletPath()).thenReturn("/RateLimitingStatus");
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -93,7 +92,7 @@ class RateLimitingFilterTest {
     }
 
     @Test
-    void statusReturnsWithoutFurtherProcessingNoConfig() throws ServletException, IOException {
+    void statusReturnsWithoutFurtherProcessingNoConfig() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getServletPath()).thenReturn("/RateLimitingStatus");
         HttpServletResponse response = mock(HttpServletResponse.class);

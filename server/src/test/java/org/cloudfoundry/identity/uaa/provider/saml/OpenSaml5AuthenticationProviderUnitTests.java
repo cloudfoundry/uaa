@@ -50,7 +50,6 @@ import org.w3c.dom.Element;
 
 import javax.xml.namespace.QName;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -59,10 +58,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import static java.util.Map.entry;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -674,7 +670,7 @@ class OpenSaml5AuthenticationProviderUnitTests {
     }
 
     @Test
-    void writeObjectWhenTypeIsSaml2AuthenticationThenNoException() throws IOException {
+    void writeObjectWhenTypeIsSaml2AuthenticationThenNoException() throws Exception {
         Response response = response();
         Assertion assertion = TestOpenSamlObjects.signed(assertion(),
                 TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID);
@@ -736,8 +732,7 @@ class OpenSaml5AuthenticationProviderUnitTests {
     @Test
     void setResponseAuthenticationConverterWhenNullThenIllegalArgument() {
         // @formatter:off
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> this.provider.setResponseAuthenticationConverter(null));
+        assertThatThrownBy(() -> this.provider.setResponseAuthenticationConverter(null)).isInstanceOf(IllegalArgumentException.class);
         // @formatter:on
     }
 
@@ -762,7 +757,7 @@ class OpenSaml5AuthenticationProviderUnitTests {
 
     @Test
     void setResponseValidatorWhenNullThenIllegalArgument() {
-        assertThatIllegalArgumentException().isThrownBy(() -> this.provider.setResponseValidator(null));
+        assertThatThrownBy(() -> this.provider.setResponseValidator(null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -791,8 +786,7 @@ class OpenSaml5AuthenticationProviderUnitTests {
         assertion.setIssuer(TestOpenSamlObjects.issuer("https://invalid.idp.test/saml2/idp"));
         response.getAssertions().add(assertion);
         Saml2AuthenticationToken token = token(signed(response), verifying(registration()));
-        assertThatExceptionOfType(Saml2AuthenticationException.class).isThrownBy(() -> provider.authenticate(token))
-                .withMessageContaining("did not match any valid issuers");
+        assertThatThrownBy(() -> provider.authenticate(token)).isInstanceOf(Saml2AuthenticationException.class).hasMessageContaining("did not match any valid issuers");
     }
 
     // gh-14931

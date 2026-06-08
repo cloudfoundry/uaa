@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
@@ -18,9 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -46,10 +46,10 @@ class ZoneEndpointsClientDetailsValidatorTests {
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
         assertThat(validatedClientDetails.getClientId()).isEqualTo(clientDetails.getClientId());
-        assertThat(validatedClientDetails.getScope()).isEqualTo(clientDetails.getScope());
-        assertThat(validatedClientDetails.getAuthorizedGrantTypes()).isEqualTo(clientDetails.getAuthorizedGrantTypes());
+        assertThat(validatedClientDetails.getScope()).hasSameElementsAs(clientDetails.getScope());
+        assertThat(validatedClientDetails.getAuthorizedGrantTypes()).hasSameElementsAs(clientDetails.getAuthorizedGrantTypes());
         assertThat(validatedClientDetails.getAuthorities()).isEqualTo(clientDetails.getAuthorities());
-        assertThat(validatedClientDetails.getResourceIds()).isEqualTo(Collections.singleton("none"));
+        assertThat(validatedClientDetails.getResourceIds()).hasSameElementsAs(Collections.singleton("none"));
         assertThat(validatedClientDetails.getAdditionalInformation()).containsEntry(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
     }
 
@@ -57,7 +57,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
     void createClientNoNameIsInvalid() {
         UaaClientDetails clientDetails = new UaaClientDetails("", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
         clientDetails.setClientSecret("secret");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @ParameterizedTest
@@ -85,25 +85,25 @@ class ZoneEndpointsClientDetailsValidatorTests {
         UaaClientDetails clientDetails = new UaaClientDetails("client", null, "openid", "implicit", "uaa.resource");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
-        assertThat(validatedClientDetails.getAuthorizedGrantTypes()).isEqualTo(clientDetails.getAuthorizedGrantTypes());
+        assertThat(validatedClientDetails.getAuthorizedGrantTypes()).hasSameElementsAs(clientDetails.getAuthorizedGrantTypes());
     }
 
     @Test
     void reject_invalid_grant_type() {
         UaaClientDetails clientDetails = new UaaClientDetails("client", null, "openid", "invalid_grant_type", "uaa.resource");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void createAdminScopeClientIsInvalid() {
         ClientDetails clientDetails = new UaaClientDetails("admin-client", null, "uaa.admin", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void createAdminAuthorityClientIsInvalid() {
         ClientDetails clientDetails = new UaaClientDetails("admin-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.admin");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 }

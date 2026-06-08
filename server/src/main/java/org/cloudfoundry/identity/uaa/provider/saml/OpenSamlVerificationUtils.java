@@ -103,7 +103,7 @@ final class OpenSamlVerificationUtils {
             SAMLSignatureProfileValidator profileValidator = new SAMLSignatureProfileValidator();
             try {
                 profileValidator.validate(signature);
-            } catch (Exception ex) {
+            } catch (Exception _) {
                 errors.add(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
                         INVALID_SIGNATURE_FOR_OBJECT_COLON.formatted(this.id)));
             }
@@ -113,7 +113,7 @@ final class OpenSamlVerificationUtils {
                     errors.add(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
                             INVALID_SIGNATURE_FOR_OBJECT.formatted(this.id)));
                 }
-            } catch (Exception ex) {
+            } catch (Exception _) {
                 errors.add(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
                         INVALID_SIGNATURE_FOR_OBJECT_COLON.formatted(this.id)));
             }

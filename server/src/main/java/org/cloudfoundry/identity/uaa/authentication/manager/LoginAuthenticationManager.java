@@ -86,14 +86,14 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                     addNewAccounts = false;
                     user = userDatabase.retrieveUserById(user.getId());
                 }
-            } catch (UsernameNotFoundException e) {
+            } catch (UsernameNotFoundException _) {
                 // Not necessarily fatal
                 if (addNewAccounts) {
                     // Register new users automatically
                     publish(new NewUserAuthenticatedEvent(user));
                     try {
                         user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
-                    } catch (UsernameNotFoundException ex) {
+                    } catch (UsernameNotFoundException _) {
                         throw new BadCredentialsException("Bad credentials");
                     }
                 } else {

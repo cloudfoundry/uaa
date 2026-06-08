@@ -232,11 +232,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             IdentityProvider existing, HttpStatus status) {
         final IdentityProvider<?> updatedIdp;
         try {
-            updatedIdp = transactionTemplate.execute(txStatus -> {
+            updatedIdp = transactionTemplate.execute(_ -> {
                 final IdentityProvider<?> updatedOriginalIdp = status == CREATED ? identityProviderProvisioning.create(body, zoneId) : identityProviderProvisioning.update(body, zoneId);
                 return idpAliasHandler.ensureConsistencyOfAliasEntity(updatedOriginalIdp, existing);
             });
-        } catch (final IdpAlreadyExistsException e) {
+        } catch (final IdpAlreadyExistsException _) {
             return new ResponseEntity<>(body, CONFLICT);
         } catch (final EntityAliasFailedException e) {
             logger.warn("Could not create alias for %s".formatted(e.getMessage()));
@@ -337,7 +337,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             if ((result == null) || (!result.isAuthenticated())) {
                 status = EXPECTATION_FAILED;
             }
-        } catch (BadCredentialsException x) {
+        } catch (BadCredentialsException _) {
             status = EXPECTATION_FAILED;
             exception = "bad credentials";
         } catch (InternalAuthenticationServiceException x) {

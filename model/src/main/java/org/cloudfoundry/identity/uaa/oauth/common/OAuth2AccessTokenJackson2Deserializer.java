@@ -57,7 +57,7 @@ public class OAuth2AccessTokenJackson2Deserializer extends StdDeserializer<OAuth
             } else if (OAuth2AccessToken.EXPIRES_IN.equals(name)) {
                 try {
                     expiresIn = jp.getLongValue();
-                } catch (StreamReadException e) {
+                } catch (StreamReadException _) {
                     expiresIn = Long.valueOf(jp.getString());
                 }
             } else if (OAuth2AccessToken.SCOPE.equals(name)) {

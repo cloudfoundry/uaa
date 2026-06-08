@@ -185,7 +185,7 @@ public class SamlLoginIT {
             try {
                 IntegrationTestUtils.deleteZone(baseUrl, zoneId, token);
                 IntegrationTestUtils.deleteProvider(token, baseUrl, "uaa", zoneId + ".cloudfoundry-saml-login");
-            } catch (Exception ignored) {
+            } catch (Exception _) {
                 // ignored
             }
         }
@@ -1157,7 +1157,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void springSamlEndpointsWithEmptyContext() throws IOException {
+    void springSamlEndpointsWithEmptyContext() throws Exception {
         CallEmptyPageAndCheckHttpStatusCode("/saml/web/metadata/login", 404);
         // These endpoints are now redirect to /login
         CallEmptyPageAndCheckHttpStatusCode("/saml/SingleLogout/alias/foo", 302);
@@ -1167,7 +1167,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void backportFrom77RelayTest() {
+    void backportFrom77RelayTest() {
         final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
         final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR =
                 "//h1[contains(text(), 'Enter your username and password')]";

@@ -242,13 +242,13 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
             while (!memberList.isEmpty()) {
                 int size = maxSqlParameters > 1 ? Math.min(maxSqlParameters - 1, memberList.size()) : memberList.size();
                 StringBuilder builder = new StringBuilder(dynamicGetGroupsByMemberSqlBase);
-                builder.append(memberList.subList(0, size).stream().map(s -> "?").collect(Collectors.joining(", ")));
+                builder.append(memberList.subList(0, size).stream().map(_ -> "?").collect(Collectors.joining(", ")));
                 builder.append(");");
                 Object[] parameterList = ArrayUtils.addAll(new Object[]{zoneId}, memberList.subList(0, size).toArray());
                 groups.addAll(jdbcTemplate.query(builder.toString(), new ScimGroupRowMapper(), parameterList));
                 memberList = memberList.subList(size, memberList.size());
             }
-        } catch (EmptyResultDataAccessException ex) {
+        } catch (EmptyResultDataAccessException _) {
             groups = Collections.emptyList();
         }
 
@@ -277,7 +277,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
                 ps.setString(2, memberId);
                 ps.setString(3, origin);
             }, new ScimGroupRowMapper());
-        } catch (EmptyResultDataAccessException ex) {
+        } catch (EmptyResultDataAccessException _) {
             results = Collections.emptyList();
         }
 
@@ -289,7 +289,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
             MemberNotFoundException {
         try {
             return jdbcTemplate.queryForObject(GET_MEMBER_SQL, rowMapper, memberId, groupId, zoneId);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new MemberNotFoundException("Member " + memberId + " does not exist in group " + groupId);
         }
     }
@@ -405,7 +405,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         try {
             userProvisioning.retrieve(uuid, identityZoneManager.getCurrentIdentityZoneId());
             return true;
-        } catch (ScimResourceNotFoundException ex) {
+        } catch (ScimResourceNotFoundException _) {
             return false;
         }
     }

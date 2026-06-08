@@ -58,7 +58,7 @@ class RateLimitingIT {
     void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        } catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException _) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -66,7 +66,7 @@ class RateLimitingIT {
     }
 
     @Test
-    void infoEndpointRateLimited() throws InterruptedException {
+    void infoEndpointRateLimited() throws Exception {
         RestOperations restTemplate = serverRunning.getRestTemplate();
 
         // Wait for a fresh rate-limit window to avoid interference from prior requests
@@ -80,7 +80,7 @@ class RateLimitingIT {
         int tolerance = 5;
 
         List<ResponseEntity> responses = new ArrayList<>(requestCount);
-        IntStream.range(0, requestCount).forEach(x -> responses.add(restTemplate.getForEntity(baseUrl + "/info", String.class)));
+        IntStream.range(0, requestCount).forEach(_ -> responses.add(restTemplate.getForEntity(baseUrl + "/info", String.class)));
 
         long limits = responses.stream().filter(s -> HttpStatus.TOO_MANY_REQUESTS.equals(s.getStatusCode())).count();
         long oKs = responses.stream().filter(s -> HttpStatus.OK.equals(s.getStatusCode())).count();

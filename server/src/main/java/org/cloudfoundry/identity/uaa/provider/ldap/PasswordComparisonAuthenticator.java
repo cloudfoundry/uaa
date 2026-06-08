@@ -69,7 +69,7 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
         for (String userDn : getUserDns(username)) {
             try {
                 user = ldapTemplate.retrieveEntry(userDn, getUserAttributes());
-            } catch (NameNotFoundException ignore) {
+            } catch (NameNotFoundException _) {
                 // ignore
             }
             if (user != null) {

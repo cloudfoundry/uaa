@@ -61,7 +61,7 @@ public class CustomPropertyConstructor extends Constructor {
      * @param name the bean property name
      */
     protected final void addPropertyAlias(String alias, Class<?> type, String name) {
-        Map<String, Property> typeMap = properties.computeIfAbsent(type, k -> new HashMap<>());
+        Map<String, Property> typeMap = properties.computeIfAbsent(type, _ -> new HashMap<>());
 
         Property property = propertyUtils.getProperty(type, name);
         typeMap.put(alias, property);

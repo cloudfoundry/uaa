@@ -240,7 +240,7 @@ public abstract class OAuth2AccessTokenSupport {
                     try {
                         ex = ((HttpMessageConverter<OAuth2Exception>) converter).read(OAuth2Exception.class, response);
                     }
-                    catch (Exception e) {
+                    catch (Exception _) {
                         // ignore
                         continue;
                     }

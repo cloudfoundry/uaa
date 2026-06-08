@@ -31,9 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.*;
 
 /**
  * @author Luke Taylor
@@ -331,7 +329,7 @@ class ScimUserTests {
 
         assertThat(user.getPrimaryEmail()).isEqualTo("new@example.com");
 
-        assertThat(user.getEmails()).isEqualTo(Arrays.asList(newEmail, email2, email3));
+        assertThat(user.getEmails()).containsExactlyElementsOf(Arrays.asList(newEmail, email2, email3));
 
         try {
             user.addEmail("email3@bar.com");
@@ -448,9 +446,9 @@ class ScimUserTests {
 
         // should reject adding duplicate phone number if the existing has a type set to null
         p1.setType(null);
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> user.addPhoneNumber(p1.getValue()))
-                .withMessageStartingWith("Already contains phoneNumber");
+        assertThatThrownBy(() -> user.addPhoneNumber(p1.getValue()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageStartingWith("Already contains phoneNumber");
     }
 
     @Test
@@ -553,12 +551,7 @@ class ScimUserTests {
         //username is a required field
         patch.getMeta().setAttributes(new String[]{"username"});
         patch.setUserName(null);
-        try {
-            user.patch(patch);
-            fail("username is a required field, can't nullify it.");
-        } catch (IllegalArgumentException ignored) {
-            // ignore
-        }
+        assertThatThrownBy(() -> user.patch(patch)).isInstanceOf(IllegalArgumentException.class);
         assertThat(user.getUserName()).isNotNull();
 
         //we can drop and set the username again
@@ -605,8 +598,8 @@ class ScimUserTests {
     @Test
     void patchUserRejectChangingOrigin() {
         patch.setOrigin("some-new-origin");
-        assertThatIllegalArgumentException().isThrownBy(() -> user.patch(patch))
-                .withMessage("Cannot change origin in patch of user.");
+        assertThatThrownBy(() -> user.patch(patch)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Cannot change origin in patch of user.");
     }
 
     @Test

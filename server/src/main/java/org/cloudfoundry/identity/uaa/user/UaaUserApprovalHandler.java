@@ -98,7 +98,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
                 authorizationRequest.setApproved(true);
                 return authorizationRequest;
             }
-        } catch (ClientRegistrationException e) {
+        } catch (ClientRegistrationException _) {
             logger.warn("Client registration problem prevent autoapproval check for client={}", clientId);
         }
 

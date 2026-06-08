@@ -23,7 +23,7 @@ class ClientDetailsModificationTest {
                 "[{\"iss\":\"http://u\",\"sub\":\"s\"}]", List.class));
 
         ClientDetailsModification m = new ClientDetailsModification(d);
-        assertThat(m.getClientJwtCredentials()).isNotNull().hasSize(1);
+        assertThat(m.getClientJwtCredentials()).hasSize(1);
         assertThat(m.getAdditionalInformation()).doesNotContainKey(ClientJwtConfiguration.JWT_CREDS);
         assertThat(m.getAdditionalInformation()).doesNotContainKey("client_jwt_config");
     }

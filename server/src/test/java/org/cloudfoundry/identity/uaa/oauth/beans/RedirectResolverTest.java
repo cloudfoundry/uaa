@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
@@ -13,7 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.HamcrestCondition.matching;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.is;
@@ -395,8 +396,8 @@ class RedirectResolverTest {
 
     // For when the new and legacy implementations should both throw
     private void assertResolveRedirect(String requestedRedirect, Class<? extends Throwable> expectedExceptionClassForBothNewAndLegacyResult) {
-        assertThatExceptionOfType(expectedExceptionClassForBothNewAndLegacyResult).isThrownBy(() -> legacyResolver.resolveRedirect(requestedRedirect, mockClientDetails));
-        assertThatExceptionOfType(expectedExceptionClassForBothNewAndLegacyResult).isThrownBy(() -> springResolver.resolveRedirect(requestedRedirect, mockClientDetails));
+        assertThatThrownBy(() -> legacyResolver.resolveRedirect(requestedRedirect, mockClientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(expectedExceptionClassForBothNewAndLegacyResult));
+        assertThatThrownBy(() -> springResolver.resolveRedirect(requestedRedirect, mockClientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(expectedExceptionClassForBothNewAndLegacyResult));
     }
 
     // For when only the new implementation should throw
@@ -405,12 +406,12 @@ class RedirectResolverTest {
                 .as("test failed for " + legacyResolver.getClass().getSimpleName())
                 .is(matching(matcherForLegacyResult));
 
-        assertThatExceptionOfType(expectedExceptionClassForNewResult).isThrownBy(() -> springResolver.resolveRedirect(requestedRedirect, mockClientDetails));
+        assertThatThrownBy(() -> springResolver.resolveRedirect(requestedRedirect, mockClientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(expectedExceptionClassForNewResult));
     }
 
     // For when only the legacy implementation should throw
     private void assertResolveRedirect(String requestedRedirect, Class<? extends Throwable> expectedExceptionClassForLegacyResult, Matcher<? super String> matcherForNewResult) {
-        assertThatExceptionOfType(expectedExceptionClassForLegacyResult).isThrownBy(() -> legacyResolver.resolveRedirect(requestedRedirect, mockClientDetails));
+        assertThatThrownBy(() -> legacyResolver.resolveRedirect(requestedRedirect, mockClientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(expectedExceptionClassForLegacyResult));
 
         assertThat(springResolver.resolveRedirect(requestedRedirect, mockClientDetails))
                 .as("test failed for " + springResolver.getClass().getSimpleName())

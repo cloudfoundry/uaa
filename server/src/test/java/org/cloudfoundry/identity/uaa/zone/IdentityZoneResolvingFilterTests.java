@@ -134,7 +134,7 @@ class IdentityZoneResolvingFilterTests {
         identityZone.setSubdomain(subDomainInput);
         try {
             identityZone = dao.create(identityZone);
-        } catch (ZoneAlreadyExistsException x) {
+        } catch (ZoneAlreadyExistsException _) {
             identityZone = dao.retrieveBySubdomain(subDomainInput);
         }
         assertThat(identityZone.getSubdomain()).isEqualTo(expectedSubdomain);

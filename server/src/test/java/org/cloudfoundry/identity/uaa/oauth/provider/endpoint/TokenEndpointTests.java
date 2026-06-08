@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.endpoint;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
@@ -38,7 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -149,12 +150,12 @@ class TokenEndpointTests {
 
     @Test
     void getAccessTokenWithUnsupportedRequestParameters() {
-        assertThatExceptionOfType(HttpRequestMethodNotSupportedException.class).isThrownBy(() ->
-                endpoint.getAccessToken(clientAuthentication, new HashMap<>()));
+        assertThatThrownBy(() ->
+                endpoint.getAccessToken(clientAuthentication, new HashMap<>())).asInstanceOf(InstanceOfAssertFactories.throwable(HttpRequestMethodNotSupportedException.class));
     }
 
     @Test
-    void getAccessTokenWithSupportedRequestParametersNotPost() throws HttpRequestMethodNotSupportedException {
+    void getAccessTokenWithSupportedRequestParametersNotPost() throws Exception {
         endpoint.setAllowedRequestMethods(new HashSet<>(List.of(HttpMethod.GET)));
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put("client_id", CLIENT_ID);
@@ -189,8 +190,8 @@ class TokenEndpointTests {
         when(authorizationRequestFactory.createTokenRequest(anyMap, eq(clientDetails))).thenReturn(
                 createFromParameters(parameters));
         when(clientDetailsService.loadClientByClientId(CLIENT_ID)).thenReturn(clientDetails);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() ->
-                endpoint.postAccessToken(clientAuthentication, parameters));
+        assertThatThrownBy(() ->
+                endpoint.postAccessToken(clientAuthentication, parameters)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     // gh-1268
@@ -215,7 +216,7 @@ class TokenEndpointTests {
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getHeaders().get("Content-Type").getFirst()).isEqualTo("application/json");
+        assertThat(response.getHeaders().get("Content-Type")).first().isEqualTo("application/json");
     }
 
     @Test
@@ -227,9 +228,9 @@ class TokenEndpointTests {
         parameters.put("grant_type", "refresh_token");
         when(authorizationRequestFactory.createTokenRequest(any(Map.class), eq(clientDetails))).thenReturn(
                 createFromParameters(parameters));
-        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                endpoint.postAccessToken(clientAuthentication, parameters));
+                endpoint.postAccessToken(clientAuthentication, parameters)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidRequestException.class));
     }
 
     @Test
@@ -256,14 +257,14 @@ class TokenEndpointTests {
 
     @Test
     void postAccessException() {
-        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() ->
-                endpoint.postAccessToken(null, Collections.emptyMap()));
+        assertThatThrownBy(() ->
+                endpoint.postAccessToken(null, Collections.emptyMap())).asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
     }
 
     @Test
     void getClientIdException() {
-        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() ->
-                endpoint.getClientId(new UsernamePasswordAuthenticationToken("FOO", "bar")));
+        assertThatThrownBy(() ->
+                endpoint.getClientId(new UsernamePasswordAuthenticationToken("FOO", "bar"))).asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
     }
 
     @Test

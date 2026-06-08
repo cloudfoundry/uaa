@@ -42,7 +42,7 @@ public class TokenValidationService {
             RevocableToken revocableToken;
             try {
                 revocableToken = revocableTokenProvisioning.retrieve(token, IdentityZoneHolder.get().getId());
-            } catch (EmptyResultDataAccessException ex) {
+            } catch (EmptyResultDataAccessException _) {
                 throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect.");
             }
             token = revocableToken.getValue();

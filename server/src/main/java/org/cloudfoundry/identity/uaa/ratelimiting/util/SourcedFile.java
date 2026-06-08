@@ -68,7 +68,7 @@ public class SourcedFile {
             if (file.isFile()) {
                 return new FileInputStream( file );
             }
-        } catch (IOException ignore) {
+        } catch (IOException _) {
             // ignore!
         }
         return null;

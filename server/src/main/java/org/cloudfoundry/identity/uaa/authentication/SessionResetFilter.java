@@ -84,7 +84,7 @@ public class SessionResetFilter extends OncePerRequestFilter {
                             redirect = true;
                         }
                     }
-                } catch (UsernameNotFoundException x) {
+                } catch (UsernameNotFoundException _) {
                     logger.info("Authenticated user [{}] was not found in DB.", userId);
                     redirect = true;
                 }

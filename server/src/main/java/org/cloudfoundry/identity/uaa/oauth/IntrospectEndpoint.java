@@ -42,7 +42,7 @@ public class IntrospectEndpoint {
             resourceServerTokenServices.loadAuthentication(token);
             introspectionClaims = UaaTokenUtils.getClaims(oAuth2AccessToken.getValue(), IntrospectionClaims.class);
             introspectionClaims.setActive(true);
-        } catch (InvalidTokenException e) {
+        } catch (InvalidTokenException _) {
             introspectionClaims.setActive(false);
             return introspectionClaims;
         }

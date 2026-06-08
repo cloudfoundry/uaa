@@ -209,12 +209,12 @@ class IdentityZoneConfigurationTests {
 
     @Test
     void defaultCorsConfiguration() {
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders()).isEqualTo(Arrays.asList(new String[]{ACCEPT, AUTHORIZATION, CONTENT_TYPE}));
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods()).isEqualTo(Collections.singletonList(GET.toString()));
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris()).isEqualTo(Collections.singletonList(".*"));
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns()).isEqualTo(Collections.emptyList());
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins()).isEqualTo(Collections.singletonList(".*"));
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()).isEqualTo(Collections.emptyList());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders()).containsExactlyElementsOf(Arrays.asList(new String[]{ACCEPT, AUTHORIZATION, CONTENT_TYPE}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods()).containsExactlyElementsOf(Collections.singletonList(GET.toString()));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris()).containsExactlyElementsOf(Collections.singletonList(".*"));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns()).containsExactlyElementsOf(Collections.emptyList());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins()).containsExactlyElementsOf(Collections.singletonList(".*"));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()).containsExactlyElementsOf(Collections.emptyList());
         assertThat(definition.getCorsPolicy().getDefaultConfiguration().getMaxAge()).isEqualTo(1728000);
     }
 
@@ -227,12 +227,12 @@ class IdentityZoneConfigurationTests {
         s = s.replace("\"allowedUris\":[\".*\"]", "\"allowedUris\":[\"^/uaa/userinfo$\",\"^/uaa/logout\\\\.do$\"]");
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
 
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders()).isEqualTo(Arrays.asList(new String[]{ACCEPT}));
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods()).isEqualTo(Arrays.asList(new String[]{GET.toString(), POST.toString()}));
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris()).isEqualTo(Arrays.asList(new String[]{"^/uaa/userinfo$", "^/uaa/logout\\.do$"}));
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns()).isEqualTo(Collections.emptyList());
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins()).isEqualTo(Arrays.asList(new String[]{"^localhost$", "^.*\\.localhost$"}));
-        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()).isEqualTo(Collections.emptyList());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders()).containsExactlyElementsOf(Arrays.asList(new String[]{ACCEPT}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods()).containsExactlyElementsOf(Arrays.asList(new String[]{GET.toString(), POST.toString()}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris()).containsExactlyElementsOf(Arrays.asList(new String[]{"^/uaa/userinfo$", "^/uaa/logout\\.do$"}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns()).containsExactlyElementsOf(Collections.emptyList());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins()).containsExactlyElementsOf(Arrays.asList(new String[]{"^localhost$", "^.*\\.localhost$"}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()).containsExactlyElementsOf(Collections.emptyList());
         assertThat(definition.getCorsPolicy().getDefaultConfiguration().getMaxAge()).isEqualTo(1728000);
     }
 

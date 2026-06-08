@@ -16,7 +16,7 @@ public class JwtTokenUtils {
         Jwt tokenJwt;
         try {
             tokenJwt = JwtHelper.decode(token);
-        } catch (Throwable t) {
+        } catch (Throwable _) {
             throw new InvalidTokenException("Invalid token (could not decode): " + token);
         }
 

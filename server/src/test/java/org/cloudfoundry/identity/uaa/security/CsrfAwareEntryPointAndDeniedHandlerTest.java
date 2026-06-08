@@ -13,7 +13,7 @@
  */
 
 package org.cloudfoundry.identity.uaa.security;
-
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,7 @@ import org.springframework.security.web.csrf.MissingCsrfTokenException;
 import jakarta.servlet.http.HttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CsrfAwareEntryPointAndDeniedHandlerTest {
 
@@ -90,22 +90,22 @@ class CsrfAwareEntryPointAndDeniedHandlerTest {
 
     @Test
     void nullCsrfUrl() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler(null, "/login"));
+        assertThatThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler(null, "/login")).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
     void invalidCsrfUrl() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("csrf", "/login"));
+        assertThatThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("csrf", "/login")).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
     void nullLoginfUrl() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("/csrf", null));
+        assertThatThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("/csrf", null)).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
     void invalidLoginUrl() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("/csrf", "login"));
+        assertThatThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("/csrf", "login")).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
 }

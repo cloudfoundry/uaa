@@ -112,7 +112,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         if (identityZone.getConfig() != null && identityZone.getConfig().getSamlConfig() != null) {
             identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(null);
             identityZone.getConfig().getSamlConfig().setPrivateKey(null);
-            identityZone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+            identityZone.getConfig().getSamlConfig().getKeys().forEach((_, value) -> {
                 value.setPassphrase(null);
                 value.setKey(null);
             });

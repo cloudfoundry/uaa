@@ -22,7 +22,7 @@ class PathFragmentToLimiterMappingsTest {
 
         assertThat(mapper.isEmpty()).isTrue();
         assertThat(mapper.count()).isZero();
-        assertThat(streamToPathFragments()).isEqualTo(List.of());
+        assertThat(streamToPathFragments()).containsExactlyElementsOf(List.of());
 
         assertThat(mapper.get("significantOther/Wilma/of/Fred")).isNull();
     }
@@ -37,7 +37,7 @@ class PathFragmentToLimiterMappingsTest {
 
         assertThat(mapper.isEmpty()).isFalse();
         assertThat(mapper.count()).isEqualTo(3);
-        assertThat(streamToPathFragments()).isEqualTo(List.of(pebbles, wilma, fred));
+        assertThat(streamToPathFragments()).containsExactlyElementsOf(List.of(pebbles, wilma, fred));
 
         assertThat(mapper.get("significantOther/Wilma/of/Fred")).isEqualTo(wilma.getLimiterMapping());
     }
@@ -63,7 +63,7 @@ class PathFragmentToLimiterMappingsTest {
         Instant start = Instant.now();
         LimiterMapping found = mapper.get(servletPath);
         int calls = selector.calls;
-        System.out.println(Duration.between(start, Instant.now()).toNanos() + "ns: " + calls + " -> " + servletPath);
+        IO.println(Duration.between(start, Instant.now()).toNanos() + "ns: " + calls + " -> " + servletPath);
         if (expectedFound) {
             assertThat(found).isNotNull();
         } else {

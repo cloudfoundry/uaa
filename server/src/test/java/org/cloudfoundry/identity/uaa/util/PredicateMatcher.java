@@ -38,7 +38,7 @@ public final class PredicateMatcher<T> extends BaseMatcher<T> {
     public boolean matches(Object item) {
         try {
             return predicate.test((T) item);
-        } catch (ClassCastException ex) {
+        } catch (ClassCastException _) {
             return false;
         }
     }

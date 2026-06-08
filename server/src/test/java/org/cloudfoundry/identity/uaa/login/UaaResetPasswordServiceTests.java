@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.account.ConflictException;
 import org.cloudfoundry.identity.uaa.account.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.account.NotFoundException;
@@ -34,10 +35,7 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Date;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -173,7 +171,7 @@ class UaaResetPasswordServiceTests {
 
     @Test
     void forgotPassword_ThrowsNotFoundException_ScimUserNotFoundInUaa() {
-        assertThatExceptionOfType(NotFoundException.class).isThrownBy(() -> uaaResetPasswordService.forgotPassword("exampleUser", "", ""));
+        assertThatThrownBy(() -> uaaResetPasswordService.forgotPassword("exampleUser", "", "")).asInstanceOf(InstanceOfAssertFactories.throwable(NotFoundException.class));
     }
 
     @Test
@@ -196,7 +194,7 @@ class UaaResetPasswordServiceTests {
         doThrow(new InvalidPasswordException("foo")).when(passwordValidator).validate("new_secret");
         ExpiringCode code1 = new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000 * 60 * 10), "{}", null);
 
-        assertThatExceptionOfType(InvalidPasswordException.class).isThrownBy(() -> uaaResetPasswordService.resetPassword(code1, "new_secret"));
+        assertThatThrownBy(() -> uaaResetPasswordService.resetPassword(code1, "new_secret")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidPasswordException.class));
     }
 
     @Test
@@ -298,7 +296,7 @@ class UaaResetPasswordServiceTests {
         when(scimUserProvisioning.checkPasswordMatches("user-id", "password", currentZoneId))
                 .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
 
-        assertThatExceptionOfType(InvalidPasswordException.class).isThrownBy(() -> uaaResetPasswordService.resetUserPassword(userId, "password"));
+        assertThatThrownBy(() -> uaaResetPasswordService.resetUserPassword(userId, "password")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidPasswordException.class));
     }
 
     @Test

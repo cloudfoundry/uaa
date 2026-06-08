@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ import java.util.Collections;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ScimGroupTests {
     private static final String GROUP_BEFORE_DESCRIPTION = "{\"meta\":{\"version\":0,\"created\":\"2016-01-13T09:01:33.909Z\"},\"zoneId\":\"zoneId\",\"displayName\":\"name\",\"schemas\":[\"urn:scim:schemas:core:1.0\"],\"id\":\"id\"}";
@@ -121,15 +122,15 @@ class ScimGroupTests {
     @Test
     void cant_drop_zone_id() {
         patch.getMeta().setAttributes(new String[]{"zoneID"});
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                group.patch(patch));
+        assertThatThrownBy(() ->
+                group.patch(patch)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cant_drop_id() {
         patch.getMeta().setAttributes(new String[]{"id"});
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                group.patch(patch));
+        assertThatThrownBy(() ->
+                group.patch(patch)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -101,11 +102,8 @@ class ChainedAuthenticationManagerTest {
     void uaaAuthThrowLdapAuthFalse() {
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(authenticateFalse);
-        try {
-            authMgr.authenticate(failure);
-            fail("Should have thrown exception");
-        } catch (BadCredentialsException ignored) {
-        }
+        assertThatThrownBy(() -> authMgr.authenticate(failure))
+                .isInstanceOf(BadCredentialsException.class);
 
         verify(authenticateThrow, times(1)).authenticate(any(Authentication.class));
         verify(authenticateFalse, times(1)).authenticate(any(Authentication.class));

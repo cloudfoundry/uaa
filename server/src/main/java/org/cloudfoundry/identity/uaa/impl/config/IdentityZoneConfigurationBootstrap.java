@@ -75,7 +75,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private UserConfig defaultUserConfig;
 
-    private IdentityZoneValidator validator = (config, mode) -> config;
+    private IdentityZoneValidator validator = (config, _) -> config;
     private Map<String, Object> branding;
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {

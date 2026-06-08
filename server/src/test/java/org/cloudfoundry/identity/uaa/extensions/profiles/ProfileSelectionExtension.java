@@ -63,7 +63,7 @@ public class ProfileSelectionExtension implements BeforeEachCallback {
         try {
             var applicationContext = SpringExtension.getApplicationContext(context);
             return Arrays.asList(applicationContext.getEnvironment().getActiveProfiles());
-        } catch (IllegalStateException ignore) {
+        } catch (IllegalStateException _) {
             return null;
         }
     }

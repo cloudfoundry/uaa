@@ -29,7 +29,7 @@ class MediaTypeUtilsTest {
     @MethodSource("listsThatShouldNotBeSorted")
     void sortByQualityValueWithListsThatDoNotNeedSorting(List<MediaType> mediaTypes, List<MediaType> expected) {
         MediaTypeUtils.sortByQualityValue(mediaTypes);
-        assertThat(mediaTypes).isEqualTo(expected);
+        assertThat(mediaTypes).containsExactlyElementsOf(expected);
     }
 
     static Stream<Arguments> listsThatShouldNotBeSorted() {
@@ -102,29 +102,28 @@ class MediaTypeUtilsTest {
         assertThat(comp.compare(audioBasicLevel, audioBasicLevel)).as("Invalid comparison result").isZero();
 
         // specific to unspecific
-        assertThat(comp.compare(audioBasic, audio)).as("Invalid comparison result").isLessThan(0);
-        assertThat(comp.compare(audioBasic, all)).as("Invalid comparison result").isLessThan(0);
-        assertThat(comp.compare(audio, all)).as("Invalid comparison result").isLessThan(0);
-        assertThat(comp.compare(MediaType.APPLICATION_XHTML_XML, allXml)).as("Invalid comparison result").isLessThan(0);
+        assertThat(comp.compare(audioBasic, audio)).as("Invalid comparison result").isNegative();
+        assertThat(comp.compare(audioBasic, all)).as("Invalid comparison result").isNegative();
+        assertThat(comp.compare(audio, all)).as("Invalid comparison result").isNegative();
+        assertThat(comp.compare(MediaType.APPLICATION_XHTML_XML, allXml)).as("Invalid comparison result").isNegative();
 
         // unspecific to specific
-        assertThat(comp.compare(audio, audioBasic)).as("Invalid comparison result").isGreaterThan(0);
-        assertThat(comp.compare(all, audioBasic)).as("Invalid comparison result").isGreaterThan(0);
-        assertThat(comp.compare(all, audio)).as("Invalid comparison result").isGreaterThan(0);
-        assertThat(comp.compare(allXml, MediaType.APPLICATION_XHTML_XML)).as("Invalid comparison result")
-                .isGreaterThan(0);
+        assertThat(comp.compare(audio, audioBasic)).as("Invalid comparison result").isPositive();
+        assertThat(comp.compare(all, audioBasic)).as("Invalid comparison result").isPositive();
+        assertThat(comp.compare(all, audio)).as("Invalid comparison result").isPositive();
+        assertThat(comp.compare(allXml, MediaType.APPLICATION_XHTML_XML)).as("Invalid comparison result").isPositive();
 
         // qualifiers
-        assertThat(comp.compare(audio, audio07)).as("Invalid comparison result").isLessThan(0);
-        assertThat(comp.compare(audio07, audio)).as("Invalid comparison result").isGreaterThan(0);
-        assertThat(comp.compare(audio07, audio03)).as("Invalid comparison result").isLessThan(0);
-        assertThat(comp.compare(audio03, audio07)).as("Invalid comparison result").isGreaterThan(0);
-        assertThat(comp.compare(audio03, all)).as("Invalid comparison result").isGreaterThan(0);
-        assertThat(comp.compare(all, audio03)).as("Invalid comparison result").isLessThan(0);
+        assertThat(comp.compare(audio, audio07)).as("Invalid comparison result").isNegative();
+        assertThat(comp.compare(audio07, audio)).as("Invalid comparison result").isPositive();
+        assertThat(comp.compare(audio07, audio03)).as("Invalid comparison result").isNegative();
+        assertThat(comp.compare(audio03, audio07)).as("Invalid comparison result").isPositive();
+        assertThat(comp.compare(audio03, all)).as("Invalid comparison result").isPositive();
+        assertThat(comp.compare(all, audio03)).as("Invalid comparison result").isNegative();
 
         // other parameters
-        assertThat(comp.compare(audioBasic, audioBasicLevel)).as("Invalid comparison result").isGreaterThan(0);
-        assertThat(comp.compare(audioBasicLevel, audioBasic)).as("Invalid comparison result").isLessThan(0);
+        assertThat(comp.compare(audioBasic, audioBasicLevel)).as("Invalid comparison result").isPositive();
+        assertThat(comp.compare(audioBasicLevel, audioBasic)).as("Invalid comparison result").isNegative();
 
         // different types
         assertThat(comp.compare(audioBasic, textHtml)).as("Invalid comparison result").isZero();

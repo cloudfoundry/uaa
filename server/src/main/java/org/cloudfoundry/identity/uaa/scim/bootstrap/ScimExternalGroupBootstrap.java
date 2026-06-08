@@ -72,7 +72,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
         ScimGroup group = new ScimGroup(null, groupName, identityZoneManager.getCurrentIdentityZoneId());
         try {
             return getScimGroupProvisioning().create(group, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (ScimResourceAlreadyExistsException x) {
+        } catch (ScimResourceAlreadyExistsException _) {
             List<ScimGroup> groups = getScimGroupProvisioning().query(GROUP_BY_NAME_AND_ZONE_FILTER.formatted(groupName, identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
             if (groups != null && !groups.isEmpty()) {
                 return groups.getFirst();

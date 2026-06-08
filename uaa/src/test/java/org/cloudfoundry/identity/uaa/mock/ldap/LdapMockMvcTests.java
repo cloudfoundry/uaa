@@ -301,7 +301,7 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
                         .andDo(print())
                         .andExpect(status().isBadRequest())
                         .andExpect(content().string(containsString("Caused by:")));
-            } catch (Exception ignored) {
+            } catch (Exception _) {
                 fail("should not be able to connect to LDAP server");
             }
         }

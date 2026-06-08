@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
@@ -12,7 +13,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ExternalOAuthIdentityProviderConfigValidatorTest {
     private AbstractExternalOAuthIdentityProviderDefinition definition;
@@ -47,24 +48,24 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
     void configWithNullAuthUrl_ThrowsException() {
         definition.setAuthUrl(null);
         validator = new ExternalOAuthIdentityProviderConfigValidator();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void configWithNullTokenUrl_ThrowsException() {
         definition.setTokenUrl(null);
         validator = new ExternalOAuthIdentityProviderConfigValidator();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void configWithNullRelyingPartyId_ThrowsException() {
         definition.setRelyingPartyId(null);
         validator = new ExternalOAuthIdentityProviderConfigValidator();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -72,8 +73,8 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
         definition.setRelyingPartySecret(null);
         definition.setAuthMethod(ClientAuthentication.CLIENT_SECRET_BASIC);
         validator = new ExternalOAuthIdentityProviderConfigValidator();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -81,24 +82,24 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
         definition.setRelyingPartySecret("secret");
         ((OIDCIdentityProviderDefinition) definition).setJwtClientAuthentication(new Object());
         validator = new ExternalOAuthIdentityProviderConfigValidator();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void configWithPrivateKeyJwtButNoJwtConfiguration_ThrowsException() {
         definition.setAuthMethod(ClientAuthentication.PRIVATE_KEY_JWT);
         validator = new ExternalOAuthIdentityProviderConfigValidator();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void configWithInvalidAuthMethod_ThrowsException() {
         definition.setAuthMethod("no-sure-about-this");
         validator = new ExternalOAuthIdentityProviderConfigValidator();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -106,8 +107,8 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
         definition.setShowLinkText(true);
         definition.setLinkText(null);
         validator = new ExternalOAuthIdentityProviderConfigValidator();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -128,16 +129,16 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
 
     @Test
     void configCannotBeNull() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate((AbstractExternalOAuthIdentityProviderDefinition) null));
+        assertThatThrownBy(() ->
+                validator.validate((AbstractExternalOAuthIdentityProviderDefinition) null)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void tokenKeyUrl_orTokenKeyMustBeSpecified() {
         definition.setTokenKey(null);
         definition.setTokenKeyUrl(null);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -158,7 +159,7 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
     void additionalParametersError() {
         OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) definition;
         oidcIdentityProviderDefinition.setAdditionalAuthzParameters(Map.of("token_format", "jwt", "code", "1234"));
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                validator.validate(definition));
+        assertThatThrownBy(() ->
+                validator.validate(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 }

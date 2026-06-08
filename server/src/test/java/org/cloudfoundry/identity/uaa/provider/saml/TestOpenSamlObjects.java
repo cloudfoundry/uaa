@@ -126,7 +126,7 @@ public final class TestOpenSamlObjects {
     }
 
     static Response signedResponseWithOneAssertion() {
-        return signedResponseWithOneAssertion(response -> {
+        return signedResponseWithOneAssertion(_ -> {
         });
     }
 

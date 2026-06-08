@@ -343,7 +343,7 @@ class UaaStringUtilsTest {
         assertThat(authorities).isEqualTo(Collections.emptyList());
         assertThat(UaaStringUtils.getStringsFromAuthorities(null)).isEmpty();
         authorities = UaaStringUtils.getAuthoritiesFromStrings(Collections.singletonList("uaa.user"));
-        assertThat(UaaStringUtils.getStringsFromAuthorities(authorities)).isEqualTo(Set.of("uaa.user"));
+        assertThat(UaaStringUtils.getStringsFromAuthorities(authorities)).hasSameElementsAs(Set.of("uaa.user"));
     }
 
     @Test
@@ -401,10 +401,9 @@ class UaaStringUtilsTest {
 
     @Test
     void getArrayDefaultValue() {
-        assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1").stream().sorted().toList())
-                .isEqualTo(Stream.of("1", "2").sorted().toList());
-        assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of(), "1")).isEqualTo(List.of("1"));
-        assertThat(UaaStringUtils.getValuesOrDefaultValue(null, "1")).isEqualTo(List.of("1"));
+        assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1").stream().sorted().toList()).containsExactlyElementsOf(Stream.of("1", "2").sorted().toList());
+        assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of(), "1")).containsExactlyElementsOf(List.of("1"));
+        assertThat(UaaStringUtils.getValuesOrDefaultValue(null, "1")).containsExactlyElementsOf(List.of("1"));
     }
 
     @Test

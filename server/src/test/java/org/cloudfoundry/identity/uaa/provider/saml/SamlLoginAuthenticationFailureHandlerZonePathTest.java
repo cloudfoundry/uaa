@@ -12,8 +12,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
-import jakarta.servlet.ServletException;
-import java.io.IOException;
 import java.io.Serial;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +25,7 @@ class SamlLoginAuthenticationFailureHandlerZonePathTest {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void errorRedirect(ZoneRequestPathMode mode) throws IOException, ServletException {
+    void errorRedirect(ZoneRequestPathMode mode) throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -52,7 +50,7 @@ class SamlLoginAuthenticationFailureHandlerZonePathTest {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void errorRedirectWithExistingQueryParameters(ZoneRequestPathMode mode) throws IOException, ServletException {
+    void errorRedirectWithExistingQueryParameters(ZoneRequestPathMode mode) throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -77,7 +75,7 @@ class SamlLoginAuthenticationFailureHandlerZonePathTest {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void someOtherErrorCondition(ZoneRequestPathMode mode) throws IOException, ServletException {
+    void someOtherErrorCondition(ZoneRequestPathMode mode) throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -107,7 +105,7 @@ class SamlLoginAuthenticationFailureHandlerZonePathTest {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void noSession(ZoneRequestPathMode mode) throws IOException, ServletException {
+    void noSession(ZoneRequestPathMode mode) throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -124,7 +122,7 @@ class SamlLoginAuthenticationFailureHandlerZonePathTest {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void noSavedRequest(ZoneRequestPathMode mode) throws IOException, ServletException {
+    void noSavedRequest(ZoneRequestPathMode mode) throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
@@ -148,7 +146,7 @@ class SamlLoginAuthenticationFailureHandlerZonePathTest {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void noRedirectURI(ZoneRequestPathMode mode) throws IOException, ServletException {
+    void noRedirectURI(ZoneRequestPathMode mode) throws Exception {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);

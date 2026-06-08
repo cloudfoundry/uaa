@@ -42,7 +42,7 @@ class ErrorRoutingIT {
     }
 
     @Test
-    void statusCodeToErrorPage() throws IOException {
+    void statusCodeToErrorPage() throws Exception {
         CallErrorPageAndCheckHttpStatusCode("/error", "GET", 200);
         CallErrorPageAndCheckHttpStatusCode("/error404", "GET", 200);
         CallErrorPageAndCheckHttpStatusCode("/error429", "GET", 200);
@@ -54,7 +54,7 @@ class ErrorRoutingIT {
     }
 
     @Test
-    void traceRequestsRejected() throws IOException {
+    void traceRequestsRejected() throws Exception {
         // org.springframework.security.web.firewall.StrictHttpFirewall rejects TRACE method
         HttpURLConnection cn = (HttpURLConnection) new URL(baseUrl + "/info").openConnection();
         cn.setRequestMethod("TRACE");
@@ -67,7 +67,7 @@ class ErrorRoutingIT {
 
     @ParameterizedTest
     @ValueSource(strings = { "/login?param=%00", "/login?param=val%00ue" } )
-    void requestInvalidParameterErrorPage(String invalidParameter) throws IOException {
+    void requestInvalidParameterErrorPage(String invalidParameter) throws Exception {
         String body = CallErrorPageAndCheckHttpStatusCode(invalidParameter, "GET", 400);
         XmlAssert.assertThat(body)
                 .hasXPath("//p")
@@ -77,7 +77,7 @@ class ErrorRoutingIT {
 
     @ParameterizedTest
     @ValueSource(strings = { "/login;endpoint=x", "/login;?endpoint=x", "/login?%00param=%00value" } )
-    void requestRejectedExceptionErrorPage(String rejectedEndpoint) throws IOException {
+    void requestRejectedExceptionErrorPage(String rejectedEndpoint) throws Exception {
         // spring security throws RequestRejectedException with status code 400
         String body = CallErrorPageAndCheckHttpStatusCode(rejectedEndpoint, "GET", 400);
         XmlAssert.assertThat(body)
@@ -112,7 +112,7 @@ class ErrorRoutingIT {
             while ((charsRead = reader.read(buffer, 0, bufferSize)) != -1) {
                 sb.append(buffer, 0, charsRead);
             }
-        } catch (IOException ie) {
+        } catch (IOException _) {
             IOUtils.close(connection);
         }
         return sb.toString();

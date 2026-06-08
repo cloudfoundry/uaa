@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -112,7 +113,7 @@ class DefaultUserAuthenticationConverterTests {
     @Test
     void shouldAuthorities() {
         DefaultUserAuthenticationConverter converter = new DefaultUserAuthenticationConverter();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                converter.getAuthorities(Map.of("authorities", 1)));
+        assertThatThrownBy(() ->
+                converter.getAuthorities(Map.of("authorities", 1))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 }

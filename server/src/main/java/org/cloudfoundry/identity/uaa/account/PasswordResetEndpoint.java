@@ -82,7 +82,7 @@ public class PasswordResetEndpoint {
         } catch (ConflictException e) {
             response.setUserId(e.getUserId());
             return new ResponseEntity<>(response, CONFLICT);
-        } catch (NotFoundException e) {
+        } catch (NotFoundException _) {
             return new ResponseEntity<>(NOT_FOUND);
         }
     }
@@ -110,13 +110,13 @@ public class PasswordResetEndpoint {
                 response.setEmail(user.getPrimaryEmail());
                 response.setLoginCode(loginCode.getCode());
                 return new ResponseEntity<>(response, OK);
-            } catch (BadCredentialsException e) {
+            } catch (BadCredentialsException _) {
                 return new ResponseEntity<>(UNAUTHORIZED);
-            } catch (ScimResourceNotFoundException e) {
+            } catch (ScimResourceNotFoundException _) {
                 return new ResponseEntity<>(NOT_FOUND);
             } catch (InvalidPasswordException | InvalidCodeException e) {
                 throw e;
-            } catch (Exception e) {
+            } catch (Exception _) {
                 return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
             }
         } else {

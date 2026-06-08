@@ -19,8 +19,8 @@ class UaaClientTest {
                 "[{\"iss\":\"http://localhost/uaa/oauth/token\",\"sub\":\"c1\",\"aud\":\"c1\"}]", List.class));
         UaaClient c = new UaaClient("cid", "sec", List.of(new SimpleGrantedAuthority("uaa.none")), addl, null);
         ClientJwtConfiguration j = c.getClientJwtConfiguration();
-        assertThat(j.getClientJwtCredentials()).isNotNull().hasSize(1);
-        assertThat(j.getClientJwtCredentials().get(0).getIssuer()).isEqualTo("http://localhost/uaa/oauth/token");
+        assertThat(j.getClientJwtCredentials()).hasSize(1);
+        assertThat(j.getClientJwtCredentials().getFirst().getIssuer()).isEqualTo("http://localhost/uaa/oauth/token");
     }
 
     @Test

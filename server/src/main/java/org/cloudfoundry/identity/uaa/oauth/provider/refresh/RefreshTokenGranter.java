@@ -41,7 +41,7 @@ public class RefreshTokenGranter extends AbstractTokenGranter {
         catch (AccountStatusException ase) {
             //covers expired, locked, disabled cases (mentioned in section 5.2, draft 31)
             throw new InvalidGrantException(ase.getMessage());
-        } catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException _) {
             // If the user is not found, report a generic error message
             throw new InvalidGrantException("user not found");
         }

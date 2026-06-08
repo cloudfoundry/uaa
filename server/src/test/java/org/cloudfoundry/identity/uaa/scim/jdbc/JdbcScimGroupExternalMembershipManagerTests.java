@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -28,7 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @WithDatabaseContext
 class JdbcScimGroupExternalMembershipManagerTests {
@@ -143,12 +144,12 @@ class JdbcScimGroupExternalMembershipManagerTests {
 
     @Test
     void cannot_Retrieve_ById_For_OtherZone() {
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> edao.getExternalGroupMapsByGroupId("g1-" + otherZone.getId(), origin, IdentityZone.getUaaZoneId()));
+        assertThatThrownBy(() -> edao.getExternalGroupMapsByGroupId("g1-" + otherZone.getId(), origin, IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
     void cannot_Map_ById_For_OtherZone() {
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> edao.mapExternalGroup("g1-" + otherZone.getId(), "CN=engineering,OU=groups,DC=example,DC=com", origin, IdentityZone.getUaaZoneId()));
+        assertThatThrownBy(() -> edao.mapExternalGroup("g1-" + otherZone.getId(), "CN=engineering,OU=groups,DC=example,DC=com", origin, IdentityZone.getUaaZoneId())).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test

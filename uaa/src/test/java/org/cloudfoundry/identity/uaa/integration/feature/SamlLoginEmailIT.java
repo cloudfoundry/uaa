@@ -130,7 +130,7 @@ class SamlLoginEmailIT {
             try {
                 IntegrationTestUtils.deleteZone(baseUrl, zoneId, token);
                 IntegrationTestUtils.deleteProvider(token, baseUrl, "uaa", zoneId + ".cloudfoundry-saml-login");
-            } catch (Exception ignored) {
+            } catch (Exception _) {
                 // ignored
             }
         }
@@ -214,7 +214,7 @@ class SamlLoginEmailIT {
 
         // do an auth code grant, passing the jsessionid
         Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
-        System.out.println("cookie = " + "%s=%s".formatted(cookie.getName(), cookie.getValue()));
+        IO.println("cookie = " + "%s=%s".formatted(cookie.getName(), cookie.getValue()));
 
         serverRunning.setHostName(zoneId + ".localhost");
         Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,

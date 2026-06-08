@@ -92,7 +92,7 @@ class ScimGroupBootstrapTests {
 
     @Test
     void canAddGroups() {
-        bootstrap.setGroups(StringUtils.commaDelimitedListToSet("org1.dev,org1.qa,org1.engg,org1.mgr,org1.hr").stream().collect(new MapCollector<>(s -> s, s -> null)));
+        bootstrap.setGroups(StringUtils.commaDelimitedListToSet("org1.dev,org1.qa,org1.engg,org1.mgr,org1.hr").stream().collect(new MapCollector<>(s -> s, _ -> null)));
         bootstrap.afterPropertiesSet();
         assertThat(gDB.retrieveAll(IdentityZone.getUaaZoneId())).hasSize(5);
         assertThat(bootstrap.getGroup("org1.dev")).isNotNull();
@@ -105,7 +105,7 @@ class ScimGroupBootstrapTests {
     @Test
     void allowsBootstrapFromOtherInstance() {
         //original bootstrap
-        bootstrap.setGroups(StringUtils.commaDelimitedListToSet("multiple_bootstrap_group").stream().collect(new MapCollector<>(s -> s, s -> null)));
+        bootstrap.setGroups(StringUtils.commaDelimitedListToSet("multiple_bootstrap_group").stream().collect(new MapCollector<>(s -> s, _ -> null)));
         bootstrap.afterPropertiesSet();
 
         //mock external bootstrap in between getOrCreate and update calls

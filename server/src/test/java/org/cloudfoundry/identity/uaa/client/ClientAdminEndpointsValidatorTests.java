@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
@@ -35,11 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -142,7 +139,7 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    public void validate_rejectsMalformedUrls() {
+    void validate_rejectsMalformedUrls() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(Collections.singleton("httasdfasp://anything.comadfsfdasfdsa"));
 
@@ -232,8 +229,8 @@ class ClientAdminEndpointsValidatorTests {
         urls.add("http://invalid*");
         client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() ->
-                validator.validateClientRedirectUri(client));
+        assertThatThrownBy(() ->
+                validator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -243,8 +240,8 @@ class ClientAdminEndpointsValidatorTests {
         urls.add("http://invalid.com/with/path,subpath");
         client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() ->
-                validator.validateClientRedirectUri(client));
+        assertThatThrownBy(() ->
+                validator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -263,7 +260,7 @@ class ClientAdminEndpointsValidatorTests {
     private void testValidatorForInvalidURL(String url) {
         try {
             testValidatorForURL(url);
-        } catch (InvalidClientDetailsException e) {
+        } catch (InvalidClientDetailsException _) {
             return;
         }
         fail("Url %s should not be allowed".formatted(url));

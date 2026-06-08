@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DefaultTestContext
 @EnabledIfZonePathsEnabled
-public class RateLimitingFilterZonePathMockMvcTest {
+class RateLimitingFilterZonePathMockMvcTest {
 
     @Autowired
     WebApplicationContext webApplicationContext;

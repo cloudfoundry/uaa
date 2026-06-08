@@ -168,7 +168,7 @@ public class InvitationsController {
             }
             updateModelWithConsentAttributes(model);
             return "invitations/accept_invite";
-        } catch (EmptyResultDataAccessException noProviderFound) {
+        } catch (EmptyResultDataAccessException _) {
             log.debug("No available invitation providers for email:%s, id:%s".formatted(codeData.get(EMAIL), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }
@@ -282,7 +282,7 @@ public class InvitationsController {
         AcceptedInvitation invitation;
         try {
             invitation = invitationsService.acceptInvitation(newCode, password);
-        } catch (HttpClientErrorException e) {
+        } catch (HttpClientErrorException _) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
         String res = "redirect:/login?success=invite_accepted";
@@ -303,7 +303,7 @@ public class InvitationsController {
             redirectAttributes.addAttribute("code", newCode);
             //return an absolute, within the app, link
             return "redirect:/invitations/accept";
-        } catch (EmptyResultDataAccessException noProviderFound) {
+        } catch (EmptyResultDataAccessException _) {
             log.debug("No available invitation providers for email:%s, id:%s".formatted(codeData.get(EMAIL), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }
@@ -330,7 +330,7 @@ public class InvitationsController {
             ldapProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, identityZoneManager.getCurrentIdentityZoneId());
             zoneAwareAuthenticationManager.getLdapAuthenticationManager(identityZoneManager.getCurrentIdentityZone(), ldapProvider).getLdapAuthenticationManager();
             authenticationManager = zoneAwareAuthenticationManager.getLdapAuthenticationManager(identityZoneManager.getCurrentIdentityZone(), ldapProvider).getLdapManagerActual();
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             //ldap provider was not available
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         } catch (Exception x) {

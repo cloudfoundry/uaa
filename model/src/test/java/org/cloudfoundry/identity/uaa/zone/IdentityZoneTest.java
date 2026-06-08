@@ -137,9 +137,9 @@ class IdentityZoneTest {
         assertThat(sampleIdentityZone).isNotNull()
                 .returns("f7758816-ab47-48d9-9d24-25b10b92d4cc", IdentityZone::getId)
                 .returns("demo", IdentityZone::getSubdomain);
-        assertThat(sampleIdentityZone.getConfig().getUserConfig().getDefaultGroups()).isEqualTo(List.of("openid", "password.write", "uaa.user", "approvals.me",
+        assertThat(sampleIdentityZone.getConfig().getUserConfig().getDefaultGroups()).containsExactlyElementsOf(List.of("openid", "password.write", "uaa.user", "approvals.me",
                 "profile", "roles", "user_attributes", "uaa.offline_token"));
-        assertThat(sampleIdentityZone.getConfig().getUserConfig().resultingAllowedGroups()).isEqualTo(Set.of("openid", "password.write", "uaa.user", "approvals.me",
+        assertThat(sampleIdentityZone.getConfig().getUserConfig().resultingAllowedGroups()).hasSameElementsAs(Set.of("openid", "password.write", "uaa.user", "approvals.me",
                 "profile", "roles", "user_attributes", "uaa.offline_token",
                 "scim.me", "cloud_controller.user"));
         assertThat(sampleIdentityZone.getConfig().getUserConfig().getMaxUsers()).isEqualTo(1000);

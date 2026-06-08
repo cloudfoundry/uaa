@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
-import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -37,6 +36,7 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.RsaJsonWebKeyTestUtils.SAMPLE_RSA_PRIVATE_KEY;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -124,13 +124,12 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
         public Jwt getTokenClaims(String token, String tokenKey, String serverKey) {
             assertThat(token)
                     .withFailMessage(String.format("Server: %s does not have a token under key: %s", serverKey, tokenKey))
-                    .isNotNull()
                     .isNotEmpty();
 
             try {
                 return JwtHelper.decode(token);
-            } catch (RuntimeException e) {
-                Assertions.fail(
+            } catch (RuntimeException _) {
+                fail(
                         String.format("Unable to decode token: %s for server: %s and key: %s", token, serverKey, tokenKey)
                 );
             }
@@ -142,7 +141,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
         //simulate an outside IDP
         AuthorizationServer thirdParty = getAuthorizationServer(
                 "3rd",
-                provider -> null,
+                _ -> null,
                 (client) -> {
                     client.setScope(List.of("openid"));
                     client.setAuthorizedGrantTypes(List.of("password", "refresh_token"));
@@ -169,7 +168,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
                     client.setAutoApproveScopes(List.of("openid"));
                     return client;
                 },
-                user -> null
+                _ -> null
         );
 
         //create foundation UAA
@@ -195,7 +194,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
                     client.setAutoApproveScopes(List.of("openid"));
                     return client;
                 },
-                user -> null
+                _ -> null
         );
 
         //get an id_token from third party UAA
@@ -413,7 +412,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
         claims.setJti(UUID.randomUUID().toString().replace("-", ""));
         claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
         claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
-        JsonWebKey jsonWebKey = clientJwtConfiguration.getJwkSet().getKeys().get(0);
+        JsonWebKey jsonWebKey = clientJwtConfiguration.getJwkSet().getKeys().getFirst();
         KeyInfo signingKeyInfo = getPrivateKey(issuer);
         return signingKeyInfo.verifierCertificate().isPresent() ?
                 JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :

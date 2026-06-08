@@ -107,7 +107,7 @@ public final class RelyingPartyRegistrationBuilder {
         String certificate = keyWithCerts.stream().findFirst().map(e -> {
             try {
                 return e.getEncodedCertificate();
-            } catch (CertificateException ex) {
+            } catch (CertificateException _) {
                 return UaaStringUtils.EMPTY_STRING;
             }
         }).orElse(UaaStringUtils.EMPTY_STRING);

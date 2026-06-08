@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -53,10 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -244,7 +242,7 @@ class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(7, 255, 0, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
@@ -252,7 +250,7 @@ class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
@@ -260,7 +258,7 @@ class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 1, 0, 6));
         IdentityZoneHolder.set(testZone);
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
@@ -268,7 +266,7 @@ class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 1, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
@@ -276,7 +274,7 @@ class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 1, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
@@ -284,7 +282,7 @@ class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 1, 6));
         IdentityZoneHolder.set(testZone);
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
@@ -316,7 +314,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void get_restricted_scopes_list() {
-        assertThat(endpoints.getRestrictedClientScopes()).isEqualTo(new UaaScopes().getUaaScopes());
+        assertThat(endpoints.getRestrictedClientScopes()).containsExactlyElementsOf(new UaaScopes().getUaaScopes());
     }
 
     @Test
@@ -344,52 +342,52 @@ class ClientAdminEndpointsTests {
     void cannotCreateRestrictedClientInvalidScopes() {
         input.setClientId("admin");
         input.setScope(new UaaScopes().getUaaScopes());
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createRestrictedClientDetails(input));
+        assertThatThrownBy(() -> endpoints.createRestrictedClientDetails(input)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void cannotCreateRestrictedClientInvalidAuthorities() {
         input.setAuthorities(new UaaScopes().getUaaAuthorities());
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createRestrictedClientDetails(input));
+        assertThatThrownBy(() -> endpoints.createRestrictedClientDetails(input)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void cannotUpdateRestrictedClientInvalidScopes() {
         input.setScope(new UaaScopes().getUaaScopes());
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.updateRestrictedClientDetails(input, input.getClientId()));
+        assertThatThrownBy(() -> endpoints.updateRestrictedClientDetails(input, input.getClientId())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void cannotUpdateRestrictedClientInvalidAuthorities() {
         input.setAuthorities(new UaaScopes().getUaaAuthorities());
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.updateRestrictedClientDetails(input, input.getClientId()));
+        assertThatThrownBy(() -> endpoints.updateRestrictedClientDetails(input, input.getClientId())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void multipleCreateClientDetailsNullArray() {
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> endpoints.createClientDetailsTx(null));
+        assertThatThrownBy(() -> endpoints.createClientDetailsTx(null)).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
     void multipleCreateClientDetailsEmptyArray() {
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> endpoints.createClientDetailsTx(new ClientDetailsModification[0]));
+        assertThatThrownBy(() -> endpoints.createClientDetailsTx(new ClientDetailsModification[0])).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
     void multipleCreateClientDetailsNonExistent() {
         ClientDetailsModification detailsModification = new ClientDetailsModification();
         detailsModification.setClientId("unknown");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetailsTx(new ClientDetailsModification[]{detailsModification}));
+        assertThatThrownBy(() -> endpoints.createClientDetailsTx(new ClientDetailsModification[]{detailsModification})).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void multipleUpdateClientDetailsNullArray() {
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.updateClientDetailsTx(null));
+        assertThatThrownBy(() -> endpoints.updateClientDetailsTx(null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void multipleUpdateClientDetailsEmptyArray() {
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.updateClientDetailsTx(new ClientDetailsModification[0]));
+        assertThatThrownBy(() -> endpoints.updateClientDetailsTx(new ClientDetailsModification[0])).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -405,33 +403,33 @@ class ClientAdminEndpointsTests {
     @Test
     void createClientDetailsWithReservedId() {
         input.setClientId("uaa");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void createClientDetailsWithInvalidClientId() {
         input.setClientId("foo/bar");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         input.setClientId("foo\\bar");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void createMultipleClientDetailsWithReservedId() {
         inputs[inputs.length - 1].setClientId("uaa");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetailsTx(inputs));
+        assertThatThrownBy(() -> endpoints.createClientDetailsTx(inputs)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void createClientDetailsWithNoGrantType() {
         input.setAuthorizedGrantTypes(Collections.emptySet());
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void createMultipleClientDetailsWithNoGrantType() {
         inputs[inputs.length - 1].setAuthorizedGrantTypes(Collections.emptySet());
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetailsTx(inputs));
+        assertThatThrownBy(() -> endpoints.createClientDetailsTx(inputs)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -484,7 +482,7 @@ class ClientAdminEndpointsTests {
     @Test
     void createClientDetailsWithPasswordGrant() {
         input.setAuthorizedGrantTypes(Collections.singletonList("password"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(input))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         verify(clientRegistrationService, never()).addClientDetails(any());
     }
 
@@ -503,7 +501,7 @@ class ClientAdminEndpointsTests {
     @Test
     void findClientDetailsInvalidFilter() {
         Mockito.when(clientDetailsService.query("filter", "sortBy", true, IdentityZoneHolder.get().getId())).thenThrow(new IllegalArgumentException());
-        assertThatExceptionOfType(UaaException.class).isThrownBy(() -> endpoints.listClientDetails("client_id", "filter", "sortBy", "ascending", 1, 100));
+        assertThatThrownBy(() -> endpoints.listClientDetails("client_id", "filter", "sortBy", "ascending", 1, 100)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
     }
 
     @Test
@@ -527,20 +525,20 @@ class ClientAdminEndpointsTests {
         Mockito.when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
                 new UaaClientDetails(input));
         input.setScope(Collections.singletonList("read"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.updateClientDetails(input, input.getClientId()));
+        assertThatThrownBy(() -> endpoints.updateClientDetails(input, input.getClientId())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         verify(clientRegistrationService, never()).updateClientDetails(any());
     }
 
     @Test
     void nonExistentClient1() {
         Mockito.when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenThrow(new InvalidClientDetailsException(""));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.getClientDetails(input.getClientId()));
+        assertThatThrownBy(() -> endpoints.getClientDetails(input.getClientId())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void nonExistentClient2() {
         Mockito.when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenThrow(new BadClientCredentialsException());
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> endpoints.getClientDetails(input.getClientId()));
+        assertThatThrownBy(() -> endpoints.getClientDetails(input.getClientId())).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
@@ -550,7 +548,7 @@ class ClientAdminEndpointsTests {
         input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
         ClientDetails result = endpoints.getClientDetails(input.getClientId());
         assertThat(result.getClientSecret()).isNull();
-        assertThat(result.getAdditionalInformation()).isEqualTo(input.getAdditionalInformation());
+        assertThat(result.getAdditionalInformation()).containsExactlyInAnyOrderEntriesOf(input.getAdditionalInformation());
     }
 
     @Test
@@ -779,7 +777,7 @@ class ClientAdminEndpointsTests {
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
         change.setSecret(complexPolicySatisfyingSecret);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> endpoints.changeSecret(detail.getClientId(), change));
+        assertThatThrownBy(() -> endpoints.changeSecret(detail.getClientId(), change)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
@@ -804,7 +802,7 @@ class ClientAdminEndpointsTests {
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
         when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         detail.setScope(Collections.singletonList("some"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -831,7 +829,7 @@ class ClientAdminEndpointsTests {
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
         when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         detail.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.some"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -851,28 +849,28 @@ class ClientAdminEndpointsTests {
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
         detail.setAuthorizedGrantTypes(Collections.singletonList("implicit"));
         detail.setClientSecret("hello");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void implicitClientWithNonEmptySecretIsRejected() {
         detail.setAuthorizedGrantTypes(Collections.singletonList("implicit"));
         detail.setClientSecret("hello");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void implicitAndAuthorizationCodeClientIsRejected() {
         detail.setAuthorizedGrantTypes(Arrays.asList("implicit", GRANT_TYPE_AUTHORIZATION_CODE));
         detail.setClientSecret("hello");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void implicitAndAuthorizationCodeClientIsRejectedWithNullPassword() {
         detail.setAuthorizedGrantTypes(Arrays.asList("implicit", GRANT_TYPE_AUTHORIZATION_CODE));
         detail.setClientSecret(null);
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -880,14 +878,14 @@ class ClientAdminEndpointsTests {
         when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
         detail.setAuthorizedGrantTypes(Arrays.asList("implicit", GRANT_TYPE_AUTHORIZATION_CODE));
         detail.setClientSecret("hello");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void nonImplicitClientWithEmptySecretIsRejected() {
         detail.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_AUTHORIZATION_CODE));
         detail.setClientSecret("");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -903,13 +901,13 @@ class ClientAdminEndpointsTests {
         assertThat(detail.getAuthorizedGrantTypes()).doesNotContain("implicit");
         detail.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, "implicit"));
         detail.setClientSecret(null);
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.updateClientDetails(detail, detail.getClientId()));
+        assertThatThrownBy(() -> endpoints.updateClientDetails(detail, detail.getClientId())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
     void invalidGrantTypeIsRejected() {
         detail.setAuthorizedGrantTypes(Collections.singletonList("not_a_grant_type"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -1025,7 +1023,7 @@ class ClientAdminEndpointsTests {
         // When
         assertThat(result.getClientSecret()).isNull();
         ClientDetailsModification modification = (ClientDetailsModification) result;
-        assertThat(modification.getClientJwtCredentials()).size().isEqualTo(1);
+        assertThat(modification.getClientJwtCredentials()).hasSize(1);
         assertThat(modification.getJwkSet()).isNull();
         assertThat(modification.getJwksUri()).isEqualTo("http://localhost:8080/uaa/token_keys");
         ClientJwtCredential clientJwtCredential = modification.getClientJwtCredentials().getFirst();
@@ -1099,7 +1097,7 @@ class ClientAdminEndpointsTests {
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
         ClientDetailsCreation createRequest = createClientDetailsCreation(input);
         createRequest.setJsonWebKeySet("invalid");
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> endpoints.createClientDetails(createRequest));
+        assertThatThrownBy(() -> endpoints.createClientDetails(createRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test

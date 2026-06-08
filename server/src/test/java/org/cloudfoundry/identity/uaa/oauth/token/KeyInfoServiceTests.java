@@ -17,7 +17,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -98,13 +97,13 @@ class KeyInfoServiceTests {
         keyInfoService.getKeys().values().forEach(keyInfo -> {
             try {
                 jwkList.add(JWK.parse(keyInfo.getJwkMap()));
-            } catch (ParseException e) {
+            } catch (ParseException _) {
                 // ignore
             }
         });
         jwkSet = new JWKSet(jwkList);
         assertThat(jwkSet).isNotNull();
-        assertThat(jwkSet.size()).isEqualTo(1);
+        assertThat(jwkSet.size()).isOne();
     }
 
     @Test
@@ -152,14 +151,14 @@ class KeyInfoServiceTests {
     }
 
     @Test
-    void tokenEndpointUrl_whenIssuerIsNull() throws URISyntaxException {
+    void tokenEndpointUrl_whenIssuerIsNull() throws Exception {
         configureDefaultZoneKeys(Collections.emptyMap());
 
         assertThat(keyInfoService.getTokenEndpointUrl()).isEqualTo("https://localhost/uaa/oauth/token");
     }
 
     @Test
-    void tokenEndpointUrl_whenIssuerSet() throws URISyntaxException {
+    void tokenEndpointUrl_whenIssuerSet() throws Exception {
         configureDefaultZoneKeys(Collections.emptyMap());
         IdentityZoneHolder.get().getConfig().setIssuer("https://issuer.set/uaa");
 

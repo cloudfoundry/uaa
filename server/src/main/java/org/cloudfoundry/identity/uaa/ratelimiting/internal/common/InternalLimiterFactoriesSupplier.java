@@ -45,7 +45,7 @@ public interface InternalLimiterFactoriesSupplier {
         return 0;
     }
 
-    InternalLimiterFactoriesSupplier NOOP = info -> null;
+    InternalLimiterFactoriesSupplier NOOP = _ -> null;
 
     static InternalLimiterFactoriesSupplier deNull(InternalLimiterFactoriesSupplier supplier) {
         return supplier != null ? supplier : NOOP;

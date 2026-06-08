@@ -80,7 +80,7 @@ public class LoginConsentValidator {
             URL url = new URI(urlString).toURL();
             String protocol = url.getProtocol();
             return "http".equalsIgnoreCase(protocol) || "https".equalsIgnoreCase(protocol);
-        } catch (IllegalArgumentException | MalformedURLException | URISyntaxException e) {
+        } catch (IllegalArgumentException | MalformedURLException | URISyntaxException _) {
             return false;
         }
     }
@@ -121,7 +121,7 @@ public class LoginConsentValidator {
                    "d".equalsIgnoreCase(unit) || 
                    "w".equalsIgnoreCase(unit) || 
                    "m".equalsIgnoreCase(unit);
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException _) {
             return false;
         }
     }

@@ -1,5 +1,4 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
-
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -83,7 +82,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
@@ -463,7 +461,7 @@ class OpenSaml5AuthenticationProviderUaaTests {
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
 
         UaaAuthentication authentication = authenticate();
-        assertThat(authentication.getExternalGroups()).isEqualTo(Collections.singleton(SAML_ADMIN));
+        assertThat(authentication.getExternalGroups()).hasSameElementsAs(Collections.singleton(SAML_ADMIN));
     }
 
     @Test
@@ -545,12 +543,7 @@ class OpenSaml5AuthenticationProviderUaaTests {
 
     @Test
     void updateExistingUserWithDifferentAttributes() throws Exception {
-        try {
-            userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML);
-            fail("user should not exist");
-        } catch (UsernameNotFoundException ignored) {
-            // expected
-        }
+        assertThatThrownBy(() -> userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML)).isInstanceOf(UsernameNotFoundException.class);
         authenticate();
 
         UaaUser user = userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML);

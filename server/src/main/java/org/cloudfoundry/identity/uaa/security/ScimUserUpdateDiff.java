@@ -22,7 +22,7 @@ public class ScimUserUpdateDiff {
 
         try {
             scimUserFromDb = scimUserProvisioning.retrieve(userId, zoneId);
-        } catch (ScimResourceNotFoundException e) {
+        } catch (ScimResourceNotFoundException _) {
             return true;
         }
 

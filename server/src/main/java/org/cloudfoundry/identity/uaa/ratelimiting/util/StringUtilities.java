@@ -24,14 +24,11 @@ public final class StringUtilities {
     }
 
     public static String options(String labelSingular, String labelPlural, Object[] validOptions) {
-        switch (count(validOptions)) {
-            case 0:
-                return "no " + labelPlural;
-            case 1:
-                return "the " + labelSingular + " is: " + options(validOptions);
-            default:
-                return "the " + labelPlural + " are: " + options(validOptions);
-        }
+        return switch (count(validOptions)) {
+            case 0 -> "no " + labelPlural;
+            case 1 -> "the " + labelSingular + " is: " + options(validOptions);
+            default -> "the " + labelPlural + " are: " + options(validOptions);
+        };
     }
 
     public static String options(Object[] validOptions) {

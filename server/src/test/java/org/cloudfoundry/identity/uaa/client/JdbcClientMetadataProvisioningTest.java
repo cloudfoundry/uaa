@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.extensions.profiles.DisabledIfProfile;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
@@ -16,9 +17,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 
 @WithDatabaseContext
@@ -64,7 +63,7 @@ class JdbcClientMetadataProvisioningTest {
                 base64EncodedImg,
                 createdBy);
 
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcClientMetadataProvisioning.update(clientMetadata, identityZoneId));
+        assertThatThrownBy(() -> jdbcClientMetadataProvisioning.update(clientMetadata, identityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     /**
@@ -120,8 +119,8 @@ class JdbcClientMetadataProvisioningTest {
         assertThatNoException().isThrownBy(
                 () -> jdbcClientMetadataProvisioning.retrieve(clientId2, "zone2"));
 
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcClientMetadataProvisioning.retrieve(clientId1, "zone2"));
-        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcClientMetadataProvisioning.retrieve(clientId2, "zone1"));
+        assertThatThrownBy(() -> jdbcClientMetadataProvisioning.retrieve(clientId1, "zone2")).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
+        assertThatThrownBy(() -> jdbcClientMetadataProvisioning.retrieve(clientId2, "zone1")).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
     }
 
     @Test

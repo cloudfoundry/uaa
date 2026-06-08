@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.apache.commons.lang3.tuple.Triple;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
@@ -76,9 +77,7 @@ import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -199,7 +198,6 @@ class ScimUserBootstrapTests {
         verify(publisher, times(2)).publishEvent(captor.capture());
         List<EntityDeletedEvent<ScimUser>> deleted = new LinkedList(ofNullable(captor.getAllValues()).orElse(emptyList()));
         assertThat(deleted)
-                .isNotNull()
                 .hasSize(2);
         deleted.forEach(event -> assertThat(event.getDeleted().getOrigin()).isEqualTo(OriginKeys.UAA));
         assertThat(jdbcScimUserProvisioning.retrieveAll(IdentityZone.getUaaZoneId())).hasSize(2);
@@ -259,7 +257,7 @@ class ScimUserBootstrapTests {
         UaaUser joe = new UaaUser("joe", "", "joe@test.org", "Joe", "User", OriginKeys.UAA, null);
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager, Collections.singletonList(joe), false, Collections.emptyList(), false);
-        assertThatExceptionOfType(InvalidPasswordException.class).isThrownBy(bootstrap::afterPropertiesSet);
+        assertThatThrownBy(bootstrap::afterPropertiesSet).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidPasswordException.class));
     }
 
     @Test
@@ -485,7 +483,12 @@ class ScimUserBootstrapTests {
         assertThat(aliasUserAfterEvent.getAliasId()).isEqualTo(originalUserId);
         assertThat(aliasUserAfterEvent.getAliasZid()).isEqualTo(IdentityZone.getUaaZoneId());
         assertThat(aliasUserAfterEvent.getExternalId()).isEqualTo(originalUser.getExternalId()); // should be left unchanged
-        assertThat(aliasUserAfterEvent.getPhoneNumbers()).isEqualTo(originalUser.getPhoneNumbers()); // should be left unchanged
+        // Handle null phone numbers case for AssertJ compatibility
+        if (originalUser.getPhoneNumbers() != null) {
+            assertThat(aliasUserAfterEvent.getPhoneNumbers()).containsExactlyElementsOf(originalUser.getPhoneNumbers()); // should be left unchanged
+        } else {
+            assertThat(aliasUserAfterEvent.getPhoneNumbers()).isNull(); // should be left unchanged
+        }
     }
 
     private void createCustomZone(final String customZoneId) {
@@ -1191,7 +1194,7 @@ class ScimUserBootstrapTests {
         int customGroupRows = jdbcTemplate.queryForObject(
                 "select count(*) from group_membership where member_id=? and group_id=? and identity_zone_id=?",
                 Integer.class, user.getId(), customGroup.getId(), IdentityZone.getUaaZoneId());
-        assertThat(customGroupRows).isEqualTo(1);
+        assertThat(customGroupRows).isOne();
 
         // Deletion should succeed without 422
         assertThatCode(() -> jdbcScimGroupMembershipManager.removeMembersByMemberId(user.getId(), IdentityZone.getUaaZoneId()))

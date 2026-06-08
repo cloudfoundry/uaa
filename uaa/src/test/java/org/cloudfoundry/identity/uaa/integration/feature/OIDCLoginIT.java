@@ -70,7 +70,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -127,7 +126,7 @@ public class OIDCLoginIT {
     public static boolean doesSupportZoneDNS() {
         try {
             return Arrays.equals(Inet4Address.getByName("oidcloginit.localhost").getAddress(), new byte[]{127, 0, 0, 1});
-        } catch (UnknownHostException e) {
+        } catch (UnknownHostException _) {
             return false;
         }
     }
@@ -443,7 +442,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    void roleMappingAndUserAttributesFromIdTokenOfZone() throws ParseException {
+    void roleMappingAndUserAttributesFromIdTokenOfZone() throws Exception {
         // test role and user_attribute claims in id token with external group membership assignment, see issue https://github.com/cloudfoundry/uaa/issues/3813
         Map<String, Object> attributeMappings = new HashMap<>(identityProvider.getConfig().getAttributeMappings());
         attributeMappings.remove(USER_NAME_ATTRIBUTE_NAME);
@@ -469,13 +468,13 @@ public class OIDCLoginIT {
         JWTClaimsSet jwtClaimsSet = JWTParser.parse(idToken).getJWTClaimsSet();
         assertThat(jwtClaimsSet.getStringClaim("origin")).isEqualTo(identityProvider.getOriginKey());
         Set<String> rolesInJwt = Arrays.stream(jwtClaimsSet.getStringArrayClaim("roles")).collect(Collectors.toSet());
-        assertThat(rolesInJwt).isNotNull().contains(createdGroup.getDisplayName());
+        assertThat(rolesInJwt).contains(createdGroup.getDisplayName());
         Map userAttributeJwt = jwtClaimsSet.getJSONObjectClaim("user_attributes");
         assertThat(userAttributeJwt).isInstanceOf(Map.class);
         List attr1 = userAttributeJwt.get("the_client_id") instanceof ArrayList<?> arrayList ? arrayList : null;
-        assertThat(attr1).isNotNull().contains("identity");
+        assertThat(attr1).contains("identity");
         List attr2 = userAttributeJwt.get("roles") instanceof ArrayList<?> arrayList ? arrayList : null;
-        assertThat(attr2).isNotNull().contains("openid");
+        assertThat(attr2).contains("openid");
     }
 
     @Test
@@ -533,7 +532,7 @@ public class OIDCLoginIT {
         ScimUser shadowUser = IntegrationTestUtils.getUser(anAdminToken, zoneUrl, identityProvider.getOriginKey(), expectedUsername);
         assertThat(shadowUser.getUserName()).isEqualTo(expectedUsername);
         //there is no 'scope' attribute exposed on the /userinfo endpoint in this test.
-        assertThat(shadowUser.getGroups().stream().map(g -> g.getDisplay())).doesNotContain(createdGroup.getDisplayName());
+        assertThat(shadowUser.getGroups()).extracting(g -> g.getDisplay()).doesNotContain(createdGroup.getDisplayName());
     }
 
     @Test
@@ -603,7 +602,7 @@ public class OIDCLoginIT {
             assertThat(userAttributeMap).isNotNull();
             List<String> clientIds = userAttributeMap.get("the_client_id");
             assertThat(clientIds).isNotNull();
-            assertThat(clientIds.getFirst()).isEqualTo("identity");
+            assertThat(clientIds).first().isEqualTo("identity");
             setRefreshTokenRotate(false);
             String refreshToken1 = getRefreshTokenResponse(zoneServerRunning, authCodeTokenResponse.get("refresh_token"));
             String refreshToken2 = getRefreshTokenResponse(zoneServerRunning, refreshToken1);

@@ -94,7 +94,7 @@ public class OAuth2AuthenticationManager implements AuthenticationManager, Initi
             try {
                 client = clientDetailsService.loadClientByClientId(auth.getOAuth2Request().getClientId());
             }
-            catch (ClientRegistrationException e) {
+            catch (ClientRegistrationException _) {
                 throw new OAuth2AccessDeniedException("Invalid token contains invalid client id");
             }
             Set<String> allowed = client.getScope();

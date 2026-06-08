@@ -34,7 +34,7 @@ class OAuth2RequestTests {
 
     @Test
     void getResponseTypes() {
-        assertThat(oAuth2Request.getResponseTypes()).isEqualTo(Set.of());
+        assertThat(oAuth2Request.getResponseTypes()).hasSameElementsAs(Set.of());
     }
 
     @Test
@@ -49,12 +49,12 @@ class OAuth2RequestTests {
 
     @Test
     void getResourceIds() {
-        assertThat(oAuth2Request.getResourceIds()).isEqualTo(Set.of());
+        assertThat(oAuth2Request.getResourceIds()).hasSameElementsAs(Set.of());
     }
 
     @Test
     void getExtensions() {
-        assertThat(oAuth2Request.getExtensions()).isEqualTo(Map.of("extra", "param"));
+        assertThat(oAuth2Request.getExtensions()).containsExactlyInAnyOrderEntriesOf(Map.of("extra", "param"));
     }
 
     @Test
@@ -71,13 +71,13 @@ class OAuth2RequestTests {
     @Test
     void narrowScope() {
         OAuth2Request narrow = oAuth2Request.narrowScope(Set.of("scope1", "scope2"));
-        assertThat(narrow.getScope()).isEqualTo(Set.of("scope1", "scope2"));
+        assertThat(narrow.getScope()).hasSameElementsAs(Set.of("scope1", "scope2"));
     }
 
     @Test
     void refresh() {
         OAuth2Request request = oAuth2Request.refresh(new ImplicitTokenRequest(mock(TokenRequest.class), mock(OAuth2Request.class)));
-        assertThat(request.getScope()).isEqualTo(Set.of("client"));
+        assertThat(request.getScope()).hasSameElementsAs(Set.of("client"));
         assertThat(request).isEqualTo(oAuth2Request);
         assertThat(request.getRefreshTokenRequest()).isNotNull();
     }

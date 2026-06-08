@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.client.token.grant;
 
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.cloudfoundry.identity.uaa.oauth.client.grant.AuthorizationCodeAccessTokenProvider;
@@ -199,7 +198,7 @@ class AuthorizationCodeAccessTokenProviderWithConversionTests {
     void getErrorFromForm() {
         final HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        requestFactory = (uri, httpMethod) -> new StubClientHttpRequest(HttpStatus.BAD_REQUEST, responseHeaders,
+        requestFactory = (_, _) -> new StubClientHttpRequest(HttpStatus.BAD_REQUEST, responseHeaders,
                 "error=invalid_client&error_description=FOO");
         AccessTokenRequest request = new DefaultAccessTokenRequest();
         request.setAuthorizationCode("foo");

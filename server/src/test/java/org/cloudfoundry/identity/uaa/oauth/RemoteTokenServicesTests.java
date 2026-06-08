@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -30,7 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -86,7 +87,7 @@ class RemoteTokenServicesTests {
         assertThat(result.getOAuth2Request().getClientId()).isEqualTo("remote");
         assertThat(result.getUserAuthentication().getName()).isEqualTo("olds");
         assertThat(((RemoteUserAuthentication) result.getUserAuthentication()).getId()).isEqualTo("HDGFJSHGDF");
-        assertThat(result.getOAuth2Request().getRequestParameters()).isNotNull()
+        assertThat(result.getOAuth2Request().getRequestParameters())
                 .containsKey(ClaimConstants.ISS);
     }
 
@@ -113,7 +114,7 @@ class RemoteTokenServicesTests {
         when(restTemplate.exchange(anyString(), (HttpMethod) any(), any(), (Class) any())).thenReturn(responseEntity);
         when(responseEntity.getBody()).thenReturn(null);
         services.setRestTemplate(restTemplate);
-        assertThatExceptionOfType(IllegalStateException.class).isThrownBy(() -> services.loadAuthentication("FOO"));
+        assertThatThrownBy(() -> services.loadAuthentication("FOO")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalStateException.class));
     }
 
     @Test

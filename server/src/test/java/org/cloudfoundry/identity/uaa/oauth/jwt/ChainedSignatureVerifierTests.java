@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
@@ -36,7 +37,7 @@ import java.util.Map;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.mockito.Mockito.mock;
 
@@ -89,8 +90,8 @@ class ChainedSignatureVerifierTests {
     @Test
     void single_key_invalid() {
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Collections.singletonList(invalidKey)));
-        assertThatExceptionOfType(InvalidSignatureException.class).isThrownBy(() ->
-                JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier));
+        assertThatThrownBy(() ->
+                JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidSignatureException.class));
     }
 
     @Test
@@ -108,8 +109,8 @@ class ChainedSignatureVerifierTests {
     @Test
     void multi_key_invalid() {
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(invalidKey, invalidKey)));
-        assertThatExceptionOfType(InvalidSignatureException.class).isThrownBy(() ->
-                JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier));
+        assertThatThrownBy(() ->
+                JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidSignatureException.class));
     }
 
     @Test
@@ -163,9 +164,9 @@ class ChainedSignatureVerifierTests {
         q.put("kty", "oct");
         q.put("k", "octkeyvalue");
         JsonWebKeySet keySet = JsonUtils.convertValue(singletonMap("keys", Arrays.asList(p, q)), JsonWebKeySet.class);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> {
+        assertThatThrownBy(() -> {
             verifier = new ChainedSignatureVerifier(keySet);
-        });
+        }).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -193,7 +194,7 @@ class ChainedSignatureVerifierTests {
         verifier = new ChainedSignatureVerifier(keySet);
         List<SignatureVerifier> delegates = new ArrayList<>((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
         assertThat(delegates).hasSize(1);
-        assertThat(delegates.getFirst()).isNotNull();
+        assertThat(delegates).first().isNotNull();
         assertThat(delegates.getFirst().algorithm()).isEqualTo("ES256");
     }
 

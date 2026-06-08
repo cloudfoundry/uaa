@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.http.AccessTokenRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.BaseOAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
@@ -32,9 +33,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -161,12 +161,12 @@ class OAuth2RestTemplateTests {
     @Test
     void noRetryAccessDeniedExceptionForNoExistingToken() {
         restTemplate.setAccessTokenProvider(new StubAccessTokenProvider());
-        restTemplate.setRequestFactory((uri, httpMethod) -> {
+        restTemplate.setRequestFactory((_, _) -> {
             throw new AccessTokenRequiredException(resource);
         });
-        assertThatExceptionOfType(AccessTokenRequiredException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
                 restTemplate.doExecute(new URI("https://foo"), null, HttpMethod.GET, new NullRequestCallback(),
-                        new SimpleResponseExtractor()));
+                        new SimpleResponseExtractor())).asInstanceOf(InstanceOfAssertFactories.throwable(AccessTokenRequiredException.class));
     }
 
     @Test
@@ -244,8 +244,8 @@ class OAuth2RestTemplateTests {
     // gh-1478
     @Test
     void negativeClockSkew() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                restTemplate.setClockSkew(-1));
+        assertThatThrownBy(() ->
+                restTemplate.setClockSkew(-1)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     // gh-1909
@@ -296,13 +296,10 @@ class OAuth2RestTemplateTests {
                 throw new UserRedirectRequiredException("https://www.foo.com/", Collections.<String, String>emptyMap());
             }
         });
-        try {
+        assertThatThrownBy(() -> {
             OAuth2AccessToken newToken = restTemplate.getAccessToken();
             assertThat(newToken).isNotNull();
-            fail("Expected UserRedirectRequiredException");
-        } catch (UserRedirectRequiredException e) {
-            // planned
-        }
+        }).isInstanceOf(UserRedirectRequiredException.class);
         // context token should be reset as it is invalid at this point
         assertThat(restTemplate.getOAuth2ClientContext().getAccessToken()).isNull();
     }

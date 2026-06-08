@@ -42,7 +42,7 @@ class TokenEndpointAuthenticationFilterTests {
     private final UaaClientDetails client = new UaaClientDetails("foo", "resource", "scope", "authorization_code",
             "ROLE_CLIENT");
 
-    private final ClientDetailsService clientDetailsService = clientId -> client;
+    private final ClientDetailsService clientDetailsService = _ -> client;
 
     private final OAuth2RequestFactory oAuth2RequestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
 

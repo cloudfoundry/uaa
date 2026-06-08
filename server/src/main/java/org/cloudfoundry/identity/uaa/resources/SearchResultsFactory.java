@@ -108,7 +108,7 @@ public class SearchResultsFactory {
                 try {
                     Object value = attribute.getValue().read(serializedObject);
                     map.put(attribute.getKey(), value);
-                } catch (PathNotFoundException e) {
+                } catch (PathNotFoundException _) {
                     map.put(attribute.getKey(), null);
                 }
             }

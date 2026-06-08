@@ -1,11 +1,12 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class ZoneAwareClientSecretPolicyValidatorTests {
@@ -45,7 +46,7 @@ class ZoneAwareClientSecretPolicyValidatorTests {
     @Test
     void default_policy_too_long_secret() {
         zone.getConfig().setClientSecretPolicy(defaultPolicy);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> validator.validate(TEST_SECRET_3));
+        assertThatThrownBy(() -> validator.validate(TEST_SECRET_3)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
@@ -64,24 +65,24 @@ class ZoneAwareClientSecretPolicyValidatorTests {
     @Test
     void secretMissingSpecialCharacter() {
         zone.getConfig().setClientSecretPolicy(strictPolicy);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> validator.validate(TEST_SECRET_5));
+        assertThatThrownBy(() -> validator.validate(TEST_SECRET_5)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
     void secretMissingDigit() {
         zone.getConfig().setClientSecretPolicy(strictPolicy);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> validator.validate(TEST_SECRET_6));
+        assertThatThrownBy(() -> validator.validate(TEST_SECRET_6)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
     void secretMissingUpperCaseCharacter() {
         zone.getConfig().setClientSecretPolicy(strictPolicy);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> validator.validate(TEST_SECRET_7));
+        assertThatThrownBy(() -> validator.validate(TEST_SECRET_7)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 
     @Test
     void secretMissingLowerCaseCharacter() {
         zone.getConfig().setClientSecretPolicy(strictPolicy);
-        assertThatExceptionOfType(InvalidClientSecretException.class).isThrownBy(() -> validator.validate(TEST_SECRET_8));
+        assertThatThrownBy(() -> validator.validate(TEST_SECRET_8)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientSecretException.class));
     }
 }

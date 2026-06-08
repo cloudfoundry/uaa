@@ -25,7 +25,6 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -95,7 +94,7 @@ class StaleUrlCacheTests {
     }
 
     @Test
-    void correct_method_invoked_on_rest_template() throws URISyntaxException {
+    void correct_method_invoked_on_rest_template() throws Exception {
         cache.getUrlContent(URL, mockRestTemplate);
         verify(mockRestTemplate, times(1)).getForObject(eq(new URI(URL)), same(byte[].class));
     }
@@ -124,7 +123,7 @@ class StaleUrlCacheTests {
 
     @Test
     void entry_refreshes_after_time() {
-        when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
+        when(mockTimeService.getCurrentTimeMillis()).thenAnswer(_ -> System.currentTimeMillis());
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content1, content2, content3);
 
         // populate the cache
@@ -135,7 +134,7 @@ class StaleUrlCacheTests {
         // This call is necessary to trigger the cache refresh operation after the timeout period.
         cache.getUrlContent(URL, mockRestTemplate);
         await().atMost(5, TimeUnit.SECONDS).untilAsserted(
-                () -> assertThat(listener.removalCount).isGreaterThan(0)
+                () -> assertThat(listener.removalCount).isPositive()
         );
         byte[] c2 = cache.getUrlContent(URL, mockRestTemplate);
         assertThat(c2).isSameAs(content2);
@@ -159,7 +158,7 @@ class StaleUrlCacheTests {
     }
 
     @Test
-    void max_entries_is_respected() throws URISyntaxException {
+    void max_entries_is_respected() throws Exception {
         String uri1 = "https://test1.com";
         String uri2 = "https://test2.com";
         String uri3 = "https://test3.com";
@@ -207,7 +206,7 @@ class StaleUrlCacheTests {
     }
 
     @Test
-    void extended_method_invoked_on_rest_template() throws URISyntaxException {
+    void extended_method_invoked_on_rest_template() throws Exception {
         when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
         when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
         when(responseEntity.getBody()).thenReturn(new byte[1]);

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.client.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.grant.AuthorizationCodeAccessTokenProvider;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.BaseOAuth2ProtectedResourceDetails;
@@ -34,7 +35,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -188,8 +189,8 @@ class AccessTokenProviderChainTests {
         AccessTokenRequest request = new DefaultAccessTokenRequest();
         request.setExistingToken(accessToken);
         SecurityContextHolder.getContext().setAuthentication(user);
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() ->
-                chain.obtainAccessToken(resource, request));
+        assertThatThrownBy(() ->
+                chain.obtainAccessToken(resource, request)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @Test
@@ -227,8 +228,8 @@ class AccessTokenProviderChainTests {
         SecurityContextHolder.getContext()
                 .setAuthentication(new AnonymousAuthenticationToken("foo", "bar", user.getAuthorities()));
         AccessTokenRequest request = new DefaultAccessTokenRequest();
-        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() ->
-                chain.obtainAccessToken(resource, request));
+        assertThatThrownBy(() ->
+                chain.obtainAccessToken(resource, request)).asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
     }
 
     @Test
@@ -241,8 +242,8 @@ class AccessTokenProviderChainTests {
                 throw new UserRedirectRequiredException("redirect test", request.toSingleValueMap());
             }
         }));
-        assertThatExceptionOfType(UserRedirectRequiredException.class).isThrownBy(() ->
-                chain.obtainAccessToken(resource, request));
+        assertThatThrownBy(() ->
+                chain.obtainAccessToken(resource, request)).asInstanceOf(InstanceOfAssertFactories.throwable(UserRedirectRequiredException.class));
     }
 
     @Test

@@ -62,7 +62,7 @@ public final class WhitelistLogoutSuccessHandler extends SimpleUrlLogoutSuccessH
                 List<SignatureVerifier> signatureVerifiers = keys.values().stream().map(KeyInfo::getVerifier).toList();
                 JwtTokenSignedByThisUAA jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
                 clientId = (String) jwtToken.getClaims().get(ClaimConstants.AZP);
-            } catch (InvalidTokenException e) {
+            } catch (InvalidTokenException _) {
                 log.debug("Invalid token (could not verify signature)");
             }
         } else {
@@ -73,7 +73,7 @@ public final class WhitelistLogoutSuccessHandler extends SimpleUrlLogoutSuccessH
             try {
                 ClientDetails client = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
                 redirectUris = client.getRegisteredRedirectUri();
-            } catch (NoSuchClientException x) {
+            } catch (NoSuchClientException _) {
                 log.debug("Unable to find client with ID:%s for logout redirect".formatted(clientId));
             }
         }

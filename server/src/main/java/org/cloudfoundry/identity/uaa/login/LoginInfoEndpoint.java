@@ -181,7 +181,7 @@ public class LoginInfoEndpoint {
     private static Properties tryLoadAllProperties(final String fileName) {
         try {
             return PropertiesLoaderUtils.loadAllProperties(fileName);
-        } catch (IOException ignored) {
+        } catch (IOException _) {
             return new Properties();
         }
     }
@@ -192,7 +192,7 @@ public class LoginInfoEndpoint {
                 .map(c -> {
                     try {
                         return JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz);
-                    } catch (JsonUtilException e) {
+                    } catch (JsonUtilException _) {
                         return null;
                     }
                 })
@@ -315,7 +315,7 @@ public class LoginInfoEndpoint {
                             samlIdentityProviders.put(idp.getOriginKey(), samlConfig);
                         }
                     }
-                } catch (EmptyResultDataAccessException ignored) {
+                } catch (EmptyResultDataAccessException _) {
                     // ignore
                 }
             }
@@ -356,7 +356,7 @@ public class LoginInfoEndpoint {
             ldapIdentityProvider = providerProvisioning.retrieveByOrigin(
                     OriginKeys.LDAP, IdentityZoneHolder.get().getId()
             );
-        } catch (EmptyResultDataAccessException ignored) {
+        } catch (EmptyResultDataAccessException _) {
             // ignore
         }
         IdentityProvider uaaIdentityProvider =
@@ -692,7 +692,7 @@ public class LoginInfoEndpoint {
             if (originKey != null && (allowedIdps == null || allowedIdps.contains(originKey))) {
                 identityProvider = providerProvisioning.retrieveByOrigin(originKey, IdentityZoneHolder.get().getId());
             }
-        } catch (EmptyResultDataAccessException ignored) {
+        } catch (EmptyResultDataAccessException _) {
             // ignore
         }
         return identityProvider;
@@ -728,7 +728,7 @@ public class LoginInfoEndpoint {
         try {
             ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientIds[0], IdentityZoneHolder.get().getId());
             return clientDetails.getAdditionalInformation();
-        } catch (NoSuchClientException x) {
+        } catch (NoSuchClientException _) {
             return null;
         }
     }
@@ -787,7 +787,7 @@ public class LoginInfoEndpoint {
             IdentityProvider providerForOrigin = null;
             try {
                 providerForOrigin = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-            } catch (DataAccessException ignored) {
+            } catch (DataAccessException _) {
                 // ignore
             }
             if (providerForOrigin != null && providerForOrigin.getConfig() instanceof OIDCIdentityProviderDefinition oidcConfig) {
@@ -845,7 +845,7 @@ public class LoginInfoEndpoint {
             String[] clientIds = savedRequest.getParameterValues(CLIENT_ID_PARAMETER);
             try {
                 clientDetails = clientDetailsService.loadClientByClientId(clientIds[0], IdentityZoneHolder.get().getId());
-            } catch (NoSuchClientException ignored) {
+            } catch (NoSuchClientException _) {
                 // ignore
             }
         }

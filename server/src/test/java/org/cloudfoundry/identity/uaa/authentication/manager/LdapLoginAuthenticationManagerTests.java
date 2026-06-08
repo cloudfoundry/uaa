@@ -325,7 +325,6 @@ class LdapLoginAuthenticationManagerTests {
 
         assertThat(authentication.getUserAttributes()).as("Expected manager attribute").containsKey(MANAGERS);
         assertThat(authentication.getUserAttributes().get(MANAGERS)).as("Expected 2 manager attribute values")
-                .hasSize(2)
                 .containsExactlyInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER);
 
         assertThat(authentication.getAuthenticationMethods()).containsExactlyInAnyOrder("ext", "pwd");

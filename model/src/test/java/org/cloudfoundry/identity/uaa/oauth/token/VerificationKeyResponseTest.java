@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.jwk.JWKParameterNames;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.junit.jupiter.api.Test;
 
@@ -9,7 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class VerificationKeyResponseTest {
 
@@ -43,7 +44,7 @@ class VerificationKeyResponseTest {
 
     @Test
     void keyTypeNullException() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> setupResponse(null, "thumbprint", "certificate"));
+        assertThatThrownBy(() -> setupResponse(null, "thumbprint", "certificate")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

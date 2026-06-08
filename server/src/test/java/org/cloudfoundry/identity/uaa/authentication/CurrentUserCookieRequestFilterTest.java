@@ -11,9 +11,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
-import java.io.IOException;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +44,7 @@ class CurrentUserCookieRequestFilterTest {
     }
 
     @Test
-    void whenUserIsAuthenticated_addsCurrentUserCookie() throws ServletException, IOException, CurrentUserCookieFactory.CurrentUserCookieEncodingException {
+    void whenUserIsAuthenticated_addsCurrentUserCookie() throws Exception {
         UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("user-guid", "marissa", "marissa@test.org", "uaa", "", ""), Collections.emptyList(), null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -68,7 +66,7 @@ class CurrentUserCookieRequestFilterTest {
     }
 
     @Test
-    void whenUserIsAuthenticated_addsCurrentUserCookieWithStrictSameSiteAttribute() throws ServletException, IOException, CurrentUserCookieFactory.CurrentUserCookieEncodingException {
+    void whenUserIsAuthenticated_addsCurrentUserCookieWithStrictSameSiteAttribute() throws Exception {
         UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("user-guid", "marissa", "marissa@test.org", "uaa", "", ""), Collections.emptyList(), null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(currentUserCookieFactory.getCookie(Mockito.any(UaaPrincipal.class))).thenReturn(new Cookie("Current-User", "current-user-cookie-value"));
@@ -80,7 +78,7 @@ class CurrentUserCookieRequestFilterTest {
     }
 
     @Test
-    void whenUserIsNotAuthenticated_clearsCurrentUserCookie() throws IOException, ServletException {
+    void whenUserIsNotAuthenticated_clearsCurrentUserCookie() throws Exception {
         when(currentUserCookieFactory.getNullCookie()).thenReturn(new Cookie("Current-User", null));
 
         filter.doFilterInternal(req, res, filterChain);
@@ -90,7 +88,7 @@ class CurrentUserCookieRequestFilterTest {
     }
 
     @Test
-    void whenCurrentUserExceptionOccurs_respondWithInternalServerError() throws CurrentUserCookieFactory.CurrentUserCookieEncodingException, ServletException, IOException {
+    void whenCurrentUserExceptionOccurs_respondWithInternalServerError() throws Exception {
         UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("user-guid", "marissa", "marissa@test.org", "uaa", "", ""), Collections.emptyList(), null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(currentUserCookieFactory.getCookie(Mockito.any(UaaPrincipal.class))).thenThrow(currentUserCookieFactory.new CurrentUserCookieEncodingException(null));

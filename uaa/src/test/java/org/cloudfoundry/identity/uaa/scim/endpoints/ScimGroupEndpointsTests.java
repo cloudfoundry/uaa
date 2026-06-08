@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -52,11 +53,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Collections.emptyList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeastOnce;
@@ -270,7 +267,7 @@ class ScimGroupEndpointsTests {
             "displayName eq \"test\""
     })
     void listExternalGroupsInvalidFilter(final String filter) {
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.getExternalGroups(1, 100, filter, null, null));
+        assertThatThrownBy(() -> scimGroupEndpoints.getExternalGroups(1, 100, filter, null, null)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 
     @Test
@@ -397,7 +394,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void getNonExistentGroupFails() {
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> scimGroupEndpoints.getGroup("wrongid", new MockHttpServletResponse()));
+        assertThatThrownBy(() -> scimGroupEndpoints.getGroup("wrongid", new MockHttpServletResponse())).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -490,7 +487,7 @@ class ScimGroupEndpointsTests {
 
         scimGroup.setDisplayName("superadmin");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), null, httpServletResponse));
+        assertThatThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), null, httpServletResponse)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 
     @Test
@@ -502,7 +499,7 @@ class ScimGroupEndpointsTests {
 
         scimGroup.setDisplayName("superadmin");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), "", httpServletResponse));
+        assertThatThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), "", httpServletResponse)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 
     @Test
@@ -514,7 +511,7 @@ class ScimGroupEndpointsTests {
 
         scimGroup.setDisplayName("superadmin");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), "abc", httpServletResponse));
+        assertThatThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), "abc", httpServletResponse)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 
     @Test
@@ -551,7 +548,7 @@ class ScimGroupEndpointsTests {
         try {
             scimGroupEndpoints.updateGroup(g1, g1.getId(), "*", new MockHttpServletResponse());
             fail("must have thrown exception");
-        } catch (ScimException ex) {
+        } catch (ScimException _) {
             // ensure that displayName was not updated
             g1 = scimGroupEndpoints.getGroup(g1.getId(), new MockHttpServletResponse());
             validateGroup(g1, "clients.read", 0);
@@ -620,7 +617,7 @@ class ScimGroupEndpointsTests {
 
         try {
             scimGroupEndpoints.updateGroup(g1, g1.getId(), String.valueOf(g1.getVersion() + 23), new MockHttpServletResponse());
-        } catch (ScimException ex) {
+        } catch (ScimException _) {
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
@@ -683,7 +680,7 @@ class ScimGroupEndpointsTests {
 
         try {
             scimGroupEndpoints.deleteGroup(g.getId(), String.valueOf(g.getVersion() + 3), new MockHttpServletResponse());
-        } catch (ScimException ex) {
+        } catch (ScimException _) {
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
         deleteGroup("clients.read");
@@ -691,7 +688,7 @@ class ScimGroupEndpointsTests {
 
     @Test
     void deleteNonExistentGroupFails() {
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> scimGroupEndpoints.deleteGroup("some id", "*", new MockHttpServletResponse()));
+        assertThatThrownBy(() -> scimGroupEndpoints.deleteGroup("some id", "*", new MockHttpServletResponse())).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -745,7 +742,7 @@ class ScimGroupEndpointsTests {
         ScimGroup g1 = new ScimGroup(null, "name", identityZoneManager.getCurrentIdentityZoneId());
         g1.setDescription("description");
 
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.patchGroup(g1, "id", "0", new MockHttpServletResponse()));
+        assertThatThrownBy(() -> scimGroupEndpoints.patchGroup(g1, "id", "0", new MockHttpServletResponse())).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 
     @Test
@@ -778,6 +775,6 @@ class ScimGroupEndpointsTests {
         ScimGroup patch = new ScimGroup("NewName");
         patch.setId(scimGroup.getId());
 
-        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.patchGroup(patch, patch.getId(), Integer.toString(createdScimGroup.getVersion() + 1), new MockHttpServletResponse()));
+        assertThatThrownBy(() -> scimGroupEndpoints.patchGroup(patch, patch.getId(), Integer.toString(createdScimGroup.getVersion() + 1), new MockHttpServletResponse())).asInstanceOf(InstanceOfAssertFactories.throwable(ScimException.class));
     }
 }

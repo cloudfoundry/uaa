@@ -90,7 +90,7 @@ public class SignatureVerifier implements Verifier {
             Map<String, Object> keyMap = new HashMap<>(delegate.getKeyProperties());
             keyMap.put(HeaderParameterNames.KEY_ID, keyId);
             return new JWKSet(JWK.parse(keyMap));
-        } catch (ParseException e) {
+        } catch (ParseException _) {
             // ignore
         }
         return new JWKSet();

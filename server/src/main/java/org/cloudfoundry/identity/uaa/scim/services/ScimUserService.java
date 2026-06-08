@@ -58,7 +58,7 @@ public class ScimUserService {
             final ScimUser user,
             final ScimUser existingUser
     ) {
-        return transactionTemplate.execute(txStatus -> {
+        return transactionTemplate.execute(_ -> {
             final ScimUser updatedOriginalUser = scimUserProvisioning.update(
                     userId,
                     user,

@@ -628,7 +628,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
-    void testChangeFederatedJwtConfig() {
+    void changeFederatedJwtConfig() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
         UaaClientDetails client = createClient("client_credentials");
 
@@ -654,7 +654,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
-    void testChangeJwtConfigNoAuthorization() {
+    void changeJwtConfigNoAuthorization() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
         UaaClientDetails client = createClient("client_credentials");
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write"));

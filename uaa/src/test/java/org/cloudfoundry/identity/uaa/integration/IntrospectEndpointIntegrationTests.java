@@ -201,7 +201,7 @@ class IntrospectEndpointIntegrationTests {
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
         assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(introspectResponse.getBody()).isNotNull();
-        System.out.println(introspectResponse.getBody());
+        IO.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, Object> map = introspectResponse.getBody();
@@ -224,7 +224,7 @@ class IntrospectEndpointIntegrationTests {
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
         assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(introspectResponse.getBody()).isNotNull();
-        System.out.println(introspectResponse.getBody());
+        IO.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, Object> map = introspectResponse.getBody();
@@ -248,7 +248,7 @@ class IntrospectEndpointIntegrationTests {
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
         assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(introspectResponse.getBody()).isNotNull();
-        System.out.println(introspectResponse.getBody());
+        IO.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, Object> map = introspectResponse.getBody();
@@ -272,7 +272,7 @@ class IntrospectEndpointIntegrationTests {
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
         assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(introspectResponse.getBody()).isNotNull();
-        System.out.println(introspectResponse.getBody());
+        IO.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, Object> map = introspectResponse.getBody();
@@ -297,7 +297,7 @@ class IntrospectEndpointIntegrationTests {
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
         assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(introspectResponse.getBody()).isNotNull();
-        System.out.println(introspectResponse.getBody());
+        IO.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, Object> map = introspectResponse.getBody();
@@ -401,7 +401,7 @@ class IntrospectEndpointIntegrationTests {
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
         assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(introspectResponse.getBody()).isNotNull();
-        System.out.println(introspectResponse.getBody());
+        IO.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, Object> map = introspectResponse.getBody();

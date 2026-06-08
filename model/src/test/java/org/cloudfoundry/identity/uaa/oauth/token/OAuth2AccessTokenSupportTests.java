@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedException;
 import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
@@ -31,7 +31,7 @@ import java.net.URI;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -75,8 +75,8 @@ class OAuth2AccessTokenSupportTests {
     void retrieveTokenFailsWhenTokenEndpointNotAvailable() {
         error = new IOException("Planned");
         response.setStatus(HttpStatus.BAD_REQUEST);
-        assertThatExceptionOfType(OAuth2AccessDeniedException.class).isThrownBy(() ->
-                support.retrieveToken(request, resource, form, requestHeaders));
+        assertThatThrownBy(() ->
+                support.retrieveToken(request, resource, form, requestHeaders)).asInstanceOf(InstanceOfAssertFactories.throwable(OAuth2AccessDeniedException.class));
     }
 
     @Test

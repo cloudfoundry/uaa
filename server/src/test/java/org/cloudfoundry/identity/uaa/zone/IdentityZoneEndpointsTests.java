@@ -64,7 +64,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void create_zone() throws InvalidIdentityZoneDetailsException {
+    void create_zone() throws Exception {
         when(mockIdentityZoneProvisioning.create(any())).then(invocation -> invocation.getArgument(0));
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
@@ -87,7 +87,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void group_creation_called_on_create() throws InvalidIdentityZoneDetailsException {
+    void group_creation_called_on_create() throws Exception {
         when(mockIdentityZoneProvisioning.create(any())).then(invocation -> invocation.getArgument(0));
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
@@ -98,7 +98,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void group_creation_called_on_update() throws InvalidIdentityZoneDetailsException {
+    void group_creation_called_on_update() throws Exception {
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
@@ -117,7 +117,7 @@ class IdentityZoneEndpointsTests {
 
         assertThat(identityZone.getConfig().getSamlConfig().getPrivateKey()).isNull();
         assertThat(identityZone.getConfig().getSamlConfig().getPrivateKeyPassword()).isNull();
-        identityZone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+        identityZone.getConfig().getSamlConfig().getKeys().forEach((_, value) -> {
             assertThat(value.getKey()).isNull();
             assertThat(value.getPassphrase()).isNull();
         });
@@ -132,7 +132,7 @@ class IdentityZoneEndpointsTests {
 
         assertThat(identityZone.getConfig().getSamlConfig().getPrivateKey()).isNotNull();
         assertThat(identityZone.getConfig().getSamlConfig().getPrivateKeyPassword()).isNotNull();
-        identityZone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+        identityZone.getConfig().getSamlConfig().getKeys().forEach((_, value) -> {
             assertThat(value.getKey()).isNotNull();
             assertThat(value.getPassphrase()).isNotNull();
         });
@@ -140,7 +140,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void extend_zone_allowed_groups_on_update() throws InvalidIdentityZoneDetailsException {
+    void extend_zone_allowed_groups_on_update() throws Exception {
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
@@ -157,7 +157,7 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void reduce_zone_allowed_groups_on_update_should_fail() throws InvalidIdentityZoneDetailsException {
+    void reduce_zone_allowed_groups_on_update_should_fail() throws Exception {
         when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
 
         identityZone = createZone();
@@ -225,7 +225,7 @@ class IdentityZoneEndpointsTests {
 
         assertThat(zone.getConfig().getSamlConfig().getPrivateKey()).isNotNull();
         assertThat(zone.getConfig().getSamlConfig().getPrivateKeyPassword()).isNotNull();
-        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+        zone.getConfig().getSamlConfig().getKeys().forEach((_, value) -> {
             assertThat(value.getKey()).isNotNull();
             assertThat(value.getPassphrase()).isNotNull();
         });

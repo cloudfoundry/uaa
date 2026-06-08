@@ -44,12 +44,10 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
 
     protected Map<String, Object> getClaims(T token) {
         String tokenValue;
-        if (token instanceof OAuth2AccessToken accessToken) {
-            tokenValue = accessToken.getValue();
-        } else if (token instanceof OAuth2RefreshToken refreshToken) {
-            tokenValue = refreshToken.getValue();
-        } else {
-            throw new IllegalArgumentException("token must be instanceof OAuth2AccessToken or OAuth2RefreshToken");
+        switch (token) {
+            case OAuth2AccessToken accessToken -> tokenValue = accessToken.getValue();
+            case OAuth2RefreshToken refreshToken -> tokenValue = refreshToken.getValue();
+            case null, default -> throw new IllegalArgumentException("token must be instanceof OAuth2AccessToken or OAuth2RefreshToken");
         }
 
         Jwt tokenJwt = JwtHelper.decode(getToken(tokenValue));

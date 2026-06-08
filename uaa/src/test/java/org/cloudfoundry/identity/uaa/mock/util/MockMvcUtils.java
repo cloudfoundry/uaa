@@ -625,7 +625,7 @@ public final class MockMvcUtils {
         if (hasText(result.getResponse().getContentAsString())) {
             try {
                 return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
-            } catch (JsonUtils.JsonUtilException e) {
+            } catch (JsonUtils.JsonUtilException _) {
                 return null;
             }
         } else {

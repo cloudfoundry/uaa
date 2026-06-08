@@ -122,7 +122,7 @@ public class JdbcScimGroupExternalMembershipManager
                     ps.setString(5, zoneId);
 
                 });
-            } catch (DuplicateKeyException e) {
+            } catch (DuplicateKeyException _) {
                 // we should not throw, if the mapping exist, we should leave it
                 // there.
                 logger.info("The mapping between group {} and external group {} already exists", group.getDisplayName(), externalGroup);
@@ -192,7 +192,7 @@ public class JdbcScimGroupExternalMembershipManager
         final ScimGroup group;
         try {
             group = scimGroupProvisioning.getByName(groupName, zoneId);
-        } catch (IncorrectResultSizeDataAccessException e) {
+        } catch (IncorrectResultSizeDataAccessException _) {
             return null;
         }
 
@@ -238,7 +238,7 @@ public class JdbcScimGroupExternalMembershipManager
         try {
             return jdbcTemplate.queryForObject(getGroupsWithExternalGroupMappingsSql,
                     rowMapper, zoneId, groupId, origin, externalGroup);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new ScimResourceNotFoundException("The mapping between groupId " + groupId + " and external group "
                     + externalGroup + " does not exist");
         }

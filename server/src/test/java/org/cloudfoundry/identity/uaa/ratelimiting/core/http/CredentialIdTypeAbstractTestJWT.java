@@ -83,7 +83,7 @@ public abstract class CredentialIdTypeAbstractTestJWT<CitJWT extends CredentialI
         assertThat(parts.token).as(authHeaderValuePrefix + "JWTparts.token").isEqualTo(JWT);
         String[] sections = parts.parts;
         assertThat(sections).as("JWTparts.parts.sections")
-                .as(authHeaderValuePrefix + "JWTparts.sections").hasSize(3)
+                .as(authHeaderValuePrefix + "JWTparts.sections")
                 .containsExactly(B64_SECTION_HEADER, B64_SECTION_CLAIMS, B64_SECTION_SIGNATURE);
     }
 
@@ -111,7 +111,7 @@ public abstract class CredentialIdTypeAbstractTestJWT<CitJWT extends CredentialI
             when(requestInfo.getAuthorizationHeader()).thenReturn(AUTH_HEADER_VALUE_PREFIX_UC + jwt);
             id = factory.mapAuthorizationToCredentialsID(requestInfo);
             assertThat(id).isEqualTo("|" + email + "|");
-            System.out.println(email + " -> " + jwt);
+            IO.println(email + " -> " + jwt);
         }
     }
 

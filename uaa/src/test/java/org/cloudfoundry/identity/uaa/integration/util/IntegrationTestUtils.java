@@ -203,8 +203,7 @@ public class IntegrationTestUtils {
         final ResponseEntity<UserInfoResponse> response = rest.exchange(request, UserInfoResponse.class);
         assertStatusCode(response, HttpStatus.OK);
         final UserInfoResponse responseBody = response.getBody();
-        assertThat(responseBody).isNotNull();
-        return responseBody;
+        return assertThat(responseBody).isNotNull().actual();
     }
 
     public static void deleteZone(String baseUrl, String id, String adminToken) throws URISyntaxException {
@@ -248,7 +247,7 @@ public class IntegrationTestUtils {
                     Arrays.equals(Inet4Address.getByName("testzone4.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
                     Arrays.equals(Inet4Address.getByName("testzonedoesnotexist.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
                     Arrays.equals(Inet4Address.getByName("testzoneinactive.localhost").getAddress(), new byte[]{127, 0, 0, 1});
-        } catch (UnknownHostException e) {
+        } catch (UnknownHostException _) {
             return false;
         }
     }
@@ -338,8 +337,7 @@ public class IntegrationTestUtils {
         final ResponseEntity<ScimUser> response = client.postForEntity(url + "/Users", user, ScimUser.class);
         assertStatusCode(response, HttpStatus.CREATED);
         final ScimUser responseBody = response.getBody();
-        assertThat(responseBody).isNotNull();
-        return responseBody;
+        return assertThat(responseBody).isNotNull().actual();
     }
 
     public static ScimUser createUser(String token, String url, ScimUser user, String zoneSwitchId) {
@@ -589,8 +587,7 @@ public class IntegrationTestUtils {
         );
         assertStatusCode(response, HttpStatus.CREATED);
         final ScimGroup responseBody = response.getBody();
-        assertThat(responseBody).isNotNull();
-        return responseBody;
+        return assertThat(responseBody).isNotNull().actual();
     }
 
     private static ScimGroup updateGroup(String token,
@@ -707,8 +704,7 @@ public class IntegrationTestUtils {
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
         assertStatusCode(zone, HttpStatus.CREATED);
         final IdentityZone responseBody = zone.getBody();
-        assertThat(responseBody).isNotNull();
-        return responseBody;
+        return assertThat(responseBody).isNotNull().actual();
     }
 
     public static IdentityZone createInactiveIdentityZone(RestTemplate client, String url) {
@@ -1395,7 +1391,7 @@ public class IntegrationTestUtils {
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
         assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         final Map tokenResponseBody = tokenResponse.getBody();
-        assertThat(tokenResponseBody).isNotNull()
+        assertThat(tokenResponseBody)
                 .containsKey("iss");
     }
 

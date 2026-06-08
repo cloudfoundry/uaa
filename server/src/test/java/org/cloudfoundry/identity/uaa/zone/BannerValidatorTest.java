@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class BannerValidatorTest {
     @Test
-    void validatesUrls() throws InvalidIdentityZoneConfigurationException {
+    void validatesUrls() throws Exception {
         String[] validUrls = {
                 "https://example.com",
                 "https://example.com/",
@@ -58,7 +58,7 @@ class BannerValidatorTest {
     }
 
     @Test
-    void validateColor() throws InvalidIdentityZoneConfigurationException {
+    void validateColor() throws Exception {
         String[] validColors = {
                 "#123456",
                 "#000",
@@ -101,7 +101,7 @@ class BannerValidatorTest {
     }
 
     @Test
-    void base64Logo() throws InvalidIdentityZoneConfigurationException {
+    void base64Logo() throws Exception {
         String[] validBase64 = {
                 "BIPUQGEWGPIUB64",
                 ""

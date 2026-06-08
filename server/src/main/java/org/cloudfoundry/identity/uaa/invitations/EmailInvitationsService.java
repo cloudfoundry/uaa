@@ -81,7 +81,7 @@ public class EmailInvitationsService implements InvitationsService {
             ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
             Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
             redirectLocation = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
-        } catch (NoSuchClientException x) {
+        } catch (NoSuchClientException _) {
             logger.debug("Unable to find client_id for invitation:{}", clientId);
         } catch (Exception x) {
             logger.error("Unable to resolve redirect for clientID:{}", clientId, x);

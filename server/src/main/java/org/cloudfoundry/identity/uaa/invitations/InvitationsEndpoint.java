@@ -119,7 +119,7 @@ public class InvitationsEndpoint {
                         try {
                             URL inviteLink = new URL(invitationLink);
                             invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
-                        } catch (MalformedURLException mue) {
+                        } catch (MalformedURLException _) {
                             invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", "Malformed url: %s".formatted(invitationLink)));
                         }
                     } else if (providers.isEmpty()) {
@@ -131,7 +131,7 @@ public class InvitationsEndpoint {
                     invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "email.invalid",
                             email + " is invalid email."));
                 }
-            } catch (ScimResourceConflictException x) {
+            } catch (ScimResourceConflictException _) {
                 invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "user.ambiguous", "Multiple users with the same origin matched to the email address."));
             } catch (UaaException uaae) {
                 invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception", uaae.getMessage()));
@@ -164,7 +164,7 @@ public class InvitationsEndpoint {
         try {
             InternetAddress emailAddr = new InternetAddress(email);
             emailAddr.validate();
-        } catch (AddressException e) {
+        } catch (AddressException _) {
             valid = false;
         }
         return valid;

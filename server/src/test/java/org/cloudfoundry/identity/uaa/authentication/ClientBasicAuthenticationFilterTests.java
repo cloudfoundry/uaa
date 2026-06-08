@@ -16,9 +16,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -60,7 +58,7 @@ class ClientBasicAuthenticationFilterTests {
         }
 
         @Test
-        void urlDecodesClientIdAndClientSecret() throws IOException, ServletException {
+        void urlDecodesClientIdAndClientSecret() throws Exception {
             String clientId = "app|whatever";
             String clientSecret = "sec|ret";
             MockFilterChain chain = mock(MockFilterChain.class);
@@ -77,7 +75,7 @@ class ClientBasicAuthenticationFilterTests {
         }
 
         @Test
-        void urlFailsGracefullyWhenEncodedBadly() throws IOException, ServletException {
+        void urlFailsGracefullyWhenEncodedBadly() throws Exception {
             String clientId = "app|whatever";
             String clientSecret = "sec%ret";
             MockFilterChain chain = mock(MockFilterChain.class);
@@ -100,7 +98,7 @@ class ClientBasicAuthenticationFilterTests {
         }
 
         @Test
-        void doesNotDecodeClientIdAndClientSecretByDefault() throws IOException, ServletException {
+        void doesNotDecodeClientIdAndClientSecretByDefault() throws Exception {
             String clientId = "app%whatever";
             String clientSecret = "sec%ret";
             MockFilterChain chain = mock(MockFilterChain.class);
@@ -117,7 +115,7 @@ class ClientBasicAuthenticationFilterTests {
         }
 
         @Test
-        void decodeClientIdAndClientSecretWhenHeaderProvided() throws IOException, ServletException {
+        void decodeClientIdAndClientSecretWhenHeaderProvided() throws Exception {
             String clientId = "app%whatever";
             String clientSecret = "sec%ret";
             MockFilterChain chain = mock(MockFilterChain.class);

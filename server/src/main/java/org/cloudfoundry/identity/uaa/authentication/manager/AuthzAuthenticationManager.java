@@ -166,7 +166,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
             if (user != null) {
                 return user;
             }
-        } catch (UsernameNotFoundException ignored) {
+        } catch (UsernameNotFoundException _) {
         }
         return null;
     }

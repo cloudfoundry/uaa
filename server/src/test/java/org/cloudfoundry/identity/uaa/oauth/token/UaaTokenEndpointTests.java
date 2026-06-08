@@ -1,5 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
-
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,9 +16,8 @@ import java.security.Principal;
 import java.util.Set;
 
 import static java.util.Collections.emptyMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -50,7 +49,7 @@ class UaaTokenEndpointTests {
     @Test
     void getIsDisabled() {
         endpoint = spy(new UaaTokenEndpoint(null, null, null, null, false));
-        assertThatExceptionOfType(HttpRequestMethodNotSupportedException.class).isThrownBy(() -> endpoint.doDelegateGet(mock(Principal.class), emptyMap()));
+        assertThatThrownBy(() -> endpoint.doDelegateGet(mock(Principal.class), emptyMap())).asInstanceOf(InstanceOfAssertFactories.throwable(HttpRequestMethodNotSupportedException.class));
     }
 
     @Test
@@ -66,7 +65,6 @@ class UaaTokenEndpointTests {
     void setAllowedRequestMethods() {
         Set<HttpMethod> methods = (Set<HttpMethod>) ReflectionTestUtils.getField(endpoint, "allowedRequestMethods");
         assertThat(methods)
-                .hasSize(2)
                 .containsExactlyInAnyOrder(POST, GET);
     }
 

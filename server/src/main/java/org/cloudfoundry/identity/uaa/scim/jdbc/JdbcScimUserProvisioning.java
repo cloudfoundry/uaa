@@ -170,7 +170,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public ScimUser retrieve(String id, String zoneId) {
         try {
             return jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id, zoneId);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new ScimResourceNotFoundException(USER_DOES_NOT_EXIST_MESSAGE.formatted(id));
         }
     }
@@ -294,7 +294,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 ps.setNull(20, Types.BIGINT); // previous_logon_success_time
                 ps.setString(21, user.getPassword());
             });
-        } catch (DuplicateKeyException e) {
+        } catch (DuplicateKeyException _) {
             String userOrigin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
             Map<String, Object> userDetails = Collections.singletonMap("origin", userOrigin);
             throw new ScimResourceAlreadyExistsException("Username already in use: " + user.getUserName(), userDetails);
@@ -411,7 +411,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                             new int[]{VARCHAR, VARCHAR},
                             String.class
                     );
-        } catch (IncorrectResultSizeDataAccessException e) {
+        } catch (IncorrectResultSizeDataAccessException _) {
             throw new ScimResourceNotFoundException(USER_DOES_NOT_EXIST_MESSAGE.formatted(id));
         }
 
@@ -614,7 +614,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             return currentZone.getId().equals(zoneId) ?
                     currentZone.getConfig().getUserConfig() :
                     jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
-        } catch (ZoneDoesNotExistsException e) {
+        } catch (ZoneDoesNotExistsException _) {
             throw new InvalidScimResourceException("Invalid identity zone id: %s".formatted(zoneId));
         }
     }

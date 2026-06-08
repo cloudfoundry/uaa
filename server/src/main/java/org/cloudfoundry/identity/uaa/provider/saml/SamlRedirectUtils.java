@@ -39,7 +39,7 @@ public final class SamlRedirectUtils {
                     return url;
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             // ignore
         }
 

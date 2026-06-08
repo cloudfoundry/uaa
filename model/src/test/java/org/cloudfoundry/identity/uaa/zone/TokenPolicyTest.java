@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
@@ -7,9 +8,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 
 class TokenPolicyTest {
@@ -24,12 +24,12 @@ class TokenPolicyTest {
         String json = JsonUtils.writeValueAsString(tokenPolicy);
         Map properties = JsonUtils.readValue(json, Map.class);
 
-        assertThat(properties).isNotNull()
+        assertThat(properties)
                 .containsEntry("accessTokenValidity", 1234)
                 .containsEntry("refreshTokenValidity", 9876)
                 .containsKey("keys");
         Map keys = (Map) properties.get("keys");
-        assertThat(keys).isNotNull()
+        assertThat(keys)
                 .hasSize(1);
         assertThat(((Map) keys.get("aKeyId"))).containsEntry("signingKey", "KeyKeyKey");
     }
@@ -59,29 +59,29 @@ class TokenPolicyTest {
     @Test
     void nullSigningKey() {
         TokenPolicy tokenPolicy = new TokenPolicy();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                tokenPolicy.setKeys(Collections.singletonMap("key-id", null)));
+        assertThatThrownBy(() ->
+                tokenPolicy.setKeys(Collections.singletonMap("key-id", null))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void emptySigningKey() {
         TokenPolicy tokenPolicy = new TokenPolicy();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                tokenPolicy.setKeys(Collections.singletonMap("key-id", "             ")));
+        assertThatThrownBy(() ->
+                tokenPolicy.setKeys(Collections.singletonMap("key-id", "             "))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void nullKeyId() {
         TokenPolicy tokenPolicy = new TokenPolicy();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                tokenPolicy.setKeys(Collections.singletonMap(null, "signing-key")));
+        assertThatThrownBy(() ->
+                tokenPolicy.setKeys(Collections.singletonMap(null, "signing-key"))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void emptyKeyId() {
         TokenPolicy tokenPolicy = new TokenPolicy();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                tokenPolicy.setKeys(Collections.singletonMap(" ", "signing-key")));
+        assertThatThrownBy(() ->
+                tokenPolicy.setKeys(Collections.singletonMap(" ", "signing-key"))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

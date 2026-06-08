@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -39,9 +40,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -243,8 +242,8 @@ class ExternalLoginAuthenticationManagerTest {
         when(inputAuth.getDetails()).thenReturn(uaaAuthenticationDetails);
         when(uaaUserDatabase.retrieveUserByName(anyString(), eq(origin))).thenReturn(null);
         when(userDetails.getUsername()).thenReturn(null);
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() ->
-                manager.authenticate(inputAuth));
+        assertThatThrownBy(() ->
+                manager.authenticate(inputAuth)).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test
@@ -327,8 +326,8 @@ class ExternalLoginAuthenticationManagerTest {
     @Test
     void authenticateUserInsertFails() {
         when(uaaUserDatabase.retrieveUserByName(anyString(), anyString())).thenThrow(new UsernameNotFoundException(""));
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() ->
-                manager.authenticate(inputAuth));
+        assertThatThrownBy(() ->
+                manager.authenticate(inputAuth)).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test

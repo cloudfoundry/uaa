@@ -189,7 +189,7 @@ class CheckTokenEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/check_token", requestBody, headers);
-        System.out.println(response.getBody());
+        IO.println(response.getBody());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
         @SuppressWarnings("unchecked")
@@ -214,7 +214,7 @@ class CheckTokenEndpointIntegrationTests {
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
         assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(tokenResponse.getBody()).isNotNull();
-        System.out.println(tokenResponse.getBody());
+        IO.println(tokenResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
@@ -238,7 +238,7 @@ class CheckTokenEndpointIntegrationTests {
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
         assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(tokenResponse.getBody()).isNotNull();
-        System.out.println(tokenResponse.getBody());
+        IO.println(tokenResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.user;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
@@ -35,9 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY;
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
@@ -136,7 +135,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void storeUserInfoWithoutId() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> jdbcUaaUserDatabase.storeUserInfo(null, new UserInfo()));
+        assertThatThrownBy(() -> jdbcUaaUserDatabase.storeUserInfo(null, new UserInfo())).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 
     @Test
@@ -163,16 +162,16 @@ class JdbcUaaUserDatabaseTests {
         jdbcUaaUserDatabase.storeUserInfo(id, info);
         UserInfo info2 = jdbcUaaUserDatabase.getUserInfo(id);
         assertThat(info2).isEqualTo(info);
-        assertThat(info2.getUserAttributes()).isEqualTo(userAttributes);
-        assertThat(info2.getRoles()).isEqualTo(roles);
+        assertThat(info2.getUserAttributes()).containsExactlyInAnyOrderEntriesOf(userAttributes);
+        assertThat(info2.getRoles()).containsExactlyElementsOf(roles);
 
         roles.add("role4");
         userAttributes.add("multi", "4");
         jdbcUaaUserDatabase.storeUserInfo(id, info);
         UserInfo info3 = jdbcUaaUserDatabase.getUserInfo(id);
         assertThat(info3).isEqualTo(info);
-        assertThat(info3.getUserAttributes()).isEqualTo(userAttributes);
-        assertThat(info3.getRoles()).isEqualTo(roles);
+        assertThat(info3.getUserAttributes()).containsExactlyInAnyOrderEntriesOf(userAttributes);
+        assertThat(info3.getRoles()).containsExactlyElementsOf(roles);
     }
 
     @Test
@@ -205,7 +204,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     @DisabledIfProfile("mysql")
-    void hsqlPostgresqlCaseSensitive() throws SQLException {
+    void hsqlPostgresqlCaseSensitive() throws Exception {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
                 dbUtils);
@@ -220,7 +219,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     @EnabledIfProfile("mysql")
-    void mysqlCaseInsensitive() throws SQLException {
+    void mysqlCaseInsensitive() throws Exception {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
                 dbUtils);
@@ -236,7 +235,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
         // TODO: this should be parameterized
-    void getValidUserCaseInsensitive() throws SQLException {
+    void getValidUserCaseInsensitive() throws Exception {
         for (boolean caseInsensitive : Arrays.asList(true, false)) {
             try {
                 var dbProps = new DatabaseProperties();
@@ -279,7 +278,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void getNonExistentUserRaisedNotFoundException() {
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() -> jdbcUaaUserDatabase.retrieveUserByName("jo", OriginKeys.UAA));
+        assertThatThrownBy(() -> jdbcUaaUserDatabase.retrieveUserByName("jo", OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test
@@ -290,7 +289,7 @@ class JdbcUaaUserDatabaseTests {
     }
 
     @Test
-    void getUserWithMultipleExtraAuthorities() throws SQLException {
+    void getUserWithMultipleExtraAuthorities() throws Exception {
         addAuthority("additional", jdbcTemplate, "zone-the-first", JOE_ID);
         addAuthority("anotherOne", jdbcTemplate, "zone-the-first", JOE_ID);
         JdbcTemplate spiedJdbcTemplate = Mockito.spy(jdbcTemplate);
@@ -345,7 +344,7 @@ class JdbcUaaUserDatabaseTests {
     void getValidUserInDefaultZoneFromOtherZoneFails() {
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn("zone-the-second");
         // TODO: One @Test should not call another @Test
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(this::getValidUserSucceeds);
+        assertThatThrownBy(this::getValidUserSucceeds).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test
@@ -356,7 +355,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     void getValidUserInOtherZoneFromDefaultZoneFails() {
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() -> jdbcUaaUserDatabase.retrieveUserByName("alice", OriginKeys.UAA));
+        assertThatThrownBy(() -> jdbcUaaUserDatabase.retrieveUserByName("alice", OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     @Test
@@ -391,7 +390,7 @@ class JdbcUaaUserDatabaseTests {
             validateBob(5, jdbcUaaUserDatabase.retrieveUserByName("bob", OriginKeys.UAA), l);
 
             for (int i = 5; i < 10; i++) {
-                System.out.println(i);
+                IO.println(i);
                 addAuthority("testAuth" + l + i, jdbcTemplate, "zone-the-bob", BOB_ID);
             }
             validateBob(10, jdbcUaaUserDatabase.retrieveUserByName("bob", OriginKeys.UAA), l);

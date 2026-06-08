@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.unboundid.scim.sdk.AttributePath;
 import com.unboundid.scim.sdk.SCIMFilter;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -78,9 +79,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Arrays.asList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -409,7 +409,7 @@ class ScimUserEndpointsTests {
 
     @Test
     void create_uaa_user_when_internal_user_management_is_disabled() {
-        assertThatExceptionOfType(InternalUserManagementDisabledException.class).isThrownBy(() -> createUserWhenInternalUserManagementIsDisabled(OriginKeys.UAA));
+        assertThatThrownBy(() -> createUserWhenInternalUserManagementIsDisabled(OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(InternalUserManagementDisabledException.class));
     }
 
     @Test
@@ -430,7 +430,7 @@ class ScimUserEndpointsTests {
 
         //1. this method, 2. user scimUserEndpoints, 3. user provisioning
         assertThat(passwords.getAllValues()).hasSize(3);
-        assertThat(passwords.getAllValues().getFirst()).isEqualTo("bla bla");
+        assertThat(passwords.getAllValues()).first().isEqualTo("bla bla");
         assertThat(passwords.getAllValues().get(1)).isEmpty();
     }
 
@@ -505,7 +505,7 @@ class ScimUserEndpointsTests {
 
     @Test
     void deleteIs_Not_Allowed_For_UAA_When_InternalUserManagement_Is_Disabled() {
-        assertThatExceptionOfType(InternalUserManagementDisabledException.class).isThrownBy(() -> deleteWhenInternalUserManagementIsDisabled(OriginKeys.UAA));
+        assertThatThrownBy(() -> deleteWhenInternalUserManagementIsDisabled(OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(InternalUserManagementDisabledException.class));
     }
 
     @Test
@@ -520,12 +520,12 @@ class ScimUserEndpointsTests {
         exGuy = jdbcScimUserProvisioning.createUser(exGuy, "exguyspassword", identityZone.getId());
         final String exGuyId = exGuy.getId();
         final ScimMeta exGuyMeta = exGuy.getMeta();
-        assertThatExceptionOfType(OptimisticLockingFailureException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
                 scimUserEndpoints.deleteUser(
                         exGuyId,
                         Integer.toString(exGuyMeta.getVersion() + 1),
                         new MockHttpServletRequest(),
-                        new MockHttpServletResponse()));
+                        new MockHttpServletResponse())).asInstanceOf(InstanceOfAssertFactories.throwable(OptimisticLockingFailureException.class));
     }
 
     @Test
@@ -879,7 +879,7 @@ class ScimUserEndpointsTests {
 
     @Test
     void updateWhenInternalUserManagementIsDisabledForUaa() {
-        assertThatExceptionOfType(InternalUserManagementDisabledException.class).isThrownBy(() -> updateWhenInternalUserManagementIsDisabled(OriginKeys.UAA));
+        assertThatThrownBy(() -> updateWhenInternalUserManagementIsDisabled(OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(InternalUserManagementDisabledException.class));
     }
 
     @Test
@@ -1002,13 +1002,13 @@ class ScimUserEndpointsTests {
     void patchUnknownUserFails() {
         ScimUser user = new ScimUser(null, "uname", "gname", "fname");
         user.addEmail("test@example.org");
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> scimUserEndpoints.patchUser(
+        assertThatThrownBy(() -> scimUserEndpoints.patchUser(
                 user,
                 UUID.randomUUID().toString(),
                 "0",
                 new MockHttpServletRequest(),
                 new MockHttpServletResponse(),
-                null));
+                null)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -1034,7 +1034,7 @@ class ScimUserEndpointsTests {
         user.addEmail("test@example.org");
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         createdUser.getMeta().setAttributes(new String[]{"attributeName"});
-        assertThatExceptionOfType(InvalidScimResourceException.class).isThrownBy(() -> scimUserEndpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse(), null));
+        assertThatThrownBy(() -> scimUserEndpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse(), null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidScimResourceException.class));
     }
 
     @Test
@@ -1043,7 +1043,7 @@ class ScimUserEndpointsTests {
         user.setPassword("password");
         user.addEmail("test@example.org");
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-        assertThatExceptionOfType(ScimResourceConflictException.class).isThrownBy(() -> scimUserEndpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion() + 1), new MockHttpServletRequest(), new MockHttpServletResponse(), null));
+        assertThatThrownBy(() -> scimUserEndpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion() + 1), new MockHttpServletRequest(), new MockHttpServletResponse(), null)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceConflictException.class));
     }
 
     @Test
@@ -1066,7 +1066,7 @@ class ScimUserEndpointsTests {
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setLocked(true);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId()));
+        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -1077,7 +1077,7 @@ class ScimUserEndpointsTests {
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setPasswordChangeRequired(false);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId()));
+        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -1088,7 +1088,7 @@ class ScimUserEndpointsTests {
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setPasswordChangeRequired(true);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId()));
+        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

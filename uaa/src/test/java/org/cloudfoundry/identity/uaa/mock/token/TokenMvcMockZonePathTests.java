@@ -166,8 +166,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "uaa.oauth.redirect_uri.allow_unsafe_matching=true"
 })
 @EnabledIfZonePathsEnabled
-@DefaultTestContext
-public // NOSONAR public for LimitedModeTokenMockMvcTests
+@DefaultTestContext // NOSONAR public for LimitedModeTokenMockMvcTests
 class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
     private static final String BAD_SECRET = "badsecret";
     protected AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
@@ -332,7 +331,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUri(new URI(location)).build().getQueryParams();
         assertThat(queryParams).isNotNull();
         assertThat(queryParams.getFirst("error")).isNotNull();
-        assertThat(queryParams.getFirst("error_description")).isNotNull()
+        assertThat(queryParams.getFirst("error_description"))
                 .contains(UriUtils.encodeQueryParam("User does not meet the client's required group criteria.", "ISO-8859-1"));
     }
 
@@ -1299,7 +1298,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         // zone context needs to be set again because MVC calls mutate it
         IdentityZoneHolder.set(testZone);
 
-        assertThat(body).as("Token body must not be null.").isNotNull()
+        assertThat(body).as("Token body must not be null.")
                 .contains(ACCESS_TOKEN, REFRESH_TOKEN);
         Map<String, Object> map = JsonUtils.readValue(body, new TypeReference<>() {
         });
@@ -1432,8 +1431,8 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         assertThat(location).contains("#");
         URL url = new URL(location.replace("redirect#", "redirect?"));
         Map query = splitQuery(url);
-        assertThat(((List) query.get("id_token")).getFirst()).isNotNull();
-        assertThat(((List) query.get("code")).getFirst()).isNotNull();
+        assertThat(((List) query.get("id_token"))).first().isNotNull();
+        assertThat(((List) query.get("code"))).first().isNotNull();
         assertThat(query).doesNotContainKey("token");
     }
 
@@ -1537,8 +1536,8 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         Map query = splitQuery(url);
         assertThat(query).containsKey("id_token")
                 .doesNotContainKey("token");
-        assertThat(((List) query.get("id_token")).getFirst()).isNotNull();
-        assertThat(((List) query.get("code")).getFirst()).isNotNull();
+        assertThat(((List) query.get("id_token"))).first().isNotNull();
+        assertThat(((List) query.get("code"))).first().isNotNull();
     }
 
     @Test
@@ -1979,8 +1978,8 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#", "redirect?"));
         Map<String, List<String>> hashFragmentParams = splitQuery(url);
-        assertThat(hashFragmentParams.get("access_token").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("id_token").getFirst()).isNotNull()
+        assertThat(hashFragmentParams.get("access_token")).first().isNotNull();
+        assertThat(hashFragmentParams.get("id_token")).first().isNotNull()
                 .isNotEqualTo(hashFragmentParams.get("access_token").getFirst());
         validateOpenIdConnectToken(hashFragmentParams.get("id_token").getFirst(), developer.getId(), clientId);
     }
@@ -2029,7 +2028,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
                 .containsKey(REFRESH_TOKEN)
                 .containsKey("id_token");
         if (authorizeRedirectQueryParams.get("id_token") != null) {
-            assertThat(authorizeRedirectQueryParams.get("id_token").getFirst()).isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
+            assertThat(authorizeRedirectQueryParams.get("id_token")).first().isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
         }
         validateOpenIdConnectToken(tokenResponse.get("id_token"), developer.getId(), clientId);
         Map<String, Object> claims = getClaimsForToken(tokenResponse.get("id_token"));
@@ -2061,14 +2060,14 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#", "redirect?"));
         Map<String, List<String>> hashFragmentParams = splitQuery(url);
-        assertThat(hashFragmentParams.get("token_type").getFirst()).isEqualTo("bearer");
-        assertThat(hashFragmentParams.get("access_token").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("id_token").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("code").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("state").getFirst()).isEqualTo(state);
-        assertThat(hashFragmentParams.get("expires_in").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("nonce").getFirst()).isEqualTo("testnonce");
-        assertThat(hashFragmentParams.get("jti").getFirst()).isNotNull();
+        assertThat(hashFragmentParams.get("token_type")).first().isEqualTo("bearer");
+        assertThat(hashFragmentParams.get("access_token")).first().isNotNull();
+        assertThat(hashFragmentParams.get("id_token")).first().isNotNull();
+        assertThat(hashFragmentParams.get("code")).first().isNotNull();
+        assertThat(hashFragmentParams.get("state")).first().isEqualTo(state);
+        assertThat(hashFragmentParams.get("expires_in")).first().isNotNull();
+        assertThat(hashFragmentParams.get("nonce")).first().isEqualTo("testnonce");
+        assertThat(hashFragmentParams.get("jti")).first().isNotNull();
         validateOpenIdConnectToken(hashFragmentParams.get("id_token").getFirst(), developer.getId(), clientId);
         String code = hashFragmentParams.get("code").getFirst();
 
@@ -2085,7 +2084,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertThat(tokenResponse).containsKey(ACCESS_TOKEN);
-        assertThat(hashFragmentParams.get(ACCESS_TOKEN).getFirst()).isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
+        assertThat(hashFragmentParams.get(ACCESS_TOKEN)).first().isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
         assertThat(tokenResponse).containsKey(REFRESH_TOKEN)
                 .doesNotContainEntry("id_token", tokenResponse.get(ACCESS_TOKEN));
         validateOpenIdConnectToken(tokenResponse.get("id_token"), developer.getId(), clientId);
@@ -2116,15 +2115,15 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#", "redirect?"));
         Map<String, List<String>> hashFragmentParams = splitQuery(url);
-        assertThat(hashFragmentParams.get("token_type").getFirst()).isEqualTo("bearer");
+        assertThat(hashFragmentParams.get("token_type")).first().isEqualTo("bearer");
         assertThat(hashFragmentParams).doesNotContainKey("access_token");
-        assertThat(hashFragmentParams.get("id_token").getFirst()).isNotNull();
+        assertThat(hashFragmentParams.get("id_token")).first().isNotNull();
         validateOpenIdConnectToken(hashFragmentParams.get("id_token").getFirst(), developer.getId(), clientId);
-        assertThat(hashFragmentParams.get("code").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("state").getFirst()).isEqualTo(state);
-        assertThat(hashFragmentParams.get("expires_in").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("nonce").getFirst()).isEqualTo("testnonce");
-        assertThat(hashFragmentParams.get("jti").getFirst()).isNotNull();
+        assertThat(hashFragmentParams.get("code")).first().isNotNull();
+        assertThat(hashFragmentParams.get("state")).first().isEqualTo(state);
+        assertThat(hashFragmentParams.get("expires_in")).first().isNotNull();
+        assertThat(hashFragmentParams.get("nonce")).first().isEqualTo("testnonce");
+        assertThat(hashFragmentParams.get("jti")).first().isNotNull();
         String code = hashFragmentParams.get("code").getFirst();
 
         result = mockMvc.perform(post("/oauth/token")
@@ -2141,7 +2140,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertThat(tokenResponse).containsKey(ACCESS_TOKEN);
         if (hashFragmentParams.get(ACCESS_TOKEN) != null) {
-            assertThat(hashFragmentParams.get(ACCESS_TOKEN).getFirst()).isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
+            assertThat(hashFragmentParams.get(ACCESS_TOKEN)).first().isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
         }
         assertThat(tokenResponse).containsKey(REFRESH_TOKEN)
                 .doesNotContainEntry("id_token", tokenResponse.get(ACCESS_TOKEN));
@@ -2173,14 +2172,14 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#", "redirect?"));
         Map<String, List<String>> hashFragmentParams = splitQuery(url);
-        assertThat(hashFragmentParams.get("token_type").getFirst()).isEqualTo("bearer");
-        assertThat(hashFragmentParams.get("access_token").getFirst()).isNotNull();
+        assertThat(hashFragmentParams.get("token_type")).first().isEqualTo("bearer");
+        assertThat(hashFragmentParams.get("access_token")).first().isNotNull();
         assertThat(hashFragmentParams).doesNotContainKey("id_token");
-        assertThat(hashFragmentParams.get("code").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("state").getFirst()).isEqualTo(state);
-        assertThat(hashFragmentParams.get("expires_in").getFirst()).isNotNull();
-        assertThat(hashFragmentParams.get("nonce").getFirst()).isEqualTo("testnonce");
-        assertThat(hashFragmentParams.get("jti").getFirst()).isNotNull();
+        assertThat(hashFragmentParams.get("code")).first().isNotNull();
+        assertThat(hashFragmentParams.get("state")).first().isEqualTo(state);
+        assertThat(hashFragmentParams.get("expires_in")).first().isNotNull();
+        assertThat(hashFragmentParams.get("nonce")).first().isEqualTo("testnonce");
+        assertThat(hashFragmentParams.get("jti")).first().isNotNull();
         String code = hashFragmentParams.get("code").getFirst();
 
         result = mockMvc.perform(post("/oauth/token")
@@ -2196,7 +2195,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertThat(tokenResponse).containsKey(ACCESS_TOKEN);
-        assertThat(hashFragmentParams.get(ACCESS_TOKEN).getFirst()).isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
+        assertThat(hashFragmentParams.get(ACCESS_TOKEN)).first().isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
         assertThat(tokenResponse).containsKey(REFRESH_TOKEN)
                 .doesNotContainEntry("id_token", tokenResponse.get(ACCESS_TOKEN));
         validateOpenIdConnectToken(tokenResponse.get("id_token"), developer.getId(), clientId);
@@ -2229,8 +2228,8 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         assertThat(redirectUri).as("Redirect URL should not be a fragment.").doesNotContain("#")
                 .as("Redirect URL should contain query params.").contains("?");
         Map<String, List<String>> queryParams = splitQuery(new URL(redirectUri));
-        assertThat(queryParams.get("state").getFirst()).isEqualTo(state);
-        assertThat(queryParams.get("code").getFirst()).isNotNull();
+        assertThat(queryParams.get("state")).first().isEqualTo(state);
+        assertThat(queryParams.get("code")).first().isNotNull();
         String code = queryParams.get("code").getFirst();
 
         result = mockMvc.perform(post("/oauth/token")
@@ -2247,7 +2246,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertThat(tokenResponse).containsKey(ACCESS_TOKEN);
         if (queryParams.get(ACCESS_TOKEN) != null) {
-            assertThat(queryParams.get(ACCESS_TOKEN).getFirst()).isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
+            assertThat(queryParams.get(ACCESS_TOKEN)).first().isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
         }
         assertThat(tokenResponse).containsKey(REFRESH_TOKEN)
                 // Successful OIDC token response should include ID Token even when scope=openid is not present.
@@ -2258,7 +2257,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         validateOpenIdConnectToken(tokenResponse.get("id_token"), developer.getId(), clientId);
         Map<String, Object> claims = getClaimsForToken(tokenResponse.get("id_token"));
         assertThat(claims).containsEntry(ClaimConstants.NONCE, "testnonce");
-        assertThat(((ArrayList<String>) getClaimsForToken(tokenResponse.get(ACCESS_TOKEN)).get("scope")).getFirst()).isEqualTo("openid");
+        assertThat(((ArrayList<String>) getClaimsForToken(tokenResponse.get(ACCESS_TOKEN)).get("scope"))).first().isEqualTo("openid");
     }
 
     @Test
@@ -2285,8 +2284,8 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         assertThat(redirectUri).as("Redirect URL should not be a fragment.").doesNotContain("#")
                 .as("Redirect URL should contain query params.").contains("?");
         Map<String, List<String>> queryParams = splitQuery(new URL(redirectUri));
-        assertThat(queryParams.get("state").getFirst()).isEqualTo(state);
-        assertThat(queryParams.get("code").getFirst()).isNotNull();
+        assertThat(queryParams.get("state")).first().isEqualTo(state);
+        assertThat(queryParams.get("code")).first().isNotNull();
         String code = queryParams.get("code").getFirst();
 
         result = mockMvc.perform(post("/oauth/token")
@@ -2303,9 +2302,9 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertThat(tokenResponse).containsKey(ACCESS_TOKEN);
         if (queryParams.get(ACCESS_TOKEN) != null) {
-            assertThat(queryParams.get(ACCESS_TOKEN).getFirst()).isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
+            assertThat(queryParams.get(ACCESS_TOKEN)).first().isNotEqualTo(tokenResponse.get(ACCESS_TOKEN));
         }
-        assertThat(((ArrayList<String>) getClaimsForToken(tokenResponse.get(ACCESS_TOKEN)).get("scope")).getFirst()).isEqualTo("not-openid");
+        assertThat(((ArrayList<String>) getClaimsForToken(tokenResponse.get(ACCESS_TOKEN)).get("scope"))).first().isEqualTo("not-openid");
 
         assertThat(tokenResponse).containsKey(REFRESH_TOKEN)
                 // Successful OIDC token response should include ID Token even when scope=openid is not present.
@@ -2342,7 +2341,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#", "redirect?"));
         Map<String, List<String>> hashFragmentParams = splitQuery(url);
         assertThat(hashFragmentParams).containsKey(OAuth2Utils.STATE);
-        assertThat(hashFragmentParams.get(OAuth2Utils.STATE).getFirst()).isEqualTo("random-state");
+        assertThat(hashFragmentParams.get(OAuth2Utils.STATE)).first().isEqualTo("random-state");
         String code = hashFragmentParams.get("code").getFirst();
         assertThat(code).isNotNull();
 
@@ -2384,7 +2383,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         Map<String, List<String>> tokenResponse = splitQuery(url);
         assertThat(tokenResponse).containsKey(OAuth2Utils.STATE)
                 .containsKey("id_token");
-        assertThat(tokenResponse.get(OAuth2Utils.STATE).getFirst()).isEqualTo("random-state");
+        assertThat(tokenResponse.get(OAuth2Utils.STATE)).first().isEqualTo("random-state");
     }
 
     @Test
@@ -3536,7 +3535,6 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         OAuth2Authentication authContext = tokenServices.loadAuthentication(oauthToken.accessToken);
 
         assertThat(authContext.getOAuth2Request().getScope())
-                .hasSize(4)
                 .containsExactlyInAnyOrder(zoneAdminGroup, "openid", "cloud_controller.read", "cloud_controller.write");
     }
 
@@ -3907,7 +3905,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         Set<String> grantedScopes = authContext.getOAuth2Request().getScope();
         assertThat(grantedScopes).hasSameSizeAs(expectedScopes);
-        assertThat(new HashSet<>(expectedScopes)).isEqualTo(grantedScopes);
+        assertThat(new HashSet<>(expectedScopes)).hasSameElementsAs(grantedScopes);
         IdentityZoneHolder.clear();
 
         return pwdToken;

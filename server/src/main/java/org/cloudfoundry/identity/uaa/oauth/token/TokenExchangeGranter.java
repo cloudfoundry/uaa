@@ -82,14 +82,14 @@ public class TokenExchangeGranter extends AbstractTokenGranter {
                 if (!client.getAuthorizedGrantTypes().contains(GRANT_TYPE_TOKEN_EXCHANGE)) {
                     throw new InvalidGrantException("Unsupported grant type");
                 }
-            } catch (ClientRegistrationException e) {
+            } catch (ClientRegistrationException _) {
                 throw new InvalidGrantException("Invalid client_id");
             }
             String audience = request.getRequestParameters().get("audience");
             if (hasText(audience)) {
                 try {
                     clientDetailsService.loadClientByClientId(audience);
-                } catch (ClientRegistrationException e) {
+                } catch (ClientRegistrationException _) {
                     throw new InvalidGrantException("Invalid audience");
                 }
                 String requiredImpersonationAuthority =
@@ -139,7 +139,7 @@ public class TokenExchangeGranter extends AbstractTokenGranter {
             try {
                 RevocableToken revocableToken = revocableTokenProvisioning.retrieve(subjectToken, IdentityZoneHolder.get().getId());
                 subjectToken = revocableToken.getValue();
-            } catch (EmptyResultDataAccessException e) {
+            } catch (EmptyResultDataAccessException _) {
                 throw new InvalidGrantException("Invalid subject_token: not a JWT and not found in the revocable token store");
             }
         }

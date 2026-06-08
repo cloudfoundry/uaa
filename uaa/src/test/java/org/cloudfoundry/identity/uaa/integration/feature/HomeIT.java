@@ -58,7 +58,7 @@ class HomeIT {
     void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        } catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException _) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -86,7 +86,7 @@ class HomeIT {
         try {
             homePage.goHome().assertThatPageSource().contains("Where to?");
             webDriver.pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-profile");
-        } catch (TimeoutException e) {
+        } catch (TimeoutException _) {
             webDriver.get(baseUrl + "/profile");
         }
         WebDriverWait wait = webDriver.createWebDriverWait();

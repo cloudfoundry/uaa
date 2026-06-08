@@ -22,7 +22,7 @@ public class UaaLoginHint implements Serializable {
         try {
             loginHint = URLDecoder.decode(loginHint, StandardCharsets.UTF_8);
             return mapper.readValue(loginHint, UaaLoginHint.class);
-        } catch (JacksonException e) {
+        } catch (JacksonException _) {
             return null;
         }
     }
@@ -46,7 +46,7 @@ public class UaaLoginHint implements Serializable {
     public String toString() {
         try {
             return mapper.writeValueAsString(this);
-        } catch (JacksonException e) {
+        } catch (JacksonException _) {
             return super.toString();
         }
     }

@@ -262,7 +262,7 @@ class JwtImpl implements Jwt {
             return jwtProcessor.process(jwtAssertion, null);
         } catch (BadJWSException | BadJWTException jwtException) { // signature failed
             throw new InvalidSignatureException("Unauthorized token", jwtException);
-        } catch (KeyLengthException ke) {
+        } catch (KeyLengthException _) {
             return UaaMacSigner.verify(jwtAssertion.getParsedString(), jwkSet);
         } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
             throw new InvalidSignatureException("Untrusted token", e);

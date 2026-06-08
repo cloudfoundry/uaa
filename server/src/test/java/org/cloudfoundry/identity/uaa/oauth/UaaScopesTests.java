@@ -38,7 +38,7 @@ class UaaScopesTests {
     void getUaaAuthorities() {
         List<GrantedAuthority> authorities = uaaScopes.getUaaAuthorities();
         List<GrantedAuthority> expected = getGrantedAuthorities();
-        assertThat(authorities).isEqualTo(expected);
+        assertThat(authorities).containsExactlyElementsOf(expected);
     }
 
     protected List<GrantedAuthority> getGrantedAuthorities() {

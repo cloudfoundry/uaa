@@ -51,7 +51,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -85,7 +84,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertion() throws ParseException {
+    void getClientAssertion() throws Exception {
         // When
         String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
         // Then
@@ -93,7 +92,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionUsingTrueBooleanConfig() throws ParseException {
+    void getClientAssertionUsingTrueBooleanConfig() throws Exception {
         // Given
         config.setJwtClientAuthentication(true);
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -121,7 +120,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionUsingCustomConfig() throws ParseException {
+    void getClientAssertionUsingCustomConfig() throws Exception {
         // Given
         Map<Object, Object> customClaims = Map.of("iss", "identity");
         config.setJwtClientAuthentication(customClaims);
@@ -132,7 +131,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionRfc7523Compliant() throws ParseException {
+    void getClientAssertionRfc7523Compliant() throws Exception {
         // Given
         Map<Object, Object> customClaims = new HashMap<>();
         customClaims.put("iss", "anotherIssuer");
@@ -145,7 +144,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAuthenticationParameters() throws ParseException {
+    void getClientAuthenticationParameters() throws Exception {
         // Given
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         // When
@@ -154,7 +153,7 @@ class JwtClientAuthenticationTest {
         assertThat(params).containsKey("client_assertion")
                 .containsKey("client_assertion_type")
                 .containsEntry("client_assertion_type", Collections.singletonList(JwtClientAuthentication.GRANT_TYPE));
-        assertThat(params.get("client_assertion").getFirst()).isNotNull();
+        assertThat(params.get("client_assertion")).first().isNotNull();
         validateClientAssertionOidcCompliant(params.get("client_assertion").getFirst());
     }
 
@@ -170,7 +169,7 @@ class JwtClientAuthenticationTest {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         config.setJwtClientAuthentication(null);
         // When
-        assertThat(jwtClientAuthentication.getClientAuthenticationParameters(params, config)).isEqualTo(params);
+        assertThat(jwtClientAuthentication.getClientAuthenticationParameters(params, config)).containsExactlyInAnyOrderEntriesOf(params);
     }
 
     @Test
@@ -185,7 +184,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionUsingCustomSingingKeyFromEnvironment() throws ParseException, JOSEException {
+    void getClientAssertionUsingCustomSingingKeyFromEnvironment() throws Exception {
         // Given: register 2 keys
         mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
         Map<Object, Object> customClaims = new HashMap<>();
@@ -208,7 +207,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionUsingCustomSingingKeyFromEnvironmentNoDefault() throws ParseException, JOSEException {
+    void getClientAssertionUsingCustomSingingKeyFromEnvironmentNoDefault() throws Exception {
         // Given: register 2 keys
         mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
         Map<Object, Object> customClaims = new HashMap<>();
@@ -229,7 +228,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionUsingCustomSingingKeyFromEnvironmentButEntryIsMissing() throws JOSEException {
+    void getClientAssertionUsingCustomSingingKeyFromEnvironmentButEntryIsMissing() throws Exception {
         // Given: register 2 keys
         mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
         Map<Object, Object> customClaims = new HashMap<>();
@@ -246,7 +245,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionUsingCustomSingingKeyFromEnvironmentButNotInDefaultZone() throws JOSEException {
+    void getClientAssertionUsingCustomSingingKeyFromEnvironmentButNotInDefaultZone() throws Exception {
         // Given: register 2 keys
         mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
         Map<Object, Object> customClaims = new HashMap<>();
@@ -267,7 +266,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionCustomSingingKeyButNoCertificate() throws ParseException, JOSEException {
+    void getClientAssertionCustomSingingKeyButNoCertificate() throws Exception {
         // Given
         mockKeyInfoService("myKey", null);
         Map<Object, Object> customClaims = new HashMap<>();
@@ -287,7 +286,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionUsingCustomSingingPrivateKeyFromEnvironment() throws ParseException, JOSEException {
+    void getClientAssertionUsingCustomSingingPrivateKeyFromEnvironment() throws Exception {
         // Given: register 2 keys
         mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
         // add reference in jwtClientAuthentication to customer one key-id-321
@@ -314,7 +313,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void getClientAssertionUsingCustomSingingPrivateKeyFromEnvironmentDisabledForCustomZone() throws JOSEException {
+    void getClientAssertionUsingCustomSingingPrivateKeyFromEnvironmentDisabledForCustomZone() throws Exception {
         arrangeCustomIdz();
 
         // Given: register 2 keys
@@ -335,13 +334,12 @@ class JwtClientAuthenticationTest {
         );
         mockApplicationContext(keyMap);
 
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() ->
-                jwtClientAuthentication.getClientAuthenticationParameters(params, config, false)
-        ).withMessage("Missing requested signing key");
+        assertThatThrownBy(() ->
+                jwtClientAuthentication.getClientAuthenticationParameters(params, config, false)).isInstanceOf(BadCredentialsException.class).hasMessage("Missing requested signing key");
     }
 
     @Test
-    void getClientAssertionUsingCustomSingingPrivateKeyFromEnvironmentEnabledForCustomZone() throws ParseException, JOSEException {
+    void getClientAssertionUsingCustomSingingPrivateKeyFromEnvironmentEnabledForCustomZone() throws Exception {
         arrangeCustomIdz();
 
         // Given: register 2 keys
@@ -479,11 +477,11 @@ class JwtClientAuthenticationTest {
     void getClientIdOfInvalidClientAssertionOidcCompliance() {
         // Then
         assertThat(JwtClientAuthentication.getClientIdOidcAssertion(INVALID_CLIENT_JWT)).isNull();
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> JwtClientAuthentication.getClientIdOidcAssertion("eyXXX"));
+        assertThatThrownBy(() -> JwtClientAuthentication.getClientIdOidcAssertion("eyXXX")).isInstanceOf(BadCredentialsException.class);
     }
 
     @Test
-    void clientJwtFederatedCreateAndValidateOwnAssertion() throws MalformedURLException, JOSEException {
+    void clientJwtFederatedCreateAndValidateOwnAssertion() throws Exception {
         // Given
         jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
         mockKeyInfoService(KEY_ID, JwtHelperX5tTest.CERTIFICATE_1, JwtHelperX5tTest.SIGNING_KEY_1);
@@ -497,7 +495,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void clientJwtFederatedCreateAndValidateTrustedIssuer() throws MalformedURLException, JOSEException, ParseException {
+    void clientJwtFederatedCreateAndValidateTrustedIssuer() throws Exception {
         // Given
         jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
         mockKeyInfoService(KEY_ID, JwtHelperX5tTest.CERTIFICATE_1, JwtHelperX5tTest.SIGNING_KEY_1);
@@ -513,7 +511,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void clientJwtFederatedCreateAndValidateTrustedIdP() throws MalformedURLException, JOSEException, ParseException {
+    void clientJwtFederatedCreateAndValidateTrustedIdP() throws Exception {
         // Given
         IdentityProvider idp = new IdentityProvider();
         OIDCIdentityProviderDefinition idpConfig = new OIDCIdentityProviderDefinition();
@@ -532,7 +530,7 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
-    void clientJwtFederatedCreateAndValidateWrongIdPAndWrongIssuer() throws MalformedURLException, JOSEException, ParseException {
+    void clientJwtFederatedCreateAndValidateWrongIdPAndWrongIssuer() throws Exception {
         // Given
         IdentityProvider idp = new IdentityProvider();
         SamlIdentityProviderDefinition idpConfig = new SamlIdentityProviderDefinition();
@@ -684,7 +682,7 @@ class JwtClientAuthenticationTest {
 
     private static void validateClientAssertionOidcCompliant(String clientAssertion) throws ParseException {
         JWTClaimsSet jwtClaimsSet = JWTParser.parse(clientAssertion).getJWTClaimsSet();
-        assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
+        assertThat(jwtClaimsSet.getAudience()).containsExactlyElementsOf(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
         assertThat(Instant.now())
@@ -696,7 +694,7 @@ class JwtClientAuthenticationTest {
 
     private static void validateClientAssertionRfc7523Compliant(String clientAssertion, String iss, String aud) throws ParseException {
         JWTClaimsSet jwtClaimsSet = JWTParser.parse(clientAssertion).getJWTClaimsSet();
-        assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList(aud));
+        assertThat(jwtClaimsSet.getAudience()).containsExactlyElementsOf(Collections.singletonList(aud));
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo(iss);
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(Instant.now())

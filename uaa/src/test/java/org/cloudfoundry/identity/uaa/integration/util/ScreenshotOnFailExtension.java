@@ -40,7 +40,7 @@ public class ScreenshotOnFailExtension implements AfterTestExecutionCallback {
         File screenshotFile = getDestinationFile(className, description, "png");
         try {
             FileUtils.copyFile(sourceScreenshotFile, screenshotFile);
-        } catch (IOException ioe) {
+        } catch (IOException _) {
             log.error("ScreenshotOnFail could not write image: {}", screenshotFile);
             return;
         }
@@ -51,7 +51,7 @@ public class ScreenshotOnFailExtension implements AfterTestExecutionCallback {
 
         try {
             FileUtils.write(pageSourceFile, pageSource, StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        } catch (IOException _) {
             log.error("ScreenshotOnFail could not write source: {}", pageSourceFile);
             return;
         }

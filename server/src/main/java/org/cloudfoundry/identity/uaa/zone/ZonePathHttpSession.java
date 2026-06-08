@@ -175,7 +175,7 @@ public class ZonePathHttpSession implements HttpSession {
         for (String name : toRemove) {
             try {
                 containerSession.removeAttribute(name);
-            } catch (IllegalStateException ignored) {
+            } catch (IllegalStateException _) {
                 // Container session was invalidated
             }
         }

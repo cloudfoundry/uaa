@@ -90,7 +90,7 @@ public class AccountsController {
         }
         try {
             accountCreationService.beginActivation(email.getEmail(), password, clientId, redirectUri);
-        } catch (UaaException e) {
+        } catch (UaaException _) {
             return handleUnprocessableEntity(model, response, "error_message_code", "username_exists");
         } catch (InvalidPasswordException e) {
             return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString());
@@ -117,7 +117,7 @@ public class AccountsController {
         AccountCreationService.AccountCreationResponse accountCreation;
         try {
             accountCreation = accountCreationService.completeActivation(code);
-        } catch (HttpClientErrorException e) {
+        } catch (HttpClientErrorException _) {
             model.addAttribute("error_message_code", "code_expired");
             model.addAttribute("signupLink", environment.getProperty("links.signup"));
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());

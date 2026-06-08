@@ -106,7 +106,7 @@ class UaaMapUtilsTest {
                 "nullValue"
         );
         assertThat(visit_all_keys(top)).isNotEqualTo(expectedOrder);
-        assertThat(visit_all_keys(sortByKeys(top))).isEqualTo(expectedOrder);
+        assertThat(visit_all_keys(sortByKeys(top))).containsExactlyElementsOf(expectedOrder);
     }
 
     @Test

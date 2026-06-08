@@ -238,7 +238,7 @@ public class InvitationsServiceMockMvcZonePathTests {
         MvcResult inviteResult = mockMvc.perform(postReq).andExpect(status().isOk()).andReturn();
         InvitationsResponse response = JsonUtils.readValue(inviteResult.getResponse().getContentAsString(), InvitationsResponse.class);
         assertThat(response.getNewInvites()).hasSize(1);
-        String code = extractInvitationCode(response.getNewInvites().get(0).getInviteLink().toString());
+        String code = extractInvitationCode(response.getNewInvites().getFirst().getInviteLink().toString());
 
         MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
                         .param("code", code)
@@ -325,7 +325,7 @@ public class InvitationsServiceMockMvcZonePathTests {
                 .content(JsonUtils.writeValueAsString(invitations));
         MvcResult inviteResult = mockMvc.perform(postReq).andExpect(status().isOk()).andReturn();
         InvitationsResponse response = JsonUtils.readValue(inviteResult.getResponse().getContentAsString(), InvitationsResponse.class);
-        String code = extractInvitationCode(response.getNewInvites().get(0).getInviteLink().toString());
+        String code = extractInvitationCode(response.getNewInvites().getFirst().getInviteLink().toString());
 
         MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
                         .param("code", code)
@@ -386,7 +386,7 @@ public class InvitationsServiceMockMvcZonePathTests {
                 .content(JsonUtils.writeValueAsString(invitations));
         MvcResult inviteResult = mockMvc.perform(postReq).andExpect(status().isOk()).andReturn();
         InvitationsResponse response = JsonUtils.readValue(inviteResult.getResponse().getContentAsString(), InvitationsResponse.class);
-        String code = extractInvitationCode(response.getNewInvites().get(0).getInviteLink().toString());
+        String code = extractInvitationCode(response.getNewInvites().getFirst().getInviteLink().toString());
 
         String zoneId = zoneResult.getIdentityZone().getId();
         jdbcTemplate.update("UPDATE users SET verified=true WHERE email=? AND identity_zone_id=?", email, zoneId);
@@ -427,7 +427,7 @@ public class InvitationsServiceMockMvcZonePathTests {
         MvcResult inviteResult = mockMvc.perform(postReq).andExpect(status().isOk()).andReturn();
         InvitationsResponse response = JsonUtils.readValue(inviteResult.getResponse().getContentAsString(), InvitationsResponse.class);
         assertThat(response.getNewInvites()).hasSize(1);
-        URL inviteLink = response.getNewInvites().get(0).getInviteLink();
+        URL inviteLink = response.getNewInvites().getFirst().getInviteLink();
         String code = extractInvitationCode(inviteLink.toString());
 
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
@@ -482,7 +482,7 @@ public class InvitationsServiceMockMvcZonePathTests {
                 .content(JsonUtils.writeValueAsString(invitations));
         MvcResult inviteResult = mockMvc.perform(postReq).andExpect(status().isOk()).andReturn();
         InvitationsResponse response = JsonUtils.readValue(inviteResult.getResponse().getContentAsString(), InvitationsResponse.class);
-        String code = extractInvitationCode(response.getNewInvites().get(0).getInviteLink().toString());
+        String code = extractInvitationCode(response.getNewInvites().getFirst().getInviteLink().toString());
 
         MockHttpServletRequestBuilder get = mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
                 .param("code", code)
@@ -572,8 +572,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                 .header("Authorization", "Bearer " + zonedToken)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(new InvitationsRequest(new String[]{email2})))).andReturn();
-        String code1 = extractInvitationCode(JsonUtils.readValue(r1.getResponse().getContentAsString(), InvitationsResponse.class).getNewInvites().get(0).getInviteLink().toString());
-        String invalidCode = extractInvitationCode(JsonUtils.readValue(r2.getResponse().getContentAsString(), InvitationsResponse.class).getNewInvites().get(0).getInviteLink().toString());
+        String code1 = extractInvitationCode(JsonUtils.readValue(r1.getResponse().getContentAsString(), InvitationsResponse.class).getNewInvites().getFirst().getInviteLink().toString());
+        String invalidCode = extractInvitationCode(JsonUtils.readValue(r2.getResponse().getContentAsString(), InvitationsResponse.class).getNewInvites().getFirst().getInviteLink().toString());
 
         MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
                         .param("code", code1)

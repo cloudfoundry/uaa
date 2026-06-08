@@ -43,7 +43,7 @@ public class UserNotFoundEvent extends AbstractUaaAuthenticationEvent {
             // Store hash of name, to conceal accidental entry of sensitive info
             // (e.g. password)
             name = Utf8.decode(Base64.getEncoder().encode(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(name))));
-        } catch (NoSuchAlgorithmException shouldNeverHappen) {
+        } catch (NoSuchAlgorithmException _) {
             name = "NOSHA";
         }
 

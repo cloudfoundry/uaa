@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.util;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -7,7 +8,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 class SourcedFileTest {
@@ -51,7 +52,7 @@ class SourcedFileTest {
     @Test
     void loadStreamException() {
         InputStream in = mock(InputStream.class);
-        assertThatExceptionOfType(IllegalStateException.class).isThrownBy(() -> SourcedFile.loadFile(in, ""));
+        assertThatThrownBy(() -> SourcedFile.loadFile(in, "")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalStateException.class));
     }
 
     private void check(String fileContents, String source) {

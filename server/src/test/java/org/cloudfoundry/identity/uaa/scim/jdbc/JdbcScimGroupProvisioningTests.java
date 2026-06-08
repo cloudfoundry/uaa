@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
@@ -38,10 +39,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_FIELDS;
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_TABLE;
 import static org.mockito.Mockito.anyString;
@@ -224,22 +222,22 @@ class JdbcScimGroupProvisioningTests {
 
     @Test
     void cannotRetrieveGroupsWithIllegalQuotesFilter() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("displayName eq \"bar", zoneId));
+        assertThatThrownBy(() -> dao.query("displayName eq \"bar", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveGroupsWithMissingQuotesFilter() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("displayName eq bar", zoneId));
+        assertThatThrownBy(() -> dao.query("displayName eq bar", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveGroupsWithInvalidFieldsFilter() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("name eq \"openid\"", zoneId));
+        assertThatThrownBy(() -> dao.query("name eq \"openid\"", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveGroupsWithWrongFilter() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("displayName pr \"r\"", zoneId));
+        assertThatThrownBy(() -> dao.query("displayName pr \"r\"", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -250,7 +248,7 @@ class JdbcScimGroupProvisioningTests {
 
     @Test
     void cannotRetrieveNonExistentGroup() {
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> dao.retrieve("invalidgroup", zoneId));
+        assertThatThrownBy(() -> dao.retrieve("invalidgroup", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -437,32 +435,32 @@ class JdbcScimGroupProvisioningTests {
 
     @Test
     void sqlInjectionAttack1Fails() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("displayName='something'; select " + SQL_INJECTION_FIELDS
-                + " from groups where displayName='something'", zoneId));
+        assertThatThrownBy(() -> dao.query("displayName='something'; select " + SQL_INJECTION_FIELDS
+                + " from groups where displayName='something'", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void sqlInjectionAttack2Fails() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("displayName gt 'a'; select " + SQL_INJECTION_FIELDS
-                + " from groups where displayName='something'", zoneId));
+        assertThatThrownBy(() -> dao.query("displayName gt 'a'; select " + SQL_INJECTION_FIELDS
+                + " from groups where displayName='something'", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void sqlInjectionAttack3Fails() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("displayName eq \"something\"; select " + SQL_INJECTION_FIELDS
-                + " from groups where displayName='something'", zoneId));
+        assertThatThrownBy(() -> dao.query("displayName eq \"something\"; select " + SQL_INJECTION_FIELDS
+                + " from groups where displayName='something'", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void sqlInjectionAttack4Fails() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("displayName eq \"something\"; select id from " + groupName + "  where id='''; select " + SQL_INJECTION_FIELDS
-                + " from groups where displayName='something'", zoneId));
+        assertThatThrownBy(() -> dao.query("displayName eq \"something\"; select id from " + groupName + "  where id='''; select " + SQL_INJECTION_FIELDS
+                + " from groups where displayName='something'", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void sqlInjectionAttack5Fails() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> dao.query("displayName eq \"something\"'; select " + SQL_INJECTION_FIELDS
-                + " from groups where displayName='something''", zoneId));
+        assertThatThrownBy(() -> dao.query("displayName eq \"something\"'; select " + SQL_INJECTION_FIELDS
+                + " from groups where displayName='something''", zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -473,9 +471,9 @@ class JdbcScimGroupProvisioningTests {
         ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
         g.setMembers(Arrays.asList(m1, m2));
         ScimGroup errorGroup = g;
-        assertThatExceptionOfType(ScimResourceConstraintFailedException.class).isThrownBy(() -> dao.create(errorGroup, null));
+        assertThatThrownBy(() -> dao.create(errorGroup, null)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceConstraintFailedException.class));
         g.setZoneId(zoneId);
-        assertThatExceptionOfType(ScimResourceConstraintFailedException.class).isThrownBy(() -> dao.create(errorGroup, null));
+        assertThatThrownBy(() -> dao.create(errorGroup, null)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceConstraintFailedException.class));
         g = dao.create(g, zoneId);
         assertThat(g).isNotNull();
         assertThat(g.getZoneId()).isEqualTo(zoneId);

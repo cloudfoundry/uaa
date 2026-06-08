@@ -11,7 +11,7 @@ public final class IntUtils {
         try {
             return parse(source, defaultOnEmpty);
         }
-        catch (NumberFormatException e) {
+        catch (NumberFormatException _) {
             return defaultOnEmpty;
         }
     }

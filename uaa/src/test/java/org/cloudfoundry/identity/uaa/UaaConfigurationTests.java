@@ -12,7 +12,7 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
-
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import jakarta.validation.ConstraintViolationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * @author Luke Taylor
@@ -71,7 +71,7 @@ class UaaConfigurationTests {
 
     @Test
     void invalidIssuerUriCausesException() {
-        assertThatExceptionOfType(ConstraintViolationException.class).isThrownBy(() ->
-                createValidator("name: uaa\nissuer.uri: notauri\n"));
+        assertThatThrownBy(() ->
+                createValidator("name: uaa\nissuer.uri: notauri\n")).asInstanceOf(InstanceOfAssertFactories.throwable(ConstraintViolationException.class));
     }
 }

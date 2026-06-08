@@ -18,7 +18,7 @@ public class SelfCheckAuthorizationManager  implements AuthorizationManager<Requ
         TOKEN_REVOCATION_CLIENT,
         TOKEN_REVOCATION_SELF,
         TOKEN_REVOCATION_CLIENT_USER
-    };
+    }
     private final IsSelfCheck selfCheck;
     private final int parameterIndex;
     private final int parameterIndex2;

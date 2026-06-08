@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
-import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationException;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -86,13 +86,13 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
     }
 
     @Test
-    void getOAuth2Authentication() throws PkceValidationException {
+    void getOAuth2Authentication() throws Exception {
         when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(false);
-        assertThatExceptionOfType(InvalidGrantException.class).isThrownBy(() -> granter.getOAuth2Authentication((ClientDetails) requestingClient, tokenRequest));
+        assertThatThrownBy(() -> granter.getOAuth2Authentication((ClientDetails) requestingClient, tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidGrantException.class));
     }
 
     @Test
-    void getOAuth2AuthenticationMethod() throws PkceValidationException {
+    void getOAuth2AuthenticationMethod() throws Exception {
         HashMap authMap = new HashMap();
         authMap.put(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE);
         when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(true);
@@ -103,7 +103,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
     }
 
     @Test
-    void getOAuth2AuthenticationNoMethod() throws PkceValidationException {
+    void getOAuth2AuthenticationNoMethod() throws Exception {
         HashMap authMap = new HashMap();
         authMap.put(ClaimConstants.CLIENT_AUTH_METHOD, null);
         when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(true);

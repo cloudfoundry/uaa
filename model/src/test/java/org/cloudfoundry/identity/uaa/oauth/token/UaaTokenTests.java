@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.client.grant.AuthorizationCodeAccessTokenProvider;
 import org.cloudfoundry.identity.uaa.oauth.client.grant.ClientCredentialsAccessTokenProvider;
 import org.cloudfoundry.identity.uaa.oauth.client.http.AccessTokenRequiredException;
@@ -24,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken.BEARER_TYPE;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -102,8 +103,8 @@ class UaaTokenTests {
     void accessTokenProviderChainException() {
         ClientCredentialsAccessTokenProvider clientCredentialsAccessTokenProvider = new ClientCredentialsAccessTokenProvider();
         AccessTokenProviderChain accessTokenProviderChain = new AccessTokenProviderChain(List.of(clientCredentialsAccessTokenProvider));
-        assertThatExceptionOfType(OAuth2AccessDeniedException.class).isThrownBy(() ->
-                accessTokenProviderChain.refreshAccessToken(new ClientCredentialsResourceDetails(), new DefaultOAuth2RefreshToken(""), null));
+        assertThatThrownBy(() ->
+                accessTokenProviderChain.refreshAccessToken(new ClientCredentialsResourceDetails(), new DefaultOAuth2RefreshToken(""), null)).asInstanceOf(InstanceOfAssertFactories.throwable(OAuth2AccessDeniedException.class));
     }
 
     @Test
@@ -120,7 +121,7 @@ class UaaTokenTests {
         accessTokenRequest.addAll(parameters);
         accessTokenRequest.clear();
         accessTokenRequest.add("key", "value");
-        assertThat(accessTokenRequest.keySet()).isEqualTo(Set.of("key"));
+        assertThat(accessTokenRequest).containsOnlyKeys(Set.of("key"));
         assertThat(accessTokenRequest.values()).hasToString(List.of(List.of("value")).toString());
 
         // parameters
@@ -136,7 +137,7 @@ class UaaTokenTests {
         accessTokenRequest.clear();
         parameters = new LinkedMultiValueMap<>();
         parameters.addAll("key", List.of("value"));
-        assertThat(new DefaultAccessTokenRequest(null)).isEqualTo(accessTokenRequest);
+        assertThat(new DefaultAccessTokenRequest(null)).containsExactlyInAnyOrderEntriesOf(accessTokenRequest);
         DefaultAccessTokenRequest newAccessTokenRequest = new DefaultAccessTokenRequest(Map.of("scope", new String[]{"x"}, "client_id", new String[]{"x"}));
         assertThat(newAccessTokenRequest).isNotEqualTo(accessTokenRequest);
         assertThat(newAccessTokenRequest.toString()).isNotEqualTo(accessTokenRequest.toString());
@@ -146,8 +147,8 @@ class UaaTokenTests {
         }
         accessTokenRequest.remove("key");
         assertThat(accessTokenRequest).doesNotContainKey("key")
-                .doesNotContainKey("key");
-        assertThat(accessTokenRequest.containsValue("value")).isFalse();
+                .doesNotContainKey("key")
+                .doesNotContainValue(List.of("value"));
     }
 
     @Test
@@ -159,7 +160,7 @@ class UaaTokenTests {
         when(request.getHeaders()).thenReturn(new HashMap<>(Map.of(OAuth2Utils.USER_OAUTH_APPROVAL, List.of("true"))));
         when(request.containsKey(OAuth2Utils.USER_OAUTH_APPROVAL)).thenReturn(true);
         authorizationCodeAccessTokenProvider.setRequestFactory(clientHttpRequestFactory);
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() ->
-                authorizationCodeAccessTokenProvider.obtainAuthorizationCode(authorizationCodeResourceDetails, request));
+        assertThatThrownBy(() ->
+                authorizationCodeAccessTokenProvider.obtainAuthorizationCode(authorizationCodeResourceDetails, request)).asInstanceOf(InstanceOfAssertFactories.throwable(NullPointerException.class));
     }
 }

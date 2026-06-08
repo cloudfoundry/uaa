@@ -157,7 +157,7 @@ class SecurityFilterChainPostProcessorTests {
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/oauth/token");
         MockHttpServletResponse response = new MockHttpServletResponse();
-        FilterChain chain = (req, res) -> {
+        FilterChain chain = (_, _) -> {
             throw new InvalidParameterException("bad encoding");
         };
 

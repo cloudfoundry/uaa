@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -58,11 +59,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.mockito.ArgumentMatchers.any;
@@ -297,7 +294,7 @@ class JdbcScimUserProvisioningTests {
             );
             assertThat(result).isNotNull();
             final List<String> usernames = result.stream().map(ScimUser::getUserName).toList();
-            assertThat(usernames).isSorted();
+            assertThat(usernames).isSorted().actual();
             return usernames;
         };
 
@@ -622,8 +619,7 @@ class JdbcScimUserProvisioningTests {
         }
 
         private void assertUserDoesNotExist(final String zoneId, final String userId) {
-            assertThatExceptionOfType(ScimResourceNotFoundException.class)
-                    .isThrownBy(() -> jdbcScimUserProvisioning.retrieve(userId, zoneId));
+            assertThatThrownBy(() -> jdbcScimUserProvisioning.retrieve(userId, zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
         }
 
         private static Stream<Arguments> fromUaaToCustomZoneAndViceVersa() {
@@ -775,7 +771,7 @@ class JdbcScimUserProvisioningTests {
     @Test
     void cannotCreateScimUserWithEmptyEmail() {
         ScimUser user = new ScimUser(null, "joeyjoejoe", "joe", "young");
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> user.addEmail(""));
+        assertThatThrownBy(() -> user.addEmail("")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -892,14 +888,14 @@ class JdbcScimUserProvisioningTests {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
         jo.setVersion(1);
-        assertThatExceptionOfType(OptimisticLockingFailureException.class).isThrownBy(() -> jdbcScimUserProvisioning.update(joeId, jo, currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.update(joeId, jo, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(OptimisticLockingFailureException.class));
     }
 
     @Test
     void updateWithBadUsernameIsError() {
         ScimUser jo = jdbcScimUserProvisioning.retrieve(joeId, currentIdentityZoneId);
         jo.setUserName("jo$ephione");
-        assertThatExceptionOfType(InvalidScimResourceException.class).isThrownBy(() -> jdbcScimUserProvisioning.update(joeId, jo, currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.update(joeId, jo, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidScimResourceException.class));
     }
 
     @Test
@@ -935,12 +931,12 @@ class JdbcScimUserProvisioningTests {
 
     @Test
     void cannotChangePasswordNonexistentUser() {
-        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> jdbcScimUserProvisioning.changePassword(joeId, "notjoespassword", "newpassword", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.changePassword(joeId, "notjoespassword", "newpassword", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
     }
 
     @Test
     void cannotChangePasswordIfOldPasswordDoesntMatch() {
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> jdbcScimUserProvisioning.changePassword("9999", null, "newpassword", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.changePassword("9999", null, "newpassword", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -958,7 +954,7 @@ class JdbcScimUserProvisioningTests {
 
     @Test
     void cannotRetrieveNonexistentUser() {
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> jdbcScimUserProvisioning.retrieve("9999", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.retrieve("9999", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -975,17 +971,17 @@ class JdbcScimUserProvisioningTests {
         String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
         ScimUser deletedUser = jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
         deletedUser.setActive(true);
-        assertThatExceptionOfType(ScimResourceAlreadyExistsException.class).isThrownBy(() -> jdbcScimUserProvisioning.createUser(deletedUser, "foobarspam1234", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.createUser(deletedUser, "foobarspam1234", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceAlreadyExistsException.class));
     }
 
     @Test
     void cannotDeactivateNonexistentUser() {
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> jdbcScimUserProvisioning.delete("9999", 0, currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.delete("9999", 0, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
     void deactivateWithWrongVersionIsError() {
-        assertThatExceptionOfType(OptimisticLockingFailureException.class).isThrownBy(() -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(OptimisticLockingFailureException.class));
     }
 
     @Nested
@@ -1039,12 +1035,12 @@ class JdbcScimUserProvisioningTests {
 
         @Test
         void cannotDeleteNonexistentUser() {
-            assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> jdbcScimUserProvisioning.delete("9999", 0, currentIdentityZoneId));
+            assertThatThrownBy(() -> jdbcScimUserProvisioning.delete("9999", 0, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
         }
 
         @Test
         void deleteWithWrongVersionIsError() {
-            assertThatExceptionOfType(OptimisticLockingFailureException.class).isThrownBy(() -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId));
+            assertThatThrownBy(() -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(OptimisticLockingFailureException.class));
         }
     }
 
@@ -1073,7 +1069,7 @@ class JdbcScimUserProvisioningTests {
                 .isInstanceOf(ScimResourceAlreadyExistsException.class)
                 .hasMessage("Username already in use: user@example.com")
                 .satisfies(e -> assertThat(((ScimResourceAlreadyExistsException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT))
-                .satisfies(e -> assertThat(((ScimResourceAlreadyExistsException) e).getExtraInfo()).isEqualTo(userDetails));
+                .satisfies(e -> assertThat(((ScimResourceAlreadyExistsException) e).getExtraInfo()).containsExactlyInAnyOrderEntriesOf(userDetails));
     }
 
     @Test
@@ -1155,7 +1151,7 @@ class JdbcScimUserProvisioningTests {
     @Test
     void createUserWithNoZoneFailsIfUserAlreadyExistsInUaaZone() {
         addUser(jdbcTemplate, UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName", "1234567890", IdentityZone.getUaaZoneId());
-        assertThatExceptionOfType(DuplicateKeyException.class).isThrownBy(() -> jdbcTemplate.execute(OLD_ADD_USER_SQL_FORMAT.formatted(UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName", "1234567890")));
+        assertThatThrownBy(() -> jdbcTemplate.execute(OLD_ADD_USER_SQL_FORMAT.formatted(UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName", "1234567890"))).asInstanceOf(InstanceOfAssertFactories.throwable(DuplicateKeyException.class));
     }
 
     @Test
@@ -1182,7 +1178,7 @@ class JdbcScimUserProvisioningTests {
         String tmpUserIdString = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
         ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserIdString, currentIdentityZoneId);
         assertThat(user.isVerified()).isFalse();
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> jdbcScimUserProvisioning.verifyUser("-1-1-1", -1, currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.verifyUser("-1-1-1", -1, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -1191,7 +1187,7 @@ class JdbcScimUserProvisioningTests {
         ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserIdString, currentIdentityZoneId);
         assertThat(user.isVerified()).isFalse();
         user.setVerified(true);
-        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> jdbcScimUserProvisioning.update("-1-1-1", user, currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.update("-1-1-1", user, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
     }
 
     @Test
@@ -1199,7 +1195,7 @@ class JdbcScimUserProvisioningTests {
         String tmpUserIdString = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
         ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserIdString, currentIdentityZoneId);
         assertThat(user.isVerified()).isFalse();
-        assertThatExceptionOfType(OptimisticLockingFailureException.class).isThrownBy(() -> jdbcScimUserProvisioning.verifyUser(tmpUserIdString, user.getVersion() + 50, currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.verifyUser(tmpUserIdString, user.getVersion() + 50, currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(OptimisticLockingFailureException.class));
     }
 
     @Test
@@ -1323,62 +1319,62 @@ class JdbcScimUserProvisioningTests {
 
     @Test
     void cannotRetrieveUsersWithIllegalFilterField() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> assertThat(jdbcScimUserProvisioning.query("emails.type eq \"bar\"", currentIdentityZoneId)).hasSize(2));
+        assertThatThrownBy(() -> assertThat(jdbcScimUserProvisioning.query("emails.type eq \"bar\"", currentIdentityZoneId)).hasSize(2)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveUsersWithIllegalPhoneNumberFilterField() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> assertThat(jdbcScimUserProvisioning.query("phoneNumbers.type eq \"bar\"", currentIdentityZoneId)).hasSize(2));
+        assertThatThrownBy(() -> assertThat(jdbcScimUserProvisioning.query("phoneNumbers.type eq \"bar\"", currentIdentityZoneId)).hasSize(2)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveUsersWithIllegalFilterQuotes() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> assertThat(jdbcScimUserProvisioning.query("username eq \"bar", currentIdentityZoneId)).hasSize(2));
+        assertThatThrownBy(() -> assertThat(jdbcScimUserProvisioning.query("username eq \"bar", currentIdentityZoneId)).hasSize(2)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveUsersWithNativeSqlInjectionAttack() {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertThat(password).isNotNull();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> jdbcScimUserProvisioning.query("username=\"joe\"; select " + SQL_INJECTION_FIELDS
-                + " from users where username='joe'", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.query("username=\"joe\"; select " + SQL_INJECTION_FIELDS
+                + " from users where username='joe'", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveUsersWithSqlInjectionAttackOnGt() {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertThat(password).isNotNull();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> jdbcScimUserProvisioning.query("username gt \"h\"; select " + SQL_INJECTION_FIELDS
-                + " from users where username='joe'", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.query("username gt \"h\"; select " + SQL_INJECTION_FIELDS
+                + " from users where username='joe'", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveUsersWithSqlInjectionAttack() {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertThat(password).isNotNull();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> jdbcScimUserProvisioning.query("username eq \"joe\"; select " + SQL_INJECTION_FIELDS
-                + " from users where username='joe'", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.query("username eq \"joe\"; select " + SQL_INJECTION_FIELDS
+                + " from users where username='joe'", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveUsersWithAnotherSqlInjectionAttack() {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertThat(password).isNotNull();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> jdbcScimUserProvisioning.query("username eq \"joe\"\"; select id from users where id='''; select "
-                + SQL_INJECTION_FIELDS + " from users where username='joe'", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.query("username eq \"joe\"\"; select id from users where id='''; select "
+                + SQL_INJECTION_FIELDS + " from users where username='joe'", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void cannotRetrieveUsersWithYetAnotherSqlInjectionAttack() {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertThat(password).isNotNull();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> jdbcScimUserProvisioning.query("username eq \"joe\"'; select " + SQL_INJECTION_FIELDS
-                + " from users where username='joe''", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.query("username eq \"joe\"'; select " + SQL_INJECTION_FIELDS
+                + " from users where username='joe''", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void filterEqWithoutQuotesIsRejected() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> jdbcScimUserProvisioning.query("username eq joe", currentIdentityZoneId));
+        assertThatThrownBy(() -> jdbcScimUserProvisioning.query("username eq joe", currentIdentityZoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -1437,7 +1433,7 @@ class JdbcScimUserProvisioningTests {
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
         try {
             jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
-        } catch (InvalidScimResourceException e) {
+        } catch (InvalidScimResourceException _) {
             fail("Can't create user with valid origin when origin is checked");
         } finally {
             idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
@@ -1489,9 +1485,8 @@ class JdbcScimUserProvisioningTests {
         scimUser.setEmails(singletonList(email));
         scimUser.setPassword(randomString());
         scimUser.setZoneId("wrongZone-" + randomString());
-        assertThatNoException().isThrownBy(() -> {
-            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
-        });
+        assertThatNoException().isThrownBy(() ->
+            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId));
         assertThatThrownBy(() -> jdbcScimUserProvisioning.update(userId, scimUser, currentIdentityZoneId))
                 .isInstanceOf(ScimResourceNotFoundException.class)
                 .hasMessageContaining("does not exist");

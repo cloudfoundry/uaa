@@ -210,7 +210,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             if (provider == null || !allowedProviders.contains(provider.getOriginKey())) {
                 throw new DisallowedIdpException("Client is not authorized for specified user's identity provider.");
             }
-        } catch (EmptyResultDataAccessException x) {
+        } catch (EmptyResultDataAccessException _) {
             //this should not happen...but if it does
             throw new UnauthorizedClientException("User does not belong to a valid identity provider.");
         }
@@ -317,7 +317,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
                 if (hasText(audience)) {
                     try {
                         targetClient = clientDetailsService.loadClientByClientId(audience, identityZoneManager.getCurrentIdentityZoneId());
-                    } catch (ClientRegistrationException r) {
+                    } catch (ClientRegistrationException _) {
                         throw new InvalidClientException("Invalid audience("+audience+") for "+ GRANT_TYPE_TOKEN_EXCHANGE+ " grant.");
                     }
                 }

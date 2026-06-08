@@ -99,7 +99,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             final Set<String> typesAsSet = new HashSet<>(Arrays.asList(types));
 
             // adjust the number of SQL parameters in the prepared statement
-            final String sqlPlaceholdersForTypes = typesAsSet.stream().map(type -> "?").collect(joining(","));
+            final String sqlPlaceholdersForTypes = typesAsSet.stream().map(_ -> "?").collect(joining(","));
             final String sql = IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY_TEMPLATE.formatted(sqlPlaceholdersForTypes);
 
             final ArrayList<Object> arrayList = new ArrayList<>(typesAsSet.size() + 2);

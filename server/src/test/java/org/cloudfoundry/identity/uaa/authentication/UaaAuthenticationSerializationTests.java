@@ -14,7 +14,6 @@
  */
 
 package org.cloudfoundry.identity.uaa.authentication;
-
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
@@ -166,8 +165,8 @@ class UaaAuthenticationSerializationTests {
 
         UaaAuthentication authWithUserData = JsonUtils.readValue(dataWithUserAttributes, UaaAuthentication.class);
         assertThat(authWithUserData.getUserAttributes()).isNotNull();
-        assertThat(authWithUserData.getUserAttributes().entrySet()).containsExactlyInAnyOrderElementsOf(userAttributes.entrySet());
-        assertThat(userAttributes.entrySet()).containsExactlyInAnyOrderElementsOf(authWithUserData.getUserAttributes().entrySet());
+        assertThat(authWithUserData.getUserAttributes().entrySet()).hasSameElementsAs(userAttributes.entrySet());
+        assertThat(userAttributes.entrySet()).hasSameElementsAs(authWithUserData.getUserAttributes().entrySet());
 
         assertThat(authentication.getExternalGroups())
                 .hasSize(3)

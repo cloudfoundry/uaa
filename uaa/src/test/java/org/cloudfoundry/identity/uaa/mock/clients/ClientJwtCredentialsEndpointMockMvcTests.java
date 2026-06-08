@@ -63,7 +63,7 @@ class ClientJwtCredentialsEndpointMockMvcTests {
                 .andExpect(status().isCreated());
 
         ClientDetailsModification retrieved = getClient(clientId);
-        assertThat(retrieved.getClientJwtCredentials()).isNotNull().isNotEmpty();
+        assertThat(retrieved.getClientJwtCredentials()).isNotEmpty();
         assertThat(retrieved.getAdditionalInformation()).doesNotContainKey(ClientJwtConfiguration.JWT_CREDS);
         assertThat(retrieved.getAdditionalInformation()).doesNotContainKey("client_jwt_config");
     }
@@ -89,7 +89,7 @@ class ClientJwtCredentialsEndpointMockMvcTests {
                 .andExpect(status().isCreated());
 
         ClientDetailsModification retrieved = getClient(clientId);
-        assertThat(retrieved.getClientJwtCredentials()).isNotNull().isNotEmpty();
+        assertThat(retrieved.getClientJwtCredentials()).isNotEmpty();
     }
 
     @Test
@@ -125,7 +125,7 @@ class ClientJwtCredentialsEndpointMockMvcTests {
                 .andExpect(status().isOk());
 
         ClientDetailsModification after = getClient(clientId);
-        assertThat(after.getClientJwtCredentials()).isNotNull().hasSize(2);
+        assertThat(after.getClientJwtCredentials()).hasSize(2);
     }
 
     @Test
@@ -163,7 +163,7 @@ class ClientJwtCredentialsEndpointMockMvcTests {
                 .andExpect(status().isOk());
 
         ClientDetailsModification after = getClient(clientId);
-        assertThat(after.getClientJwtCredentials()).isNotNull().hasSize(2);
+        assertThat(after.getClientJwtCredentials()).hasSize(2);
     }
 
     @Test
@@ -192,7 +192,7 @@ class ClientJwtCredentialsEndpointMockMvcTests {
                 .getResponse()
                 .getContentAsString();
         int n = body.split("\"jwt_creds\"").length - 1;
-        assertThat(n).isEqualTo(1);
+        assertThat(n).isOne();
     }
 
     private ClientDetailsModification getClient(String clientId) throws Exception {

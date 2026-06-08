@@ -95,7 +95,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         }
         try {
             return dao.retrieveBySubdomain(subdomain);
-        } catch (EmptyResultDataAccessException ex) {
+        } catch (EmptyResultDataAccessException _) {
             logger.debug("Cannot find identity zone for subdomain {}", subdomain);
             return null;
         } catch (Exception ex) {

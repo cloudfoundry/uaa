@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.vote;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.RequestTokenFactory;
@@ -15,7 +16,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -77,6 +78,6 @@ class ScopeVoterTests {
         voter.setDenyAccess("DENY_OAUTH");
         assertThat(voter.supports(ScopeVoter.class)).isTrue();
         Set<ConfigAttribute> scopeWrite = Collections.singleton(new SecurityConfig("SCOPE_WRITE"));
-        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> voter.vote(oAuth2Authentication, null, scopeWrite));
+        assertThatThrownBy(() -> voter.vote(oAuth2Authentication, null, scopeWrite)).asInstanceOf(InstanceOfAssertFactories.throwable(AccessDeniedException.class));
     }
 }

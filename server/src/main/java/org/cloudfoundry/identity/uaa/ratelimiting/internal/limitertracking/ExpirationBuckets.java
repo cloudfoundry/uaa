@@ -69,7 +69,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
                 TimeUnit.NANOSECONDS.sleep(EXPIRATION_WAIT);
                 processExpirations();
             }
-            catch (InterruptedException e) { //NOSONAR
+            catch (InterruptedException _) { //NOSONAR
                 // As it is a Daemon, ignore InterruptedException
             }
             catch (RuntimeException e) {

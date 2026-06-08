@@ -70,7 +70,7 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         final IdentityProvider<?> idpInAliasZone;
         try {
             idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(originKey, zoneId);
-        } catch (final EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException _) {
             return Optional.empty();
         }
         return Optional.ofNullable(idpInAliasZone);
@@ -129,7 +129,7 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         final ScimUser user;
         try {
             user = scimUserProvisioning.retrieve(id, zoneId);
-        } catch (final ScimResourceNotFoundException e) {
+        } catch (final ScimResourceNotFoundException _) {
             return Optional.empty();
         }
         return Optional.ofNullable(user);

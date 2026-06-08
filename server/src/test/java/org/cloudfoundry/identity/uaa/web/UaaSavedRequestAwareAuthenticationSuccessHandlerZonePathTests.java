@@ -26,9 +26,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
-import jakarta.servlet.ServletException;
-import java.io.IOException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -79,7 +76,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerZonePathTests {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void onAuthenticationSuccess_noSavedRequest_redirects_to_zone_aware_default(ZoneRequestPathMode mode) throws ServletException, IOException {
+    void onAuthenticationSuccess_noSavedRequest_redirects_to_zone_aware_default(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         mode.applyRequestPath(request, "/login.do");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -93,7 +90,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerZonePathTests {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void onAuthenticationSuccess_noSavedRequest_with_context_path_redirects_to_zone_aware_default(ZoneRequestPathMode mode) throws ServletException, IOException {
+    void onAuthenticationSuccess_noSavedRequest_with_context_path_redirects_to_zone_aware_default(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         request.setContextPath("/uaa");
         mode.applyRequestPath(request, "/login.do");
@@ -109,7 +106,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerZonePathTests {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
-    void onAuthenticationSuccess_withSavedRequest_redirects_to_saved_url(ZoneRequestPathMode mode) throws ServletException, IOException {
+    void onAuthenticationSuccess_withSavedRequest_redirects_to_saved_url(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         mode.applyRequestPath(request, "/login.do");
         // DEFAULT: no zone path in URL; ZONE_PATH: zone path in path

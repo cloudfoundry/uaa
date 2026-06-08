@@ -24,7 +24,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TOKEN_TYP
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvcBase {
+class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvcBase {
 
 
     @Test
@@ -60,29 +60,28 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
                 .andExpect(jsonPath(".refresh_token").isNotEmpty());
         Map<String, Object> tokens = JsonUtils.readValueAsMap(tokenExchangeResult.andReturn().getResponse().getContentAsString());
 
-        assertThat(tokens.get(ISSUED_TOKEN_TYPE)).isEqualTo(TOKEN_TYPE_ACCESS);
-        assertThat(tokens.get(TOKEN_TYPE)).isEqualTo(BEARER_TYPE.toLowerCase());
+        assertThat(tokens).containsEntry(ISSUED_TOKEN_TYPE, TOKEN_TYPE_ACCESS)
+                .containsEntry(TOKEN_TYPE, BEARER_TYPE.toLowerCase());
 
         Jwt tokenClaims = JwtHelper.decode((String) tokens.get("id_token"));
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
-        assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
-        assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
+        assertThat(claims).containsEntry("user_name", thirdParty.user().getUserName())
+                .containsEntry("email", thirdParty.user().getEmails().getFirst().getValue())
+                .containsEntry("origin", workerServer.identityProvider().getOriginKey());
 
         Map<String, Object> act = (Map<String, Object>) claims.get("act");
-        assertThat(act).isNotNull();
         assertThat(act).isNotEmpty();
         Map<String, Object> controlServerClaims = JsonUtils.readValueAsMap(
                 multiAuthSetup.getTokenClaims(
-                        (String)multiAuthSetup.controlServerTokens().get("id_token"),
-                "id_token",
-                "controlServer"
+                        (String) multiAuthSetup.controlServerTokens().get("id_token"),
+                        "id_token",
+                        "controlServer"
                 ).getClaims()
         );
-        assertThat(act.get("sub")).isEqualTo(controlServerClaims.get("sub"));
-        assertThat(act.get("iss")).isEqualTo(controlServerClaims.get("iss"));
-        assertThat(act.get("client_id")).isEqualTo(workerServer.client().getClientId());
+        assertThat(act).containsEntry("sub", controlServerClaims.get("sub"))
+                .containsEntry("iss", controlServerClaims.get("iss"))
+                .containsEntry("client_id", workerServer.client().getClientId());
     }
 
     @Test
@@ -116,15 +115,15 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
                 .andExpect(jsonPath(".access_token").isNotEmpty());
         Map<String, Object> tokens = JsonUtils.readValueAsMap(tokenExchangeResult.andReturn().getResponse().getContentAsString());
 
-        assertThat(tokens.get(ISSUED_TOKEN_TYPE)).isEqualTo(TOKEN_TYPE_ACCESS);
-        assertThat(tokens.get(TOKEN_TYPE)).isEqualTo(BEARER_TYPE.toLowerCase());
+        assertThat(tokens).containsEntry(ISSUED_TOKEN_TYPE, TOKEN_TYPE_ACCESS)
+                .containsEntry(TOKEN_TYPE, BEARER_TYPE.toLowerCase());
 
         Jwt tokenClaims = JwtHelper.decode((String) tokens.get("access_token"));
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
-        assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
-        assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
+        assertThat(claims).containsEntry("user_name", thirdParty.user().getUserName())
+                .containsEntry("email", thirdParty.user().getEmails().getFirst().getValue())
+                .containsEntry("origin", workerServer.identityProvider().getOriginKey());
     }
 
     @Test
@@ -175,15 +174,15 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
                 .andExpect(jsonPath(".access_token").isNotEmpty());
         Map<String, Object> tokens = JsonUtils.readValueAsMap(tokenExchangeResult.andReturn().getResponse().getContentAsString());
 
-        assertThat(tokens.get(ISSUED_TOKEN_TYPE)).isEqualTo(TOKEN_TYPE_ACCESS);
-        assertThat(tokens.get(TOKEN_TYPE)).isEqualTo(BEARER_TYPE.toLowerCase());
+        assertThat(tokens).containsEntry(ISSUED_TOKEN_TYPE, TOKEN_TYPE_ACCESS)
+                .containsEntry(TOKEN_TYPE, BEARER_TYPE.toLowerCase());
 
         Jwt tokenClaims = JwtHelper.decode((String) tokens.get("access_token"));
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
-        assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
-        assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
+        assertThat(claims).containsEntry("user_name", thirdParty.user().getUserName())
+                .containsEntry("email", thirdParty.user().getEmails().getFirst().getValue())
+                .containsEntry("origin", workerServer.identityProvider().getOriginKey());
     }
 
     @Test
@@ -243,23 +242,25 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
                 .andExpect(jsonPath(".refresh_token").isNotEmpty());
         Map<String, Object> tokens = JsonUtils.readValueAsMap(tokenExchangeResult.andReturn().getResponse().getContentAsString());
 
-        assertThat(tokens.get(ISSUED_TOKEN_TYPE)).isEqualTo(TOKEN_TYPE_ACCESS);
-        assertThat(tokens.get(TOKEN_TYPE)).isEqualTo(BEARER_TYPE.toLowerCase());
+        assertThat(tokens).containsEntry(ISSUED_TOKEN_TYPE, TOKEN_TYPE_ACCESS)
+                .containsEntry(TOKEN_TYPE, BEARER_TYPE.toLowerCase());
 
         Jwt tokenClaims = JwtHelper.decode((String) tokens.get("access_token"));
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
-        assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
-        assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
+        assertThat(claims)
+                .containsEntry("user_name", thirdParty.user().getUserName())
+                .containsEntry("email", thirdParty.user().getEmails().getFirst().getValue())
+                .containsEntry("origin", workerServer.identityProvider().getOriginKey());
 
         Map<String, Object> subjectTokenClaims = JsonUtils.readValueAsMap(JwtHelper.decode(idToken).getClaims());
         Map<String, Object> actClaim = (Map<String, Object>) claims.get(ClaimConstants.ACT);
-        assertThat(actClaim.get(ClaimConstants.CLIENT_ID)).isEqualTo(workerServer.client().getClientId());
-        assertThat(actClaim.get(ClaimConstants.SUB)).isEqualTo(subjectTokenClaims.get(ClaimConstants.SUB));
-        assertThat(actClaim.get(ClaimConstants.USER_NAME)).isEqualTo(subjectTokenClaims.get(ClaimConstants.USER_NAME));
-        assertThat(actClaim.get(ClaimConstants.USER_ID)).isEqualTo(subjectTokenClaims.get(ClaimConstants.USER_ID));
-        assertThat(actClaim.get(ClaimConstants.ORIGIN)).isEqualTo(subjectTokenClaims.get(ClaimConstants.ORIGIN));
+        assertThat(actClaim)
+                .containsEntry(ClaimConstants.CLIENT_ID, workerServer.client().getClientId())
+                .containsEntry(ClaimConstants.SUB, subjectTokenClaims.get(ClaimConstants.SUB))
+                .containsEntry(ClaimConstants.USER_NAME, subjectTokenClaims.get(ClaimConstants.USER_NAME))
+                .containsEntry(ClaimConstants.USER_ID, subjectTokenClaims.get(ClaimConstants.USER_ID))
+                .containsEntry(ClaimConstants.ORIGIN, subjectTokenClaims.get(ClaimConstants.ORIGIN));
     }
 
     @Test
@@ -317,19 +318,21 @@ public class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvc
         Jwt tokenClaims = JwtHelper.decode((String) tokens.get("access_token"));
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
-        assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
-        assertThat(claims.get("origin")).isEqualTo(workerServer.identityProvider().getOriginKey());
-        assertThat(claims.get("client_id")).isEqualTo(audience.getClientId());
-        assertThat(claims.get("cid")).isEqualTo(audience.getClientId());
+        assertThat(claims)
+                .containsEntry("user_name", thirdParty.user().getUserName())
+                .containsEntry("email", thirdParty.user().getEmails().getFirst().getValue())
+                .containsEntry("origin", workerServer.identityProvider().getOriginKey())
+                .containsEntry("client_id", audience.getClientId())
+                .containsEntry("cid", audience.getClientId());
 
         Map<String, Object> subjectTokenClaims = JsonUtils.readValueAsMap(JwtHelper.decode(accessToken).getClaims());
         Map<String, Object> actClaim = (Map<String, Object>) claims.get(ClaimConstants.ACT);
-        assertThat(actClaim.get(ClaimConstants.CLIENT_ID)).isEqualTo(workerServer.client().getClientId());
-        assertThat(actClaim.get(ClaimConstants.SUB)).isEqualTo(subjectTokenClaims.get(ClaimConstants.SUB));
-        assertThat(actClaim.get(ClaimConstants.USER_NAME)).isEqualTo(subjectTokenClaims.get(ClaimConstants.USER_NAME));
-        assertThat(actClaim.get(ClaimConstants.USER_ID)).isEqualTo(subjectTokenClaims.get(ClaimConstants.USER_ID));
-        assertThat(actClaim.get(ClaimConstants.ORIGIN)).isEqualTo(subjectTokenClaims.get(ClaimConstants.ORIGIN));
+        assertThat(actClaim)
+                .containsEntry(ClaimConstants.CLIENT_ID, workerServer.client().getClientId())
+                .containsEntry(ClaimConstants.SUB, subjectTokenClaims.get(ClaimConstants.SUB))
+                .containsEntry(ClaimConstants.USER_NAME, subjectTokenClaims.get(ClaimConstants.USER_NAME))
+                .containsEntry(ClaimConstants.USER_ID, subjectTokenClaims.get(ClaimConstants.USER_ID))
+                .containsEntry(ClaimConstants.ORIGIN, subjectTokenClaims.get(ClaimConstants.ORIGIN));
 
     }
 

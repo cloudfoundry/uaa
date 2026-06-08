@@ -162,13 +162,13 @@ class UaaPropertiesTest {
 
                     assertThat(properties).isNotNull();
                     assertThat(properties.global()).isNotNull();
-                    assertThat(properties.global().minLength()).isEqualTo(0);
+            assertThat(properties.global().minLength()).isZero();
                     assertThat(properties.global().maxLength()).isEqualTo(255);
-                    assertThat(properties.global().requireUpperCaseCharacter()).isEqualTo(0);
-                    assertThat(properties.global().requireLowerCaseCharacter()).isEqualTo(0);
-                    assertThat(properties.global().requireDigit()).isEqualTo(0);
-                    assertThat(properties.global().requireSpecialCharacter()).isEqualTo(0);
-                    assertThat(properties.global().expireSecretInMonths()).isEqualTo(0);
+            assertThat(properties.global().requireUpperCaseCharacter()).isZero();
+            assertThat(properties.global().requireLowerCaseCharacter()).isZero();
+            assertThat(properties.global().requireDigit()).isZero();
+            assertThat(properties.global().requireSpecialCharacter()).isZero();
+            assertThat(properties.global().expireSecretInMonths()).isZero();
 
                     assertThat(properties.minLength()).isEqualTo(properties.global().minLength());
                     assertThat(properties.maxLength()).isEqualTo(properties.global().maxLength());
@@ -195,7 +195,7 @@ class UaaPropertiesTest {
 
                     assertThat(properties).isNotNull();
                     assertThat(properties.global()).isNotNull();
-                    assertThat(properties.global().minLength()).isEqualTo(1);
+            assertThat(properties.global().minLength()).isOne();
                     assertThat(properties.global().maxLength()).isEqualTo(2);
                     assertThat(properties.global().requireUpperCaseCharacter()).isEqualTo(3);
                     assertThat(properties.global().requireLowerCaseCharacter()).isEqualTo(4);
@@ -230,15 +230,15 @@ class UaaPropertiesTest {
                     assertThat(properties).isNotNull();
                     assertThat(properties.global()).isNotNull();
 
-                    assertThat(properties.global().minLength()).isEqualTo(0);
+            assertThat(properties.global().minLength()).isZero();
                     assertThat(properties.global().maxLength()).isEqualTo(255);
-                    assertThat(properties.global().requireUpperCaseCharacter()).isEqualTo(0);
-                    assertThat(properties.global().requireLowerCaseCharacter()).isEqualTo(0);
-                    assertThat(properties.global().requireDigit()).isEqualTo(0);
-                    assertThat(properties.global().requireSpecialCharacter()).isEqualTo(0);
-                    assertThat(properties.global().expireSecretInMonths()).isEqualTo(0);
+            assertThat(properties.global().requireUpperCaseCharacter()).isZero();
+            assertThat(properties.global().requireLowerCaseCharacter()).isZero();
+            assertThat(properties.global().requireDigit()).isZero();
+            assertThat(properties.global().requireSpecialCharacter()).isZero();
+            assertThat(properties.global().expireSecretInMonths()).isZero();
 
-                    assertThat(properties.minLength()).isEqualTo(1);
+            assertThat(properties.minLength()).isOne();
                     assertThat(properties.maxLength()).isEqualTo(2);
                     assertThat(properties.requireUpperCaseCharacter()).isEqualTo(3);
                     assertThat(properties.requireLowerCaseCharacter()).isEqualTo(4);
@@ -279,7 +279,7 @@ class UaaPropertiesTest {
                     assertThat(properties.global().requireSpecialCharacter()).isEqualTo(13);
                     assertThat(properties.global().expireSecretInMonths()).isEqualTo(14);
 
-                    assertThat(properties.minLength()).isEqualTo(1);
+            assertThat(properties.minLength()).isOne();
                     assertThat(properties.maxLength()).isEqualTo(2);
                     assertThat(properties.requireUpperCaseCharacter()).isEqualTo(3);
                     assertThat(properties.requireLowerCaseCharacter()).isEqualTo(4);

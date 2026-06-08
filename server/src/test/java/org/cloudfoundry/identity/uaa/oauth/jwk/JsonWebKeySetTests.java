@@ -16,15 +16,15 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.nimbusds.jose.jwk.JWKSet;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
-import java.text.ParseException;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
 
 class JsonWebKeySetTests {
@@ -132,7 +132,7 @@ class JsonWebKeySetTests {
         assertThat(key.getKeyProperties()).containsEntry("k", "test-mac-key");
 
         assertThat(key.getUse()).isNull();
-        assertThat(key.getKeyOps()).isEqualTo(new LinkedHashSet<>(Arrays.asList(JsonWebKey.KeyOperation.sign, JsonWebKey.KeyOperation.verify)));
+        assertThat(key.getKeyOps()).hasSameElementsAs(new LinkedHashSet<>(Arrays.asList(JsonWebKey.KeyOperation.sign, JsonWebKey.KeyOperation.verify)));
     }
 
     @Test
@@ -147,7 +147,7 @@ class JsonWebKeySetTests {
         assertThat(key.getKeyProperties()).containsEntry("k", "test-oct-key");
 
         assertThat(key.getUse()).isNull();
-        assertThat(key.getKeyOps()).isEqualTo(new LinkedHashSet<>(List.of(JsonWebKey.KeyOperation.verify)));
+        assertThat(key.getKeyOps()).hasSameElementsAs(new LinkedHashSet<>(List.of(JsonWebKey.KeyOperation.verify)));
     }
 
     @Test
@@ -179,7 +179,7 @@ class JsonWebKeySetTests {
     }
 
     @Test
-    void jsonKeySetParseJson() throws ParseException {
+    void jsonKeySetParseJson() throws Exception {
         String jsonConfig = "{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"use\":\"sig\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"xMi4Z4FBfQEOdNYLmzxkYJvP02TSeapZMKMQo90JQRL07ttIKcDMP6pGcirOGSQWWBBpvdo5EnVOiNzViu9JCJP2IWbHJ4sRe0S1dySYdBRVV_ZkgWOrj7Cr2yT0ZVvCCzH7NAWmlA6LUV19Mnp-ugeGoxK-fsk8SRLS_Z9JdyxgOb3tPxdDas3MZweMZ6HqujoAAG9NASBGjFNXbhMckrEfecwm3OJzsjGFxhqXRqkTsGEHvzETMxfvSkTkldOzmErnjpwyoOPLrXcWIs1wvdXHakfVHSvyb3T4gm3ZfOOoUf6lrd2w1pF_PkA88NkjN2-W9fQmbUzNgVjEQiXo4w\"}]}";
         JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.parseConfiguration(jsonConfig);
         assertThat(keys.getKeys()).hasSize(1);
@@ -190,7 +190,7 @@ class JsonWebKeySetTests {
     }
 
     @Test
-    void jsonKeySetParsePublicKey() throws ParseException {
+    void jsonKeySetParsePublicKey() throws Exception {
         String publicKey = "-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxMi4Z4FBfQEOdNYLmzxkYJvP02TSeapZMKMQo90JQRL07ttIKcDMP6pGcirOGSQWWBBpvdo5EnVOiNzViu9JCJP2IWbHJ4sRe0S1dySYdBRVV/ZkgWOrj7Cr2yT0ZVvCCzH7NAWmlA6LUV19Mnp+ugeGoxK+fsk8SRLS/Z9JdyxgOb3tPxdDas3MZweMZ6HqujoAAG9NASBGjFNXbhMckrEfecwm3OJzsjGFxhqXRqkTsGEHvzETMxfvSkTkldOzmErnjpwyoOPLrXcWIs1wvdXHakfVHSvyb3T4gm3ZfOOoUf6lrd2w1pF/PkA88NkjN2+W9fQmbUzNgVjEQiXo4wIDAQAB-----END PUBLIC KEY-----";
         JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.parseConfiguration(publicKey);
         assertThat(keys.getKeys()).hasSize(1);
@@ -203,7 +203,7 @@ class JsonWebKeySetTests {
     @Test
     void jsonKeySetParseFailurePEM() {
         String publicKey = "-----BEGIN PUBLIC KEY-----tokenKey-----END PUBLIC KEY-----";
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> JsonWebKeyHelper.parseConfiguration(publicKey));
+        assertThatThrownBy(() -> JsonWebKeyHelper.parseConfiguration(publicKey)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

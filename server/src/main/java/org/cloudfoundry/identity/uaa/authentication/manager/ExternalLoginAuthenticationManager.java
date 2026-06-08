@@ -111,7 +111,7 @@ public abstract class ExternalLoginAuthenticationManager<EAD extends ExternalLog
         try {
             logger.debug("Searching for user by (username:{} , origin:{})", userFromRequest.getUsername(), origin);
             userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), origin);
-        } catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException _) {
             logger.debug("Searching for user by (email:{} , origin:{})", userFromRequest.getEmail(), origin);
             userFromDb = userDatabase.retrieveUserByEmail(userFromRequest.getEmail(), origin);
         }
@@ -124,7 +124,7 @@ public abstract class ExternalLoginAuthenticationManager<EAD extends ExternalLog
             publish(new NewUserAuthenticatedEvent(userFromRequest.authorities(List.of())));
             try {
                 userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), origin);
-            } catch (UsernameNotFoundException ex) {
+            } catch (UsernameNotFoundException _) {
                 throw new BadCredentialsException("Unable to register user in internal UAA store.");
             }
         }

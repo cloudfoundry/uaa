@@ -15,9 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -87,7 +85,7 @@ class UaaAuthenticationFailureHandlerTests {
     }
 
     @Test
-    void onAuthenticationFailure_ForcePasswordChange() throws IOException, ServletException {
+    void onAuthenticationFailure_ForcePasswordChange() throws Exception {
         UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
         PasswordChangeRequiredException exception = new PasswordChangeRequiredException(uaaAuthentication, "mock");
         uaaAuthenticationFailureHandler.onAuthenticationFailure(request, response, exception);
@@ -100,7 +98,7 @@ class UaaAuthenticationFailureHandlerTests {
     }
 
     @Test
-    void redirectUrls() throws ServletException, IOException {
+    void redirectUrls() throws Exception {
         var handler = new UaaAuthenticationFailureHandler(cookieFactory);
 
         var response = new MockHttpServletResponse();

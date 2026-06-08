@@ -26,7 +26,7 @@ public class PrintSmtpToScreen {
         GreenMail server = new GreenMail(new ServerSetup(2525, null, ServerSetup.PROTOCOL_SMTP));
         server.start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Stopping SMTP server");
+            IO.println("Stopping SMTP server");
             server.stop();
         }));
 
@@ -34,7 +34,7 @@ public class PrintSmtpToScreen {
         while (true) {
             MimeMessage[] messages = server.getReceivedMessages();
             for (int i = lastCount; i < messages.length; i++) {
-                System.out.println(GreenMailUtil.getBody(messages[i]));
+                IO.println(GreenMailUtil.getBody(messages[i]));
             }
             lastCount = messages.length;
             Thread.sleep(250);

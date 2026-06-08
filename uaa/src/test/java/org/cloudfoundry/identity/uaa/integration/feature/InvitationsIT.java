@@ -98,7 +98,7 @@ public class InvitationsIT {
         try {
             userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
             scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             // ignored
         }
         if (userId == null) {
@@ -155,7 +155,7 @@ public class InvitationsIT {
     void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        } catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException _) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -201,7 +201,7 @@ public class InvitationsIT {
         String currentUserId = null;
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             // ignored
         }
         assertThat(currentUserId).isEqualTo(invitedUserId);

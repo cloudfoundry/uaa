@@ -191,7 +191,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             // 1. Check if there is an IdP with the 'iss' claim value equal to the 'issuer' field in its configuration
             try {
                 return retrieveRegisteredIdentityProviderByIssuer(issuer);
-            } catch (IncorrectResultSizeDataAccessException x) {
+            } catch (IncorrectResultSizeDataAccessException _) {
                 logger.debug("No registered identity provider found for given issuer. Checking for uaa.");
             }
 
@@ -206,7 +206,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             }
             //All other cases: throw Exception
             throw new InsufficientAuthenticationException("Unable to map issuer, %s , to a single registered provider".formatted(issuer));
-        } catch (IllegalArgumentException | JsonUtils.JsonUtilException x) {
+        } catch (IllegalArgumentException | JsonUtils.JsonUtilException _) {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
         }
     }
@@ -251,7 +251,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (provider == null) {
             try {
                 provider = getProviderProvisioning().retrieveByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId());
-            } catch (EmptyResultDataAccessException e) {
+            } catch (EmptyResultDataAccessException _) {
                 logger.info("No provider found for given origin");
                 throw new InsufficientAuthenticationException("Could not resolve identity provider with given origin.");
             }
@@ -353,19 +353,17 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
             Object acr = claims.get(ClaimConstants.ACR);
             if (acr != null) {
-                if (acr instanceof Map acrMap) {
-                    Object values = acrMap.get("values");
-                    if (values instanceof Collection collection) {
-                        authentication.setAuthContextClassRef(new HashSet<>(collection));
-                    } else if (values instanceof String[] strings) {
-                        authentication.setAuthContextClassRef(new HashSet<>(Arrays.asList(strings)));
-                    } else {
-                        log.debug("Unrecognized ACR claim[{}] for user_id: {}", values, authentication.getPrincipal().getId());
+                switch (acr) {
+                    case Map acrMap -> {
+                        Object values = acrMap.get("values");
+                        switch (values) {
+                            case Collection collection -> authentication.setAuthContextClassRef(new HashSet<>(collection));
+                            case String[] strings -> authentication.setAuthContextClassRef(new HashSet<>(Arrays.asList(strings)));
+                            case null, default -> log.debug("Unrecognized ACR claim[{}] for user_id: {}", values, authentication.getPrincipal().getId());
+                        }
                     }
-                } else if (acr instanceof String string) {
-                    authentication.setAuthContextClassRef(new HashSet<>(singletonList(string)));
-                } else {
-                    log.debug("Unrecognized ACR claim[{}] for user_id: {}", acr, authentication.getPrincipal().getId());
+                    case String string -> authentication.setAuthContextClassRef(new HashSet<>(singletonList(string)));
+                    case null, default -> log.debug("Unrecognized ACR claim[{}] for user_id: {}", acr, authentication.getPrincipal().getId());
                 }
             }
 
@@ -381,15 +379,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                     Object values = claims.get(entry.getValue());
                     if (values != null) {
                         log.debug("Mapped ExternalOAuth attribute {} to {}", key, values);
-                        if (values instanceof List list) {
-                            List<String> strings = list.stream()
-                                    .map(object -> Objects.toString(object, null))
-                                    .toList();
-                            userAttributes.put(key, strings);
-                        } else if (values instanceof String string) {
-                            userAttributes.put(key, singletonList(string));
-                        } else {
-                            userAttributes.put(key, singletonList(values.toString()));
+                        switch (values) {
+                            case List list -> {
+                                List<String> strings = list.stream()
+                                        .map(object -> Objects.toString(object, null))
+                                        .toList();
+                                userAttributes.put(key, strings);
+                            }
+                            case String string -> userAttributes.put(key, singletonList(string));
+                            case null, default -> userAttributes.put(key, singletonList(values.toString()));
                         }
                     }
                 }
@@ -574,7 +572,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 // check if the UAA Identity Zone is registered as an external Idp of itself
                 retrieveRegisteredIdentityProviderByIssuer(issuer);
                 return true;
-            } catch (IncorrectResultSizeDataAccessException e) {
+            } catch (IncorrectResultSizeDataAccessException _) {
                 return false;
             }
         } else {
@@ -917,7 +915,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                         && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
                     return (IdentityProvider<OIDCIdentityProviderDefinition>) retrievedByOrigin;
                 }
-            } catch (EmptyResultDataAccessException e) {
+            } catch (EmptyResultDataAccessException _) {
                 // ignore
             }
         }

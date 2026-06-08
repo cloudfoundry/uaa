@@ -47,23 +47,23 @@ class MetricsUtilTest {
     @Test
     void mutableLong() {
         MetricsUtil.MutableLong mlong = new MetricsUtil.MutableLong(1);
-        assertThat(mlong.get()).isEqualTo(1L);
+        assertThat(mlong.get()).isOne();
         mlong.add(1L);
         assertThat(mlong.get()).isEqualTo(2L);
         mlong.set(1L);
-        assertThat(mlong.get()).isEqualTo(1L);
-        assertThat(mlong.toString()).isEqualTo("1");
+        assertThat(mlong.get()).isOne();
+        assertThat(mlong).hasToString("1");
     }
 
     @Test
     void mutableDouble() {
         MetricsUtil.MutableDouble mlong = new MetricsUtil.MutableDouble(1.0);
-        assertThat(mlong.get()).isEqualTo(1.0d);
+        assertThat(mlong.get()).isOne();
         mlong.add(1.5d);
         assertThat(mlong.get()).isEqualTo(2.5d);
         mlong.set(1.0d);
-        assertThat(mlong.get()).isEqualTo(1.0d);
-        assertThat(mlong.toString()).isEqualTo("1.0");
+        assertThat(mlong.get()).isOne();
+        assertThat(mlong).hasToString("1.0");
     }
 
     @Test

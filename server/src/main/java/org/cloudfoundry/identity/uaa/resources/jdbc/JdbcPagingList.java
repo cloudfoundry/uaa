@@ -185,7 +185,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
                     next = iterator.next();
                     hasNext = true;
                     return true;
-                } catch (NoSuchElementException e) {
+                } catch (NoSuchElementException _) {
                     hasNext = false;
                     return false;
                 }

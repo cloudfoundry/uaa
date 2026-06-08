@@ -46,8 +46,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 // public for YamlProcessorTest
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 public class ImplicitGrantIT {
 
     @Autowired
@@ -74,7 +74,7 @@ public class ImplicitGrantIT {
     void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        } catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException _) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -148,7 +148,7 @@ public class ImplicitGrantIT {
 
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
-        System.out.println("responseEntity.getHeaders().getLocation() = " + responseEntity.getHeaders().getLocation());
+        IO.println("responseEntity.getHeaders().getLocation() = " + responseEntity.getHeaders().getLocation());
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(responseEntity.getHeaders().getLocation()).build();
         assertThat(locationComponents.getHost()).isEqualTo("localhost");

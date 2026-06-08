@@ -173,7 +173,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         AuthorizationRequest authorizationRequest;
         try {
             authorizationRequest = getOAuth2RequestFactory().createAuthorizationRequest(parameters);
-        } catch (DisallowedIdpException x) {
+        } catch (DisallowedIdpException _) {
             return switchIdp(model, client, clientId, request);
         }
 
@@ -195,7 +195,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             String redirectUriParameter = authorizationRequest.getRequestParameters().get(OAuth2Utils.REDIRECT_URI);
             try {
                 resolvedRedirect = redirectResolver.resolveRedirect(redirectUriParameter, client);
-            } catch (RedirectMismatchException rme) {
+            } catch (RedirectMismatchException _) {
                 throw new RedirectMismatchException(
                         "Invalid redirect " + redirectUriParameter + " did not match one of the registered values");
             }
@@ -331,7 +331,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         String resolvedRedirect;
         try {
             resolvedRedirect = redirectResolver.resolveRedirect(redirectUri, client);
-        } catch (RedirectMismatchException rme) {
+        } catch (RedirectMismatchException _) {
             logger.debug("[prompt=none] Invalid redirect " + redirectUri + " did not match one of the registered values");
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             return;
@@ -804,7 +804,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             String redirect = getUnsuccessfulRedirect(authorizationRequest, translate.getBody(), authorizationRequest
                     .getResponseTypes().contains("token"));
             return new ModelAndView(new RedirectView(redirect, false, true, false));
-        } catch (OAuth2Exception ex) {
+        } catch (OAuth2Exception _) {
             // If an AuthorizationRequest cannot be created from the incoming parameters it must be
             // an error. OAuth2Exception can be handled this way. Other exceptions will generate a standard 500
             // response.
@@ -832,7 +832,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
         try {
             return getOAuth2RequestFactory().createAuthorizationRequest(parameters);
-        } catch (Exception e) {
+        } catch (Exception _) {
             return getDefaultOAuth2RequestFactory().createAuthorizationRequest(parameters);
         }
 

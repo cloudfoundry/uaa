@@ -1,12 +1,13 @@
 package org.cloudfoundry.identity.uaa.oauth.common.util;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -51,8 +52,8 @@ class RandomValueStringGeneratorTests {
 
     @Test
     void setLength_NonPositiveNumber() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                generator.setLength(-1));
+        assertThatThrownBy(() ->
+                generator.setLength(-1)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

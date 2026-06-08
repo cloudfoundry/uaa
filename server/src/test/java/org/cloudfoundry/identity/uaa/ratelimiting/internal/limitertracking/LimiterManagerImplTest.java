@@ -139,7 +139,7 @@ class LimiterManagerImplTest {
     String callerID;
     String servletPath;
 
-    AuthorizationCredentialIdExtractor credentialIdExtractor = info -> callerID;
+    AuthorizationCredentialIdExtractor credentialIdExtractor = _ -> callerID;
 
     RequestInfo requestInfo = new RequestInfo() {
         @Override

@@ -18,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -30,14 +29,14 @@ class JsonDateDeserializerTest {
     Exception exceptionOccured;
 
     @Test
-    void parsing() throws ParseException {
+    void parsing() throws Exception {
         JsonParser jp = JsonMapper.shared().createParser("\"" + testDateString + "\"");
         Date d = JsonDateDeserializer.getDate(testDateString, jp);
         assertThat((long) d.getTime()).isEqualTo(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime());
     }
 
     @Test
-    void parsingParallel() throws InterruptedException {
+    void parsingParallel() throws Exception {
         Thread[] threadArray = new Thread[1000];
         for (int i = 0; i < 1000; i++) {
 

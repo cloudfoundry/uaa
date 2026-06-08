@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.ldap;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
@@ -31,9 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_SSL_TLS;
@@ -431,9 +431,9 @@ class LdapIdentityProviderDefinitionTest {
     void setEmailDomain() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
         def.setEmailDomain(Collections.singletonList("test.com"));
-        assertThat(def.getEmailDomain().getFirst()).isEqualTo("test.com");
+        assertThat(def.getEmailDomain()).first().isEqualTo("test.com");
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
-        assertThat(def.getEmailDomain().getFirst()).isEqualTo("test.com");
+        assertThat(def.getEmailDomain()).first().isEqualTo("test.com");
     }
 
     @Test
@@ -442,9 +442,9 @@ class LdapIdentityProviderDefinitionTest {
         List<String> externalGroupsWhitelist = new ArrayList<>();
         externalGroupsWhitelist.add("value");
         def.setExternalGroupsWhitelist(externalGroupsWhitelist);
-        assertThat(def.getExternalGroupsWhitelist()).isEqualTo(Collections.singletonList("value"));
+        assertThat(def.getExternalGroupsWhitelist()).containsExactlyElementsOf(Collections.singletonList("value"));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
-        assertThat(def.getExternalGroupsWhitelist()).isEqualTo(Collections.singletonList("value"));
+        assertThat(def.getExternalGroupsWhitelist()).containsExactlyElementsOf(Collections.singletonList("value"));
     }
 
     @Test
@@ -472,15 +472,15 @@ class LdapIdentityProviderDefinitionTest {
     @Test
     void set_unknown_profile_file_throws_error() {
         ldapIdentityProviderDefinition = new LdapIdentityProviderDefinition();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                ldapIdentityProviderDefinition.setLdapProfileFile("some.other.file"));
+        assertThatThrownBy(() ->
+                ldapIdentityProviderDefinition.setLdapProfileFile("some.other.file")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
     void set_unknown_group_file_throws_error() {
         ldapIdentityProviderDefinition = new LdapIdentityProviderDefinition();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                ldapIdentityProviderDefinition.setLdapGroupFile("some.other.file"));
+        assertThatThrownBy(() ->
+                ldapIdentityProviderDefinition.setLdapGroupFile("some.other.file")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -503,9 +503,9 @@ class LdapIdentityProviderDefinitionTest {
                     mailSubstituteOverridesLdap: true
                   ssl:
                     skipverification: true""";
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                LdapUtils.fromConfig(getLdapConfig(config)));
+                LdapUtils.fromConfig(getLdapConfig(config))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -536,9 +536,9 @@ class LdapIdentityProviderDefinitionTest {
                     autoAdd: false
                   ssl:
                     skipverification: true""";
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                LdapUtils.fromConfig(getLdapConfig(config)));
+                LdapUtils.fromConfig(getLdapConfig(config))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -550,8 +550,8 @@ class LdapIdentityProviderDefinitionTest {
     @Test
     void set_wrong_password_compare_complains() {
         ldapIdentityProviderDefinition = new LdapIdentityProviderDefinition();
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-                ldapIdentityProviderDefinition.setPasswordEncoder("some.other.encoder"));
+        assertThatThrownBy(() ->
+                ldapIdentityProviderDefinition.setPasswordEncoder("some.other.encoder")).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test
@@ -573,9 +573,9 @@ class LdapIdentityProviderDefinitionTest {
                     mailSubstitute: 'generated-{0}@company.example.com'
                     mailSubstituteOverridesLdap: true
                 """;
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+        assertThatThrownBy(() ->
 
-                LdapUtils.fromConfig(getLdapConfig(config)));
+                LdapUtils.fromConfig(getLdapConfig(config))).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

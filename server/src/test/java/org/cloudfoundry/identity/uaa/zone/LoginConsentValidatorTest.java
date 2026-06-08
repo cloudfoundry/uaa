@@ -9,13 +9,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class LoginConsentValidatorTest {
 
     @Test
-    void testValidateNull() {
+    void validateNull() {
         List<String> errors = LoginConsentValidator.validate(null);
         assertThat(errors).isEmpty();
     }
 
     @Test
-    void testValidateDisabled() {
+    void validateDisabled() {
         LoginConsent consent = new LoginConsent();
         consent.setEnabled(false);
         
@@ -24,7 +24,7 @@ class LoginConsentValidatorTest {
     }
 
     @Test
-    void testValidateEnabledWithAllFields() {
+    void validateEnabledWithAllFields() {
         LoginConsent consent = new LoginConsent(
             true,
             "Notice",
@@ -40,7 +40,7 @@ class LoginConsentValidatorTest {
     }
 
     @Test
-    void testValidateEnabledWithoutDeclineLink() {
+    void validateEnabledWithoutDeclineLink() {
         LoginConsent consent = new LoginConsent(
             true,
             "Notice",
@@ -56,92 +56,92 @@ class LoginConsentValidatorTest {
     }
 
     @Test
-    void testValidateEnabledMissingTitle() {
+    void validateEnabledMissingTitle() {
         LoginConsent consent = new LoginConsent(
-            true,
-            null,
-            "You are accessing a system that is provided for authorized use only.",
-            "I Accept",
-            "Decline",
-            "https://www.cloudfoundry.org",
-            "12h"
+                true,
+                null,
+                "You are accessing a system that is provided for authorized use only.",
+                "I Accept",
+                "Decline",
+                "https://www.cloudfoundry.org",
+                "12h"
         );
-        
+
         List<String> errors = LoginConsentValidator.validate(consent);
-        assertThat(errors).hasSize(1);
-        assertThat(errors.getFirst()).contains("title is required");
+        assertThat(errors).hasSize(1)
+                .contains("loginConsent.title is required when loginConsent is enabled");
     }
 
     @Test
-    void testValidateEnabledEmptyTitle() {
+    void validateEnabledEmptyTitle() {
         LoginConsent consent = new LoginConsent(
-            true,
-            "   ",
-            "You are accessing a system that is provided for authorized use only.",
-            "I Accept",
-            "Decline",
-            "https://www.cloudfoundry.org",
-            "12h"
+                true,
+                "   ",
+                "You are accessing a system that is provided for authorized use only.",
+                "I Accept",
+                "Decline",
+                "https://www.cloudfoundry.org",
+                "12h"
         );
-        
+
         List<String> errors = LoginConsentValidator.validate(consent);
-        assertThat(errors).hasSize(1);
-        assertThat(errors.getFirst()).contains("title is required");
+        assertThat(errors).hasSize(1)
+                .contains("loginConsent.title is required when loginConsent is enabled");
     }
 
     @Test
-    void testValidateEnabledMissingText() {
+    void validateEnabledMissingText() {
         LoginConsent consent = new LoginConsent(
-            true,
-            "Notice",
-            null,
-            "I Accept",
-            "Decline",
-            "https://www.cloudfoundry.org",
-            "12h"
+                true,
+                "Notice",
+                null,
+                "I Accept",
+                "Decline",
+                "https://www.cloudfoundry.org",
+                "12h"
         );
-        
+
         List<String> errors = LoginConsentValidator.validate(consent);
-        assertThat(errors).hasSize(1);
-        assertThat(errors.getFirst()).contains("text is required");
+        assertThat(errors).hasSize(1)
+                .contains("loginConsent.text is required when loginConsent is enabled");
     }
 
     @Test
-    void testValidateEnabledMissingAcceptButtonText() {
+    void validateEnabledMissingAcceptButtonText() {
         LoginConsent consent = new LoginConsent(
-            true,
-            "Notice",
-            "You are accessing a system that is provided for authorized use only.",
-            null,
-            "Decline",
-            "https://www.cloudfoundry.org",
-            "12h"
+                true,
+                "Notice",
+                "You are accessing a system that is provided for authorized use only.",
+                null,
+                "Decline",
+                "https://www.cloudfoundry.org",
+                "12h"
         );
-        
+
         List<String> errors = LoginConsentValidator.validate(consent);
-        assertThat(errors).hasSize(1);
-        assertThat(errors.getFirst()).contains("acceptButtonText is required");
+        assertThat(errors).hasSize(1)
+                .contains("loginConsent.acceptButtonText is required when loginConsent is enabled");
     }
 
     @Test
-    void testValidateEnabledMissingDeclineButtonText() {
+    void validateEnabledMissingDeclineButtonText() {
         LoginConsent consent = new LoginConsent(
-            true,
-            "Notice",
-            "You are accessing a system that is provided for authorized use only.",
-            "I Accept",
-            null,
-            "https://www.cloudfoundry.org",
-            "12h"
+                true,
+                "Notice",
+                "You are accessing a system that is provided for authorized use only.",
+                "I Accept",
+                null,
+                "https://www.cloudfoundry.org",
+                "12h"
         );
-        
+
         List<String> errors = LoginConsentValidator.validate(consent);
-        assertThat(errors).hasSize(1);
-        assertThat(errors.getFirst()).contains("declineButtonText is required");
+        assertThat(errors).hasSize(1)
+                .contains("loginConsent.declineButtonText is required when loginConsent is enabled");
     }
 
     @Test
-    void testValidateEnabledMultipleErrors() {
+    void validateEnabledMultipleErrors() {
         LoginConsent consent = new LoginConsent(
             true,
             null,
@@ -157,24 +157,24 @@ class LoginConsentValidatorTest {
     }
 
     @Test
-    void testValidateInvalidDeclineLink() {
+    void validateInvalidDeclineLink() {
         LoginConsent consent = new LoginConsent(
-            true,
-            "Notice",
-            "You are accessing a system that is provided for authorized use only.",
-            "I Accept",
-            "Decline",
-            "not-a-url",
-            "12h"
+                true,
+                "Notice",
+                "You are accessing a system that is provided for authorized use only.",
+                "I Accept",
+                "Decline",
+                "not-a-url",
+                "12h"
         );
-        
+
         List<String> errors = LoginConsentValidator.validate(consent);
-        assertThat(errors).hasSize(1);
-        assertThat(errors.getFirst()).contains("must be a valid URL");
+        assertThat(errors).hasSize(1)
+                .contains("loginConsent.declineLink must be a valid URL");
     }
 
     @Test
-    void testValidateValidHttpsUrl() {
+    void validateValidHttpsUrl() {
         LoginConsent consent = new LoginConsent(
             true,
             "Notice",
@@ -190,7 +190,7 @@ class LoginConsentValidatorTest {
     }
 
     @Test
-    void testValidateValidHttpUrl() {
+    void validateValidHttpUrl() {
         //noinspection HttpUrlsUsage
         LoginConsent consent = new LoginConsent(
             true,
@@ -207,24 +207,24 @@ class LoginConsentValidatorTest {
     }
 
     @Test
-    void testValidateInvalidUrlProtocol() {
+    void validateInvalidUrlProtocol() {
         LoginConsent consent = new LoginConsent(
-            true,
-            "Notice",
-            "Text",
-            "Accept",
-            "Decline",
-            "ftp://example.com",
-            "12h"
+                true,
+                "Notice",
+                "Text",
+                "Accept",
+                "Decline",
+                "ftp://example.com",
+                "12h"
         );
-        
+
         List<String> errors = LoginConsentValidator.validate(consent);
-        assertThat(errors).hasSize(1);
-        assertThat(errors.getFirst()).contains("must be a valid URL");
+        assertThat(errors).hasSize(1)
+                .contains("loginConsent.declineLink must be a valid URL");
     }
 
     @Test
-    void testValidateValidDurations() {
+    void validateValidDurations() {
         String[] validDurations = {"0", "12h", "7d", "1w", "1m", "24H", "30D"};
         
         for (String duration : validDurations) {
@@ -244,7 +244,7 @@ class LoginConsentValidatorTest {
     }
 
     @Test
-    void testValidateInvalidDurations() {
+    void validateInvalidDurations() {
         String[] invalidDurations = {"invalid", "12x", "abc", "-1h", "0h"};
         
         for (String duration : invalidDurations) {
@@ -265,7 +265,7 @@ class LoginConsentValidatorTest {
     }
 
     @Test
-    void testValidateWithoutDuration() {
+    void validateWithoutDuration() {
         LoginConsent consent = new LoginConsent(
             true,
             "Title",

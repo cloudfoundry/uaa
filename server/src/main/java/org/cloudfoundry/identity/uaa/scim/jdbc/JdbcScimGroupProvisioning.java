@@ -155,7 +155,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     void createAndIgnoreDuplicate(final String name, final String zoneId) {
         try {
             create(new ScimGroup(null, name, zoneId), zoneId);
-        } catch (ScimResourceAlreadyExistsException ignore) {
+        } catch (ScimResourceAlreadyExistsException _) {
             // ignore
         }
     }
@@ -164,7 +164,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public ScimGroup createOrGet(ScimGroup group, String zoneId) {
         try {
             return getByName(group.getDisplayName(), zoneId);
-        } catch (IncorrectResultSizeDataAccessException e) {
+        } catch (IncorrectResultSizeDataAccessException _) {
             createAndIgnoreDuplicate(group.getDisplayName(), zoneId);
             return getByName(group.getDisplayName(), zoneId);
         }
@@ -233,7 +233,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public ScimGroup retrieve(String id, final String zoneId) throws ScimResourceNotFoundException {
         try {
             return jdbcTemplate.queryForObject(getGroupSql, rowMapper, id, zoneId);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException _) {
             throw new ScimResourceNotFoundException("Group " + id + " does not exist");
         }
     }
@@ -246,7 +246,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
             zoneAllowedGroups = currentZone.getId().equals(zoneId) ?
                     currentZone.getConfig().getUserConfig().resultingAllowedGroups() :
                     jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().resultingAllowedGroups();
-        } catch (ZoneDoesNotExistsException e) {
+        } catch (ZoneDoesNotExistsException _) {
             logger.debug("could not retrieve identity zone with id: {}", zoneId);
         }
         return zoneAllowedGroups;
@@ -270,7 +270,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                 ps.setInt(pos++, group.getVersion());
                 ps.setString(pos, zoneId);
             });
-        } catch (DuplicateKeyException ex) {
+        } catch (DuplicateKeyException _) {
             throw new ScimResourceAlreadyExistsException("A group with displayName: " + group.getDisplayName()
                     + " already exists.");
         }
@@ -299,7 +299,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                 throw new IncorrectResultSizeDataAccessException(1, updated);
             }
             return retrieve(id, zoneId);
-        } catch (DuplicateKeyException ex) {
+        } catch (DuplicateKeyException _) {
             throw new InvalidScimResourceException("A group with displayName: " + group.getDisplayName()
                     + " already exists");
         }

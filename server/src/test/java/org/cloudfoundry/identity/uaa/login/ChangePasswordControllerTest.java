@@ -90,7 +90,7 @@ class ChangePasswordControllerTest {
 
         verify(changePasswordService).changePassword("bob", "secret", "new secret");
         Authentication afterAuth = SecurityContextHolder.getContext().getAuthentication();
-        assertThat(((UaaAuthentication) afterAuth).getAuthenticationMethods()).containsExactlyInAnyOrderElementsOf(authMethods);
+        assertThat(((UaaAuthentication) afterAuth).getAuthenticationMethods()).hasSameElementsAs(authMethods);
         assertThat(afterAuth).isSameAs(authentication);
     }
 

@@ -22,7 +22,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -75,8 +75,7 @@ class ScimUserServiceTest {
             final ScimUser user = mock(ScimUser.class);
             when(scimUserAliasHandler.aliasPropertiesAreValid(user, existingUser)).thenReturn(false);
 
-            assertThatExceptionOfType(AliasPropertiesInvalidException.class)
-                    .isThrownBy(() -> scimUserService.updateUser(userId, user));
+            assertThatThrownBy(() -> scimUserService.updateUser(userId, user)).isInstanceOf(AliasPropertiesInvalidException.class);
         }
     }
 

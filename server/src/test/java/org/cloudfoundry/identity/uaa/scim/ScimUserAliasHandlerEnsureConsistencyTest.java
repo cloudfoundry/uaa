@@ -280,9 +280,7 @@ class ScimUserAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsure
                 mockCreateEntityThrows_UsernameAlreadyOccupied(originalEntity.getUserName(), customZoneId);
 
                 assertThatThrownBy(() -> aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity))
-                        .isInstanceOf(EntityAliasFailedException.class)
-                        .hasMessage("Could not create ScimUser[id=null,zid='%s',aliasId='%s',aliasZid='uaa']. A user with the same username already exists in the alias zone."
-                                .formatted(customZoneId, existingEntity.getId()))
+                        .isInstanceOf(EntityAliasFailedException.class).hasMessage("Could not create ScimUser[id=null,zid='%s',aliasId='%s',aliasZid='uaa']. A user with the same username already exists in the alias zone.", customZoneId, existingEntity.getId())
                         .satisfies(e -> assertThat(((EntityAliasFailedException) e).getHttpStatus()).isEqualTo(HttpStatus.CONFLICT.value()));
             }
         }

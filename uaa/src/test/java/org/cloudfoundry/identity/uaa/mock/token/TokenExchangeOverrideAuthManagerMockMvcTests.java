@@ -37,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Import(TokenExchangeOverrideAuthManagerMockMvcTests.TokenExchangeConfiguration.class)
 @DefaultTestContext
-public class TokenExchangeOverrideAuthManagerMockMvcTests extends TokenExchangeMockMvcBase {
+class TokenExchangeOverrideAuthManagerMockMvcTests extends TokenExchangeMockMvcBase {
 
     static class TokenExchangeConfiguration {
         @Bean
@@ -139,9 +139,10 @@ public class TokenExchangeOverrideAuthManagerMockMvcTests extends TokenExchangeM
         Jwt tokenClaims = JwtHelper.decode((String) tokens.get("access_token"));
         Map<String, Object> claims = JsonUtils.readValueAsMap(tokenClaims.getClaims());
 
-        assertThat(claims.get("user_name")).isEqualTo(thirdParty.user().getUserName());
-        assertThat(claims.get("email")).isEqualTo(thirdParty.user().getEmails().get(0).getValue());
-        assertThat(claims.get("origin")).isEqualTo("override-origin");
+        assertThat(claims)
+                .containsEntry("user_name", thirdParty.user().getUserName())
+                .containsEntry("email", thirdParty.user().getEmails().getFirst().getValue())
+                .containsEntry("origin", "override-origin");
     }
 
 

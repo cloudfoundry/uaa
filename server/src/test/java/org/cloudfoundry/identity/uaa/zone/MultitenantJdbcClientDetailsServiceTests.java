@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -39,9 +40,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService.DEFAULT_DELETE_STATEMENT;
@@ -113,7 +113,8 @@ class MultitenantJdbcClientDetailsServiceTests {
             when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
             try {
                 service.removeClientDetails("some-client-id");
-            } catch (Exception ignored) {
+            } catch (Exception _) {
+                // ignore
             }
             verify(service, times(1)).deleteByClient(eq("some-client-id"), eq(zoneId));
             reset(service);
@@ -130,7 +131,8 @@ class MultitenantJdbcClientDetailsServiceTests {
             when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
             try {
                 service.deleteByClient("some-client-id", "zone-id");
-            } catch (Exception ignored) {
+            } catch (Exception _) {
+                // ignore
             }
             verify(service, times(1)).deleteByClient(eq("some-client-id"), eq("zone-id"));
             verify(spyJdbcTemplate, times(1)).update(DEFAULT_DELETE_STATEMENT, "some-client-id", "zone-id");
@@ -200,7 +202,7 @@ class MultitenantJdbcClientDetailsServiceTests {
 
     @Test
     void loadingClientForNonExistingClientId() {
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> service.loadClientByClientId("nonExistingClientId"));
+        assertThatThrownBy(() -> service.loadClientByClientId("nonExistingClientId")).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
@@ -255,8 +257,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         additionalInfoMap.put("lastModified", lastModifiedDate);
         additionalInfoMap.put(REQUIRED_USER_GROUPS, StringUtils.commaDelimitedListToSet(dbRequestedUserGroups));
 
-        assertThat(clientDetails.getAdditionalInformation()).containsEntry("lastModified", lastModifiedDate)
-                .isEqualTo(additionalInfoMap);
+        assertThat(clientDetails.getAdditionalInformation()).containsEntry("lastModified", lastModifiedDate).containsExactlyInAnyOrderEntriesOf(additionalInfoMap);
     }
 
     @Test
@@ -303,7 +304,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         ClientDetails clientDetails = service
                 .loadClientByClientId("clientIdWithSingleDetails");
 
-        assertThat(clientDetails).isNotNull()
+        assertThat(clientDetails)
                 .isInstanceOf(UaaClientDetails.class);
 
         UaaClientDetails uaaUaaClientDetails = (UaaClientDetails) clientDetails;
@@ -345,7 +346,7 @@ class MultitenantJdbcClientDetailsServiceTests {
                     s);
             ClientDetails updatedClient = service.loadClientByClientId(clientId);
             Object userGroups = updatedClient.getAdditionalInformation().get(REQUIRED_USER_GROUPS);
-            assertThat(userGroups).isNotNull()
+            assertThat(userGroups)
                     .isInstanceOf(Collection.class);
             assertThat(((Collection) userGroups)).isEmpty();
         }
@@ -478,7 +479,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId("duplicateClientIdWithNoDetails");
 
         service.addClientDetails(clientDetails);
-        assertThatExceptionOfType(ClientAlreadyExistsException.class).isThrownBy(() -> service.addClientDetails(clientDetails));
+        assertThatThrownBy(() -> service.addClientDetails(clientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(ClientAlreadyExistsException.class));
     }
 
     @Test
@@ -625,7 +626,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("nosuchClientIdWithNoDetails");
 
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> service.updateClientDetails(clientDetails));
+        assertThatThrownBy(() -> service.updateClientDetails(clientDetails)).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
@@ -649,7 +650,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("nosuchClientIdWithNoDetails");
 
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> service.removeClientDetails(clientDetails.getClientId()));
+        assertThatThrownBy(() -> service.removeClientDetails(clientDetails.getClientId())).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test
@@ -680,7 +681,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         clientDetails.setClientId("clientInOtherZone");
         service.addClientDetails(clientDetails);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
-        assertThatExceptionOfType(NoSuchClientException.class).isThrownBy(() -> service.loadClientByClientId("clientInOtherZone"));
+        assertThatThrownBy(() -> service.loadClientByClientId("clientInOtherZone")).asInstanceOf(InstanceOfAssertFactories.throwable(NoSuchClientException.class));
     }
 
     @Test

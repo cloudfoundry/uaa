@@ -10,8 +10,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -61,7 +59,7 @@ class CorsFilterNonDefaultZoneTests {
             "GET, /uaa/userinfo, bunnyoutlet.com, Illegal origin",
             "GET, /uaa/login, example.com, Illegal request URI",
     })
-    void requestWithInvalidOrigins(String method, String url, String origin, String message) throws ServletException, IOException {
+    void requestWithInvalidOrigins(String method, String url, String origin, String message) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest(method, url);
         request.addHeader("Origin", origin);
         request.addHeader("X-Requested-With", "XMLHttpRequest");
@@ -72,7 +70,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void sameOriginRequest() throws ServletException, IOException {
+    void sameOriginRequest() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
         request.addHeader("X-Requested-With", "XMLHttpRequest");
         corsFilter.doFilter(request, response, filterChain);
@@ -82,7 +80,7 @@ class CorsFilterNonDefaultZoneTests {
 
     // happy path
     @Test
-    void requestExpectXhrCorsResponse() throws ServletException, IOException {
+    void requestExpectXhrCorsResponse() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
         request.addHeader("Origin", "example.com");
         request.addHeader("X-Requested-With", "XMLHttpRequest");
@@ -93,7 +91,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void requestWithAllowedOriginPatterns() throws ServletException, IOException {
+    void requestWithAllowedOriginPatterns() throws Exception {
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().getAllowedOriginPatterns()
                 .add(Pattern.compile("bunnyoutlet-shop.com$"));
 
@@ -106,7 +104,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void requestWithAllowedUriPatterns() throws ServletException, IOException {
+    void requestWithAllowedUriPatterns() throws Exception {
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().getAllowedUriPatterns()
                 .add(Pattern.compile("/uaa/*"));
 
@@ -119,7 +117,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void requestWithMethodNotAllowed() throws ServletException, IOException {
+    void requestWithMethodNotAllowed() throws Exception {
         List<String> allowedMethods = List.of(GET.toString(), OPTIONS.toString(), DELETE.toString());
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedMethods(allowedMethods);
 
@@ -134,7 +132,7 @@ class CorsFilterNonDefaultZoneTests {
 
     // preflight happy path
     @Test
-    void preFlightExpectXhrCorsResponse() throws ServletException, IOException {
+    void preFlightExpectXhrCorsResponse() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization, X-Requested-With");
         request.addHeader("Access-Control-Request-Method", "GET");
@@ -149,7 +147,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void preFlightWrongOriginSpecified() throws ServletException, IOException {
+    void preFlightWrongOriginSpecified() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization, X-Requested-With");
         request.addHeader("Access-Control-Request-Method", "GET");
@@ -161,7 +159,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void preFlightRequestNoRequestMethod() throws ServletException, IOException {
+    void preFlightRequestNoRequestMethod() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization, X-Requested-With");
         request.addHeader("Origin", "example.com");
@@ -173,7 +171,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void preFlightRequestMethodNotAllowed() throws ServletException, IOException {
+    void preFlightRequestMethodNotAllowed() throws Exception {
         List<String> allowedMethods = List.of(GET.toString(), PUT.toString(), DELETE.toString());
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedMethods(allowedMethods);
 
@@ -188,7 +186,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void preFlightRequestHeaderNotAllowed() throws ServletException, IOException {
+    void preFlightRequestHeaderNotAllowed() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization, X-Requested-With, X-Not-Allowed");
         request.addHeader("Access-Control-Request-Method", "GET");
@@ -200,7 +198,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void preFlightRequestUriNotAllowed() throws ServletException, IOException {
+    void preFlightRequestUriNotAllowed() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/login");
         request.addHeader("Access-Control-Request-Method", "GET");
         request.addHeader("Access-Control-Request-Headers", "X-Requested-With");
@@ -212,7 +210,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void preFlightOriginNotAllowed() throws ServletException, IOException {
+    void preFlightOriginNotAllowed() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Method", "GET");
         request.addHeader("Access-Control-Request-Headers", "X-Requested-With");
@@ -230,7 +228,7 @@ class CorsFilterNonDefaultZoneTests {
             "GET, /uaa/userinfo, bunnyoutlet.com, Illegal origin",
             "GET, /uaa/login, example.com, Illegal request URI",
     })
-    void defaultCorsWithInvalidOrigins(String method, String url, String origin, String message) throws ServletException, IOException {
+    void defaultCorsWithInvalidOrigins(String method, String url, String origin, String message) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest(method, url);
         request.addHeader("Origin", origin);
         corsFilter.doFilter(request, response, filterChain);
@@ -240,7 +238,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsWithSameOrigin() throws ServletException, IOException {
+    void defaultCorsWithSameOrigin() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
         corsFilter.doFilter(request, response, filterChain);
 
@@ -249,7 +247,7 @@ class CorsFilterNonDefaultZoneTests {
 
     // happy path
     @Test
-    void defaultCorsExpectStandardCorsResponse() throws ServletException, IOException {
+    void defaultCorsExpectStandardCorsResponse() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
         request.addHeader("Origin", "example.com");
         corsFilter.doFilter(request, response, filterChain);
@@ -259,7 +257,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsWithAllowedOriginPatterns() throws ServletException, IOException {
+    void defaultCorsWithAllowedOriginPatterns() throws Exception {
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()
                 .add(Pattern.compile("bunnyoutlet.com$"));
 
@@ -271,7 +269,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsWithAllowedUriPatterns() throws ServletException, IOException {
+    void defaultCorsWithAllowedUriPatterns() throws Exception {
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns()
                 .add(Pattern.compile("/uaa/*"));
 
@@ -283,7 +281,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsWithMethodNotAllowed() throws ServletException, IOException {
+    void defaultCorsWithMethodNotAllowed() throws Exception {
         List<String> allowedMethods = List.of(GET.toString(), OPTIONS.toString(), DELETE.toString());
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedMethods(allowedMethods);
 
@@ -297,7 +295,7 @@ class CorsFilterNonDefaultZoneTests {
 
     // preflight happy path
     @Test
-    void defaultCorsPreFlightExpectStandardCorsResponse() throws ServletException, IOException {
+    void defaultCorsPreFlightExpectStandardCorsResponse() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization");
         request.addHeader("Access-Control-Request-Method", "GET");
@@ -312,7 +310,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsPreFlightWrongOriginSpecified() throws ServletException, IOException {
+    void defaultCorsPreFlightWrongOriginSpecified() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization");
         request.addHeader("Access-Control-Request-Method", "GET");
@@ -324,7 +322,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsPreFlightRequestNoRequestMethod() throws ServletException, IOException {
+    void defaultCorsPreFlightRequestNoRequestMethod() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization");
         request.addHeader("Origin", "example.com");
@@ -336,7 +334,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsPreFlightRequestMethodNotAllowed() throws ServletException, IOException {
+    void defaultCorsPreFlightRequestMethodNotAllowed() throws Exception {
         List<String> allowedMethods = List.of(GET.toString(), PUT.toString(), DELETE.toString());
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedMethods(allowedMethods);
 
@@ -351,7 +349,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsPreFlightRequestHeaderNotAllowed() throws ServletException, IOException {
+    void defaultCorsPreFlightRequestHeaderNotAllowed() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization, X-Not-Allowed");
         request.addHeader("Access-Control-Request-Method", "GET");
@@ -363,7 +361,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsPreFlightRequestUriNotAllowed() throws ServletException, IOException {
+    void defaultCorsPreFlightRequestUriNotAllowed() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/login");
         request.addHeader("Access-Control-Request-Method", "GET");
         request.addHeader("Access-Control-Request-Headers", "Authorization");
@@ -375,7 +373,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsPreFlightOriginNotAllowed() throws ServletException, IOException {
+    void defaultCorsPreFlightOriginNotAllowed() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Method", "GET");
         request.addHeader("Access-Control-Request-Headers", "Authorization");
@@ -387,7 +385,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void requestWithAllowedOriginPatternsEnforcingSystemZonePolicy() throws ServletException, IOException {
+    void requestWithAllowedOriginPatternsEnforcingSystemZonePolicy() throws Exception {
         CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, true);
         corsFilter.setCorsXhrAllowedOrigins(List.of("example.com"));
         corsFilter.initialize();
@@ -405,7 +403,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void defaultCorsPreFlightRequestMethodNotAllowedEnforcingSystemZonePolicy() throws ServletException, IOException {
+    void defaultCorsPreFlightRequestMethodNotAllowedEnforcingSystemZonePolicy() throws Exception {
         CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, true);
         corsFilter.setCorsAllowedMethods(List.of(GET.toString(), PUT.toString(), DELETE.toString()));
         corsFilter.initialize();
@@ -456,7 +454,7 @@ class CorsFilterNonDefaultZoneTests {
     }
 
     private static FilterChain newMockFilterChain() {
-        return (request, response) -> {
+        return (_, _) -> {
             // Do nothing.
         };
     }

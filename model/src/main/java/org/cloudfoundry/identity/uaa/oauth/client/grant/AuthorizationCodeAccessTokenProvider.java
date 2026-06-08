@@ -147,7 +147,7 @@ public class AuthorizationCodeAccessTokenProvider extends OAuth2AccessTokenSuppo
         try {
             return retrieveToken(request, resource, form, getHeadersForTokenRequest());
         }
-        catch (OAuth2AccessDeniedException e) {
+        catch (OAuth2AccessDeniedException _) {
             throw getRedirectForAuthorization((AuthorizationCodeResourceDetails) resource, request);
         }
     }

@@ -86,7 +86,7 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
         try {
             oauth2Available = ClassUtils.isPresent(AccessTokenRequiredException.class.getName(),
                     ClassUtils.getDefaultClassLoader());
-        } catch (NoClassDefFoundError e) {
+        } catch (NoClassDefFoundError _) {
             // ignore
         }
     }

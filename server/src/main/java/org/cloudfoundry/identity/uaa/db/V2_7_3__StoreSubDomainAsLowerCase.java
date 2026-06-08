@@ -133,7 +133,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
         }
     }
 
-    private final RowMapper<IdentityZone> mapper = (rs, rowNum) -> {
+    private final RowMapper<IdentityZone> mapper = (rs, _) -> {
         IdentityZone identityZone = new IdentityZone();
 
         identityZone.setId(rs.getString(1).trim());

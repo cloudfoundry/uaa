@@ -52,7 +52,7 @@ public class IdTokenGranter {
             approvalService.ensureRequiredApprovals(
                     user.getId(), Sets.newHashSet(REQUIRED_OPENID_SCOPE), requestedGrantType, clientDetails
             );
-        } catch (InvalidTokenException e) {
+        } catch (InvalidTokenException _) {
             return false;
         }
 

@@ -36,7 +36,7 @@ class IntrospectionClaimsTest {
     @Test
     void serialize() {
         assertThat(JsonUtils.writeValueAsString(introspectionPayload)).contains(TokenConstants.CLIENT_AUTH_NONE);
-        assertThat(introspectionPayload.getClaimMap()).isNotNull()
+        assertThat(introspectionPayload.getClaimMap())
                 .containsEntry("grant_type", "authorization_code")
                 .containsEntry("client_id", "login")
                 .containsEntry("aud", Arrays.asList("openid", "login"))

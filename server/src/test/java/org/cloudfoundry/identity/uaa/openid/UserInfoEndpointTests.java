@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.openid;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.account.UserInfoEndpoint;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -28,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
@@ -179,10 +180,10 @@ class UserInfoEndpointTests {
     void missingUser() {
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("nonexist-id", "Dale",
                 "olds@vmware.com");
-        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() -> endpoint.loginInfo(
+        assertThatThrownBy(() -> endpoint.loginInfo(
                 new OAuth2Authentication(createOauthRequest(
                         Collections.singletonList("openid")),
-                        authentication)));
+                        authentication))).asInstanceOf(InstanceOfAssertFactories.throwable(UsernameNotFoundException.class));
     }
 
     private static OAuth2Request createOauthRequest(final List<String> scopes) {

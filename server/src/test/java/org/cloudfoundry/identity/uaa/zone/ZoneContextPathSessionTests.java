@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,7 +15,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -92,8 +90,9 @@ class ZoneContextPathSessionTests {
         @Test
         void getId_includesContainerIdAndContextPathSuffix() {
             String id = subSession.getId();
-            assertThat(id).startsWith(containerSession.getId());
-            assertThat(id).endsWith("-uaa-z-myzone");
+            assertThat(id)
+                    .startsWith(containerSession.getId())
+                    .endsWith("-uaa-z-myzone");
         }
 
         @Test
@@ -165,7 +164,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void creationTime_resetAfterInvalidateAndRecreate() throws InterruptedException {
+        void creationTime_resetAfterInvalidateAndRecreate() throws Exception {
             long originalCreationTime = subSession.getCreationTime();
             subSession.setAttribute("data", "val");
             subSession.invalidate();
@@ -180,8 +179,8 @@ class ZoneContextPathSessionTests {
             String otherAttrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/other");
             ZonePathHttpSession otherSubSession = new ZonePathHttpSession(
                     containerSession, "/uaa/z/other", otherAttrName, timeService);
-            assertThat(subSession.getCreationTime()).isNotEqualTo(0L);
-            assertThat(otherSubSession.getCreationTime()).isNotEqualTo(0L);
+            assertThat(subSession.getCreationTime()).isNotZero();
+            assertThat(otherSubSession.getCreationTime()).isNotZero();
         }
 
         @Test
@@ -196,7 +195,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void lastAccessedTime_independentPerZone() throws InterruptedException {
+        void lastAccessedTime_independentPerZone() throws Exception {
             subSession.setAttribute("data", "val");
             Thread.sleep(5);
             String otherAttrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/other");
@@ -249,8 +248,8 @@ class ZoneContextPathSessionTests {
             containerSession.invalidate();
 
             // creationTime and lastAccessedTime are cached locally, so they don't throw
-            assertThat(subSession.getCreationTime()).isGreaterThan(0);
-            assertThat(subSession.getLastAccessedTime()).isGreaterThan(0);
+            assertThat(subSession.getCreationTime()).isPositive();
+            assertThat(subSession.getLastAccessedTime()).isPositive();
 
             // getAttribute delegates to the invalidated container and throws
             assertThatThrownBy(() -> subSession.getAttribute("data"))
@@ -839,7 +838,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void wrapsRequestAndResponse() throws ServletException, IOException {
+        void wrapsRequestAndResponse() throws Exception {
             request.setContextPath("/uaa");
             filter.doFilter(request, response, capturingChain());
 
@@ -848,7 +847,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void sessionInsideChain_isZonePathHttpSession() throws ServletException, IOException {
+        void sessionInsideChain_isZonePathHttpSession() throws Exception {
             request.setContextPath("/uaa/z/zone1");
             filter.doFilter(request, response, capturingChain(() -> {
                 HttpSession session = capturedRequest.get().getSession(true);
@@ -862,7 +861,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void sessionAttributes_storedOnContainerImmediately() throws ServletException, IOException {
+        void sessionAttributes_storedOnContainerImmediately() throws Exception {
             request.setContextPath("/uaa/z/zone1");
             MockHttpSession containerSession = new MockHttpSession();
             request.setSession(containerSession);
@@ -877,7 +876,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void clearsJSessionId_whenAllSubSessionsRemoved() throws ServletException, IOException {
+        void clearsJSessionId_whenAllSubSessionsRemoved() throws Exception {
             request.setContextPath("/uaa");
             MockHttpSession containerSession = new MockHttpSession();
             request.setSession(containerSession);
@@ -895,7 +894,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void doesNotClearJSessionId_whenOtherSubSessionsRemain() throws ServletException, IOException {
+        void doesNotClearJSessionId_whenOtherSubSessionsRemain() throws Exception {
             request.setContextPath("/uaa/z/zone1");
             MockHttpSession containerSession = new MockHttpSession();
             request.setSession(containerSession);
@@ -916,7 +915,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void doesNotClearJSessionId_whenResponseAlreadyCommitted() throws ServletException, IOException {
+        void doesNotClearJSessionId_whenResponseAlreadyCommitted() throws Exception {
             request.setContextPath("/uaa");
             MockHttpSession containerSession = new MockHttpSession();
             request.setSession(containerSession);
@@ -936,7 +935,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void multipleZones_sameContainerSession() throws ServletException, IOException {
+        void multipleZones_sameContainerSession() throws Exception {
             MockHttpSession containerSession = new MockHttpSession();
 
             // Login to zone1
@@ -951,7 +950,7 @@ class ZoneContextPathSessionTests {
             request2.setContextPath("/uaa/z/zone2");
             request2.setSession(containerSession);
             MockHttpServletResponse response2 = new MockHttpServletResponse();
-            filter.doFilter(request2, response2, (req, resp) -> {
+            filter.doFilter(request2, response2, (req, _) -> {
                 ((HttpServletRequest) req).getSession(true).setAttribute("user", "bob");
             });
 
@@ -963,12 +962,12 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void containerSessionInvalidated_insideChain_handledGracefully() throws ServletException, IOException {
+        void containerSessionInvalidated_insideChain_handledGracefully() throws Exception {
             request.setContextPath("/uaa/z/zone1");
             MockHttpSession containerSession = new MockHttpSession();
             request.setSession(containerSession);
 
-            filter.doFilter(request, response, (req, resp) -> {
+            filter.doFilter(request, response, (req, _) -> {
                 HttpServletRequest httpReq = (HttpServletRequest) req;
                 httpReq.getSession(true).setAttribute("data", "val");
                 containerSession.invalidate();
@@ -979,7 +978,7 @@ class ZoneContextPathSessionTests {
         }
 
         @Test
-        void logoutFromOneZone_leavesOtherZonesIntact() throws ServletException, IOException {
+        void logoutFromOneZone_leavesOtherZonesIntact() throws Exception {
             MockHttpSession containerSession = new MockHttpSession();
 
             // Setup: login to default zone and zone1
@@ -992,7 +991,7 @@ class ZoneContextPathSessionTests {
             MockHttpServletRequest zoneReq = new MockHttpServletRequest();
             zoneReq.setContextPath("/uaa/z/zone1");
             zoneReq.setSession(containerSession);
-            filter.doFilter(zoneReq, new MockHttpServletResponse(), (req, resp) -> {
+            filter.doFilter(zoneReq, new MockHttpServletResponse(), (req, _) -> {
                 ((HttpServletRequest) req).getSession(true).setAttribute("user", "zone1-user");
             });
 
@@ -1000,7 +999,7 @@ class ZoneContextPathSessionTests {
             MockHttpServletRequest logoutReq = new MockHttpServletRequest();
             logoutReq.setContextPath("/uaa/z/zone1");
             logoutReq.setSession(containerSession);
-            filter.doFilter(logoutReq, new MockHttpServletResponse(), (req, resp) -> {
+            filter.doFilter(logoutReq, new MockHttpServletResponse(), (req, _) -> {
                 ((HttpServletRequest) req).getSession(false).invalidate();
             });
 

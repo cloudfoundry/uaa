@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,7 +33,7 @@ class OIDCIdentityProviderDefinitionTests {
     String url = "https://accounts.google.com/.well-known/openid-configuration";
 
     @Test
-    void serialize_discovery_url() throws MalformedURLException {
+    void serialize_discovery_url() throws Exception {
         OIDCIdentityProviderDefinition def = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
         assertThat(def.getDiscoveryUrl()).isNull();
         def.setDiscoveryUrl(URI.create(url).toURL());
@@ -46,7 +45,7 @@ class OIDCIdentityProviderDefinitionTests {
     }
 
     @Test
-    void serializableObjectCalls() throws CloneNotSupportedException {
+    void serializableObjectCalls() throws Exception {
         OIDCIdentityProviderDefinition def = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
         OIDCIdentityProviderDefinition def2 = (OIDCIdentityProviderDefinition) def.clone();
         assertThat(def2).isEqualTo(def)
@@ -65,11 +64,11 @@ class OIDCIdentityProviderDefinitionTests {
         def.setPrompts(prompts);
         String json = JsonUtils.writeValueAsString(def);
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
-        assertThat(def.getPrompts()).isEqualTo(prompts);
+        assertThat(def.getPrompts()).containsExactlyElementsOf(prompts);
     }
 
     @Test
-    void equalsTests() throws CloneNotSupportedException {
+    void equalsTests() throws Exception {
         OIDCIdentityProviderDefinition original = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
         OIDCIdentityProviderDefinition compare = (OIDCIdentityProviderDefinition) original.clone();
         compare.setTokenExchangeEnabled(false);
@@ -91,7 +90,7 @@ class OIDCIdentityProviderDefinitionTests {
     }
 
     @Test
-    void testToString() throws MalformedURLException {
+    void testToString() throws Exception {
         OIDCIdentityProviderDefinition def = new OIDCIdentityProviderDefinition();
         def.setDiscoveryUrl(URI.create(url).toURL());
         def.setPasswordGrantEnabled(true);
@@ -129,7 +128,7 @@ class OIDCIdentityProviderDefinitionTests {
     }
 
     @Test
-    void testToStringWithNullValues() {
+    void toStringWithNullValues() {
         OIDCIdentityProviderDefinition def = new OIDCIdentityProviderDefinition();
 
         String result = def.toString();

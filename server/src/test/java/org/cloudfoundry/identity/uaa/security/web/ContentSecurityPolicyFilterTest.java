@@ -7,8 +7,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import java.io.IOException;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,14 +28,14 @@ class ContentSecurityPolicyFilterTest {
     }
 
     @Test
-    void verifyRequestHasHeader() throws ServletException, IOException {
+    void verifyRequestHasHeader() throws Exception {
         filter.doFilter(request, response, chain);
 
         assertThat(response.getHeader("Content-Security-Policy")).isEqualTo("script-src 'self'");
     }
 
     @Test
-    void shouldNotAddHeader_WhenRespondingTo_SamlAuthRequests() throws ServletException, IOException {
+    void shouldNotAddHeader_WhenRespondingTo_SamlAuthRequests() throws Exception {
         request.setServletPath("/saml/some-path");
         filter.doFilter(request, response, chain);
 
@@ -45,7 +43,7 @@ class ContentSecurityPolicyFilterTest {
     }
 
     @Test
-    void shouldAddHeader_ForSamlSomeOtherThing() throws ServletException, IOException {
+    void shouldAddHeader_ForSamlSomeOtherThing() throws Exception {
         request.setServletPath("/samlSomeOtherThing");
         filter.doFilter(request, response, chain);
 
@@ -53,7 +51,7 @@ class ContentSecurityPolicyFilterTest {
     }
 
     @Test
-    void shouldAddHeader_ForSamlInMiddleOfPath() throws ServletException, IOException {
+    void shouldAddHeader_ForSamlInMiddleOfPath() throws Exception {
         request.setServletPath("/other/saml/");
         filter.doFilter(request, response, chain);
 
@@ -61,7 +59,7 @@ class ContentSecurityPolicyFilterTest {
     }
 
     @Test
-    void shouldNotAddHeader_WhenRespondingTo_LoginImplicitPageRequests() throws ServletException, IOException {
+    void shouldNotAddHeader_WhenRespondingTo_LoginImplicitPageRequests() throws Exception {
         request.setServletPath("/login_implicit");
         filter.doFilter(request, response, chain);
 
@@ -69,14 +67,14 @@ class ContentSecurityPolicyFilterTest {
     }
 
     @Test
-    void verifyChainRequest() throws ServletException, IOException {
+    void verifyChainRequest() throws Exception {
         filter.doFilter(request, response, chain);
 
         Mockito.verify(chain).doFilter(request, response);
     }
 
     @Test
-    void customScriptSrc() throws ServletException, IOException {
+    void customScriptSrc() throws Exception {
         filter = new ContentSecurityPolicyFilter(Arrays.asList("'self'", "custom"));
         filter.doFilter(request, response, chain);
 

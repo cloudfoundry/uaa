@@ -76,7 +76,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         // the referenced zone must exist
         try {
             identityZoneProvisioning.retrieve(requestBody.getAliasZid());
-        } catch (final ZoneDoesNotExistsException e) {
+        } catch (final ZoneDoesNotExistsException _) {
             LOGGER.debug("Zone referenced in alias zone ID does not exist.");
             return false;
         }

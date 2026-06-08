@@ -10,6 +10,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
@@ -68,7 +69,7 @@ import java.util.stream.Stream;
 
 import static org.apache.logging.log4j.Level.DEBUG;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.HamcrestCondition.matching;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.ISSUER_URI;
@@ -270,8 +271,9 @@ class UaaTokenServicesTests {
                     Jwt parsedToken = JwtHelper.decode(jwt);
                     Map<String, Object> claims = JsonUtils.readValue(parsedToken.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-                    assertThat(claims).containsEntry("claim1", "value1");
-                    assertThat(claims).containsEntry("claim2", "value2");
+                    assertThat(claims)
+                            .containsEntry("claim1", "value1")
+                            .containsEntry("claim2", "value2");
                 } finally {
                     tokenServices.setUaaTokenEnhancers(new ArrayList<>());
                 }
@@ -320,8 +322,9 @@ class UaaTokenServicesTests {
                     Jwt parsedToken = JwtHelper.decode(jwt);
                     Map<String, Object> claims = JsonUtils.readValue(parsedToken.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-                    assertThat(claims).containsEntry("claim1", "value1");
-                    assertThat(claims).containsEntry("claim2", "value1_modified");
+                    assertThat(claims)
+                            .containsEntry("claim1", "value1")
+                            .containsEntry("claim2", "value1_modified");
                 } finally {
                     tokenServices.setUaaTokenEnhancers(new ArrayList<>());
                 }
@@ -603,7 +606,7 @@ class UaaTokenServicesTests {
                 assertThat(refreshedToken).isNotNull();
 
                 Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getIdTokenValue(), Map.class);
-                assertThat(claims).isNotEmpty()
+                assertThat(claims)
                         .containsKey(ClaimConstants.ACR)
                         .containsKey(ClaimConstants.ACR);
                 assertThat((Map<String, Object>) claims.get(ClaimConstants.ACR)).containsKey("values");
@@ -726,7 +729,7 @@ class UaaTokenServicesTests {
                 assertThat(refreshedToken).isNotNull();
 
                 Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getIdTokenValue(), Map.class);
-                assertThat(claims).isNotEmpty()
+                assertThat(claims)
                         .containsKey(ClaimConstants.AMR)
                         .containsKey(ClaimConstants.AMR);
                 List<String> actualAmrs = (List<String>) claims.get(ClaimConstants.AMR);
@@ -801,9 +804,9 @@ class UaaTokenServicesTests {
             // Verifying with generic Exception instead of specific type because
             // refreshAccessToken() throws an Exception of which type is
             // different from the one that is declared in its method signature
-            assertThatExceptionOfType(Exception.class).isThrownBy(() ->
+            assertThatThrownBy(() ->
                     tokenServices.refreshAccessToken(refreshToken.getValue(),
-                            tokenRequest));
+                            tokenRequest)).asInstanceOf(InstanceOfAssertFactories.throwable(Exception.class));
         }
 
         private RefreshTokenCreator createRefreshTokenCreator(
@@ -860,10 +863,10 @@ class UaaTokenServicesTests {
             try {
                 jdbcClientDetailsService.loadClientByClientId(clientId);
                 return true;
-            } catch (NoSuchClientException e) {
+            } catch (NoSuchClientException _) {
                 try {
                     Thread.sleep(500);
-                } catch (InterruptedException interruptedException) {
+                } catch (InterruptedException _) {
                     return false;
                 }
             }

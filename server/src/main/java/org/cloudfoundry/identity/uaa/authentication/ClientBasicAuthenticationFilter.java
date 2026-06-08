@@ -104,7 +104,7 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
                 try {
                     clientId = URLDecoder.decode(tokens[0], getCredentialsCharset(request));
                     clientSecret = URLDecoder.decode(tokens[1], getCredentialsCharset(request));
-                } catch (UnsupportedEncodingException | IllegalArgumentException e) {
+                } catch (UnsupportedEncodingException | IllegalArgumentException _) {
                     throw new BadCredentialsException("Failed to URL Decode credentials");
                 }
             }
@@ -155,7 +155,7 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
         try {
             decoded = Base64.getDecoder().decode(base64Token);
         }
-        catch (IllegalArgumentException e) {
+        catch (IllegalArgumentException _) {
             throw new BadCredentialsException(
                     "Failed to decode basic authentication token");
         }

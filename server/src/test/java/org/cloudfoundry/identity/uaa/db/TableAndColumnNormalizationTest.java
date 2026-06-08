@@ -45,7 +45,7 @@ class MySQLConfiguration {
     @Order(TestDatabaseNameCustomizer.ORDER + 1)
     @Profile("mysql")
     JdbcUrlCustomizer mysqlHardcodedJdbcUrlCustomizer() {
-        return url -> "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true&permitMysqlScheme=true";
+        return _ -> "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true&permitMysqlScheme=true";
     }
 }
 
@@ -67,7 +67,7 @@ class TableAndColumnNormalizationTest {
 
     @Test
     @EnabledIfProfile({"postgresql", "mysql"})
-    void tableNamesAreLowercase() throws SQLException {
+    void tableNamesAreLowercase() throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet rs = metaData.getTables(null, null, null, new String[]{"TABLE"});
@@ -101,7 +101,7 @@ class TableAndColumnNormalizationTest {
      */
     @Test
     @EnabledIfProfile({"postgresql"})
-    void columnNamesAreLowercase() throws SQLException {
+    void columnNamesAreLowercase() throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet rs = metaData.getColumns(null, null, null, null);

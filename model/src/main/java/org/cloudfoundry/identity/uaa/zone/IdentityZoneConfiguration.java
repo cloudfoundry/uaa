@@ -80,7 +80,7 @@ public class IdentityZoneConfiguration {
         try {
             new URL(issuer);
             this.issuer = issuer;
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException _) {
             throw new IllegalArgumentException("Invalid issuer format. Must be valid URL.");
         }
     }

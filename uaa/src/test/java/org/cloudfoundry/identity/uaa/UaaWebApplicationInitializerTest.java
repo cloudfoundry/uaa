@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa;
 
 import jakarta.servlet.FilterRegistration;
 import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRegistration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,14 +53,14 @@ class UaaWebApplicationInitializerTest {
     }
 
     @Test
-    void testServletContextListeners() throws ServletException {
+    void servletContextListeners() throws Exception {
         initializer.onStartup(servletContext);
 
         ArgumentCaptor<EventListener> listenerArgumentCaptor = ArgumentCaptor.forClass(EventListener.class);
         verify(servletContext, atLeastOnce()).addListener(listenerArgumentCaptor.capture());
         List<EventListener> listeners = listenerArgumentCaptor.getAllValues();
         assertThat(listeners).hasSize(2);
-        assertThat(listeners.getFirst()).isInstanceOf(HttpSessionEventPublisher.class);
+        assertThat(listeners).first().isInstanceOf(HttpSessionEventPublisher.class);
         assertThat(listeners.get(1)).isInstanceOf(ContextLoaderListener.class);
     }
 }

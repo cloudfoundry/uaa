@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.provider.ldap;
 
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.DefaultTlsDirContextAuthenticationStrategy;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExternalTlsDirContextAuthenticationStrategy;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_EXTERNAL;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
@@ -78,7 +79,7 @@ class ProcessLdapPropertiesTest {
     @Test
     void invalid_authenticationStrategy() {
         ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false, "asdadasda");
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(process::getAuthenticationStrategy);
+        assertThatThrownBy(process::getAuthenticationStrategy).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
     @Test

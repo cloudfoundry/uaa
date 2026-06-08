@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.expression;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
@@ -17,7 +18,7 @@ import org.springframework.security.web.FilterInvocation;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -84,8 +85,8 @@ class OAuth2WebSecurityExpressionHandlerTests {
         OAuth2Authentication oAuth2Authentication = new OAuth2Authentication(clientAuthentication, userAuthentication);
         OAuth2SecurityExpressionMethods root = new OAuth2SecurityExpressionMethods(oAuth2Authentication);
         boolean hasAnyScope = root.hasAnyScope("foo");
-        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() ->
-                root.throwOnError(hasAnyScope));
+        assertThatThrownBy(() ->
+                root.throwOnError(hasAnyScope)).asInstanceOf(InstanceOfAssertFactories.throwable(AccessDeniedException.class));
     }
 
     @Test

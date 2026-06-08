@@ -104,7 +104,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
                 // Check if it is a valid URL
                 new URL(trimmedValue);
                 return MetadataLocation.URL;
-            } catch (MalformedURLException e) {
+            } catch (MalformedURLException _) {
                 //invalid URL
             }
         }
@@ -128,7 +128,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         try {
             DocumentBuilder builder = ObjectUtils.getDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
-        } catch (ParserConfigurationException | SAXException | IOException e) {
+        } catch (ParserConfigurationException | SAXException | IOException _) {
             return false;
         }
 

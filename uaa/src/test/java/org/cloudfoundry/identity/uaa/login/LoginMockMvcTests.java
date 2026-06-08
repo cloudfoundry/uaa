@@ -1848,7 +1848,7 @@ public class LoginMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("email_sent?code=email_change"))
                 .andReturn().getRequest().getSession(false);
-        System.out.println("session = " + session);
+        IO.println("session = " + session);
     }
 
     @Test

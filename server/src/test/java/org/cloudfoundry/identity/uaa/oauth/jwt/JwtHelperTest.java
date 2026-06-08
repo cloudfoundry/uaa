@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import com.nimbusds.jose.jwk.JWKParameterNames;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
@@ -17,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 
@@ -63,15 +64,15 @@ class JwtHelperTest {
 
         Claims claimSingle = UaaTokenUtils.getClaimsFromTokenString(audSingle.getEncoded());
         assertThat(claimSingle).isNotNull();
-        assertThat(claimSingle.getAud()).isEqualTo(Arrays.asList("single"));
+        assertThat(claimSingle.getAud()).containsExactlyElementsOf(Arrays.asList("single"));
 
         Claims claimArray = UaaTokenUtils.getClaimsFromTokenString(audArray.getEncoded());
         assertThat(claimArray).isNotNull();
-        assertThat(claimArray.getAud()).isEqualTo(Arrays.asList("one"));
+        assertThat(claimArray.getAud()).containsExactlyElementsOf(Arrays.asList("one"));
 
         Claims claimArrayThree = UaaTokenUtils.getClaimsFromTokenString(audArrayThree.getEncoded());
         assertThat(claimArrayThree).isNotNull();
-        assertThat(claimArrayThree.getAud()).isEqualTo(Arrays.asList("one", "two", "three"));
+        assertThat(claimArrayThree.getAud()).containsExactlyElementsOf(Arrays.asList("one", "two", "three"));
     }
 
     @Test
@@ -90,24 +91,24 @@ class JwtHelperTest {
         Jwt legacyVerify = JwtHelper.decode(legacySignature.getEncoded());
         assertThat(legacyVerify).isNotNull();
         legacyVerify.verifySignature(cs);
-        assertThatExceptionOfType(InvalidSignatureException.class).isThrownBy(() -> legacyVerify.verifySignature(keyInfo.getVerifier()));
+        assertThatThrownBy(() -> legacyVerify.verifySignature(keyInfo.getVerifier())).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidSignatureException.class));
         key.put("value", "wrong");
-        assertThatExceptionOfType(InvalidSignatureException.class).isThrownBy(() -> legacyVerify.verifySignature(new SignatureVerifier(new JsonWebKey(key))));
+        assertThatThrownBy(() -> legacyVerify.verifySignature(new SignatureVerifier(new JsonWebKey(key)))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidSignatureException.class));
     }
 
     @Test
     void legacyHmacFailed() {
-        assertThatExceptionOfType(InvalidSignatureException.class).isThrownBy(() -> UaaMacSigner.verify("x", null));
+        assertThatThrownBy(() -> UaaMacSigner.verify("x", null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidSignatureException.class));
     }
 
     @Test
     void jwtInvalidPayload() {
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> JwtHelper.encode(null, keyInfo));
+        assertThatThrownBy(() -> JwtHelper.encode(null, keyInfo)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
     }
 
     @Test
     void jwtInvalidContent() {
-        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> JwtHelper.decode("invalid"));
-        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() -> JwtHelper.decode(""));
+        assertThatThrownBy(() -> JwtHelper.decode("invalid")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidTokenException.class));
+        assertThatThrownBy(() -> JwtHelper.decode("")).asInstanceOf(InstanceOfAssertFactories.throwable(InsufficientAuthenticationException.class));
     }
 }

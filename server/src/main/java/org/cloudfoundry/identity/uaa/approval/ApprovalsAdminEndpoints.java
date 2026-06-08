@@ -187,7 +187,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         try {
             userDatabase.retrieveUserById(userId);
             return true;
-        } catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException _) {
             return false;
         }
     }

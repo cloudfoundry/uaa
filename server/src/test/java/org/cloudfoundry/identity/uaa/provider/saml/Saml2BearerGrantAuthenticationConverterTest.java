@@ -49,7 +49,6 @@ import org.w3c.dom.Element;
 import javax.xml.namespace.QName;
 import java.security.Security;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -380,7 +379,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
     }
 
     @Test
-    void writeObjectWhenTypeIsSaml2AuthenticationThenNoException() throws IOException {
+    void writeObjectWhenTypeIsSaml2AuthenticationThenNoException() throws Exception {
         Assertion assertion = TestOpenSamlObjects.signed(assertion(),
                 TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID);
         Saml2AuthenticationToken token = token(signed(assertion), decrypting(verifying(registration())));

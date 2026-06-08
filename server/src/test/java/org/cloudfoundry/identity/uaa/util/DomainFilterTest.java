@@ -275,7 +275,7 @@ class DomainFilterTest {
 
         List<IdentityProvider> idpsForEmailDomain = DomainFilter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
 
-        assertThat(idpsForEmailDomain).hasSize(2)
+        assertThat(idpsForEmailDomain)
                 .containsExactlyInAnyOrder(samlProvider1, samlProvider2);
     }
 
@@ -285,7 +285,7 @@ class DomainFilterTest {
 
         List<IdentityProvider> idpsForEmailDomain = DomainFilter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
 
-        assertThat(idpsForEmailDomain).hasSize(1)
+        assertThat(idpsForEmailDomain)
                 .containsExactlyInAnyOrder(samlProvider1);
     }
 

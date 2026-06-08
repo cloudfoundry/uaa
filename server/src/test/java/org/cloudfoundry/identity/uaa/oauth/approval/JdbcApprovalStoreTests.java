@@ -285,7 +285,7 @@ class JdbcApprovalStoreTests {
     }
 
     @Test
-    void canPurgeExpiredApprovals() throws InterruptedException {
+    void canPurgeExpiredApprovals() throws Exception {
         assertThat(jdbcApprovalStore.getApprovalsForClient("c3", defaultZoneId)).isEmpty();
         assertThat(jdbcApprovalStore.getApprovalsForUser("u3", defaultZoneId)).isEmpty();
         assertThat(jdbcApprovalStore.getApprovalsForClient("c1", defaultZoneId)).hasSize(2);

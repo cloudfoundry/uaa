@@ -67,7 +67,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
         provider.setActive(true);
         try {
             provider.setConfig(def);
-        } catch (JsonUtils.JsonUtilException x) {
+        } catch (JsonUtils.JsonUtilException _) {
             throw new RuntimeException("Non serializable SAML config");
         }
         return provider;

@@ -134,7 +134,7 @@ public abstract class UaaHttpRequestUtils {
         builder.setConnectionManager(cm);
 
         if (config.maxKeepAlive() <= 0) {
-            builder.setConnectionReuseStrategy((request, response, context) -> false);
+            builder.setConnectionReuseStrategy((_, _, _) -> false);
         } else {
             builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(config.maxKeepAlive()));
         }
@@ -177,7 +177,7 @@ public abstract class UaaHttpRequestUtils {
                     return result;
                 }
             }
-        } catch (IllegalStateException x) {
+        } catch (IllegalStateException _) {
             //nothing bound on thread.
             logger.debug("Unable to retrieve request attributes looking for invitation.");
 
@@ -207,7 +207,7 @@ public abstract class UaaHttpRequestUtils {
                 if (elementValue != null && elementName != null && elementName.equalsIgnoreCase(TIMEOUT)) {
                     try {
                         result = Math.min(TimeUnit.SECONDS.toMillis(Long.parseLong(elementValue)), connectionKeepAliveMax);
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException _) {
                         //Ignore Exception and keep current elementValue of result
                     }
                     break;
@@ -267,7 +267,7 @@ public abstract class UaaHttpRequestUtils {
                                 new TypeReference<>() {
                                 });
                         credentials.putAll(jsonCredentials);
-                    } catch (JsonUtils.JsonUtilException e) {
+                    } catch (JsonUtils.JsonUtilException _) {
                         logger.warn("Unknown format of value for request param: {}. Ignoring.", paramName);
                     }
                 } else {
