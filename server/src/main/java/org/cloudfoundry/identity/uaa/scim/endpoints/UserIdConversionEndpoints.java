@@ -34,7 +34,6 @@ import org.springframework.web.util.HtmlUtils;
 
 import com.unboundid.scim2.common.exceptions.BadRequestException;
 import com.unboundid.scim2.common.filters.Filter;
-import com.unboundid.scim2.common.filters.FilterType;
 
 @Controller
 public class UserIdConversionEndpoints implements InitializingBean {

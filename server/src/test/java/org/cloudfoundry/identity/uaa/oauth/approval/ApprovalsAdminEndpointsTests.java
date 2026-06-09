@@ -156,7 +156,7 @@ class ApprovalsAdminEndpointsTests {
                 .setScope("scope")
                 .setExpiresAt(new Date())
                 .setStatus(ApprovalStatus.APPROVED));
-        Set<Approval> deserializedApprovals = JsonUtils.readValue("[{\"userid\":\"test-user-id\",\"clientid\":\"testclientid\",\"scope\":\"scope\",\"status\":\"APPROVED\",\"expiresat\":\"2015-08-25T14:35:42.512Z\",\"lastupdatedat\":\"2015-08-25T14:35:42.512Z\"}]", new TypeReference<Set<Approval>>() {
+        Set<Approval> deserializedApprovals = JsonUtils.readValue("[{\"userid\":\"test-user-id\",\"clientid\":\"testclientid\",\"scope\":\"scope\",\"status\":\"APPROVED\",\"expiresat\":\"2015-08-25T14:35:42.512Z\",\"lastupdatedat\":\"2015-08-25T14:35:42.512Z\"}]", new TypeReference<>() {
         });
         assertThat(deserializedApprovals).hasSameElementsAs(approvals);
     }
@@ -341,7 +341,8 @@ class ApprovalsAdminEndpointsTests {
                 .setExpiresAt(Approval.timeFromNow(2000))
                 .setStatus(APPROVED)};
 
-        assertThatThrownBy(() -> endpoints.updateApprovals(approvals)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
+        assertThatThrownBy(() -> endpoints.updateApprovals(approvals))
+                .isInstanceOf(UaaException.class);
     }
 
     @Test

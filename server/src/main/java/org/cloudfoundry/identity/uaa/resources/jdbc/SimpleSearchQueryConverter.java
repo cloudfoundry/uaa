@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.resources.jdbc;
 import com.unboundid.scim2.common.exceptions.BadRequestException;
 import com.unboundid.scim2.common.exceptions.ScimException;
 import com.unboundid.scim2.common.filters.Filter;
-import com.unboundid.scim2.common.filters.FilterType;
 import tools.jackson.databind.node.ValueNode;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.JoinAttributeNameMapper;

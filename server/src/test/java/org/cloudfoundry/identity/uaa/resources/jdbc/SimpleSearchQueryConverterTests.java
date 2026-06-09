@@ -10,8 +10,6 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -107,11 +105,11 @@ class SimpleSearchQueryConverterTests {
     void deeplyNestedFilterIsRejected() {
         // SCIM 2 parser creates flat n-ary AND for chains; explicit parentheses create actual tree depth.
         // Build: ((...((a and a) and a)...) and a) with 22 nestings → depth 22 > MAX_FILTER_DEPTH(20)
-        String filter = "username eq \"joe\" and username eq \"joe\"";
+        StringBuilder filter = new StringBuilder("username eq \"joe\" and username eq \"joe\"");
         for (int i = 0; i < 22; i++) {
-            filter = "(" + filter + ") and username eq \"joe\"";
+            filter = new StringBuilder("(" + filter + ") and username eq \"joe\"");
         }
-        final String deepFilter = filter;
+        final String deepFilter = filter.toString();
         assertThatThrownBy(() -> converter.convert(deepFilter, null, false, "zone"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -119,22 +117,22 @@ class SimpleSearchQueryConverterTests {
     @Test
     void moderatelyNestedFilterIsAccepted() {
         // 5 explicit nestings → depth 5, well within MAX_FILTER_DEPTH(20)
-        String filter = "username eq \"joe\" and username eq \"joe\"";
+        StringBuilder filter = new StringBuilder("username eq \"joe\" and username eq \"joe\"");
         for (int i = 0; i < 5; i++) {
-            filter = "(" + filter + ") and username eq \"joe\"";
+            filter = new StringBuilder("(" + filter + ") and username eq \"joe\"");
         }
-        final String shallowFilter = filter;
+        final String shallowFilter = filter.toString();
         assertThatNoException().isThrownBy(() -> converter.convert(shallowFilter, null, false, "zone"));
     }
 
     @Test
     void deeplyNestedGetFilterValuesIsRejected() {
         // Same depth limit applies to getFilterValues
-        String filter = "origin eq \"uaa\" and origin eq \"uaa\"";
+        StringBuilder filter = new StringBuilder("origin eq \"uaa\" and origin eq \"uaa\"");
         for (int i = 0; i < 22; i++) {
-            filter = "(" + filter + ") and origin eq \"uaa\"";
+            filter = new StringBuilder("(" + filter + ") and origin eq \"uaa\"");
         }
-        final String deepFilter = filter;
+        final String deepFilter = filter.toString();
         assertThatThrownBy(() -> converter.getFilterValues(deepFilter, List.of("origin")))
                 .isInstanceOf(IllegalArgumentException.class);
     }
