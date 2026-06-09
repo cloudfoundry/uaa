@@ -34,6 +34,8 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
+    private static final int MAX_FILTER_DEPTH = 20;
+
     //LOWER
     private static final List<String> VALID_ATTRIBUTE_NAMES = List.of(
             "id",
@@ -194,13 +196,16 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     private void validateFilterAttributes(SCIMFilter filter, List<String> validAttributeNames) throws SCIMException {
         List<String> invalidAttributes = new LinkedList<>();
-        validateFilterAttributes(filter, invalidAttributes, validAttributeNames);
+        validateFilterAttributes(filter, invalidAttributes, validAttributeNames, 0);
         if (!invalidAttributes.isEmpty()) {
             throw new InvalidResourceException("Invalid filter attributes:" + StringUtils.collectionToCommaDelimitedString(invalidAttributes));
         }
     }
 
-    private void validateFilterAttributes(SCIMFilter filter, List<String> invalidAttribues, List<String> validAttributeNames) {
+    private void validateFilterAttributes(SCIMFilter filter, List<String> invalidAttribues, List<String> validAttributeNames, int depth) {
+        if (depth > MAX_FILTER_DEPTH) {
+            throw new IllegalArgumentException("Filter too deeply nested");
+        }
         if (filter.getFilterAttribute() != null && filter.getFilterAttribute().getAttributeName() != null) {
             String name = filter.getFilterAttribute().getAttributeName();
             if (filter.getFilterAttribute().getSubAttributeName() != null) {
@@ -211,15 +216,22 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             }
         }
         for (SCIMFilter subfilter : ofNullable(filter.getFilterComponents()).orElse(emptyList())) {
-            validateFilterAttributes(subfilter, invalidAttribues, validAttributeNames);
+            validateFilterAttributes(subfilter, invalidAttribues, validAttributeNames, depth + 1);
         }
     }
 
     private void extractValues(SCIMFilter filter, MultiValueMap<String, Object> values) throws SCIMException {
+        extractValues(filter, values, 0);
+    }
+
+    private void extractValues(SCIMFilter filter, MultiValueMap<String, Object> values, int depth) throws SCIMException {
+        if (depth > MAX_FILTER_DEPTH) {
+            throw createException(400, "Filter too deeply nested");
+        }
         switch (filter.getFilterType()) {
             case AND:
-                extractValues(filter.getFilterComponents().getFirst(), values);
-                extractValues(filter.getFilterComponents().get(1), values);
+                extractValues(filter.getFilterComponents().getFirst(), values, depth + 1);
+                extractValues(filter.getFilterComponents().get(1), values, depth + 1);
                 break;
             case OR:
                 throw createException(400, "[or] operator is not supported.");
@@ -248,9 +260,16 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     }
 
     private String whereClauseFromFilter(SCIMFilter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
+        return whereClauseFromFilter(filter, values, mapper, paramPrefix, 0);
+    }
+
+    private String whereClauseFromFilter(SCIMFilter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix, int depth) {
+        if (depth > MAX_FILTER_DEPTH) {
+            throw new IllegalArgumentException("Filter too deeply nested");
+        }
         return switch (filter.getFilterType()) {
-            case AND -> "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " AND " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
-            case OR -> "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " OR " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
+            case AND -> "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix, depth + 1) + " AND " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix, depth + 1) + ")";
+            case OR -> "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix, depth + 1) + " OR " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix, depth + 1) + ")";
             case EQUALITY -> comparisonClause(filter, "=", values, "", "", paramPrefix);
             case CONTAINS -> comparisonClause(filter, "LIKE", values, "%", "%", paramPrefix);
             case STARTS_WITH -> comparisonClause(filter, "LIKE", values, "", "%", paramPrefix);

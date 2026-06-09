@@ -136,6 +136,8 @@ public class UserIdConversionEndpoints implements InitializingBean {
     public void handleException() {
     }
 
+    private static final int MAX_FILTER_DEPTH = 20;
+
     private void checkFilter(String filter) {
         if (filter.isEmpty()) {
             throw new ScimException("a 'filter' parameter is required", HttpStatus.BAD_REQUEST);
@@ -143,7 +145,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         SCIMFilter scimFilter;
         try {
             scimFilter = SCIMFilter.parse(filter);
-            if (!containsIdOrUserNameClause(scimFilter)) {
+            if (!containsIdOrUserNameClause(scimFilter, 0)) {
                 throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
             }
         } catch (SCIMException e) {
@@ -155,12 +157,15 @@ public class UserIdConversionEndpoints implements InitializingBean {
     /**
      * Check if the given SCIM filter contains at least one clause involving either the "id" or "userName" property.
      */
-    private boolean containsIdOrUserNameClause(SCIMFilter filter) {
+    private boolean containsIdOrUserNameClause(SCIMFilter filter, int depth) {
+        if (depth > MAX_FILTER_DEPTH) {
+            throw new ScimException("Filter too deeply nested", HttpStatus.BAD_REQUEST);
+        }
         switch (filter.getFilterType()) {
             case AND, OR:
                 // one of the operands must contain a comparison with the "id" or "userName" property
-                final boolean resultLeftOperand = containsIdOrUserNameClause(filter.getFilterComponents().getFirst());
-                return containsIdOrUserNameClause(filter.getFilterComponents().get(1)) || resultLeftOperand;
+                final boolean resultLeftOperand = containsIdOrUserNameClause(filter.getFilterComponents().getFirst(), depth + 1);
+                return containsIdOrUserNameClause(filter.getFilterComponents().get(1), depth + 1) || resultLeftOperand;
             case EQUALITY:
                 String name = filter.getFilterAttribute().getAttributeName();
                 if (FIELD_ID.equalsIgnoreCase(name) ||

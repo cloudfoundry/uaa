@@ -10,8 +10,11 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SimpleSearchQueryConverterTests {
@@ -98,6 +101,35 @@ class SimpleSearchQueryConverterTests {
         assertThat(converter.getJoinName()).isEmpty();
         converter.setAttributeNameMapper(new JoinAttributeNameMapper("myTable"));
         assertThat(converter.getJoinName()).isEqualTo("myTable");
+    }
+
+    @Test
+    void deeplyNestedFilterIsRejected() {
+        // 26 terms → 25 ANDs → depth 24 at deepest node, exceeds MAX_FILTER_DEPTH(20)
+        String deepFilter = IntStream.range(0, 26)
+                .mapToObj(_ -> "username eq \"joe\"")
+                .collect(Collectors.joining(" and "));
+        assertThatThrownBy(() -> converter.convert(deepFilter, null, false, "zone"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void moderatelyNestedFilterIsAccepted() {
+        // 5 terms → 4 ANDs → depth 3, well within MAX_FILTER_DEPTH(20)
+        String filter = IntStream.range(0, 5)
+                .mapToObj(_ -> "username eq \"joe\"")
+                .collect(Collectors.joining(" and "));
+        assertThatNoException().isThrownBy(() -> converter.convert(filter, null, false, "zone"));
+    }
+
+    @Test
+    void deeplyNestedGetFilterValuesIsRejected() {
+        // Same depth limit applies to getFilterValues
+        String deepFilter = IntStream.range(0, 26)
+                .mapToObj(_ -> "origin eq \"uaa\"")
+                .collect(Collectors.joining(" and "));
+        assertThatThrownBy(() -> converter.getFilterValues(deepFilter, List.of("origin")))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
