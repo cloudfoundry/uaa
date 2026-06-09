@@ -200,6 +200,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         // build WHERE clause
         final ProcessedFilter where = joinConverter.convert(filter, sortBy, ascending, zoneId);
         final String whereClauseScimFilter = where.getSql();
+        // The SQL fragment comes from the configured SearchQueryConverter (here joinConverter,
+        // see AbstractQueryable#getQuerySQL for the full converter-contract justification);
+        // assertSafeGeneratedSql adds a defense-in-depth check so this direct concatenation
+        // is protected by the same guard as the inherited query() path.
+        assertSafeGeneratedSql(whereClauseScimFilter);
         String whereClause = "idp.active is true and (";
         if (where.hasOrderBy()) {
             whereClause += whereClauseScimFilter.replace(ProcessedFilter.ORDER_BY, ")" + ProcessedFilter.ORDER_BY);

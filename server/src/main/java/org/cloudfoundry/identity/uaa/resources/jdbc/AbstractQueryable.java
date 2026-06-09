@@ -9,7 +9,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.google.common.primitives.Ints.tryParse;
@@ -86,10 +88,67 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
     }
 
     private String getQuerySQL(SearchQueryConverter.ProcessedFilter where) {
+        // The SQL fragment comes from the configured SearchQueryConverter (default
+        // SimpleSearchQueryConverter; replaceable via setQueryConverter). Every shipped
+        // implementation validates attribute names against a hardcoded allow-list and
+        // binds every user-supplied value as a named parameter (see e.g.
+        // SimpleSearchQueryConverter#whereClauseFromFilter and #comparisonClause).
+        // assertSafeGeneratedSql adds a defense-in-depth check on the resulting fragment
+        // so any future converter that violates that contract still cannot inject SQL.
+        String sqlFragment = where.getSql();
+        assertSafeGeneratedSql(sqlFragment);
+
         if (where.hasOrderBy()) {
-            return getBaseSqlQuery() + " where (" + where.getSql().replace(ORDER_BY, ")" + ORDER_BY);
+            return getBaseSqlQuery() + " where (" + sqlFragment.replace(ORDER_BY, ")" + ORDER_BY);
         } else {
-            return getBaseSqlQuery() + " where (" + where.getSql() + ")";
+            return getBaseSqlQuery() + " where (" + sqlFragment + ")";
+        }
+    }
+
+    // Matches a leading DML/DDL keyword followed by any whitespace (including \t, \n) or
+    // a "(", which together cover the realistic ways such a keyword could be smuggled past
+    // a literal-space prefix check (e.g. "select\tfoo", "select(", "SELECT\nfoo").
+    private static final Pattern DISALLOWED_LEADING_CLAUSE = Pattern.compile(
+            "^(select|insert|update|delete|drop|alter|create|truncate|merge|union|grant|revoke|exec|execute|call|with|replace|rename|comment)(\\s|\\().*",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    // Strips leading whitespace and any number of leading "(" so the keyword guard above
+    // also catches parenthesis-wrapped bypasses such as "(select 1)" or "((select 1))".
+    private static final Pattern LEADING_PARENS_OR_WHITESPACE = Pattern.compile("^[\\s(]+");
+
+    protected static void assertSafeGeneratedSql(String sqlFragment) {
+        if (!StringUtils.hasText(sqlFragment)) {
+            throw new IllegalArgumentException("Invalid filter: empty SQL fragment");
+        }
+
+        String normalized = sqlFragment.toLowerCase(Locale.ROOT);
+        if (normalized.contains(";")
+                || normalized.contains("--")
+                || normalized.contains("#")
+                || normalized.contains("/*")
+                || normalized.contains("*/")) {
+            throw new IllegalArgumentException("Invalid filter: disallowed SQL token in generated query");
+        }
+
+        // The caller wraps the fragment as `where (` + fragment + `)`. A fragment whose
+        // first non-whitespace character is `)` would break out of that wrapper (e.g.
+        // `) or 1=1 or (`) and change the surrounding query logic without using any of
+        // the tokens above. Reject it explicitly.
+        String leadingTrimmed = normalized.stripLeading();
+        if (leadingTrimmed.startsWith(")")) {
+            throw new IllegalArgumentException("Invalid filter: unexpected leading token in generated query");
+        }
+
+        String trimmed = LEADING_PARENS_OR_WHITESPACE.matcher(normalized).replaceFirst("");
+        // Also reject the extended wrapper-breakout where one or more leading `(` are
+        // immediately followed by `)` (e.g. `"()) or 1=1 or (1=1"` or `"(()) or ..."`):
+        // after stripping leading whitespace and `(`, the next non-whitespace token is `)`,
+        // which closes the caller's `where (` wrapper one paren-level too early.
+        if (trimmed.startsWith(")")) {
+            throw new IllegalArgumentException("Invalid filter: unexpected leading token in generated query");
+        }
+        if (DISALLOWED_LEADING_CLAUSE.matcher(trimmed).matches()) {
+            throw new IllegalArgumentException("Invalid filter: unexpected SQL clause in generated query");
         }
     }
 
