@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.statsd;
 
-import com.timgroup.statsd.NonBlockingStatsDClient;
+import com.timgroup.statsd.NonBlockingStatsDClientBuilder;
 import com.timgroup.statsd.StatsDClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,7 +31,11 @@ public class StatsdConfiguration {
 
     @Bean
     public StatsDClient statsDClient() {
-        return new NonBlockingStatsDClient("uaa", "localhost", 8125);
+        return new NonBlockingStatsDClientBuilder()
+                .prefix("uaa")
+                .hostname("localhost")
+                .port(8125)
+                .build();
     }
 
     @Bean
