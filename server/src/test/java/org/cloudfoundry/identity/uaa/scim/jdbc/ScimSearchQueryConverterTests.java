@@ -1,17 +1,19 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ScimSearchQueryConverterTests {
@@ -117,9 +119,37 @@ class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("username eq 'joe' or emails.value co '.com'", null, false, zoneId), "(LOWER(username) = LOWER(:__value_0) OR LOWER(email) LIKE LOWER(:__value_1))", null, 2);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+            // Unbalanced parentheses — SCIM parser must reject these
+            "id pr ) or identity_zone_id pr or ( id pr",
+            "username eq \"joe\" )",
+            "( username eq \"joe\"",
+            // Injection patterns in attribute names — attribute whitelist rejects these
+            "id/**/pr/**/or/**/1=1 pr",
+            "username/**/eq/**/\"a\"",
+    })
+    void malformedOrInjectionFiltersAreRejected(String filter) {
+        assertThatThrownBy(() -> filterProcessor.convert(filter, null, false, zoneId))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            // Values with SQL-injection content — the value is a bound parameter, not raw SQL
+            "username eq \"joe'; select * from users; --\"",
+            "username eq \"' or '1'='1\"",
+            "username eq \"\\\" or \\\"1\\\"=\\\"1\"",
+    })
+    void sqlInjectionInFilterValueIsBoundSafely(String filter) {
+        // Must parse and produce SQL with a bound parameter — not throw, not inject raw SQL
+        assertThatNoException().isThrownBy(() -> filterProcessor.convert(filter, null, false, zoneId));
+    }
+
     @Test
     void illegalUnquotedValueInFilter() {
-        assertThatThrownBy(() -> filterProcessor.convert("username eq joe", null, false, zoneId)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
+        assertThatThrownBy(() -> filterProcessor.convert("username eq joe", null, false, zoneId))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

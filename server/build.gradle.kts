@@ -57,13 +57,7 @@ dependencies {
         exclude(module = "ognl")
     }
 
-    implementation(libs.unboundIdScimSdk) {
-        exclude(module = "servlet-api")
-        exclude(module = "commons-logging")
-        exclude(module = "httpclient")
-        exclude(module = "wink-client-apache-httpclient")
-        exclude(module = "json")
-    }
+    implementation(libs.scim2SdkCommon)
 
     implementation(libs.hibernateValidator)
     implementation(libs.flywayHsqlDb)

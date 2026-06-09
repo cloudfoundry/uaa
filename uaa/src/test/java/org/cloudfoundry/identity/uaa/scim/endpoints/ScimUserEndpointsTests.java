@@ -1,8 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.unboundid.scim.sdk.AttributePath;
-import com.unboundid.scim.sdk.SCIMFilter;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -409,7 +406,8 @@ class ScimUserEndpointsTests {
 
     @Test
     void create_uaa_user_when_internal_user_management_is_disabled() {
-        assertThatThrownBy(() -> createUserWhenInternalUserManagementIsDisabled(OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(InternalUserManagementDisabledException.class));
+        assertThatThrownBy(() -> createUserWhenInternalUserManagementIsDisabled(OriginKeys.UAA))
+                .isInstanceOf(InternalUserManagementDisabledException.class);
     }
 
     @Test
@@ -429,8 +427,8 @@ class ScimUserEndpointsTests {
         verify(user, atLeastOnce()).setPassword(passwords.capture());
 
         //1. this method, 2. user scimUserEndpoints, 3. user provisioning
-        assertThat(passwords.getAllValues()).hasSize(3);
-        assertThat(passwords.getAllValues()).first().isEqualTo("bla bla");
+        assertThat(passwords.getAllValues()).hasSize(3)
+                .first().isEqualTo("bla bla");
         assertThat(passwords.getAllValues().get(1)).isEmpty();
     }
 
@@ -505,7 +503,8 @@ class ScimUserEndpointsTests {
 
     @Test
     void deleteIs_Not_Allowed_For_UAA_When_InternalUserManagement_Is_Disabled() {
-        assertThatThrownBy(() -> deleteWhenInternalUserManagementIsDisabled(OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(InternalUserManagementDisabledException.class));
+        assertThatThrownBy(() -> deleteWhenInternalUserManagementIsDisabled(OriginKeys.UAA))
+                .isInstanceOf(InternalUserManagementDisabledException.class);
     }
 
     @Test
@@ -525,7 +524,8 @@ class ScimUserEndpointsTests {
                         exGuyId,
                         Integer.toString(exGuyMeta.getVersion() + 1),
                         new MockHttpServletRequest(),
-                        new MockHttpServletResponse())).asInstanceOf(InstanceOfAssertFactories.throwable(OptimisticLockingFailureException.class));
+                        new MockHttpServletResponse()))
+                .isInstanceOf(OptimisticLockingFailureException.class);
     }
 
     @Test
@@ -578,9 +578,7 @@ class ScimUserEndpointsTests {
 
     @Test
     void findGroupsAndApprovals() {
-        String isJoelOrDaleFilter = SCIMFilter.createOrFilter(asList(
-                SCIMFilter.createEqualityFilter(AttributePath.parse("id"), joel.getId()),
-                SCIMFilter.createEqualityFilter(AttributePath.parse("id"), dale.getId()))).toString();
+        String isJoelOrDaleFilter = "id eq \"" + joel.getId() + "\" or id eq \"" + dale.getId() + "\"";
 
         SearchResults<?> results = scimUserEndpoints.findUsers("id,groups,approvals", isJoelOrDaleFilter, null, "ascending", 1, 100);
         assertThat(results.getTotalResults()).isEqualTo(2);
@@ -879,7 +877,8 @@ class ScimUserEndpointsTests {
 
     @Test
     void updateWhenInternalUserManagementIsDisabledForUaa() {
-        assertThatThrownBy(() -> updateWhenInternalUserManagementIsDisabled(OriginKeys.UAA)).asInstanceOf(InstanceOfAssertFactories.throwable(InternalUserManagementDisabledException.class));
+        assertThatThrownBy(() -> updateWhenInternalUserManagementIsDisabled(OriginKeys.UAA))
+                .isInstanceOf(InternalUserManagementDisabledException.class);
     }
 
     @Test
@@ -1008,7 +1007,8 @@ class ScimUserEndpointsTests {
                 "0",
                 new MockHttpServletRequest(),
                 new MockHttpServletResponse(),
-                null)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceNotFoundException.class));
+                null))
+            .isInstanceOf(ScimResourceNotFoundException.class);
     }
 
     @Test
@@ -1034,7 +1034,8 @@ class ScimUserEndpointsTests {
         user.addEmail("test@example.org");
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         createdUser.getMeta().setAttributes(new String[]{"attributeName"});
-        assertThatThrownBy(() -> scimUserEndpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse(), null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidScimResourceException.class));
+        assertThatThrownBy(() -> scimUserEndpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse(), null))
+                .isInstanceOf(InvalidScimResourceException.class);
     }
 
     @Test
@@ -1043,7 +1044,8 @@ class ScimUserEndpointsTests {
         user.setPassword("password");
         user.addEmail("test@example.org");
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
-        assertThatThrownBy(() -> scimUserEndpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion() + 1), new MockHttpServletRequest(), new MockHttpServletResponse(), null)).asInstanceOf(InstanceOfAssertFactories.throwable(ScimResourceConflictException.class));
+        assertThatThrownBy(() -> scimUserEndpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion() + 1), new MockHttpServletRequest(), new MockHttpServletResponse(), null))
+                .isInstanceOf(ScimResourceConflictException.class);
     }
 
     @Test
@@ -1066,7 +1068,8 @@ class ScimUserEndpointsTests {
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setLocked(true);
-        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
+        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -1077,7 +1080,8 @@ class ScimUserEndpointsTests {
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setPasswordChangeRequired(false);
-        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
+        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -1088,7 +1092,8 @@ class ScimUserEndpointsTests {
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setPasswordChangeRequired(true);
-        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId())).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
+        assertThatThrownBy(() -> scimUserEndpoints.updateAccountStatus(userAccountStatus, createdUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

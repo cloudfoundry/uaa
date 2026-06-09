@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import com.unboundid.scim.sdk.AttributePath;
-import com.unboundid.scim.sdk.InvalidResourceException;
-import com.unboundid.scim.sdk.SCIMException;
-import com.unboundid.scim.sdk.SCIMFilter;
+import com.unboundid.scim2.common.exceptions.BadRequestException;
+import com.unboundid.scim2.common.exceptions.ScimException;
+import com.unboundid.scim2.common.filters.Filter;
+import tools.jackson.databind.node.ValueNode;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.JoinAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
@@ -25,7 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static com.unboundid.scim.sdk.SCIMException.createException;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -33,6 +32,8 @@ import static org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.
 import static org.springframework.util.StringUtils.hasText;
 
 public class SimpleSearchQueryConverter implements SearchQueryConverter {
+
+    private static final int MAX_FILTER_DEPTH = 20;
 
     //LOWER
     private static final List<String> VALID_ATTRIBUTE_NAMES = List.of(
@@ -141,12 +142,10 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             final String zoneId) {
 
         try {
-            final SCIMFilter zoneIdFilter = SCIMFilter.createEqualityFilter(
-                    AttributePath.parse("identity_zone_id"),
-                    zoneId);
-            SCIMFilter fullFilter;
+            final Filter zoneIdFilter = Filter.eq("identity_zone_id", zoneId);
+            Filter fullFilter;
             if (hasText(filter)) {
-                fullFilter = SCIMFilter.createAndFilter(asList(scimFilter(filter), zoneIdFilter));
+                fullFilter = Filter.and(asList(scimFilter(filter), zoneIdFilter));
             } else {
                 fullFilter = zoneIdFilter;
             }
@@ -160,7 +159,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             }
 
             return whereClause;
-        } catch (SCIMException e) {
+        } catch (ScimException e) {
             logger.debug("Unable to parse {}", filter, e);
             throw new IllegalArgumentException("Invalid SCIM Filter: " + filter + "; Message: " + e.getMessage());
         }
@@ -169,100 +168,127 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     @Override
     public MultiValueMap<String, Object> getFilterValues(String filter, List<String> validAttributes) throws IllegalArgumentException {
         try {
-            SCIMFilter scimFilter = SCIMFilter.parse(filter);
+            Filter scimFilter = Filter.fromString(filter);
             validateFilterAttributes(scimFilter, validAttributes);
             MultiValueMap<String, Object> result = new LinkedMultiValueMap<>();
             extractValues(scimFilter, result);
             return result;
-        } catch (SCIMException x) {
+        } catch (ScimException x) {
             throw new IllegalArgumentException(x.getMessage());
         }
     }
 
-    private SCIMFilter scimFilter(String filter) throws SCIMException {
-        SCIMFilter scimFilter;
+    private Filter scimFilter(String filter) throws ScimException {
+        Filter scimFilter;
         try {
-            scimFilter = SCIMFilter.parse(filter);
-        } catch (SCIMException e) {
+            scimFilter = Filter.fromString(filter);
+        } catch (ScimException e) {
             logger.debug("Attempting legacy scim filter conversion for [{}]", filter, e);
-            filter = filter.replaceAll("'", "\"");
-            scimFilter = SCIMFilter.parse(filter);
+            filter = filter.replace("'", "\"");
+            scimFilter = Filter.fromString(filter);
         }
         validateFilterAttributes(scimFilter, VALID_ATTRIBUTE_NAMES);
         return scimFilter;
     }
 
-    private void validateFilterAttributes(SCIMFilter filter, List<String> validAttributeNames) throws SCIMException {
+    private void validateFilterAttributes(Filter filter, List<String> validAttributeNames) throws ScimException {
         List<String> invalidAttributes = new LinkedList<>();
-        validateFilterAttributes(filter, invalidAttributes, validAttributeNames);
+        validateFilterAttributes(filter, invalidAttributes, validAttributeNames, 0);
         if (!invalidAttributes.isEmpty()) {
-            throw new InvalidResourceException("Invalid filter attributes:" + StringUtils.collectionToCommaDelimitedString(invalidAttributes));
+            throw new BadRequestException("Invalid filter attributes:" + StringUtils.collectionToCommaDelimitedString(invalidAttributes));
         }
     }
 
-    private void validateFilterAttributes(SCIMFilter filter, List<String> invalidAttribues, List<String> validAttributeNames) {
-        if (filter.getFilterAttribute() != null && filter.getFilterAttribute().getAttributeName() != null) {
-            String name = filter.getFilterAttribute().getAttributeName();
-            if (filter.getFilterAttribute().getSubAttributeName() != null) {
-                name = name + "." + filter.getFilterAttribute().getSubAttributeName();
-            }
+    private void validateFilterAttributes(Filter filter, List<String> invalidAttribues, List<String> validAttributeNames, int depth) {
+        if (depth > MAX_FILTER_DEPTH) {
+            throw new IllegalArgumentException("Filter too deeply nested");
+        }
+        if (filter.getAttributePath() != null) {
+            String name = filter.getAttributePath().toString();
             if (!validAttributeNames.contains(name.toLowerCase())) {
                 invalidAttribues.add(name);
             }
         }
-        for (SCIMFilter subfilter : ofNullable(filter.getFilterComponents()).orElse(emptyList())) {
-            validateFilterAttributes(subfilter, invalidAttribues, validAttributeNames);
+        for (Filter subfilter : ofNullable(filter.getCombinedFilters()).orElse(emptyList())) {
+            validateFilterAttributes(subfilter, invalidAttribues, validAttributeNames, depth + 1);
         }
     }
 
-    private void extractValues(SCIMFilter filter, MultiValueMap<String, Object> values) throws SCIMException {
+    private void extractValues(Filter filter, MultiValueMap<String, Object> values) throws ScimException {
+        extractValues(filter, values, 0);
+    }
+
+    private void extractValues(Filter filter, MultiValueMap<String, Object> values, int depth) throws ScimException {
+        if (depth > MAX_FILTER_DEPTH) {
+            throw new BadRequestException("Filter too deeply nested");
+        }
         switch (filter.getFilterType()) {
             case AND:
-                extractValues(filter.getFilterComponents().getFirst(), values);
-                extractValues(filter.getFilterComponents().get(1), values);
+                for (Filter component : filter.getCombinedFilters()) {
+                    extractValues(component, values, depth + 1);
+                }
                 break;
             case OR:
-                throw createException(400, "[or] operator is not supported.");
-            case EQUALITY:
-                Object value = getStringOrDate(filter.getFilterValue());
-                String key = filter.getFilterAttribute().getAttributeName();
+                throw new BadRequestException("[or] operator is not supported.");
+            case EQUAL:
+                Object value = getStringOrDate(filter.getComparisonValue().asString());
+                String key = filter.getAttributePath().toString();
                 values.add(key, value);
                 break;
             case CONTAINS:
-                throw createException(400, "[co] operator is not supported.");
+                throw new BadRequestException("[co] operator is not supported.");
             case STARTS_WITH:
-                throw createException(400, "[sw] operator is not supported.");
-            case PRESENCE:
-                throw createException(400, "[pr] operator is not supported.");
+                throw new BadRequestException("[sw] operator is not supported.");
+            case PRESENT:
+                throw new BadRequestException("[pr] operator is not supported.");
             case GREATER_THAN:
-                throw createException(400, "[gt] operator is not supported.");
+                throw new BadRequestException("[gt] operator is not supported.");
             case GREATER_OR_EQUAL:
-                throw createException(400, "[ge] operator is not supported.");
+                throw new BadRequestException("[ge] operator is not supported.");
             case LESS_THAN:
-                throw createException(400, "[lt] operator is not supported.");
+                throw new BadRequestException("[lt] operator is not supported.");
             case LESS_OR_EQUAL:
-                throw createException(400, "[le] operator is not supported.");
+                throw new BadRequestException("[le] operator is not supported.");
             default:
-                throw createException(400, "Unknown filter operator:" + filter.getFilterType());
+                throw new BadRequestException("Unknown filter operator:" + filter.getFilterType());
         }
     }
 
-    private String whereClauseFromFilter(SCIMFilter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
+    private String buildCombiningClause(Filter filter, String operator, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix, int depth) {
+        StringBuilder sb = new StringBuilder("(");
+        List<Filter> components = filter.getCombinedFilters();
+        sb.append(whereClauseFromFilter(components.getFirst(), values, mapper, paramPrefix, depth + 1));
+        for (int i = 1; i < components.size(); i++) {
+            sb.append(operator).append(whereClauseFromFilter(components.get(i), values, mapper, paramPrefix, depth + 1));
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
+    private String whereClauseFromFilter(Filter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
+        return whereClauseFromFilter(filter, values, mapper, paramPrefix, 0);
+    }
+
+    private String whereClauseFromFilter(Filter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix, int depth) {
+        if (depth > MAX_FILTER_DEPTH) {
+            throw new IllegalArgumentException("Filter too deeply nested");
+        }
         return switch (filter.getFilterType()) {
-            case AND -> "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " AND " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
-            case OR -> "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " OR " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
-            case EQUALITY -> comparisonClause(filter, "=", values, "", "", paramPrefix);
+            case AND -> buildCombiningClause(filter, " AND ", values, mapper, paramPrefix, depth);
+            case OR -> buildCombiningClause(filter, " OR ", values, mapper, paramPrefix, depth);
+            case EQUAL -> comparisonClause(filter, "=", values, "", "", paramPrefix);
             case CONTAINS -> comparisonClause(filter, "LIKE", values, "%", "%", paramPrefix);
             case STARTS_WITH -> comparisonClause(filter, "LIKE", values, "", "%", paramPrefix);
-            case PRESENCE -> getAttributeName(filter, mapper) + " IS NOT NULL";
+            case PRESENT -> getAttributeName(filter, mapper) + " IS NOT NULL";
             case GREATER_THAN -> comparisonClause(filter, ">", values, "", "", paramPrefix);
             case GREATER_OR_EQUAL -> comparisonClause(filter, ">=", values, "", "", paramPrefix);
             case LESS_THAN -> comparisonClause(filter, "<", values, "", "", paramPrefix);
             case LESS_OR_EQUAL -> comparisonClause(filter, "<=", values, "", "", paramPrefix);
+            default -> throw new IllegalArgumentException("Unsupported filter type: " + filter.getFilterType());
         };
     }
 
-    private String comparisonClause(SCIMFilter filter,
+    private String comparisonClause(Filter filter,
             String comparator,
             Map<String, Object> values,
             String valuePrefix,
@@ -270,13 +296,14 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             String paramPrefix) {
         String pName = getParamName(values, paramPrefix);
         String paramName = ":" + pName;
-        if (filter.getFilterValue() == null) {
+        ValueNode compValue = filter.getComparisonValue();
+        if (compValue == null || compValue.isNull()) {
             return getAttributeName(filter, mapper) + " IS NULL";
-        } else if (filter.isQuoteFilterValue()) {
-            Object value = getStringOrDate(filter.getFilterValue());
+        } else if (compValue.isString()) {
+            Object value = getStringOrDate(compValue.asString());
             if (value instanceof String) {
                 //lower is used to satisfy the requirement that all quoted values are compared case insensitive
-                switch (filter.getFilterAttribute().getAttributeName().toLowerCase()) {
+                switch (filter.getAttributePath().toString().toLowerCase()) {
                     case "client_secret":
                     case "password":
                     case "salt":
@@ -287,7 +314,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
                 }
                 values.put(pName, valuePrefix + value + valueSuffix);
                 if (isDbCaseInsensitive()) {
-                    return "" + getAttributeName(filter, mapper) + " " + comparator + " " + paramName + "";
+                    return getAttributeName(filter, mapper) + " " + comparator + " " + paramName;
                 } else {
                     return "LOWER(" + getAttributeName(filter, mapper) + ") " + comparator + " LOWER(" + paramName + ")";
                 }
@@ -295,29 +322,20 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
                 values.put(pName, value);
                 return getAttributeName(filter, mapper) + " " + comparator + " " + paramName;
             }
-        } else {
-            try {
-                values.put(pName, Double.parseDouble(filter.getFilterValue()));
-            } catch (NumberFormatException _) {
-                if ("true".equalsIgnoreCase(filter.getFilterValue())) {
-                    values.put(pName, Boolean.TRUE);
-                } else if ("false".equalsIgnoreCase(filter.getFilterValue())) {
-                    values.put(pName, Boolean.FALSE);
-                } else {
-                    throw new IllegalArgumentException("Invalid non quoted value [" + filter.getFilterAttribute() +
-                            " : " + filter.getFilterValue() + "]");
-                }
-            }
+        } else if (compValue.isBoolean()) {
+            values.put(pName, compValue.booleanValue());
             return getAttributeName(filter, mapper) + " " + comparator + " " + paramName;
+        } else if (compValue.isNumber()) {
+            values.put(pName, compValue.doubleValue());
+            return getAttributeName(filter, mapper) + " " + comparator + " " + paramName;
+        } else {
+            throw new IllegalArgumentException("Invalid non-quoted value [" + filter.getAttributePath() +
+                    " : " + compValue + "]");
         }
     }
 
-    private String getAttributeName(SCIMFilter filter, AttributeNameMapper mapper) {
-        String name = filter.getFilterAttribute().getAttributeName();
-        String subName = filter.getFilterAttribute().getSubAttributeName();
-        if (hasText(subName)) {
-            name = name + "." + subName;
-        }
+    private String getAttributeName(Filter filter, AttributeNameMapper mapper) {
+        String name = filter.getAttributePath().toString();
         name = mapper.mapToInternal(name);
         return name.replace("meta.", "");
     }

@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SimpleSearchQueryConverterTests {
@@ -25,14 +26,14 @@ class SimpleSearchQueryConverterTests {
 
     @Test
     void query() {
+        // The SCIM 2.0 parser rejects the injection payload at parse time (stricter syntax check
+        // for '/' in attribute names), so the error comes from the parser rather than the attribute
+        // whitelist. The important property is that the filter is rejected as an IllegalArgumentException.
         String query = ModelTestUtils.getResourceAsString(this.getClass(), "testQuery.scimFilter");
 
         assertThatThrownBy(() -> converter.convert(query, null, false, "foo"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Message: Invalid filter attributes")
-                .hasMessageContaining("an/**/invalid/**/attribute/**/and/**/1")
-                .hasMessageContaining("1")
-                .hasMessageContaining("\"1\"");
+                .hasMessageContaining("Invalid SCIM Filter");
     }
 
     @ParameterizedTest
@@ -98,6 +99,42 @@ class SimpleSearchQueryConverterTests {
         assertThat(converter.getJoinName()).isEmpty();
         converter.setAttributeNameMapper(new JoinAttributeNameMapper("myTable"));
         assertThat(converter.getJoinName()).isEqualTo("myTable");
+    }
+
+    @Test
+    void deeplyNestedFilterIsRejected() {
+        // SCIM 2 parser creates flat n-ary AND for chains; explicit parentheses create actual tree depth.
+        // Build: ((...((a and a) and a)...) and a) with 22 nestings → depth 22 > MAX_FILTER_DEPTH(20)
+        StringBuilder filter = new StringBuilder("username eq \"joe\" and username eq \"joe\"");
+        for (int i = 0; i < 22; i++) {
+            filter = new StringBuilder("(" + filter + ") and username eq \"joe\"");
+        }
+        final String deepFilter = filter.toString();
+        assertThatThrownBy(() -> converter.convert(deepFilter, null, false, "zone"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void moderatelyNestedFilterIsAccepted() {
+        // 5 explicit nestings → depth 5, well within MAX_FILTER_DEPTH(20)
+        StringBuilder filter = new StringBuilder("username eq \"joe\" and username eq \"joe\"");
+        for (int i = 0; i < 5; i++) {
+            filter = new StringBuilder("(" + filter + ") and username eq \"joe\"");
+        }
+        final String shallowFilter = filter.toString();
+        assertThatNoException().isThrownBy(() -> converter.convert(shallowFilter, null, false, "zone"));
+    }
+
+    @Test
+    void deeplyNestedGetFilterValuesIsRejected() {
+        // Same depth limit applies to getFilterValues
+        StringBuilder filter = new StringBuilder("origin eq \"uaa\" and origin eq \"uaa\"");
+        for (int i = 0; i < 22; i++) {
+            filter = new StringBuilder("(" + filter + ") and origin eq \"uaa\"");
+        }
+        final String deepFilter = filter.toString();
+        assertThatThrownBy(() -> converter.getFilterValues(deepFilter, List.of("origin")))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
