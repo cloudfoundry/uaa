@@ -105,12 +105,7 @@ dependencies {
     testImplementation(libs.orgJson)
     testImplementation(libs.jsonAssert)
     testImplementation(libs.jsonPathAssert)
-    testImplementation(libs.unboundIdScimSdk) {
-        exclude(module = "servlet-api")
-        exclude(module = "commons-logging")
-        exclude(module = "httpclient")
-        exclude(module = "wink-client-apache-httpclient")
-    }
+    testImplementation(libs.scim2SdkCommon)
     testImplementation(libs.springBootStarterLog4j2)
     testImplementation(libs.springContextSupport)
     testImplementation(libs.springSessionJdbc)

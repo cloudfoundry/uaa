@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
 import tools.jackson.core.type.TypeReference;
-import com.unboundid.scim.sdk.AttributePath;
-import com.unboundid.scim.sdk.SCIMFilter;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -358,6 +356,7 @@ class ApprovalsAdminEndpointsTests {
     }
 
     private static String userIdFilter(String userId) {
-        return SCIMFilter.createEqualityFilter(AttributePath.parse("user_id"), userId).getFilterValue();
+        // getApprovals ignores the filter param; return userId as a passthrough value
+        return userId;
     }
 }

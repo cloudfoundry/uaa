@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.unboundid.scim.sdk.AttributePath;
-import com.unboundid.scim.sdk.SCIMFilter;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
@@ -578,9 +576,7 @@ class ScimUserEndpointsTests {
 
     @Test
     void findGroupsAndApprovals() {
-        String isJoelOrDaleFilter = SCIMFilter.createOrFilter(asList(
-                SCIMFilter.createEqualityFilter(AttributePath.parse("id"), joel.getId()),
-                SCIMFilter.createEqualityFilter(AttributePath.parse("id"), dale.getId()))).toString();
+        String isJoelOrDaleFilter = "id eq \"" + joel.getId() + "\" or id eq \"" + dale.getId() + "\"";
 
         SearchResults<?> results = scimUserEndpoints.findUsers("id,groups,approvals", isJoelOrDaleFilter, null, "ascending", 1, 100);
         assertThat(results.getTotalResults()).isEqualTo(2);

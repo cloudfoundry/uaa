@@ -32,8 +32,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
-import com.unboundid.scim.sdk.SCIMException;
-import com.unboundid.scim.sdk.SCIMFilter;
+import com.unboundid.scim2.common.exceptions.BadRequestException;
+import com.unboundid.scim2.common.filters.Filter;
+import com.unboundid.scim2.common.filters.FilterType;
 
 @Controller
 public class UserIdConversionEndpoints implements InitializingBean {
@@ -142,13 +143,13 @@ public class UserIdConversionEndpoints implements InitializingBean {
         if (filter.isEmpty()) {
             throw new ScimException("a 'filter' parameter is required", HttpStatus.BAD_REQUEST);
         }
-        SCIMFilter scimFilter;
+        Filter scimFilter;
         try {
-            scimFilter = SCIMFilter.parse(filter);
+            scimFilter = Filter.fromString(filter);
             if (!containsIdOrUserNameClause(scimFilter, 0)) {
                 throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
             }
-        } catch (SCIMException e) {
+        } catch (BadRequestException e) {
             logger.debug("/ids/Users received an invalid filter [{}]", filter, e);
             throw new ScimException("Invalid filter '" + HtmlUtils.htmlEscape(filter) + "'", HttpStatus.BAD_REQUEST);
         }
@@ -157,17 +158,23 @@ public class UserIdConversionEndpoints implements InitializingBean {
     /**
      * Check if the given SCIM filter contains at least one clause involving either the "id" or "userName" property.
      */
-    private boolean containsIdOrUserNameClause(SCIMFilter filter, int depth) {
+    private boolean containsIdOrUserNameClause(Filter filter, int depth) {
         if (depth > MAX_FILTER_DEPTH) {
             throw new ScimException("Filter too deeply nested", HttpStatus.BAD_REQUEST);
         }
         switch (filter.getFilterType()) {
             case AND, OR:
-                // one of the operands must contain a comparison with the "id" or "userName" property
-                final boolean resultLeftOperand = containsIdOrUserNameClause(filter.getFilterComponents().getFirst(), depth + 1);
-                return containsIdOrUserNameClause(filter.getFilterComponents().get(1), depth + 1) || resultLeftOperand;
-            case EQUALITY:
-                String name = filter.getFilterAttribute().getAttributeName();
+                // at least one operand must contain a comparison with the "id" or "userName" property;
+                // iterate all components to validate each one (may throw for invalid operators)
+                boolean foundIdOrUserName = false;
+                for (Filter component : filter.getCombinedFilters()) {
+                    if (containsIdOrUserNameClause(component, depth + 1)) {
+                        foundIdOrUserName = true;
+                    }
+                }
+                return foundIdOrUserName;
+            case EQUAL:
+                String name = filter.getAttributePath().toString();
                 if (FIELD_ID.equalsIgnoreCase(name) ||
                         FIELD_USERNAME.equalsIgnoreCase(name)) {
                     return true;
@@ -176,12 +183,13 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 } else {
                     throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
                 }
-            case PRESENCE, STARTS_WITH, CONTAINS:
+            case PRESENT, STARTS_WITH, CONTAINS:
                 throw new ScimException("Wildcards are not allowed in filter.", HttpStatus.BAD_REQUEST);
             case GREATER_THAN, GREATER_OR_EQUAL, LESS_THAN, LESS_OR_EQUAL:
                 throw new ScimException("Invalid operator.", HttpStatus.BAD_REQUEST);
+            default:
+                throw new ScimException("Unsupported filter type.", HttpStatus.BAD_REQUEST);
         }
-        return false;
     }
 
     @Override

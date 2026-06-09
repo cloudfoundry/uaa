@@ -26,7 +26,7 @@ springDependencyManagement = "1.1.7"
 springDocOpenapi = "3.0.3"
 statsdClient = "3.1.0"
 tomcat = "11.0.22"
-unboundIdScimSdk = "2.0.0"
+scim2Sdk = "6.0.0"
 velocity = "2.4.1"
 xmlSecurity = "4.0.4"
 
@@ -204,7 +204,7 @@ thymeleafSpring = { module = "org.thymeleaf:thymeleaf-spring6" }
 
 # UnboundID
 unboundIdLdapSdk = { module = "com.unboundid:unboundid-ldapsdk" }
-unboundIdScimSdk = { module = "com.unboundid.product.scim:scim-sdk", version.ref = "unboundIdScimSdk" }
+scim2SdkCommon = { module = "com.unboundid.product.scim2:scim2-sdk-common", version.ref = "scim2Sdk" }
 
 # XMLUnit
 xmlUnit = { module = "org.xmlunit:xmlunit-assertj" }
