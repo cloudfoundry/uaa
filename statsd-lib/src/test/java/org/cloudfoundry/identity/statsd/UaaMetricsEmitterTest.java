@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.statsd;
 
-import com.timgroup.statsd.ConvenienceMethodProvidingStatsDClient;
 import com.timgroup.statsd.StatsDClient;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +66,7 @@ class UaaMetricsEmitterTest {
         emitter = new NotificationBroadcasterSupport();
         when(metricsUtils.getUaaMetricsSubscriber(any())).thenReturn(emitter);
 
-        statsDClient = mock(ConvenienceMethodProvidingStatsDClient.class);
+        statsDClient = mock(StatsDClient.class);
         uaaMetricsEmitter = new UaaMetricsEmitter(metricsUtils, statsDClient, server);
 
         mBeanMap1 = new MBeanMap();

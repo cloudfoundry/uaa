@@ -24,7 +24,7 @@ sonarqube = "7.3.1.8318"
 springBoot = "4.0.6"
 springDependencyManagement = "1.1.7"
 springDocOpenapi = "3.0.3"
-statsdClient = "3.1.0"
+statsdClient = "4.4.5"
 tomcat = "11.0.22"
 scim2Sdk = "6.0.0"
 velocity = "2.4.1"
@@ -194,7 +194,7 @@ springSecurityWeb = { module = "org.springframework.security:spring-security-web
 springSessionJdbc = { module = "org.springframework.session:spring-session-jdbc" }
 
 # StatsD
-statsdClient = { module = "com.timgroup:java-statsd-client", version.ref = "statsdClient" }
+statsdClient = { module = "com.datadoghq:java-dogstatsd-client", version.ref = "statsdClient" }
 
 # Thymeleaf
 thymeLeaf = { module = "org.thymeleaf:thymeleaf" }
