@@ -7,10 +7,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.saml2.core.Saml2Error;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
+import org.springframework.security.saml2.core.Saml2ParameterNames;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutResponse;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutResponseValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutResponseValidatorParameters;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutValidatorResult;
+import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
+import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
+import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
+
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
 
 import java.util.Collections;
 
@@ -26,43 +34,68 @@ class SamlLogoutResponseValidatorTest {
 
     @Mock
     private Saml2LogoutResponseValidator delegate;
+    @Mock
+    private Saml2LogoutResponseValidatorParameters parameters;
+    @Mock
+    private Saml2LogoutResponse logoutResponse;
+
     private SamlLogoutResponseValidator validator;
 
     @BeforeEach
     void setUp() {
         validator = new SamlLogoutResponseValidator(delegate);
+        // Simulate a signed response so tests exercise the delegate path
+        when(parameters.getLogoutResponse()).thenReturn(logoutResponse);
+        when(logoutResponse.getParameters()).thenReturn(Map.of(Saml2ParameterNames.SIG_ALG, "rsa-sha256"));
     }
 
     @Test
     void validatePassesThruSuccess() {
-        Saml2LogoutValidatorResult success = Saml2LogoutValidatorResult.success();
-        when(delegate.validate(any())).thenReturn(success);
-        Saml2LogoutValidatorResult result = validator.validate(null);
-        assertThat(result.hasErrors()).isFalse();
+        when(delegate.validate(any())).thenReturn(Saml2LogoutValidatorResult.success());
+        assertThat(validator.validate(parameters).hasErrors()).isFalse();
     }
 
     @Test
     void validateRemovesMissingSignatureErrors() {
         Saml2Error signatureError = new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE, "Missing signature for object");
         when(delegate.validate(any())).thenReturn(Saml2LogoutValidatorResult.withErrors(signatureError).build());
-        Saml2LogoutValidatorResult result = validator.validate(null);
-        assertThat(result.hasErrors()).isFalse();
+        assertThat(validator.validate(parameters).hasErrors()).isFalse();
     }
 
     @Test
     void validateDifferentErrorIsPassedThru() {
-        Saml2Error signatureError = new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE, "Failed to match issuer to configured issuer");
-        when(delegate.validate(any())).thenReturn(Saml2LogoutValidatorResult.withErrors(signatureError).build());
-        Saml2LogoutValidatorResult result = validator.validate(null);
-        assertThat(result.hasErrors()).isTrue();
+        Saml2Error otherError = new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE, "Failed to match issuer to configured issuer");
+        when(delegate.validate(any())).thenReturn(Saml2LogoutValidatorResult.withErrors(otherError).build());
+        assertThat(validator.validate(parameters).hasErrors()).isTrue();
     }
 
     @Test
-    void unsignedResponseSucceedsWithoutCallingDelegate() {
-        Saml2LogoutResponse logoutResponse = mock(Saml2LogoutResponse.class);
-        when(logoutResponse.getParameters()).thenReturn(Collections.emptyMap());
-        Saml2LogoutResponseValidatorParameters parameters = mock(Saml2LogoutResponseValidatorParameters.class);
-        when(parameters.getLogoutResponse()).thenReturn(logoutResponse);
+    void unsignedResponseBypassesDelegateAndValidatesIssuerDestinationAndStatus() {
+        String destination = "http://sp.example.com/saml/SingleLogout";
+        String issuer = "http://idp.example.com";
+        String xml = """
+                <samlp:LogoutResponse
+                    xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
+                    xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
+                    Destination="%s">
+                  <saml:Issuer>%s</saml:Issuer>
+                  <samlp:Status>
+                    <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
+                  </samlp:Status>
+                </samlp:LogoutResponse>
+                """.formatted(destination, issuer);
+
+        when(logoutResponse.getParameters()).thenReturn(Collections.emptyMap()); // no SigAlg
+        when(logoutResponse.getSamlResponse())
+                .thenReturn(Base64.getEncoder().encodeToString(xml.getBytes()));
+        when(logoutResponse.getBinding()).thenReturn(Saml2MessageBinding.POST);
+
+        AssertingPartyMetadata party = mock(AssertingPartyMetadata.class);
+        when(party.getEntityId()).thenReturn(issuer);
+        RelyingPartyRegistration reg = mock(RelyingPartyRegistration.class);
+        when(reg.getAssertingPartyMetadata()).thenReturn(party);
+        when(reg.getSingleLogoutServiceResponseLocation()).thenReturn(destination);
+        when(parameters.getRelyingPartyRegistration()).thenReturn(reg);
 
         Saml2LogoutValidatorResult result = validator.validate(parameters);
 
