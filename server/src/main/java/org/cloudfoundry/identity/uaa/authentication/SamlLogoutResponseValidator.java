@@ -29,9 +29,9 @@ public class SamlLogoutResponseValidator implements Saml2LogoutResponseValidator
     @Override
     public Saml2LogoutValidatorResult validate(Saml2LogoutResponseValidatorParameters parameters) {
         // Spring Security 7.1.0 throws NPE in RedirectParameters when SigAlg is absent (unsigned
-        // redirect-binding logout response). Treat absence of a signature as acceptable — consistent
+        // redirect-binding logout response). Treat the absence of a signature as acceptable — consistent
         // with this validator's policy of not requiring signatures on logout messages.
-        if (parameters.getLogoutResponse().getParameters().get(Saml2ParameterNames.SIG_ALG) == null) {
+        if (parameters != null && parameters.getLogoutResponse().getParameters().get(Saml2ParameterNames.SIG_ALG) == null) {
             return Saml2LogoutValidatorResult.success();
         }
 
