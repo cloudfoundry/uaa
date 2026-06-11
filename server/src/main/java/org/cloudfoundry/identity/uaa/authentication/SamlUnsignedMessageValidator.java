@@ -76,12 +76,12 @@ final class SamlUnsignedMessageValidator {
 
         String xml = decodeSaml(encodedSaml, binding);
         if (xml == null) {
-            return failure(Saml2ErrorCodes.MALFORMED_RESPONSE_DATA, "Failed to decode LogoutRequest");
+            return failure(Saml2ErrorCodes.MALFORMED_REQUEST_DATA, "Failed to decode LogoutRequest");
         }
 
         Document doc = parseXml(xml);
         if (doc == null) {
-            return failure(Saml2ErrorCodes.MALFORMED_RESPONSE_DATA, "Failed to parse LogoutRequest XML");
+            return failure(Saml2ErrorCodes.MALFORMED_REQUEST_DATA, "Failed to parse LogoutRequest XML");
         }
 
         List<Saml2Error> errors = new ArrayList<>();

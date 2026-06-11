@@ -85,8 +85,15 @@ class SamlAuthenticationMockMvcTests {
     private JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
 
     private static String extractSamlRequestFromPostForm(String html) {
-        int nameIdx = html.indexOf("name=\"SAMLRequest\"");
-        int valueStart = html.indexOf("value=\"", nameIdx) + "value=\"".length();
+        int nameIdx = html.indexOf("name=\"" + SAML_REQUEST + "\"");
+        if (nameIdx < 0) {
+            throw new IllegalArgumentException("SAMLRequest field not found in HTML form");
+        }
+        int valueStart = html.indexOf("value=\"", nameIdx);
+        if (valueStart < 0) {
+            throw new IllegalArgumentException("value attribute not found after SAMLRequest name");
+        }
+        valueStart += "value=\"".length();
         return html.substring(valueStart, html.indexOf("\"", valueStart));
     }
 
