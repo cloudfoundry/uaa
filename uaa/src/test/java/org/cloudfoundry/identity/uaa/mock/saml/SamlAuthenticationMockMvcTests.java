@@ -84,6 +84,12 @@ class SamlAuthenticationMockMvcTests {
 
     private JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
 
+    private static String extractSamlRequestFromPostForm(String html) {
+        int nameIdx = html.indexOf("name=\"SAMLRequest\"");
+        int valueStart = html.indexOf("value=\"", nameIdx) + "value=\"".length();
+        return html.substring(valueStart, html.indexOf("\"", valueStart));
+    }
+
     private static void createUser(
             JdbcScimUserProvisioning jdbcScimUserProvisioning,
             IdentityZone identityZone
@@ -150,8 +156,6 @@ class SamlAuthenticationMockMvcTests {
 
     @Test
     void sendAuthnRequestToIdpPostBindingMode() throws Exception {
-        final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
-
         MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
                         .contextPath("/uaa")
                         .header(HOST, "localhost:8080")
@@ -163,10 +167,7 @@ class SamlAuthenticationMockMvcTests {
                 .andReturn();
 
         // Decode the SAMLRequest and check the AssertionConsumerServiceURL
-        String contentHtml = mvcResult.getResponse().getContentAsString();
-        contentHtml = contentHtml.substring(contentHtml.indexOf(samlRequestMatch) + samlRequestMatch.length());
-        contentHtml = contentHtml.substring(0, contentHtml.indexOf("\""));
-        String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
+        String samlRequestXml = new String(samlDecode(extractSamlRequestFromPostForm(mvcResult.getResponse().getContentAsString())), StandardCharsets.UTF_8);
         assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
 
         // In the post-binding, Signature is part of the SAML AuthnRequest
@@ -271,8 +272,6 @@ class SamlAuthenticationMockMvcTests {
             // create IDP in non-default zone
             createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-post-binding.xml", "testsaml-post-binding");
 
-            final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
-
             MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
                             .contextPath("/uaa")
                             .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
@@ -284,10 +283,7 @@ class SamlAuthenticationMockMvcTests {
                     .andReturn();
 
             // Decode the SAMLRequest and check the AssertionConsumerServiceURL
-            String contentHtml = mvcResult.getResponse().getContentAsString();
-            contentHtml = contentHtml.substring(contentHtml.indexOf(samlRequestMatch) + samlRequestMatch.length());
-            contentHtml = contentHtml.substring(0, contentHtml.indexOf("\""));
-            String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
+            String samlRequestXml = new String(samlDecode(extractSamlRequestFromPostForm(mvcResult.getResponse().getContentAsString())), StandardCharsets.UTF_8);
             assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
 
             XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
@@ -419,8 +415,6 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void unsignedAuthnRequestViaIdpPostBindingMode() throws Exception {
-            final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
-
             MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
                             .contextPath("/uaa")
                             .header(HOST, "localhost:8080")
@@ -432,10 +426,7 @@ class SamlAuthenticationMockMvcTests {
                     .andReturn();
 
             // Decode the SAMLRequest and check the AssertionConsumerServiceURL
-            String contentHtml = mvcResult.getResponse().getContentAsString();
-            contentHtml = contentHtml.substring(contentHtml.indexOf(samlRequestMatch) + samlRequestMatch.length());
-            contentHtml = contentHtml.substring(0, contentHtml.indexOf("\""));
-            String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
+            String samlRequestXml = new String(samlDecode(extractSamlRequestFromPostForm(mvcResult.getResponse().getContentAsString())), StandardCharsets.UTF_8);
             assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
 
             // In the post-binding, Signature is part of the SAML AuthnRequest

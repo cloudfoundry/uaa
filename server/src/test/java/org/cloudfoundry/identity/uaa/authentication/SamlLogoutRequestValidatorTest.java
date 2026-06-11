@@ -7,11 +7,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.saml2.core.Saml2Error;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
+import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequest;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequestValidator;
+import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequestValidatorParameters;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutValidatorResult;
+
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,5 +55,18 @@ class SamlLogoutRequestValidatorTest {
         when(delegate.validate(any())).thenReturn(Saml2LogoutValidatorResult.withErrors(signatureError).build());
         Saml2LogoutValidatorResult result = validator.validate(null);
         assertThat(result.hasErrors()).isTrue();
+    }
+
+    @Test
+    void unsignedRequestSucceedsWithoutCallingDelegate() {
+        Saml2LogoutRequest logoutRequest = mock(Saml2LogoutRequest.class);
+        when(logoutRequest.getParameters()).thenReturn(Collections.emptyMap());
+        Saml2LogoutRequestValidatorParameters parameters = mock(Saml2LogoutRequestValidatorParameters.class);
+        when(parameters.getLogoutRequest()).thenReturn(logoutRequest);
+
+        Saml2LogoutValidatorResult result = validator.validate(parameters);
+
+        assertThat(result.hasErrors()).isFalse();
+        verify(delegate, never()).validate(any());
     }
 }
