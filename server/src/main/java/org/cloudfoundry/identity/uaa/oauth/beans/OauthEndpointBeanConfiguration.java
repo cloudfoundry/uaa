@@ -729,6 +729,7 @@ public class OauthEndpointBeanConfiguration {
     }
 
     @Bean("refreshTokenValidityResolver")
+    @ConditionalOnMissingBean(name = "refreshTokenValidityResolver")
     TokenValidityResolver refreshTokenValidityResolver(
             @Qualifier("clientRefreshTokenValidity") ClientTokenValidity clientRefreshTokenValidity,
             @Value("${jwt.token.policy.global.refreshTokenValiditySeconds:2592000}") int globalTokenValiditySeconds

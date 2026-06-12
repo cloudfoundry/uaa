@@ -54,7 +54,7 @@ public class RefreshTokenCreator {
 
         Map<String, String> additionalAuthorizationAttributes = new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(tokenRequestData.authorities);
 
-        Date expirationDate = refreshTokenValidityResolver.resolve(tokenRequestData.clientId);
+        Date expirationDate = refreshTokenValidityResolver.resolve(tokenRequestData.clientId, tokenRequestData);
         String tokenId = UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX;
 
         String jwtToken = buildJwtToken(user,

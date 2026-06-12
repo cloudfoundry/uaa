@@ -38,6 +38,8 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_TOKEN_EXCHANGE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +49,7 @@ class RefreshTokenCreatorTest {
     @BeforeEach
     void setup() throws Exception {
         TokenValidityResolver validityResolver = mock(TokenValidityResolver.class);
-        when(validityResolver.resolve("someclient")).thenReturn(new Date());
+        when(validityResolver.resolve(eq("someclient"), any())).thenReturn(new Date());
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost");
         refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, new TimeServiceImpl(), new KeyInfoService("http://localhost"));
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
