@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -17,9 +18,11 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -79,8 +82,11 @@ import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -1199,5 +1205,68 @@ class ScimUserBootstrapTests {
         // Deletion should succeed without 422
         assertThatCode(() -> jdbcScimGroupMembershipManager.removeMembersByMemberId(user.getId(), IdentityZone.getUaaZoneId()))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    void newUserAuthenticatedEventWhenConcurrentInsertAndOverrideTrueThenUpdatesExistingUser() {
+        UaaUser user = new UaaUser("concurrent-user", "password", "concurrent@test.org", "Updated", "User");
+        ScimUser concurrentUser = new ScimUser("existing-id", user.getUsername(), "Original", user.getFamilyName());
+        concurrentUser.setOrigin(OriginKeys.UAA);
+        concurrentUser.setZoneId(IdentityZone.getUaaZoneId());
+
+        // Simulate the create path losing a race to another request.
+        ScimUserProvisioning provisioning = mock(ScimUserProvisioning.class);
+        when(provisioning.createUser(any(), any(), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
+
+        ScimUserBootstrap bootstrap = spy(new ScimUserBootstrap(
+                provisioning,
+                scimUserService,
+                jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager,
+                identityZoneManager,
+                Collections.emptyList(),
+                true,
+                Collections.emptyList(),
+                false
+        ));
+
+        doReturn(null, concurrentUser).when(bootstrap).getScimUser(user);
+        doNothing().when(bootstrap).updateUser(concurrentUser, user);
+
+        bootstrap.onApplicationEvent(new NewUserAuthenticatedEvent(user));
+
+        verify(provisioning).createUser(any(), eq(user.getPassword()), eq(IdentityZone.getUaaZoneId()));
+        verify(bootstrap).updateUser(concurrentUser, user);
+    }
+
+    @Test
+    void newUserAuthenticatedEventWhenConcurrentInsertAndOverrideFalseThenDoesNotUpdateExistingUser() {
+        UaaUser user = new UaaUser("concurrent-user-no-override", "password", "concurrent@test.org", "Updated", "User");
+        ScimUser concurrentUser = new ScimUser("existing-id", user.getUsername(), "Original", user.getFamilyName());
+        concurrentUser.setOrigin(OriginKeys.UAA);
+        concurrentUser.setZoneId(IdentityZone.getUaaZoneId());
+
+        // Simulate the create path losing a race to another request.
+        ScimUserProvisioning provisioning = mock(ScimUserProvisioning.class);
+        when(provisioning.createUser(any(), any(), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
+
+        ScimUserBootstrap bootstrap = spy(new ScimUserBootstrap(
+                provisioning,
+                scimUserService,
+                jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager,
+                identityZoneManager,
+                Collections.emptyList(),
+                false,
+                Collections.emptyList(),
+                false
+        ));
+
+        doReturn(null, concurrentUser).when(bootstrap).getScimUser(user);
+
+        bootstrap.onApplicationEvent(new NewUserAuthenticatedEvent(user));
+
+        verify(provisioning).createUser(any(), eq(user.getPassword()), eq(IdentityZone.getUaaZoneId()));
+        verify(bootstrap, never()).updateUser(any(), eq(user));
     }
 }

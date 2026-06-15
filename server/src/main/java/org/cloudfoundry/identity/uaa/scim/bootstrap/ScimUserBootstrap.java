@@ -152,13 +152,27 @@ public class ScimUserBootstrap implements
                 logger.debug("User's password cannot be empty");
                 throw new InvalidPasswordException("Password cannot be empty", BAD_REQUEST);
             }
-            createNewUser(user);
-        } else {
-            if (override) {
-                updateUser(scimUser, user);
-            } else {
-                logger.debug("Override flag not set. Not registering existing user: {}", user);
+
+            try {
+                createNewUser(user);
+            } catch (ScimResourceAlreadyExistsException e) {
+                logger.debug("SCIM user concurrently created. Reconciling existing user: {}", user.getUsername());
+                ScimUser concurrentUser = getScimUser(user);
+                if (concurrentUser == null) {
+                    throw e;
+                }
+                handleRegisteringExistingUser(user, concurrentUser);
             }
+        } else {
+            handleRegisteringExistingUser(user, scimUser);
+        }
+    }
+
+    private void handleRegisteringExistingUser(UaaUser user, ScimUser scimUser) {
+        if (override) {
+            updateUser(scimUser, user);
+        } else {
+            logger.debug("Override flag not set. Not registering existing user: {}", user);
         }
     }
 
