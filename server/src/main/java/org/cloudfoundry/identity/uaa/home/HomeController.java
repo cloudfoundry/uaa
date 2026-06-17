@@ -172,11 +172,15 @@ public class HomeController {
     public String error_oauth(Model model, HttpServletRequest request) {
         String oauthError = "oauth_error";
         String exception = (String) request.getSession().getAttribute(oauthError);
-
         if (hasText(exception)) {
             model.addAttribute(oauthError, exception);
             request.getSession().removeAttribute(oauthError);
         }
+
+        if ("concurrent_login".equals(request.getParameter("reason"))) {
+            model.addAttribute("oauth_concurrent_login", Boolean.TRUE);
+        }
+
         return EXTERNAL_AUTH_ERROR;
     }
 

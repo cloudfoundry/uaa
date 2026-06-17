@@ -60,7 +60,16 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
             return;
         }
 
-        checkRequestStateParameter(request);
+        try {
+            checkRequestStateParameter(request);
+        } catch (ConcurrentLoginAttemptException ex) {
+            logger.warn("Concurrent login attempt detected for origin [{}]; a newer login superseded this one", ex.getOriginKey());
+            response.sendRedirect(request.getContextPath() + "/oauth_error?reason=concurrent_login");
+            return;
+        } catch (CsrfException ex) {
+            response.sendRedirect(request.getContextPath() + "/login?error=invalid_login_request");
+            return;
+        }
 
         if (authenticationWasSuccessful(request, response)) {
             chain.doFilter(request, response);
@@ -77,6 +86,9 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
         final Object stateInSession = SessionUtils.getStateParam(session, SessionUtils.stateParameterAttributeKeyForIdp(originKey));
         final String stateFromParameters = request.getParameter("state");
         if (UaaStringUtils.isEmpty(stateFromParameters) || !stateFromParameters.equals(stateInSession)) {
+            if (SessionUtils.consumeSupersededState(session, originKey, stateFromParameters)) {
+                throw new ConcurrentLoginAttemptException(originKey);
+            }
             throw new CsrfException("Invalid State Param in request.");
         }
     }

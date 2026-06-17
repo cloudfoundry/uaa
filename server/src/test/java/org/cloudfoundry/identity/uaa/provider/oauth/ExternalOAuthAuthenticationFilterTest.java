@@ -1,4 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
+
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.web.HttpSessionRequiredException;
 
 import jakarta.servlet.FilterChain;
@@ -17,6 +17,8 @@ import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.util.ArrayDeque;
+import java.util.List;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,6 +39,10 @@ class ExternalOAuthAuthenticationFilterTest {
     void setUp() {
         externalOAuthAuthenticationManager = mock(ExternalOAuthAuthenticationManager.class);
         mockFilterChain = mock(FilterChain.class);
+    }
+
+    private ExternalOAuthAuthenticationFilter buildFilter(AccountSavingAuthenticationSuccessHandler successHandler) {
+        return new ExternalOAuthAuthenticationFilter(externalOAuthAuthenticationManager, successHandler);
     }
 
     @Nested
@@ -129,8 +135,9 @@ class ExternalOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            assertThatThrownBy(() ->
-                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(CsrfException.class));
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+
+            verify(mockResponse).sendRedirect("/uaa/login?error=invalid_login_request");
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
 
@@ -142,8 +149,9 @@ class ExternalOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            assertThatThrownBy(() ->
-                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(CsrfException.class));
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+
+            verify(mockResponse).sendRedirect("/uaa/login?error=invalid_login_request");
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
 
@@ -156,9 +164,58 @@ class ExternalOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            assertThatThrownBy(() ->
-                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(CsrfException.class));
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+
+            verify(mockResponse).sendRedirect("/uaa/login?error=invalid_login_request");
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
+        }
+    }
+
+    @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
+    class WhenConcurrentLoginAttemptDetected {
+
+        private static final String STATE_FROM_TAB_1 = "state-generated-when-tab1-clicked-idp-link";
+        private static final String STATE_FROM_TAB_2 = "state-generated-when-tab2-clicked-idp-link";
+
+        @BeforeEach
+        void setUp() {
+            externalOAuthAuthenticationFilter = buildFilter(null);
+        }
+
+        @Test
+        void itRedirectsToConcurrentLoginErrorPage() throws Exception {
+            HttpServletRequest mockRequest = buildConcurrentLoginRequest();
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+
+            verify(mockResponse).sendRedirect("/uaa/oauth_error?reason=concurrent_login");
+            verify(mockFilterChain, never()).doFilter(any(), any());
+        }
+
+        @Test
+        void itRemovesConsumedStateFromSupersededListInSession() throws Exception {
+            HttpServletRequest mockRequest = buildConcurrentLoginRequest();
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+
+            // The filter must persist the mutated deque so external session stores (e.g. Redis) see it.
+            String supersededKey = SessionUtils.supersededStateParameterAttributeKeyForIdp(ORIGIN_KEY);
+            verify(mockRequest.getSession()).setAttribute(
+                    org.mockito.ArgumentMatchers.eq(supersededKey),
+                    org.mockito.ArgumentMatchers.argThat(deque ->
+                            deque instanceof java.util.Deque<?> d && !d.contains(STATE_FROM_TAB_1)));
+        }
+
+        private HttpServletRequest buildConcurrentLoginRequest() {
+            return mockRedirectRequest(ORIGIN_KEY, request -> {
+                mockAuthenticationInRequest(request);
+                mockStateParamInRequest(request, STATE_FROM_TAB_1);
+                mockStateParamInSession(request.getSession(), ORIGIN_KEY, STATE_FROM_TAB_2);
+                mockSupersededStatesInSession(request.getSession(), ORIGIN_KEY, STATE_FROM_TAB_1);
+            });
         }
     }
 
@@ -231,5 +288,10 @@ class ExternalOAuthAuthenticationFilterTest {
 
     private void mockStateParamInSession(HttpSession session, String origin, String state) {
         when(session.getAttribute(SessionUtils.stateParameterAttributeKeyForIdp(origin))).thenReturn(state);
+    }
+
+    private void mockSupersededStatesInSession(HttpSession session, String origin, String... states) {
+        when(session.getAttribute(SessionUtils.supersededStateParameterAttributeKeyForIdp(origin)))
+                .thenReturn(new ArrayDeque<>(List.of(states)));
     }
 }

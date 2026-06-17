@@ -171,6 +171,33 @@ class HomeControllerViewTests extends TestClassNullifier {
                 .andExpect(content().string(containsString(base64ProductLogo)));
     }
 
+    /**
+     * Verifies that {@code /oauth_error?reason=concurrent_login} displays a human-readable
+     * "Another sign-in is already in progress" message and a link that lets the user restart
+     * the login flow — rather than showing a cryptic technical error.
+     */
+    @Test
+    void oauthError_withConcurrentLoginReason_showsFriendlyMessageAndRestartLink() throws Exception {
+        mockMvc.perform(get("/oauth_error").param("reason", "concurrent_login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Another sign-in is already in progress")))
+                .andExpect(content().string(containsString("Start a new login")));
+    }
+
+    @Test
+    void oauthError_withConcurrentLoginReason_doesNotShowGenericOAuthError() throws Exception {
+        mockMvc.perform(get("/oauth_error").param("reason", "concurrent_login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("There was an error when authenticating"))));
+    }
+
+    @Test
+    void oauthError_withoutConcurrentLoginReason_doesNotShowFriendlyMessage() throws Exception {
+        mockMvc.perform(get("/oauth_error"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Another sign-in is already in progress"))));
+    }
+
     @Test
     void error500WithGenericException() throws Exception {
         mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception("bad")))
