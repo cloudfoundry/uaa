@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 
 @Configuration
 public class FlywayConfiguration {
@@ -56,12 +57,22 @@ public class FlywayConfiguration {
 
         @Bean
         public Flyway flyway(Flyway baseFlyway) {
-            baseFlyway.repair();
-            baseFlyway.migrate();
             org.apache.tomcat.jdbc.pool.DataSource ds =
                     (org.apache.tomcat.jdbc.pool.DataSource) baseFlyway.getConfiguration().getDataSource();
+            updateSpringJdbcMigrationTypes(ds);
+            baseFlyway.repair();
+            baseFlyway.migrate();
             ds.purge();
             return baseFlyway;
+        }
+
+        public void updateSpringJdbcMigrationTypes(DataSource ds) {
+            try (var conn = ds.getConnection();
+                 var stmt = conn.createStatement()) {
+                stmt.execute("UPDATE %s SET type = 'JDBC' WHERE type = 'SPRING_JDBC'".formatted(VERSION_TABLE));
+            } catch (SQLException _) {
+                // ignore
+            }
         }
     }
 
