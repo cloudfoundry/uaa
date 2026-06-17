@@ -92,7 +92,7 @@ public class FlywayConfiguration {
                     }
                 }
             } catch (SQLException e) {
-                log.warn("Failed to normalize SPRING_JDBC migration types in {}: {}", VERSION_TABLE, e.getMessage());
+                log.warn("Failed to normalize SPRING_JDBC migration types in {}", VERSION_TABLE, e);
             }
         }
 

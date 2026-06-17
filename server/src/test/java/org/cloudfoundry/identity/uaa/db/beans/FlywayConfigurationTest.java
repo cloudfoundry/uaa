@@ -129,7 +129,7 @@ class FlywayConfigurationTest {
     void updateSpringJdbcMigrationTypes_DoesNotThrow_WhenVersionTableMissing() {
         dataSource = inMemoryDataSource();
 
-        FlywayConfigurationWithMigration.updateSpringJdbcMigrationTypes(dataSource);
-        assertThat(dataSource).isNotNull();
+        org.assertj.core.api.Assertions.assertThatCode(() -> FlywayConfigurationWithMigration.updateSpringJdbcMigrationTypes(dataSource))
+                .doesNotThrowAnyException();
     }
 }
