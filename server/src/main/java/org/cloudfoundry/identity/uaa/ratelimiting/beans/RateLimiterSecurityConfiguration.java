@@ -54,7 +54,6 @@ class RateLimiterSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(oauthWithoutResourceAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/RateLimitingStatus", "/RateLimitingStatus/**"))
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
                                 .accessDeniedHandler(oauthAccessDeniedHandler)
