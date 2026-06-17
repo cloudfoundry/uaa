@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.beans;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.springframework.security.config.annotation.web.configurers.AnonymousC
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf;
 
@@ -44,7 +46,7 @@ class RateLimiterSecurityConfiguration {
 
     @Bean
     @Order(FilterChainOrder.RESOURCE)
-    UaaFilterChain ratelimitSecurity(HttpSecurity http) throws Exception {
+    UaaFilterChain ratelimitSecurity(HttpSecurity http, CookieBasedCsrfTokenRepository csrfTokenRepository) throws Exception {
         SecurityFilterChain chain = http
                 .securityMatcher("/RateLimitingStatus", "/RateLimitingStatus/**")
                 .authorizeHttpRequests( auth -> {
@@ -54,6 +56,10 @@ class RateLimiterSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(oauthWithoutResourceAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
+                .csrf(csrf -> {
+                    csrf.csrfTokenRepository(csrfTokenRepository);
+                    csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
+                })
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
                                 .accessDeniedHandler(oauthAccessDeniedHandler)
