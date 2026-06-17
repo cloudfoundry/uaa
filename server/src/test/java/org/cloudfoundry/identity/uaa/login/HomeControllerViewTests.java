@@ -46,6 +46,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.mock.web.MockHttpSession;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -169,6 +171,37 @@ class HomeControllerViewTests extends TestClassNullifier {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(customFooterText)))
                 .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    /**
+     * Verifies that when the session contains {@code oauth_concurrent_login}, the error page
+     * displays a human-readable "Another sign-in is already in progress" message and a link
+     * that lets the user restart the login flow — rather than showing a cryptic technical error.
+     */
+    @Test
+    void oauthError_withConcurrentLoginFlag_showsFriendlyMessageAndRestartLink() throws Exception {
+        mockMvc.perform(get("/oauth_error").sessionAttr("oauth_concurrent_login", Boolean.TRUE))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Another sign-in is already in progress")))
+                .andExpect(content().string(containsString("Start a new login")));
+    }
+
+    @Test
+    void oauthError_withConcurrentLoginFlag_doesNotShowGenericOAuthError() throws Exception {
+        mockMvc.perform(get("/oauth_error").sessionAttr("oauth_concurrent_login", Boolean.TRUE))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("There was an error when authenticating"))));
+    }
+
+    @Test
+    void oauthError_withConcurrentLoginFlag_consumesSessionAttribute() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute("oauth_concurrent_login", Boolean.TRUE);
+
+        mockMvc.perform(get("/oauth_error").session(session))
+                .andExpect(status().isOk());
+
+        assertThat(session.getAttribute("oauth_concurrent_login")).isNull();
     }
 
     @Test
