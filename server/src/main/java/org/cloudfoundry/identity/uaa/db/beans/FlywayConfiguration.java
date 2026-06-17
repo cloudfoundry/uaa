@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.db.beans;
 
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.db.FixFailedBackportMigrations_4_0_4;
 import org.flywaydb.core.Flyway;
 import org.springframework.context.ApplicationContext;
@@ -11,9 +12,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 @Configuration
+@Slf4j
 public class FlywayConfiguration {
 
     /**
@@ -66,13 +72,40 @@ public class FlywayConfiguration {
             return baseFlyway;
         }
 
-        public void updateSpringJdbcMigrationTypes(DataSource ds) {
-            try (var conn = ds.getConnection();
-                 var stmt = conn.createStatement()) {
-                stmt.execute("UPDATE %s SET type = 'JDBC' WHERE type = 'SPRING_JDBC'".formatted(VERSION_TABLE));
-            } catch (SQLException _) {
-                // ignore
+        /**
+         * Normalizes legacy Flyway schema history rows by rewriting the migration {@code type}
+         * from {@code SPRING_JDBC} to {@code JDBC}. This avoids the startup failure
+         * "Unknown migration type 'SPRING_JDBC' found in schema history" before {@code repair()}/{@code migrate()}.
+         * <p>
+         * The update is only executed when the version table already exists; on a fresh install
+         * there is nothing to normalize. Failures are logged but otherwise intentionally ignored.
+         */
+        static void updateSpringJdbcMigrationTypes(DataSource ds) {
+            try (Connection conn = ds.getConnection()) {
+                if (!versionTableExists(conn)) {
+                    return;
+                }
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("UPDATE %s SET type = 'JDBC' WHERE type = 'SPRING_JDBC'".formatted(VERSION_TABLE));
+                    if (!conn.getAutoCommit()) {
+                        conn.commit();
+                    }
+                }
+            } catch (SQLException e) {
+                log.warn("Failed to normalize SPRING_JDBC migration types in {}: {}", VERSION_TABLE, e.getMessage());
             }
+        }
+
+        private static boolean versionTableExists(Connection conn) throws SQLException {
+            DatabaseMetaData metaData = conn.getMetaData();
+            for (String tableName : new String[]{VERSION_TABLE, VERSION_TABLE.toUpperCase()}) {
+                try (ResultSet tables = metaData.getTables(conn.getCatalog(), null, tableName, new String[]{"TABLE"})) {
+                    if (tables.next()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 
