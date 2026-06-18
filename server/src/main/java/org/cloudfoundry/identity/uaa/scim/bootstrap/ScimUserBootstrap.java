@@ -125,7 +125,7 @@ public class ScimUserBootstrap implements
         }
     }
 
-    private ScimUser getScimUser(UaaUser user) {
+    ScimUser getScimUser(UaaUser user) {
         List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
                 " and origin eq \"" +
                 (user.getOrigin() == null ? OriginKeys.UAA : user.getOrigin()) + "\"", identityZoneManager.getCurrentIdentityZoneId());
@@ -176,7 +176,7 @@ public class ScimUserBootstrap implements
         }
     }
 
-    private void updateUser(ScimUser existingUser, UaaUser updatedUser) {
+    void updateUser(ScimUser existingUser, UaaUser updatedUser) {
         updateUser(existingUser, updatedUser, true);
     }
 
