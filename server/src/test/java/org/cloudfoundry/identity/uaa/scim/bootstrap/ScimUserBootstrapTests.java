@@ -267,6 +267,17 @@ class ScimUserBootstrapTests {
     }
 
     @Test
+    void cannotAddUserWithNoPasswordAndNullOrigin() {
+        // 5-arg constructor leaves origin null; a null origin must be treated as uaa, so empty
+        // password validation still applies (and must not throw a NullPointerException).
+        UaaUser joe = new UaaUser("joe", "", "joe@test.org", "Joe", "User");
+        assertThat(joe.getOrigin()).isNull();
+        joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager, Collections.singletonList(joe), false, Collections.emptyList(), false);
+        assertThatThrownBy(bootstrap::afterPropertiesSet).isInstanceOf(InvalidPasswordException.class);
+    }
+
+    @Test
     void noOverrideByDefault() {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
