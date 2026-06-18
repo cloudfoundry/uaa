@@ -21,6 +21,8 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
@@ -31,6 +33,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -57,6 +60,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -1161,6 +1165,49 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThat(codeToken.getIdToken()).isNull();
         assertThat(codeToken.getAccessToken()).isEqualTo("opaque-access-token");
 
+    }
+
+    @Test
+    void verifySubjectToken_whenProviderConfigIsNotOAuthType_throwsInsufficientAuthenticationException() {
+        final IdentityProvider<SamlIdentityProviderDefinition> nonOAuthProvider = new IdentityProvider<>();
+        nonOAuthProvider.setConfig(new SamlIdentityProviderDefinition());
+        final ExternalOAuthAuthenticationManager manager = new ExternalOAuthAuthenticationManager(
+                identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(),
+                tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher, false) {
+            @Override
+            public IdentityProvider resolveOriginProvider(String idToken) {
+                return nonOAuthProvider;
+            }
+        };
+
+        assertThatThrownBy(() -> manager.verifySubjectToken("subject-token"))
+                .isInstanceOf(InsufficientAuthenticationException.class);
+    }
+
+    @Test
+    void verifySubjectToken_whenValidateTokenThrowsUnexpectedRuntimeException_throwsInvalidTokenException() {
+        // reuse the beforeEach-configured provider (issuer != UAA's own token endpoint, so
+        // validateToken resolves signing keys via getTokenKeyFromOAuth()); simulate some
+        // unrelated internal failure there to prove verifySubjectToken still honors its
+        // documented contract of only ever throwing InsufficientAuthenticationException or
+        // InvalidTokenException, instead of letting an arbitrary RuntimeException escape.
+        final ExternalOAuthAuthenticationManager manager = new ExternalOAuthAuthenticationManager(
+                identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(),
+                tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher, false) {
+            @Override
+            public IdentityProvider resolveOriginProvider(String idToken) {
+                return provider;
+            }
+
+            @Override
+            public JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractExternalOAuthIdentityProviderDefinition config) {
+                throw new NullPointerException("simulated unexpected failure while resolving signing keys");
+            }
+        };
+
+        assertThatThrownBy(() -> manager.verifySubjectToken("subject-token"))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasCauseInstanceOf(NullPointerException.class);
     }
 
     private static void assertAuthorizationHeaderIsSetAndStartsWithBasic(final HttpHeaders headers) {
