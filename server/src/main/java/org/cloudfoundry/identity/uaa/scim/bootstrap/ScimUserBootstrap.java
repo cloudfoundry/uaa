@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
@@ -125,7 +126,8 @@ public class ScimUserBootstrap implements
         }
     }
 
-    private ScimUser getScimUser(UaaUser user) {
+    @VisibleForTesting
+    ScimUser getScimUser(UaaUser user) {
         List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
                 " and origin eq \"" +
                 (user.getOrigin() == null ? OriginKeys.UAA : user.getOrigin()) + "\"", identityZoneManager.getCurrentIdentityZoneId());
@@ -148,21 +150,36 @@ public class ScimUserBootstrap implements
     private void addUser(UaaUser user) {
         ScimUser scimUser = getScimUser(user);
         if (scimUser == null) {
-            if (isEmpty(user.getPassword()) && user.getOrigin().equals(OriginKeys.UAA)) {
+            if (isEmpty(user.getPassword()) && (user.getOrigin() == null || OriginKeys.UAA.equals(user.getOrigin()))) {
                 logger.debug("User's password cannot be empty");
                 throw new InvalidPasswordException("Password cannot be empty", BAD_REQUEST);
             }
-            createNewUser(user);
-        } else {
-            if (override) {
-                updateUser(scimUser, user);
-            } else {
-                logger.debug("Override flag not set. Not registering existing user: {}", user);
+
+            try {
+                createNewUser(user);
+            } catch (ScimResourceAlreadyExistsException e) {
+                logger.debug("SCIM user concurrently created. Reconciling existing user: {}", user.getUsername());
+                ScimUser concurrentUser = getScimUser(user);
+                if (concurrentUser == null) {
+                    throw e;
+                }
+                handleRegisteringExistingUser(user, concurrentUser);
             }
+        } else {
+            handleRegisteringExistingUser(user, scimUser);
         }
     }
 
-    private void updateUser(ScimUser existingUser, UaaUser updatedUser) {
+    private void handleRegisteringExistingUser(UaaUser user, ScimUser scimUser) {
+        if (override) {
+            updateUser(scimUser, user);
+        } else {
+            logger.debug("Override flag not set. Not registering existing user: {}", user);
+        }
+    }
+
+    @VisibleForTesting
+    void updateUser(ScimUser existingUser, UaaUser updatedUser) {
         updateUser(existingUser, updatedUser, true);
     }
 
