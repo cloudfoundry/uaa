@@ -15,7 +15,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AnonymousConfigurer;
-import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -55,7 +54,6 @@ class RateLimiterSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(oauthWithoutResourceAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
-                .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
                                 .accessDeniedHandler(oauthAccessDeniedHandler)
