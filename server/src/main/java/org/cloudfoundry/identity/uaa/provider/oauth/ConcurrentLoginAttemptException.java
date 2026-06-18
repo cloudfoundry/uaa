@@ -5,16 +5,16 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
  * because a newer login attempt has already replaced it (e.g. two browser tabs both initiated login
  * for the same external IDP, and the older tab's callback arrived after the newer tab's state was stored).
  */
-public class ConcurrentLoginAttemptException extends RuntimeException {
+class ConcurrentLoginAttemptException extends RuntimeException {
 
     private final String originKey;
 
-    public ConcurrentLoginAttemptException(String originKey) {
+    ConcurrentLoginAttemptException(String originKey) {
         super("Concurrent login attempt detected for origin: " + originKey);
         this.originKey = originKey;
     }
 
-    public String getOriginKey() {
+    String getOriginKey() {
         return originKey;
     }
 }

@@ -18,9 +18,10 @@ import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.util.ArrayDeque;
+import java.util.List;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -150,12 +151,29 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfStateIsMismatched_andSessionHasNoState() throws Exception {
+        void itThrowsCsrfExceptionIfStateInRequestButNoStateInSession() throws Exception {
             // No state in session (e.g. session expired or CSRF attack) → CsrfException propagates
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, OAUTH_STATE);
                 // no state in session
+            });
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+
+            assertThatThrownBy(() ->
+                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain))
+                    .asInstanceOf(InstanceOfAssertFactories.throwable(CsrfException.class));
+            verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
+        }
+
+        @Test
+        void itThrowsCsrfExceptionIfStateIsMismatchedAndNotPreviouslyIssued() throws Exception {
+            // Session holds a state, the request carries a different state that UAA never issued
+            // (e.g. tampering / CSRF). It must NOT be downgraded to a concurrent-login redirect.
+            HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
+                mockAuthenticationInRequest(request);
+                mockStateParamInRequest(request, "forged-state-from-attacker");
+                mockStateParamInSession(request.getSession(), ORIGIN_KEY, OAUTH_STATE);
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
@@ -238,12 +256,14 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         private HttpServletRequest buildConcurrentLoginRequest() {
-            // Tab 2's state is in the session (it overwrote tab 1's state).
-            // Tab 1's callback arrives with tab 1's (now stale) state.
+            // Tab 2's state is in the session (it overwrote tab 1's state), and tab 1's state was
+            // recorded as superseded when tab 2 started its login. Tab 1's callback arrives with
+            // tab 1's (now stale, but UAA-issued) state.
             return mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, STATE_FROM_TAB_1);
                 mockStateParamInSession(request.getSession(), ORIGIN_KEY, STATE_FROM_TAB_2);
+                mockSupersededStatesInSession(request.getSession(), ORIGIN_KEY, STATE_FROM_TAB_1);
             });
         }
     }
@@ -317,5 +337,10 @@ class ExternalOAuthAuthenticationFilterTest {
 
     private void mockStateParamInSession(HttpSession session, String origin, String state) {
         when(session.getAttribute(SessionUtils.stateParameterAttributeKeyForIdp(origin))).thenReturn(state);
+    }
+
+    private void mockSupersededStatesInSession(HttpSession session, String origin, String... states) {
+        when(session.getAttribute(SessionUtils.supersededStateParameterAttributeKeyForIdp(origin)))
+                .thenReturn(new ArrayDeque<>(List.of(states)));
     }
 }

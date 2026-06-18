@@ -153,8 +153,7 @@ class ExternalOAuthConcurrentLoginScenarioTest {
 
     @Test
     void scenario_concurrentTabs_olderTabCallback_concurrentLoginFlagSetInSession() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SessionUtils.stateParameterAttributeKeyForIdp(IDP_ORIGIN), STATE_FROM_TAB_2);
+        MockHttpSession session = sessionWithConcurrentLoginState();
 
         HttpServletRequest req = buildRequest(STATE_FROM_TAB_1, session);
         HttpServletResponse res = mock(HttpServletResponse.class);
@@ -166,8 +165,7 @@ class ExternalOAuthConcurrentLoginScenarioTest {
 
     @Test
     void scenario_concurrentTabs_olderTabCallback_redirectsToOAuthErrorPage() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SessionUtils.stateParameterAttributeKeyForIdp(IDP_ORIGIN), STATE_FROM_TAB_2);
+        MockHttpSession session = sessionWithConcurrentLoginState();
 
         HttpServletRequest req = buildRequest(STATE_FROM_TAB_1, session);
         HttpServletResponse res = mock(HttpServletResponse.class);
@@ -179,8 +177,7 @@ class ExternalOAuthConcurrentLoginScenarioTest {
 
     @Test
     void scenario_concurrentTabs_olderTabCallback_doesNotSetGenericOAuthError() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SessionUtils.stateParameterAttributeKeyForIdp(IDP_ORIGIN), STATE_FROM_TAB_2);
+        MockHttpSession session = sessionWithConcurrentLoginState();
 
         HttpServletRequest req = buildRequest(STATE_FROM_TAB_1, session);
         HttpServletResponse res = mock(HttpServletResponse.class);
@@ -190,6 +187,26 @@ class ExternalOAuthConcurrentLoginScenarioTest {
         // The generic "There was an error..." oauth_error must NOT be set — the template uses
         // oauth_concurrent_login to show a specific, user-friendly message instead.
         assertThat(session.getAttribute("oauth_error")).isNull();
+    }
+
+    // -------------------------------------------------------------------------
+    // Scenario 5b: mismatched state that UAA never issued (CSRF / tampering).
+    //
+    //   The session holds a valid state, the callback carries a different state that was never
+    //   issued for this origin. This must still be treated as CSRF — NOT downgraded to the
+    //   friendly concurrent-login redirect.
+    // -------------------------------------------------------------------------
+
+    @Test
+    void scenario_mismatchedStateNeverIssued_throwsCsrfException() {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(SessionUtils.stateParameterAttributeKeyForIdp(IDP_ORIGIN), STATE_FROM_TAB_2);
+
+        HttpServletRequest req = buildRequest("forged-state-from-attacker", session);
+        HttpServletResponse res = mock(HttpServletResponse.class);
+
+        assertThatThrownBy(() -> filter.doFilter(req, res, mockChain))
+                .isInstanceOf(CsrfException.class);
     }
 
     // -------------------------------------------------------------------------
@@ -220,9 +237,18 @@ class ExternalOAuthConcurrentLoginScenarioTest {
     // -------------------------------------------------------------------------
 
     private HttpServletRequest buildConcurrentLoginRequest() {
+        return buildRequest(STATE_FROM_TAB_1, sessionWithConcurrentLoginState());
+    }
+
+    /**
+     * Builds a session in the state it would be in after tab 2 superseded tab 1: the session holds
+     * tab 2's state and tab 1's (now stale, but UAA-issued) state is recorded as superseded.
+     */
+    private MockHttpSession sessionWithConcurrentLoginState() {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(SessionUtils.stateParameterAttributeKeyForIdp(IDP_ORIGIN), STATE_FROM_TAB_2);
-        return buildRequest(STATE_FROM_TAB_1, session);
+        SessionUtils.recordSupersededState(session, IDP_ORIGIN, STATE_FROM_TAB_1);
+        return session;
     }
 
     private HttpServletRequest buildRequest(String stateInCallback, MockHttpSession session) {

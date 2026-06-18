@@ -84,8 +84,10 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
         final Object stateInSession = SessionUtils.getStateParam(session, SessionUtils.stateParameterAttributeKeyForIdp(originKey));
         final String stateFromParameters = request.getParameter("state");
         if (UaaStringUtils.isEmpty(stateFromParameters) || !stateFromParameters.equals(stateInSession)) {
-            if (stateInSession != null && !UaaStringUtils.isEmpty(stateFromParameters)) {
-                // Both states are present but don't match: a newer login attempt overwrote the session state.
+            if (SessionUtils.isSupersededState(session, originKey, stateFromParameters)) {
+                // The incoming state is one UAA actually issued for this origin but a newer login
+                // attempt has since overwritten it (e.g. two browser tabs). This is a concurrent
+                // login race, not CSRF, so surface a friendly error instead of a security failure.
                 throw new ConcurrentLoginAttemptException(originKey);
             }
             throw new CsrfException("Invalid State Param in request.");

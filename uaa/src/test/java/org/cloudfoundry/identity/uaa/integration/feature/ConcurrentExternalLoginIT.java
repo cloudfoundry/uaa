@@ -56,6 +56,14 @@ class ConcurrentExternalLoginIT {
     private static final String IDP_ORIGIN = "concurrent-login-test-idp";
     private static final String IDP_LINK_TEXT = "Concurrent Login Test IDP";
 
+    /**
+     * When set to {@code true} (e.g. {@code -Dconcurrent.login.screenshot=true}) the passing test
+     * also saves a screenshot of the error page (useful for PR documentation). Off by default so
+     * CI runs have no extra side effects — failures are already captured by
+     * {@link ScreenshotOnFailExtension}.
+     */
+    private static final boolean SAVE_SCREENSHOT = Boolean.getBoolean("concurrent.login.screenshot");
+
     @Autowired
     @RegisterExtension
     private IntegrationTestExtension integrationTestExtension;
@@ -88,9 +96,9 @@ class ConcurrentExternalLoginIT {
      * Verifies that the concurrent login error page is shown with a friendly message and a
      * link to restart the login flow.
      *
-     * <p>A screenshot of the error page is saved to
-     * {@code ~/build/cloudfoundry/uaa/screenshots/concurrent-login-error-page.png}
-     * for attachment to the PR.
+     * <p>When {@code -Dconcurrent.login.screenshot=true} is set, a screenshot of the error page is
+     * saved to {@code ~/build/cloudfoundry/uaa/screenshots/concurrent-login-error-page.png}
+     * (e.g. for attachment to a PR). It is off by default to keep CI runs side-effect free.
      */
     @Test
     void concurrentLogin_showsFriendlyErrorPage() throws Exception {
@@ -115,8 +123,10 @@ class ConcurrentExternalLoginIT {
         errorPage.assertConcurrentLoginMessageShown();
         errorPage.assertRestartLoginLinkPresent();
 
-        // Step 5 — Save a screenshot for the PR.
-        saveScreenshot("concurrent-login-error-page");
+        // Step 5 — Optionally save a screenshot (opt-in via -Dconcurrent.login.screenshot=true).
+        if (SAVE_SCREENSHOT) {
+            saveScreenshot("concurrent-login-error-page");
+        }
     }
 
     /**
