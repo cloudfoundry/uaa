@@ -192,6 +192,16 @@ class HomeControllerViewTests extends TestClassNullifier {
     }
 
     @Test
+    void oauthError_withConcurrentLoginReasonAndLeftoverSessionError_suppressesGenericOAuthError() throws Exception {
+        mockMvc.perform(get("/oauth_error")
+                        .param("reason", "concurrent_login")
+                        .sessionAttr("oauth_error", "There was an error when authenticating against the external identity provider: leftover"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Another sign-in is already in progress")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("leftover"))));
+    }
+
+    @Test
     void oauthError_withoutConcurrentLoginReason_doesNotShowFriendlyMessage() throws Exception {
         mockMvc.perform(get("/oauth_error"))
                 .andExpect(status().isOk())
