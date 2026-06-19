@@ -32,7 +32,7 @@
     </th:block>
     <h2 th:if="${saml_error}" th:text="${saml_error}">
     </h2>
-    <h2 th:if="${oauth_error}" th:text="${oauth_error}">
+    <h2 th:if="${oauth_error and not oauth_concurrent_login}" th:text="${oauth_error}">
     </h2>
 </div>
 </body>

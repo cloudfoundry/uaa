@@ -67,6 +67,10 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
             response.sendRedirect(request.getContextPath() + "/oauth_error?reason=concurrent_login");
             return;
         } catch (CsrfException ex) {
+            // Keep a signal for security monitoring: a state mismatch that is not a recognised
+            // (UAA-issued, superseded) concurrent-login state is treated as a CSRF/tampering attempt.
+            logger.warn("Rejected external OAuth callback for origin [{}] due to invalid state parameter (possible CSRF)",
+                    UaaUrlUtils.extractPathVariableFromUrl(2, request.getServletPath()));
             response.sendRedirect(request.getContextPath() + "/login?error=invalid_login_request");
             return;
         }

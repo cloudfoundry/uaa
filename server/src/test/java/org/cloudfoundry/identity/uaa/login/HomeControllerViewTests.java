@@ -199,6 +199,18 @@ class HomeControllerViewTests extends TestClassNullifier {
     }
 
     @Test
+    void oauthError_withConcurrentLoginReason_andLeftoverOauthError_showsOnlyConcurrentLoginMessage() throws Exception {
+        // A stale oauth_error from a previous failed attempt must not be rendered alongside the
+        // concurrent-login message, which would show two conflicting headings on the same page.
+        mockMvc.perform(get("/oauth_error")
+                        .param("reason", "concurrent_login")
+                        .sessionAttr("oauth_error", "There was an error when authenticating against the external identity provider: boom"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Another sign-in is already in progress")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("There was an error when authenticating"))));
+    }
+
+    @Test
     void error500WithGenericException() throws Exception {
         mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception("bad")))
                 .andExpect(status().isOk())
