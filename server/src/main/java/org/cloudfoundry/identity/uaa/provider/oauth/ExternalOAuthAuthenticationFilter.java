@@ -71,7 +71,7 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
             // authenticating. A genuine state mismatch here may be a CSRF/tampering attempt, so keep
             // a signal for security monitoring.
             logger.warn("Rejecting external OAuth callback for origin [{}] as an invalid login request: {}",
-                    UaaUrlUtils.extractPathVariableFromUrl(2, request.getServletPath()), ex.getMessage());
+                    UaaUrlUtils.extractPathVariableFromUrl(2, pathAfterContext(request)), ex.getMessage());
             response.sendRedirect(request.getContextPath() + "/login?error=invalid_login_request");
             return;
         }
@@ -83,7 +83,10 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
 
     private void checkRequestStateParameter(final HttpServletRequest request)
             throws HttpSessionRequiredException {
-        final String originKey = UaaUrlUtils.extractPathVariableFromUrl(2, request.getServletPath());
+        // Strip the context path from the request URI before extracting the origin key so that both
+        // subdomain-based and zone-path-based deployments resolve the same path index.  getServletPath()
+        // is unreliable in subdomain mode where the MockMvc harness does not set it explicitly.
+        final String originKey = UaaUrlUtils.extractPathVariableFromUrl(2, pathAfterContext(request));
         // Use getSession(false): a callback with an expired/missing session must be rejected as an
         // invalid login request, not silently given a fresh (stateless) session.
         final HttpSession session = request.getSession(false);
@@ -98,6 +101,20 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
             }
             throw new CsrfException("Invalid State Param in request.");
         }
+    }
+
+    /**
+     * Returns the portion of the request URI that follows the context path.
+     * Using the request URI (minus context path) rather than getServletPath() ensures correct
+     * origin extraction in subdomain-based deployments where the servlet path may not be set.
+     */
+    private static String pathAfterContext(HttpServletRequest request) {
+        String requestUri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && requestUri.startsWith(contextPath)) {
+            return requestUri.substring(contextPath.length());
+        }
+        return requestUri;
     }
 
     private boolean containsCredentials(final HttpServletRequest request) {

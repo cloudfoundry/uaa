@@ -129,7 +129,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfNoStateInSession() throws Exception {
+        void itRedirectsToInvalidLoginWhenNoStateInSession() throws Exception {
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, OAUTH_STATE);
@@ -143,7 +143,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfNoStateInRequest() throws Exception {
+        void itRedirectsToInvalidLoginWhenNoStateInRequest() throws Exception {
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInSession(request.getSession(), ORIGIN_KEY, OAUTH_STATE);
@@ -157,7 +157,7 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfStateIsMismatched() throws Exception {
+        void itRedirectsToInvalidLoginWhenStateIsMismatched() throws Exception {
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, "surprise");
