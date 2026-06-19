@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
@@ -10,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.HttpSessionRequiredException;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.RequestDispatcher;
@@ -21,7 +19,6 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -115,15 +112,19 @@ class ExternalOAuthAuthenticationFilterTest {
         }
 
         @Test
-        void itThrowsIfNoSession() throws Exception {
+        void itRedirectsIfNoSession() throws Exception {
+            // No existing session (getSession(false) returns null) must be rejected as an invalid
+            // login request without creating a new session.
             HttpServletRequest mockRequest = mockRedirectRequest(false, ORIGIN_KEY, request -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, OAUTH_STATE);
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            assertThatThrownBy(() ->
-                    externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain)).asInstanceOf(InstanceOfAssertFactories.throwable(HttpSessionRequiredException.class));
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+
+            verify(mockRequest, never()).getSession();
+            verify(mockResponse).sendRedirect("/uaa/login?error=invalid_login_request");
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
 
@@ -272,6 +273,7 @@ class ExternalOAuthAuthenticationFilterTest {
         if (includeSession) {
             HttpSession mockHttpSession = mock(HttpSession.class);
             when(mockRequest.getSession()).thenReturn(mockHttpSession);
+            when(mockRequest.getSession(false)).thenReturn(mockHttpSession);
         }
 
         config.accept(mockRequest);

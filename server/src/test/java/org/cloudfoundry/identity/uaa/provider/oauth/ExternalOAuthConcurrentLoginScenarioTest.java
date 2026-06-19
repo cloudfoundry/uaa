@@ -11,7 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -30,8 +29,8 @@ import static org.mockito.Mockito.when;
  * <h2>Scenarios covered</h2>
  * <ol>
  *   <li><b>Happy path</b> – a single tab completes login; state matches; filter chain continues.</li>
- *   <li><b>No session</b> – session has been destroyed (e.g. timeout); filter throws
- *       {@link org.springframework.web.HttpSessionRequiredException}.</li>
+ *   <li><b>No session</b> – session has been destroyed (e.g. timeout); filter redirects to
+ *       {@code /login?error=invalid_login_request} without creating a new session.</li>
  *   <li><b>No state in session</b> – CSRF / replay attempt; filter redirects to
  *       {@code /login?error=invalid_login_request}.</li>
  *   <li><b>No state in callback request</b> – malformed or tampered callback; filter redirects to
@@ -84,12 +83,17 @@ class ExternalOAuthConcurrentLoginScenarioTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void scenario_noSession_throwsHttpSessionRequiredException() {
+    void scenario_noSession_redirectsToLogin() throws Exception {
         HttpServletRequest req = buildRequestWithNoSession(STATE_FROM_TAB_1);
         HttpServletResponse res = mock(HttpServletResponse.class);
 
-        assertThatThrownBy(() -> filter.doFilter(req, res, mockChain))
-                .isInstanceOf(org.springframework.web.HttpSessionRequiredException.class);
+        filter.doFilter(req, res, mockChain);
+
+        // A missing/expired session must be rejected as an invalid login request without creating
+        // a new session (the filter uses getSession(false)).
+        verify(req, never()).getSession();
+        verify(res).sendRedirect("/uaa/login?error=invalid_login_request");
+        verify(mockChain, never()).doFilter(any(), any());
     }
 
     // -------------------------------------------------------------------------
@@ -256,7 +260,7 @@ class ExternalOAuthConcurrentLoginScenarioTest {
         when(req.getRequestURL()).thenReturn(new StringBuffer("http://localhost/uaa/login/callback/" + IDP_ORIGIN));
         when(req.getParameter("code")).thenReturn("some-auth-code");
         when(req.getParameter("state")).thenReturn(stateInCallback);
-        when(req.getSession()).thenReturn(null);
+        when(req.getSession(false)).thenReturn(null);
 
         return req;
     }

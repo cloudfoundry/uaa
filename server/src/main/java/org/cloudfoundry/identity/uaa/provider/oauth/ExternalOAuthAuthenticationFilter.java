@@ -66,7 +66,12 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
             logger.warn("Concurrent login attempt detected for origin [{}]; a newer login superseded this one", ex.getOriginKey());
             response.sendRedirect(request.getContextPath() + "/oauth_error?reason=concurrent_login");
             return;
-        } catch (CsrfException ex) {
+        } catch (CsrfException | HttpSessionRequiredException ex) {
+            // No existing session, or no matching state: reject as an invalid login request without
+            // authenticating. A genuine state mismatch here may be a CSRF/tampering attempt, so keep
+            // a signal for security monitoring.
+            logger.warn("Rejecting external OAuth callback for origin [{}] as an invalid login request: {}",
+                    UaaUrlUtils.extractPathVariableFromUrl(2, request.getServletPath()), ex.getMessage());
             response.sendRedirect(request.getContextPath() + "/login?error=invalid_login_request");
             return;
         }
@@ -79,7 +84,9 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
     private void checkRequestStateParameter(final HttpServletRequest request)
             throws HttpSessionRequiredException {
         final String originKey = UaaUrlUtils.extractPathVariableFromUrl(2, request.getServletPath());
-        final HttpSession session = request.getSession();
+        // Use getSession(false): a callback with an expired/missing session must be rejected as an
+        // invalid login request, not silently given a fresh (stateless) session.
+        final HttpSession session = request.getSession(false);
         if (session == null) {
             throw new HttpSessionRequiredException("An HTTP Session is required to process request.");
         }
