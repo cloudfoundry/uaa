@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.apache.commons.io.FilenameUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
@@ -128,7 +127,10 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
     private boolean authenticationWasSuccessful(
             final HttpServletRequest request,
             final HttpServletResponse response) throws IOException {
-        final String origin = FilenameUtils.getName(request.getRequestURI());
+        // Derive the origin the same way as checkRequestStateParameter so the state we validated and
+        // the IDP we authenticate against always refer to the same origin key (robust across
+        // subdomain- and zone-path-based deployments).
+        final String origin = UaaUrlUtils.extractPathVariableFromUrl(2, pathAfterContext(request));
         final String code = request.getParameter("code");
         final String idToken = request.getParameter("id_token");
         final String accessToken = request.getParameter("access_token");
