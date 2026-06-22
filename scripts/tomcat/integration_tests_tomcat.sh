@@ -18,7 +18,7 @@ function download_and_extract_tomcat() {
   local build_dir="$2"
   local major="${version%%.*}"
   local tarball="apache-tomcat-${version}.tar.gz"
-  local url="https://archive.apache.org/dist/tomcat/tomcat-${major}/v${version}/bin/${tarball}"
+  local url="https://dlcdn.apache.org/tomcat/tomcat-${major}/v${version}/bin/${tarball}"
   local cache="${build_dir}/${tarball}"
 
   mkdir -p "${build_dir}"
