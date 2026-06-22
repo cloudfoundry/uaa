@@ -7,6 +7,8 @@ import org.springframework.security.web.WebAttributes;
 import org.springframework.security.web.savedrequest.SavedRequest;
 
 import jakarta.servlet.http.HttpSession;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public final class SessionUtils {
     public static final String PASSWORD_CHANGE_REQUIRED = "PASSWORD_CHANGE_REQUIRED";
@@ -27,6 +29,13 @@ public final class SessionUtils {
     private static final String EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX = "external-oauth-state-";
     private static final String EXTERNAL_OAUTH_CODE_VERIFIER_ATTRIBUTE_PREFIX = "external-oauth-verifier-";
     private static final String EXTERNAL_OAUTH_REDIRECT_URI_ATTRIBUTE_PREFIX = "external-oauth-redirect-uri-";
+    private static final String EXTERNAL_OAUTH_SUPERSEDED_STATE_ATTRIBUTE_PREFIX = "external-oauth-superseded-state-";
+
+    /**
+     * Upper bound on how many recently-superseded state values we remember per IDP origin.
+     * Keeps the session footprint bounded while still tolerating a handful of concurrent tabs.
+     */
+    private static final int MAX_SUPERSEDED_STATES = 5;
 
     private SessionUtils() {
     }
@@ -65,6 +74,57 @@ public final class SessionUtils {
         return session.getAttribute(stateParamKey);
     }
 
+    /**
+     * Records a previously-issued state value that has just been overwritten by a newer login
+     * attempt for the same IDP origin (e.g. a second browser tab started the login flow). Only
+     * states UAA actually issued end up here, so the callback filter can distinguish a genuine
+     * concurrent-login race from a forged/tampered state (which is a CSRF attempt).
+     */
+    @SuppressWarnings("unchecked")
+    public static void recordSupersededState(HttpSession session, String idpOriginKey, String supersededState) {
+        if (supersededState == null) {
+            return;
+        }
+        String key = supersededStateParameterAttributeKeyForIdp(idpOriginKey);
+        Object existing = session.getAttribute(key);
+        Deque<String> supersededStates = existing instanceof Deque
+                ? (Deque<String>) existing
+                : new ArrayDeque<>();
+        supersededStates.remove(supersededState);
+        supersededStates.addFirst(supersededState);
+        while (supersededStates.size() > MAX_SUPERSEDED_STATES) {
+            supersededStates.removeLast();
+        }
+        session.setAttribute(key, supersededStates);
+    }
+
+    /**
+     * Checks whether {@code state} was a state UAA issued for this IDP origin that has since been
+     * superseded by a newer login attempt, and if so removes it from the superseded list (one-time
+     * consumption). After this call the same state value is no longer recognised as a known-stale
+     * state, so a replay of the same callback will be treated as CSRF.
+     *
+     * @return {@code true} if {@code state} was found in (and removed from) the superseded list
+     */
+    @SuppressWarnings("unchecked")
+    public static boolean consumeSupersededState(HttpSession session, String idpOriginKey, String state) {
+        if (state == null) {
+            return false;
+        }
+        String key = supersededStateParameterAttributeKeyForIdp(idpOriginKey);
+        Object existing = session.getAttribute(key);
+        if (!(existing instanceof Deque<?> raw)) {
+            return false;
+        }
+        Deque<String> deque = (Deque<String>) raw;
+        boolean removed = deque.remove(state);
+        if (removed) {
+            // Persist the mutated deque so external session stores (e.g. Redis) see the change.
+            session.setAttribute(key, deque);
+        }
+        return removed;
+    }
+
     public static void setSecurityContext(HttpSession session, SecurityContext context) {
         session.setAttribute(SPRING_SECURITY_CONTEXT, context);
     }
@@ -91,5 +151,9 @@ public final class SessionUtils {
 
     public static String redirectUriParameterAttributeKeyForIdp(String idpOriginKey) {
         return EXTERNAL_OAUTH_REDIRECT_URI_ATTRIBUTE_PREFIX + idpOriginKey;
+    }
+
+    public static String supersededStateParameterAttributeKeyForIdp(String idpOriginKey) {
+        return EXTERNAL_OAUTH_SUPERSEDED_STATE_ATTRIBUTE_PREFIX + idpOriginKey;
     }
 }

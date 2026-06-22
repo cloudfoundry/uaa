@@ -24,9 +24,15 @@
         </div>
         <img src="/resources/images/sad_cloud.png" th:src="@{/resources/images/sad_cloud.png}" role="presentation" />
     </div>
+    <th:block th:if="${oauth_concurrent_login}">
+        <h2>Another sign-in is already in progress</h2>
+        <p>A sign-in attempt from another browser tab or window has replaced this one.
+            To complete sign-in, please start a new login.</p>
+        <a th:href="@{/login}">Start a new login</a>
+    </th:block>
     <h2 th:if="${saml_error}" th:text="${saml_error}">
     </h2>
-    <h2 th:if="${oauth_error}" th:text="${oauth_error}">
+    <h2 th:if="${oauth_error != null and oauth_concurrent_login == null}" th:text="${oauth_error}">
     </h2>
 </div>
 </body>

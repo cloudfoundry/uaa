@@ -35,7 +35,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
 import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -1887,6 +1886,97 @@ public class LoginMockMvcZonePathTests {
                 .extractingByKey("state").isNotNull();
 
         IdentityZoneHolder.clear();
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void oauthCallback_withForgedState_redirectsToLogin(ZoneResolutionMode mode) throws Exception {
+        UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
+        IdentityZoneHolder.set(identityZone);
+        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
+        uaaIdentityProvider.setActive(false);
+        jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
+
+        String subdomain = identityZone.getSubdomain();
+        String expectedLoginRedirect = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/login" : "/login";
+
+        MvcResult loginResult = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login")
+                        .accept(TEXT_HTML))
+                .andExpect(status().isFound())
+                .andReturn();
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login/callback/" + oauthAlias)
+                        .param("code", "some-code")
+                        .param("state", "forged-state-never-issued-by-uaa")
+                        .session(session))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedLoginRedirect + "?error=invalid_login_request"));
+
+        IdentityZoneHolder.clear();
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void oauthCallback_withSupersededState_redirectsToConcurrentLoginError(ZoneResolutionMode mode) throws Exception {
+        UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
+        IdentityZoneHolder.set(identityZone);
+        IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
+        uaaIdentityProvider.setActive(false);
+        jdbcIdentityProviderProvisioning.update(uaaIdentityProvider, uaaIdentityProvider.getIdentityZoneId());
+
+        String subdomain = identityZone.getSubdomain();
+        String expectedOauthErrorRedirect = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/oauth_error" : "/oauth_error";
+
+        // Tab 1 starts login — state1 stored in session
+        MvcResult tab1Login = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login")
+                        .accept(TEXT_HTML))
+                .andExpect(status().isFound())
+                .andReturn();
+        MockHttpSession session = (MockHttpSession) tab1Login.getRequest().getSession(false);
+        String state1 = UriComponentsBuilder.fromUriString(tab1Login.getResponse().getHeader("Location"))
+                .build().getQueryParams().getFirst("state");
+
+        // Tab 2 starts login with same session — state2 overwrites state1; state1 moved to superseded list
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login")
+                        .accept(TEXT_HTML)
+                        .session(session))
+                .andExpect(status().isFound());
+
+        // Tab 1's callback arrives with stale state1 — concurrent login detected
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login/callback/" + oauthAlias)
+                        .param("code", "some-code")
+                        .param("state", state1)
+                        .session(session))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedOauthErrorRedirect + "?reason=concurrent_login"));
+
+        IdentityZoneHolder.clear();
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void oauthErrorPage_withConcurrentLoginReason_showsFriendlyMessageAndRestartLink(ZoneResolutionMode mode) throws Exception {
+        UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String subdomain = identityZone.getSubdomain();
+
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/oauth_error")
+                        .param("reason", "concurrent_login")
+                        .accept(TEXT_HTML))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Another sign-in is already in progress")))
+                .andExpect(content().string(containsString("Start a new login")));
     }
 
     @Disabled("ZONE_PATH: redirect URL assertion differs for zone path")

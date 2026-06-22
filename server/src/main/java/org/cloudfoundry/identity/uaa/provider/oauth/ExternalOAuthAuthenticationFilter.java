@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.apache.commons.io.FilenameUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
@@ -60,7 +59,21 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
             return;
         }
 
-        checkRequestStateParameter(request);
+        try {
+            checkRequestStateParameter(request);
+        } catch (ConcurrentLoginAttemptException ex) {
+            logger.warn("Concurrent login attempt detected for origin [{}]; a newer login superseded this one", ex.getOriginKey());
+            response.sendRedirect(request.getContextPath() + "/oauth_error?reason=concurrent_login");
+            return;
+        } catch (CsrfException | HttpSessionRequiredException ex) {
+            // No existing session, or no matching state: reject as an invalid login request without
+            // authenticating. A genuine state mismatch here may be a CSRF/tampering attempt, so keep
+            // a signal for security monitoring.
+            logger.warn("Rejecting external OAuth callback for origin [{}] as an invalid login request: {}",
+                    UaaUrlUtils.extractPathVariableFromUrl(2, pathAfterContext(request)), ex.getMessage());
+            response.sendRedirect(request.getContextPath() + "/login?error=invalid_login_request");
+            return;
+        }
 
         if (authenticationWasSuccessful(request, response)) {
             chain.doFilter(request, response);
@@ -69,16 +82,38 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
 
     private void checkRequestStateParameter(final HttpServletRequest request)
             throws HttpSessionRequiredException {
-        final String originKey = UaaUrlUtils.extractPathVariableFromUrl(2, request.getServletPath());
-        final HttpSession session = request.getSession();
+        // Strip the context path from the request URI before extracting the origin key so that both
+        // subdomain-based and zone-path-based deployments resolve the same path index.  getServletPath()
+        // is unreliable in subdomain mode where the MockMvc harness does not set it explicitly.
+        final String originKey = UaaUrlUtils.extractPathVariableFromUrl(2, pathAfterContext(request));
+        // Use getSession(false): a callback with an expired/missing session must be rejected as an
+        // invalid login request, not silently given a fresh (stateless) session.
+        final HttpSession session = request.getSession(false);
         if (session == null) {
             throw new HttpSessionRequiredException("An HTTP Session is required to process request.");
         }
         final Object stateInSession = SessionUtils.getStateParam(session, SessionUtils.stateParameterAttributeKeyForIdp(originKey));
         final String stateFromParameters = request.getParameter("state");
         if (UaaStringUtils.isEmpty(stateFromParameters) || !stateFromParameters.equals(stateInSession)) {
+            if (SessionUtils.consumeSupersededState(session, originKey, stateFromParameters)) {
+                throw new ConcurrentLoginAttemptException(originKey);
+            }
             throw new CsrfException("Invalid State Param in request.");
         }
+    }
+
+    /**
+     * Returns the portion of the request URI that follows the context path.
+     * Using the request URI (minus context path) rather than getServletPath() ensures correct
+     * origin extraction in subdomain-based deployments where the servlet path may not be set.
+     */
+    private static String pathAfterContext(HttpServletRequest request) {
+        String requestUri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && requestUri.startsWith(contextPath)) {
+            return requestUri.substring(contextPath.length());
+        }
+        return requestUri;
     }
 
     private boolean containsCredentials(final HttpServletRequest request) {
@@ -92,7 +127,10 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
     private boolean authenticationWasSuccessful(
             final HttpServletRequest request,
             final HttpServletResponse response) throws IOException {
-        final String origin = FilenameUtils.getName(request.getRequestURI());
+        // Derive the origin the same way as checkRequestStateParameter so the state we validated and
+        // the IDP we authenticate against always refer to the same origin key (robust across
+        // subdomain- and zone-path-based deployments).
+        final String origin = UaaUrlUtils.extractPathVariableFromUrl(2, pathAfterContext(request));
         final String code = request.getParameter("code");
         final String idToken = request.getParameter("id_token");
         final String accessToken = request.getParameter("access_token");

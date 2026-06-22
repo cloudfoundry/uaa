@@ -84,7 +84,15 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         var relyingPartyId = definition.getRelyingPartyId();
 
         var state = generateStateParam();
-        SessionUtils.setStateParam(request.getSession(), SessionUtils.stateParameterAttributeKeyForIdp(idpOriginKey), state);
+        var stateAttributeKey = SessionUtils.stateParameterAttributeKeyForIdp(idpOriginKey);
+        var previousState = SessionUtils.getStateParam(request.getSession(), stateAttributeKey);
+        if (previousState instanceof String previous && !previous.equals(state)) {
+            // A login flow for this IDP was already in progress in this session (e.g. another
+            // browser tab). Remember the state we are about to overwrite so a late callback from
+            // that older tab can be recognised as a concurrent login rather than a CSRF attempt.
+            SessionUtils.recordSupersededState(request.getSession(), idpOriginKey, previous);
+        }
+        SessionUtils.setStateParam(request.getSession(), stateAttributeKey, state);
         SessionUtils.setStateParam(request.getSession(), SessionUtils.redirectUriParameterAttributeKeyForIdp(idpOriginKey),
                 URLDecoder.decode(callbackUrl, StandardCharsets.UTF_8));
 
