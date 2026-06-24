@@ -683,7 +683,7 @@ public class OauthEndpointBeanConfiguration {
             @Value("${jwt.token.policy.activeKeyId:#{null}}") String activeKeyId,
             @Value("${jwt.token.revocable:false}") boolean jwtRevocable,
             @Value("${jwt.token.refresh.format:#{T(org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat).OPAQUE.getStringValue()}}") String refreshTokenFormat,
-            @Value("${jwt.token.refresh.unique:false}") boolean refreshTokenUnique,
+            @Value("${jwt.token.refresh.unique:false}") String refreshTokenUniqueStr,
             @Value("${jwt.token.refresh.rotate:false}") boolean refreshTokenRotate
     ) {
         TokenPolicy bean = new TokenPolicy(
@@ -694,7 +694,24 @@ public class OauthEndpointBeanConfiguration {
         bean.setActiveKeyId(activeKeyId);
         bean.setJwtRevocable(jwtRevocable);
         bean.setRefreshTokenFormat(refreshTokenFormat);
-        bean.setRefreshTokenUnique(refreshTokenUnique);
+
+        int refreshTokenUnique = -1;
+        if ("true".equalsIgnoreCase(refreshTokenUniqueStr)) {
+            refreshTokenUnique = 1;
+        } else if ("false".equalsIgnoreCase(refreshTokenUniqueStr)) {
+            refreshTokenUnique = -1;
+        } else {
+            try {
+                refreshTokenUnique = Integer.parseInt(refreshTokenUniqueStr);
+                if (refreshTokenUnique <= 0) {
+                    refreshTokenUnique = -1;
+                }
+            } catch (NumberFormatException e) {
+                refreshTokenUnique = -1;
+            }
+        }
+        bean.setMaxSessionLimit(refreshTokenUnique);
+
         bean.setRefreshTokenRotate(refreshTokenRotate);
         return bean;
     }

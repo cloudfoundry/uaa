@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.*;
+import tools.jackson.databind.JsonNode;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.springframework.util.StringUtils;
 
@@ -42,7 +43,7 @@ public class TokenPolicy {
     private int accessTokenValidity;
     private int refreshTokenValidity;
     private boolean jwtRevocable;
-    private boolean refreshTokenUnique;
+    private int refreshTokenUnique = -1;
     private boolean refreshTokenRotate;
     private String refreshTokenFormat = OPAQUE.getStringValue();
 
@@ -126,12 +127,47 @@ public class TokenPolicy {
         }
     }
 
+    @JsonIgnore
     public boolean isRefreshTokenUnique() {
+        return refreshTokenUnique > 0;
+    }
+
+    @JsonIgnore
+    public void setRefreshTokenUnique(boolean refreshTokenUnique) {
+        this.refreshTokenUnique = refreshTokenUnique ? 1 : -1;
+    }
+
+    @JsonGetter("refreshTokenUnique")
+    public int getMaxSessionLimit() {
         return refreshTokenUnique;
     }
 
-    public void setRefreshTokenUnique(boolean refreshTokenUnique) {
-        this.refreshTokenUnique = refreshTokenUnique;
+    public void setMaxSessionLimit(int maxSessionLimit) {
+        this.refreshTokenUnique = maxSessionLimit <= 0 ? -1 : maxSessionLimit;
+    }
+
+    @JsonSetter("refreshTokenUnique")
+    private void setRefreshTokenUniqueFromJson(JsonNode node) {
+        int parsedValue = -1;
+        if (node.isBoolean()) {
+            parsedValue = node.asBoolean() ? 1 : -1;
+        } else if (node.isNumber()) {
+            parsedValue = node.asInt();
+        } else if (node.isTextual()) {
+            String text = node.asText();
+            if ("true".equalsIgnoreCase(text)) {
+                parsedValue = 1;
+            } else if ("false".equalsIgnoreCase(text)) {
+                parsedValue = -1;
+            } else {
+                try {
+                    parsedValue = Integer.parseInt(text);
+                } catch (NumberFormatException e) {
+                    parsedValue = -1;
+                }
+            }
+        }
+        setMaxSessionLimit(parsedValue);
     }
 
     public boolean isRefreshTokenRotate() {

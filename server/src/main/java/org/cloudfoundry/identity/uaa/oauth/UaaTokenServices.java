@@ -21,6 +21,8 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.event.TokenRevocationEvent;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
@@ -62,9 +64,12 @@ import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -83,6 +88,7 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -780,8 +786,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         boolean isRefreshTokenOpaque = isOpaque || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
         boolean refreshTokenRevocable = isRefreshTokenOpaque || getActiveTokenPolicy().isJwtRevocable();
-        boolean refreshTokenUnique = getActiveTokenPolicy().isRefreshTokenUnique();
         if (refreshToken != null && refreshTokenRevocable) {
+            String zoneId = IdentityZoneHolder.get().getId();
             RevocableToken revocableRefreshToken = new RevocableToken()
                     .setTokenId(refreshToken.getJti())
                     .setClientId(clientId)
@@ -789,14 +795,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     .setIssuedAt(now)
                     .setFormat(isRefreshTokenOpaque ? OPAQUE.getStringValue() : JWT.getStringValue())
                     .setResponseType(REFRESH_TOKEN)
-                    .setZoneId(IdentityZoneHolder.get().getId())
+                    .setZoneId(zoneId)
                     .setUserId(userId)
                     .setScope(scope)
                     .setValue(refreshToken.getValue());
-            if (refreshTokenUnique) {
-                tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
-            }
-            tokenProvisioning.createIfNotExists(revocableRefreshToken, IdentityZoneHolder.get().getId());
+            enforceConcurrentSessionLimit(userId, clientId, resolveRefreshTokenUniqueLimit(clientId, zoneId), zoneId, refreshToken.getJti(), tokenIdToBeDeleted);
+            tokenProvisioning.createIfNotExists(revocableRefreshToken, zoneId);
             if (tokenIdToBeDeleted != null) {
                 tokenProvisioning.delete(tokenIdToBeDeleted, -1, IdentityZoneHolder.getCurrentZoneId());
             }
@@ -956,10 +960,71 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.clientDetailsService = clientDetailsService;
     }
 
-    private void publish(TokenIssuedEvent event) {
+    private void publish(ApplicationEvent event) {
         if (applicationEventPublisher != null) {
             applicationEventPublisher.publishEvent(event);
         }
+    }
+
+    /**
+     * Resolves the effective concurrent session limit (the {@code refreshTokenUnique} value) for the given client.
+     * A client-level override stored in the client's additional information takes precedence over the identity
+     * zone's token policy. The value is interpreted as: {@code -1} (or any non-positive number) means unlimited,
+     * while a positive number caps the active refresh tokens per user and client at that count.
+     */
+    private int resolveRefreshTokenUniqueLimit(String clientId, String zoneId) {
+        int limit = getActiveTokenPolicy().getMaxSessionLimit();
+        try {
+            UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, zoneId);
+            if (client != null && client.getAdditionalInformation().get(ClientConstants.REFRESH_TOKEN_UNIQUE) instanceof Number clientLimit) {
+                limit = clientLimit.intValue();
+            }
+        } catch (RuntimeException e) {
+            logger.warn("Failed to read client-level {} override for client {}", ClientConstants.REFRESH_TOKEN_UNIQUE, clientId, e);
+        }
+        return limit;
+    }
+
+    /**
+     * Enforces the per-user, per-client concurrent session limit by revoking the oldest refresh tokens so that
+     * at most {@code limit - 1} remain, leaving room for the refresh token that is about to be issued. A
+     * non-positive limit means unlimited and disables enforcement. This only takes effect when refresh tokens
+     * are revocable (i.e. {@code jwt.token.revocable=true}), which is guaranteed by the caller.
+     */
+    private void enforceConcurrentSessionLimit(String userId, String clientId, int limit, String zoneId, String newTokenId, String tokenIdToBeDeleted) {
+        if (limit <= 0) {
+            return;
+        }
+        List<RevocableToken> allRefreshTokens = ofNullable(tokenProvisioning.getUserTokens(userId, clientId, zoneId))
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .filter(token -> REFRESH_TOKEN.equals(token.getResponseType()))
+                .toList();
+
+        boolean reusingExistingToken = allRefreshTokens.stream().anyMatch(t -> t.getTokenId().equals(newTokenId));
+        boolean deletingOldToken = tokenIdToBeDeleted != null && allRefreshTokens.stream().anyMatch(t -> t.getTokenId().equals(tokenIdToBeDeleted));
+
+        int netIncrease = 1;
+        if (reusingExistingToken || deletingOldToken) {
+            netIncrease = 0;
+        }
+
+        int numberToRevoke = allRefreshTokens.size() + netIncrease - limit;
+        if (numberToRevoke <= 0) {
+            return;
+        }
+
+        List<RevocableToken> candidatesToRevoke = allRefreshTokens.stream()
+                .filter(t -> !t.getTokenId().equals(newTokenId))
+                .filter(t -> tokenIdToBeDeleted == null || !t.getTokenId().equals(tokenIdToBeDeleted))
+                .sorted(Comparator.comparingLong(RevocableToken::getIssuedAt))
+                .toList();
+
+        for (int i = 0; i < numberToRevoke && i < candidatesToRevoke.size(); i++) {
+            tokenProvisioning.delete(candidatesToRevoke.get(i).getTokenId(), -1, zoneId);
+        }
+        
+        publish(new TokenRevocationEvent(userId, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));
     }
 
     public TokenPolicy getTokenPolicy() {

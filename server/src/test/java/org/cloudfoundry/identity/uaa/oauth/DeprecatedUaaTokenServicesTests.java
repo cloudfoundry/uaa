@@ -227,8 +227,17 @@ class DeprecatedUaaTokenServicesTests {
     @ParameterizedTest(name = "{index}: {0}")
     void refresh_tokens_are_uniquely_persisted(TestTokenEnhancer enhancer) {
         initDeprecatedUaaTokenServicesTests(enhancer);
+        String currentZoneId = IdentityZoneHolder.get().getId();
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenUnique(true);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(OPAQUE.getStringValue());
+        RevocableToken existingRefreshToken = new RevocableToken()
+                .setTokenId("existing-refresh-token")
+                .setClientId("clientId")
+                .setUserId("userId")
+                .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN)
+                .setIssuedAt(1000L);
+        when(tokenProvisioning.getUserTokens("userId", "clientId", currentZoneId))
+                .thenReturn(Collections.singletonList(existingRefreshToken));
         tokenServices.persistRevocableToken("id",
                 persistToken,
                 new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
@@ -237,7 +246,8 @@ class DeprecatedUaaTokenServicesTests {
                 true,
                 true, null);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
+        // The limit of 1 means the single pre-existing refresh token is revoked to make room for the new one.
+        verify(tokenProvisioning, times(1)).delete("existing-refresh-token", -1, currentZoneId);
         verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
         verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
@@ -258,11 +268,89 @@ class DeprecatedUaaTokenServicesTests {
                 true, null);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         String currentZoneId = IdentityZoneHolder.get().getId();
-        verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
+        // An unlimited (-1) policy must not revoke any existing refresh tokens.
+        verify(tokenProvisioning, never()).delete(anyString(), eq(-1), eq(currentZoneId));
         verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
         verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertThat(refreshToken.getResponseType()).isEqualTo(RevocableToken.TokenType.REFRESH_TOKEN);
+    }
+
+    @MethodSource("data")
+    @ParameterizedTest(name = "{index}: {0}")
+    void refresh_token_limit_revokes_oldest_sessions_over_threshold(TestTokenEnhancer enhancer) {
+        initDeprecatedUaaTokenServicesTests(enhancer);
+        String currentZoneId = IdentityZoneHolder.get().getId();
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setMaxSessionLimit(2);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(OPAQUE.getStringValue());
+        RevocableToken oldest = new RevocableToken().setTokenId("oldest").setClientId("clientId").setUserId("userId")
+                .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN).setIssuedAt(1000L);
+        RevocableToken newer = new RevocableToken().setTokenId("newer").setClientId("clientId").setUserId("userId")
+                .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN).setIssuedAt(2000L);
+        when(tokenProvisioning.getUserTokens("userId", "clientId", currentZoneId))
+                .thenReturn(Arrays.asList(newer, oldest));
+        tokenServices.persistRevocableToken("id",
+                persistToken,
+                new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
+                "clientId",
+                "userId",
+                true,
+                true, null);
+        // With a limit of 2 and 2 existing sessions, only the single oldest session is revoked.
+        verify(tokenProvisioning, times(1)).delete("oldest", -1, currentZoneId);
+        verify(tokenProvisioning, never()).delete("newer", -1, currentZoneId);
+    }
+
+    @MethodSource("data")
+    @ParameterizedTest(name = "{index}: {0}")
+    void refresh_token_limit_is_applied_per_user_and_client(TestTokenEnhancer enhancer) {
+        initDeprecatedUaaTokenServicesTests(enhancer);
+        String currentZoneId = IdentityZoneHolder.get().getId();
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setMaxSessionLimit(2);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(OPAQUE.getStringValue());
+
+        // User A has 2 sessions
+        RevocableToken userA_oldest = new RevocableToken().setTokenId("userA_oldest").setClientId("clientId").setUserId("userA")
+                .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN).setIssuedAt(1000L);
+        RevocableToken userA_newer = new RevocableToken().setTokenId("userA_newer").setClientId("clientId").setUserId("userA")
+                .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN).setIssuedAt(2000L);
+
+        // User B has 1 session
+        RevocableToken userB_session = new RevocableToken().setTokenId("userB_session").setClientId("clientId").setUserId("userB")
+                .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN).setIssuedAt(1500L);
+
+        when(tokenProvisioning.getUserTokens("userA", "clientId", currentZoneId))
+                .thenReturn(Arrays.asList(userA_newer, userA_oldest));
+        when(tokenProvisioning.getUserTokens("userB", "clientId", currentZoneId))
+                .thenReturn(Collections.singletonList(userB_session));
+
+        // User B logs in (2nd session for User B)
+        tokenServices.persistRevocableToken("id",
+                persistToken,
+                new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
+                "clientId",
+                "userB",
+                true,
+                true, null);
+
+        // User B's new session should NOT revoke User A's sessions, and User B has not exceeded the limit of 2.
+        verify(tokenProvisioning, never()).delete("userA_oldest", -1, currentZoneId);
+        verify(tokenProvisioning, never()).delete("userA_newer", -1, currentZoneId);
+        verify(tokenProvisioning, never()).delete("userB_session", -1, currentZoneId);
+
+        // Now User A logs in (3rd session for User A)
+        tokenServices.persistRevocableToken("id",
+                persistToken,
+                new CompositeExpiringOAuth2RefreshToken("refresh-token-value", expiration, ""),
+                "clientId",
+                "userA",
+                true,
+                true, null);
+
+        // User A's oldest session should be revoked because they exceeded the limit of 2.
+        verify(tokenProvisioning, times(1)).delete("userA_oldest", -1, currentZoneId);
+        verify(tokenProvisioning, never()).delete("userA_newer", -1, currentZoneId);
+        verify(tokenProvisioning, never()).delete("userB_session", -1, currentZoneId);
     }
 
     @MethodSource("data")
