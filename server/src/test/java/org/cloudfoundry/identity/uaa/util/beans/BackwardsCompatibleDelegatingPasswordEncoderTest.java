@@ -81,4 +81,34 @@ class BackwardsCompatibleDelegatingPasswordEncoderTest {
             verify(mockPasswordEncoder).matches("password", "encodedPassword");
         }
     }
+
+    @Nested
+    class WithEmptyPassword {
+        // Spring Security 7's BCryptPasswordEncoder extends AbstractValidatingPasswordEncoder
+        // which short-circuits matches() and returns false for empty rawPassword.
+        // UAA legitimately stores BCrypt hashes of empty strings (clients with no secret,
+        // e.g. the CF CLI client). Verify that this class handles empty rawPassword correctly
+        // so ClientAdminBootstrap.updatePasswordsIfChanged() does not re-encode on every startup.
+        private final BCryptPasswordEncoder realEncoder = new BCryptPasswordEncoder();
+        private final PasswordEncoder realBackwardsEncoder =
+                new BackwardsCompatibleDelegatingPasswordEncoder(realEncoder);
+
+        @Test
+        void emptyPasswordMatchesItsOwnHash() {
+            String hash = realEncoder.encode("");
+            assertThat(realBackwardsEncoder.matches("", hash)).isTrue();
+        }
+
+        @Test
+        void emptyPasswordDoesNotMatchDifferentHash() {
+            String hash = realEncoder.encode("notempty");
+            assertThat(realBackwardsEncoder.matches("", hash)).isFalse();
+        }
+
+        @Test
+        void emptyPasswordMatchesBcryptPrefixedHash() {
+            String hash = "{bcrypt}" + realEncoder.encode("");
+            assertThat(realBackwardsEncoder.matches("", hash)).isTrue();
+        }
+    }
 }

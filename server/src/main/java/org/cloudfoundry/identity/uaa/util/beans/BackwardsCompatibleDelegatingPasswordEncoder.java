@@ -1,11 +1,15 @@
 package org.cloudfoundry.identity.uaa.util.beans;
 
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Set;
 
 public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEncoder {
 
     private static final String OPTIONAL_BCRYPT_PREFIX = "bcrypt";
+    private static final Set<String> BCRYPT_HASH_PREFIXES = Set.of("$2a$", "$2b$", "$2y$");
     private final BCryptPasswordEncoder defaultPasswordEncoder;
 
     public BackwardsCompatibleDelegatingPasswordEncoder(final BCryptPasswordEncoder defaultPasswordEncoder) {
@@ -27,7 +31,19 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return false;
         }
 
-        return defaultPasswordEncoder.matches(rawPassword, verifyPrefixAndExtractPassword(encodedPassword));
+        String extracted = verifyPrefixAndExtractPassword(encodedPassword);
+        // Spring Security 7's BCryptPasswordEncoder rejects empty rawPassword outright.
+        // UAA legitimately stores BCrypt hashes of empty strings (e.g. the `cf` CLI client
+        // has no secret), so we call BCrypt directly to preserve that behaviour.
+        if (rawPassword.isEmpty() && isBcryptHash(extracted)) {
+            try {
+                return BCrypt.checkpw("", extracted);
+            } catch (IllegalArgumentException _) {
+                return false;
+            }
+        }
+
+        return defaultPasswordEncoder.matches(rawPassword, extracted);
     }
 
     private String verifyPrefixAndExtractPassword(String encodedPassword) {
@@ -43,5 +59,9 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             throw new IllegalArgumentException("Password encoding {%s} is not supported".formatted(prefix));
         }
         return encodedPassword.substring(endIndex + 1);
+    }
+
+    private boolean isBcryptHash(String value) {
+        return BCRYPT_HASH_PREFIXES.stream().anyMatch(value::startsWith);
     }
 }
