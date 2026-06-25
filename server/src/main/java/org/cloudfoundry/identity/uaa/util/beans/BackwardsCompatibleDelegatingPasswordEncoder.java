@@ -3,6 +3,9 @@ package org.cloudfoundry.identity.uaa.util.beans;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
 public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEncoder {
 
     private static final String NOOP_PREFIX = "{noop}";
@@ -28,10 +31,10 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return false;
         }
 
-        // Handle {noop} prefixed passwords with direct comparison
+        // Handle {noop} prefixed passwords with constant-time comparison
         if (encodedPassword.startsWith(NOOP_PREFIX)) {
             String storedPassword = encodedPassword.substring(NOOP_PREFIX.length());
-            return rawPassword.toString().equals(storedPassword);
+            return constantTimeEquals(rawPassword.toString(), storedPassword);
         }
 
         return defaultPasswordEncoder.matches(rawPassword, verifyPrefixAndExtractPassword(encodedPassword));
@@ -50,5 +53,23 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             throw new IllegalArgumentException("Password encoding %s is not supported".formatted(prefix));
         }
         return encodedPassword.substring(endIndex + 1);
+    }
+
+    /**
+     * Performs constant-time string comparison to prevent timing attacks.
+     * Uses MessageDigest.isEqual() which is designed for secure comparisons.
+     */
+    private boolean constantTimeEquals(String a, String b) {
+        if (a == null && b == null) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        
+        byte[] aBytes = a.getBytes(StandardCharsets.UTF_8);
+        byte[] bBytes = b.getBytes(StandardCharsets.UTF_8);
+        
+        return MessageDigest.isEqual(aBytes, bBytes);
     }
 }
