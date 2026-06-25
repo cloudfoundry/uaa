@@ -3,9 +3,9 @@ package org.cloudfoundry.identity.uaa.util.beans;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.Set;
+
+import static org.cloudfoundry.identity.uaa.util.beans.SecureStringComparison.constantTimeEquals;
 
 /**
  * Wraps a {@link PasswordEncoder} to allow empty raw passwords.
@@ -77,23 +77,5 @@ public class EmptyAwareDelegatingPasswordEncoder implements PasswordEncoder {
         } catch (IllegalArgumentException _) {
             return false;
         }
-    }
-
-    /**
-     * Performs constant-time string comparison to prevent timing attacks.
-     * Uses MessageDigest.isEqual() which is designed for secure comparisons.
-     */
-    private boolean constantTimeEquals(String a, String b) {
-        if (a == null && b == null) {
-            return true;
-        }
-        if (a == null || b == null) {
-            return false;
-        }
-        
-        byte[] aBytes = a.getBytes(StandardCharsets.UTF_8);
-        byte[] bBytes = b.getBytes(StandardCharsets.UTF_8);
-        
-        return MessageDigest.isEqual(aBytes, bBytes);
     }
 }
