@@ -24,7 +24,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
-import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderConfig;
+import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderTestConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +66,7 @@ class AuthzAuthenticationManagerTests {
     private ApplicationEventPublisher publisher;
     private static final String PASSWORD = "password";
     private UaaUser user;
-    private PasswordEncoder encoder = new PasswordEncoderConfig().nonCachingPasswordEncoder();
+    private PasswordEncoder encoder = new PasswordEncoderTestConfig().nonCachingPasswordEncoder();
     private String loginServerUserName = "loginServerUser".toLowerCase();
     private IdentityProviderProvisioning providerProvisioning;
 

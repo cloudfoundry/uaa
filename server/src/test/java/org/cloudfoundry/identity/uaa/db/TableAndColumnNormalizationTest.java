@@ -7,7 +7,7 @@ import org.cloudfoundry.identity.uaa.db.mysql.V1_5_4__NormalizeTableAndColumnNam
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
 import org.cloudfoundry.identity.uaa.test.TestDatabaseNameCustomizer;
-import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderConfig;
+import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderTestConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ class MySQLConfiguration {
 @ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @SpringJUnitConfig(classes = {
-        PasswordEncoderConfig.class,
+        PasswordEncoderTestConfig.class,
         FlywayConfiguration.class,
         DatabaseConfiguration.class,
         TestDatabaseNameCustomizer.class,

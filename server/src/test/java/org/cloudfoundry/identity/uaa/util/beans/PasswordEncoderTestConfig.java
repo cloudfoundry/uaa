@@ -10,9 +10,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PasswordEncoderConfig {
+public class PasswordEncoderTestConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(PasswordEncoderConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(PasswordEncoderTestConfig.class);
 
     @Bean
     public PasswordEncoder nonCachingPasswordEncoder() {

@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.db.beans.DatabaseConfiguration;
 import org.cloudfoundry.identity.uaa.db.beans.FlywayConfiguration;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.TestDatabaseNameCustomizer;
-import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderConfig;
+import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderTestConfig;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 @WebAppConfiguration
 @SpringJUnitConfig(classes = {
         DatabaseConfiguration.class,
-        PasswordEncoderConfig.class,
+        PasswordEncoderTestConfig.class,
         FlywayConfiguration.class,
         FlywayConfiguration.FlywayConfigurationWithMigration.class,
         TestDatabaseNameCustomizer.class
