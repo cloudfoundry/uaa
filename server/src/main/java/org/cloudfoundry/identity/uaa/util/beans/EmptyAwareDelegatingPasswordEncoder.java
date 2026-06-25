@@ -25,6 +25,10 @@ public class EmptyAwareDelegatingPasswordEncoder implements PasswordEncoder {
 
     @Override
     public String encode(CharSequence rawPassword) {
+        // For empty passwords, use noop encoding to maintain compatibility with legacy behavior
+        if (rawPassword != null && rawPassword.isEmpty()) {
+            return NOOP_PREFIX;
+        }
         return delegate.encode(rawPassword);
     }
 

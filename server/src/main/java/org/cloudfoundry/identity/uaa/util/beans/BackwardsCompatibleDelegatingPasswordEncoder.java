@@ -5,7 +5,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEncoder {
 
-    private static final String OPTIONAL_BCRYPT_PREFIX = "bcrypt";
+    private static final String NOOP_PREFIX = "{noop}";
+    private static final String BCRYPT_PREFIX = "{bcrypt}";
     private final BCryptPasswordEncoder defaultPasswordEncoder;
 
     public BackwardsCompatibleDelegatingPasswordEncoder(final BCryptPasswordEncoder defaultPasswordEncoder) {
@@ -27,6 +28,12 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return false;
         }
 
+        // Handle {noop} prefixed passwords with direct comparison
+        if (encodedPassword.startsWith(NOOP_PREFIX)) {
+            String storedPassword = encodedPassword.substring(NOOP_PREFIX.length());
+            return rawPassword.toString().equals(storedPassword);
+        }
+
         return defaultPasswordEncoder.matches(rawPassword, verifyPrefixAndExtractPassword(encodedPassword));
     }
 
@@ -38,9 +45,9 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return encodedPassword;
         }
 
-        String prefix = encodedPassword.substring(startIndex + 1, endIndex);
-        if (!prefix.equals(OPTIONAL_BCRYPT_PREFIX)) {
-            throw new IllegalArgumentException("Password encoding {%s} is not supported".formatted(prefix));
+        String prefix = encodedPassword.substring(startIndex, endIndex + 1);
+        if (!prefix.equals(BCRYPT_PREFIX) && !prefix.equals(NOOP_PREFIX)) {
+            throw new IllegalArgumentException("Password encoding %s is not supported".formatted(prefix));
         }
         return encodedPassword.substring(endIndex + 1);
     }
