@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.util.beans;
 
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,7 +11,7 @@ import java.util.Set;
  * when {@code rawPassword.length() == 0}. UAA legitimately supports clients with no secret (e.g. CF CLI),
  * whose stored hash is the encoding of an empty string.
  */
-class EmptyPasswordAwareEncoder implements PasswordEncoder {
+public class EmptyAwareDelegatingPasswordEncoder implements PasswordEncoder {
 
     private static final String NOOP_PREFIX = "{noop}";
     private static final String BCRYPT_PREFIX = "{bcrypt}";
@@ -19,7 +19,7 @@ class EmptyPasswordAwareEncoder implements PasswordEncoder {
 
     private final PasswordEncoder delegate;
 
-    EmptyPasswordAwareEncoder(PasswordEncoder delegate) {
+    public EmptyAwareDelegatingPasswordEncoder(PasswordEncoder delegate) {
         this.delegate = delegate;
     }
 

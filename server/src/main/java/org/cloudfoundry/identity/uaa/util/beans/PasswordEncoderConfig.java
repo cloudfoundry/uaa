@@ -10,11 +10,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 public class PasswordEncoderConfig {
 
-    private static Logger logger = LoggerFactory.getLogger(PasswordEncoderConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(PasswordEncoderConfig.class);
 
     @Bean
     public PasswordEncoder nonCachingPasswordEncoder() {
-        logger.info("Building BackwardsCompatibleDelegatingPasswordEncoder with {bcrypt} only");
-        return new BackwardsCompatibleDelegatingPasswordEncoder(new BCryptPasswordEncoder());
+        logger.info("Building EmptyAwareDelegatingPasswordEncoder with BackwardsCompatibleDelegatingPasswordEncoder with {bcrypt} only");
+        var defaultPasswordEncoder = new BCryptPasswordEncoder();
+        var backwardsCompatibleDelegatingPasswordEncoder = new BackwardsCompatibleDelegatingPasswordEncoder(defaultPasswordEncoder);
+        return new EmptyAwareDelegatingPasswordEncoder(backwardsCompatibleDelegatingPasswordEncoder);
     }
 }
