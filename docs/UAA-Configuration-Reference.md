@@ -111,7 +111,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#jwttokenpolicyglobalaccesstokenvalidityseconds"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.policy.global.accessTokenValiditySeconds` | `43200`| Global access token validity (s)|
 | <a href="#jwttokenpolicyglobalrefreshtokenvalidityseconds"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.policy.global.refreshTokenValiditySeconds` | `2592000`| Global refresh token validity (s)|
 | <a href="#jwttokenrefreshformat"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.format` | `opaque`| Refresh token format|
-| <a href="#jwttokenrefreshunique"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.unique` | `false`| Unique refresh tokens|
+| <a href="#jwttokenrefreshunique"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.unique` | `false`| Max concurrent refresh-token sessions per user/client|
 | <a href="#jwttokenrefreshrotate"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.rotate` | `false`| Rotate refresh tokens|
 | <a href="#jwttokenrefreshrestrict_grant"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.restrict_grant` | —| Restrict refresh token grant|
 | <a href="#jwttokenclaimsexclude"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.claims.exclude` | `[]`| Claims excluded from tokens|
@@ -1043,10 +1043,36 @@ Format of issued refresh tokens. Accepted values:
 
 **Default:** `false`
 **Source:** `@Value("${jwt.token.refresh.unique:false}")` in [`OauthEndpointBeanConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java)
-**Type:** `boolean`
+**Type:** `boolean | integer`
 
-When `true`, only one refresh token can exist per user/client combination. Issuing a new
-refresh token invalidates the previous one.
+Maximum number of concurrent active refresh tokens (sessions) allowed per user/client pair.
+
+Accepted values:
+
+- `false` or `0` (or any non-positive integer) — no limit (default behaviour)
+- `true` — equivalent to `1`; at most one active refresh token per user/client pair
+- A positive integer `N` — at most `N` concurrent refresh tokens per user/client pair
+
+When the limit is reached, the **oldest** refresh token is revoked to make room for the new
+one. Enforcement only takes effect when `jwt.token.revocable` is also `true` (revocable
+tokens must be enabled so UAA can track and delete them).
+
+Per-client overrides are supported: set `refreshTokenUnique` in the client's
+`additionalInformation` map to an integer to override the zone-level policy for that
+specific client.
+
+**Example — limit all users to two concurrent sessions:**
+
+```yaml
+jwt:
+  token:
+    revocable: true
+    refresh:
+      unique: 2
+```
+
+**Related properties:** [`jwt.token.revocable`](#jwttokenrevocable),
+[`jwt.token.refresh.rotate`](#jwttokenrefreshrotate)
 
 [Back to table](#jwt-token-policy)
 
