@@ -2044,21 +2044,50 @@ Useful for IDP-initiated SSO flows.
 ### `login.saml.providers`
 
 **Default:** — (not configured)
-**Source:** [`SamlConfigProps`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlConfigProps.java) (via `EnvironmentAware`)
+**Source:** [`BootstrapSamlIdentityProviderData`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/BootstrapSamlIdentityProviderData.java) (via `EnvironmentAware`)
 **Type:** `Map<String, Map<String, Object>>`
 
-SAML Identity Provider definitions. Each entry is keyed by a provider alias and includes:
-- `idpMetadata` — Inline metadata XML or URL to metadata
-- `nameID` — NameID format for this IDP
-- `assertionConsumerIndex` — ACS index for this IDP
-- `metadataTrustCheck` — Validate metadata signature
-- `showSamlLoginLink` — Show login link on login page
-- `linkText` — Text for the login link
-- `iconUrl` — Icon URL for the login link
-- `addShadowUserOnLogin` — Create local user on first login
-- `emailDomain` — Email domains for IDP discovery
-- `externalGroupsWhitelist` — Allowed external groups
-- `attributeMappings` — Attribute mapping configuration
+Bootstrap SAML Identity Provider definitions. Each entry is keyed by a provider alias (the IDP origin key) and supports:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `idpMetadata` | `String` | **Required.** Inline metadata XML _or_ HTTP/HTTPS URL to the IDP metadata endpoint |
+| `nameID` | `String` | NameID format. Defaults to `login.saml.nameID` |
+| `assertionConsumerIndex` | `int` | ACS index. Default `0` |
+| `metadataTrustCheck` | `boolean` | Validate metadata signature. Default `true` |
+| `showSamlLoginLink` | `boolean` | Show login link on login page. Default `true` |
+| `linkText` | `String` | Label for the login link |
+| `iconUrl` | `String` | Icon URL for the login link |
+| `addShadowUserOnLogin` | `boolean` | Create a local shadow user on first SAML login. Default `true` |
+| `emailDomain` | `List<String>` | Email domains used for IDP discovery |
+| `externalGroupsWhitelist` | `List<String>` | External group names to map |
+| `attributeMappings` | `Map<String, Object>` | Attribute mapping configuration |
+| `skipSslValidation` | `boolean` | Skip TLS validation when fetching metadata URL. Default `false` |
+| `storeCustomAttributes` | `boolean` | Persist custom SAML attributes on the user. Default `true` |
+| `authnContext` | `List<String>` | Requested authentication context class references |
+| `override` | `boolean` | Overwrite an existing provider with the same alias on startup. Default `true` |
+
+#### `idpMetadata` and entity ID resolution
+
+The value of `idpMetadata` determines how UAA parses the IDP's entity ID:
+
+- **Inline XML** (value starts with `<?xml`, `<md:EntityDescriptor`, or `<EntityDescriptor`):
+  UAA parses the XML synchronously at startup. If the XML is invalid or the entity ID cannot
+  be extracted, startup fails immediately. This is the most reliable form — the IDP entity ID
+  is always stored in the database (`external_key` column) and IDP-initiated SSO works without
+  any network dependency at authentication time.
+
+- **HTTP/HTTPS URL** (value starts with `http`):
+  UAA fetches and parses the metadata URL at startup. If the IDP is temporarily unreachable
+  (e.g. DNS not ready, network partition), UAA logs an error and continues startup, but the
+  entity ID is **not** stored in the database. Until the IDP metadata becomes reachable and UAA
+  is restarted (or the provider is re-saved via the API), IDP-initiated SSO for that provider
+  depends on per-request dynamic metadata resolution. If the IDP is unreachable at
+  authentication time as well, IDP-initiated SSO will fail.
+
+> **Recommendation:** For URL-type `idpMetadata`, ensure the IDP metadata endpoint is reachable
+> when UAA starts. If it is not, restart UAA once the IDP is available so that the entity ID is
+> resolved and persisted, enabling efficient and reliable IDP-initiated SSO lookups.
 
 [Back to table](#saml-service-provider)
 
