@@ -9,7 +9,9 @@ import org.apache.logging.log4j.core.config.Configurator;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -26,6 +28,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.opensaml.saml.saml2.core.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -305,6 +308,69 @@ class SamlAuthenticationMockMvcTests {
         }
     }
 
+    /**
+     * Zone-specific IDP-initiated SSO tests.
+     * <p>
+     * Verifies that IDP-initiated SSO works correctly for both subdomain and zone-path zone resolution
+     * modes when the {@code testsaml-redirect-binding} IdP is registered in a non-default zone.
+     * The SP alias for a zone is {@code {subdomain}.integration-saml-entity-id}, derived from the
+     * UAA-wide alias ({@code integration-saml-entity-id}) prefixed with the zone subdomain.
+     */
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "login.entityBaseURL=")
+    class NonDefaultZoneIdpInitiatedSsoTests {
+        // entityID comes from test-saml-idp-metadata-redirect-binding.xml (/saml2/idp, not /saml/idp)
+        private static final String IDP_ENTITY_ID = "https://some.idp.test/saml2/idp";
+        private static final String IDP_METADATA = "classpath:test-saml-idp-metadata-redirect-binding.xml";
+
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void idpInitiatedSso_subdomainZone_succeeds() throws Exception {
+            createMockSamlIdpInSpZone(IDP_METADATA, "testsaml-redirect-binding", IDP_ENTITY_ID);
+
+            String subdomain = spZone.getSubdomain();
+            String spAlias = subdomain + ".integration-saml-entity-id";
+            String acsUrl = "http://%s.localhost:8080/uaa/saml/SSO/alias/%s".formatted(subdomain, spAlias);
+
+            String encodedSamlResponse = serializedResponse(
+                    responseWithAssertionsForDestination(acsUrl, IDP_ENTITY_ID));
+
+            mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted(spAlias))
+                            .contextPath("/uaa")
+                            .header(HOST, subdomain + ".localhost:8080")
+                            .param(SAML_RESPONSE, encodedSamlResponse)
+                    )
+                    .andDo(print())
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/uaa/"));
+        }
+
+        @Test
+        @EnabledIfZonePathsEnabled
+        void idpInitiatedSso_zonePathZone_succeeds() throws Exception {
+            createMockSamlIdpInSpZone(IDP_METADATA, "testsaml-redirect-binding", IDP_ENTITY_ID);
+
+            String subdomain = spZone.getSubdomain();
+            String spAlias = subdomain + ".integration-saml-entity-id";
+            String acsUrl = "http://localhost:8080/z/%s/saml/SSO/alias/%s".formatted(subdomain, spAlias);
+
+            String encodedSamlResponse = serializedResponse(
+                    responseWithAssertionsForDestination(acsUrl, IDP_ENTITY_ID));
+
+            mockMvc.perform(ZoneResolutionMode.ZONE_PATH.createRequestBuilder(
+                            subdomain, HttpMethod.POST, "/saml/SSO/alias/%s".formatted(spAlias))
+                            .header(HOST, "localhost:8080")
+                            .param(SAML_RESPONSE, encodedSamlResponse)
+                    )
+                    .andDo(print())
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/z/%s/".formatted(subdomain)));
+        }
+    }
+
     @Test
     void receiveAuthnResponseFromIdpToLegacyAliasUrl() throws Exception {
 
@@ -371,6 +437,19 @@ class SamlAuthenticationMockMvcTests {
     }
 
     private void createMockSamlIdpInSpZone(String metadataLocation, String idpOriginKey) {
+        createMockSamlIdpInSpZone(metadataLocation, idpOriginKey, null);
+    }
+
+    /**
+     * Creates a mock SAML IdP in {@code spZone}. When {@code idpEntityId} is non-null it is stored
+     * in the {@code external_key} column so that
+     * {@link ConfiguratorRelyingPartyRegistrationRepository} can look it up by issuer during
+     * IDP-initiated SSO — required when the metadata location uses a {@code classpath:} prefix,
+     * which is not recognised as {@code DATA} type by
+     * {@link SamlIdentityProviderDefinition#getType()} and therefore cannot be resolved via
+     * {@link SamlIdentityProviderConfigurator#getExtendedMetadataDelegate}.
+     */
+    private void createMockSamlIdpInSpZone(String metadataLocation, String idpOriginKey, String idpEntityId) {
         idp = new IdentityProvider<SamlIdentityProviderDefinition>()
                 .setType(OriginKeys.SAML)
                 .setOriginKey(idpOriginKey)
@@ -382,6 +461,9 @@ class SamlAuthenticationMockMvcTests {
                 .setIdpEntityAlias(idp.getOriginKey())
                 .setLinkText(idp.getName())
                 .setZoneId(spZone.getId());
+        if (idpEntityId != null) {
+            idpDefinition.setIdpEntityId(idpEntityId);
+        }
 
         idp.setConfig(idpDefinition);
         idp = jdbcIdentityProviderProvisioning.create(idp, spZone.getId());
