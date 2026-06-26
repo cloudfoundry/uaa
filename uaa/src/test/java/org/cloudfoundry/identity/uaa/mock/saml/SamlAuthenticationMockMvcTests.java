@@ -45,6 +45,7 @@ import static org.apache.logging.log4j.Level.WARN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.authentication.MalformedSamlResponseLogger.X_VCAP_REQUEST_ID_HEADER;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.responseWithAssertions;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.responseWithAssertionsForDestination;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.serializedResponse;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlDecode;
@@ -489,6 +490,47 @@ class SamlAuthenticationMockMvcTests {
                     // expect redirect to the Uaa Home Page: /uaa/, not error
                     .andExpect(redirectedUrl("/uaa/"))
                     .andReturn();
+        }
+    }
+
+    /**
+     * Regression test: when {@code login.entityID} is a full URL (e.g. as configured by Tanzu OpsManager),
+     * the resolver must derive the SP alias as the hostname portion of the URL — identical to the derivation
+     * in {@link org.cloudfoundry.identity.uaa.provider.saml.SamlRelyingPartyRegistrationRepositoryConfig}.
+     * <p>
+     * Without the fix, {@code UaaRelyingPartyRegistrationResolver} passes the full URL as the alias to the
+     * {@code endsWith} check, which never matches the hostname-only URL segment extracted from the ACS URL
+     * path. The resolver then falls through to the default stub registration (UAA's own certificate), which
+     * cannot validate the IdP-signed assertion → "Invalid signature" → redirect to {@code /uaa/saml_error}.
+     */
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "login.entityID=https://example.com/uaa")
+    class IdpInitiatedSsoWithUrlEntityIdTests {
+        private static final String IDP_ENTITY_ID = "https://some.idp.test/saml/idp";
+        // hostname extracted from login.entityID (https://example.com/uaa) → used as SP alias
+        private static final String SP_ALIAS = "example.com";
+        private static final String ACS_URL = "http://localhost:8080/uaa/saml/SSO/alias/" + SP_ALIAS;
+
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void idpInitiatedSso_whenEntityIdIsUrl_succeeds() throws Exception {
+            // IDP-initiated: no prior SAMLRequest in session, no InResponseTo in the response.
+            // The resolver must extract the IdP issuer from the SAMLResponse and look it up via
+            // ConfiguratorRelyingPartyRegistrationRepository so that the correct signing cert is used.
+            String encodedSamlResponse = serializedResponse(
+                    responseWithAssertionsForDestination(ACS_URL, IDP_ENTITY_ID));
+
+            mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted(SP_ALIAS))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
+                            .param(SAML_RESPONSE, encodedSamlResponse)
+                    )
+                    .andDo(print())
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/uaa/"));
         }
     }
 
