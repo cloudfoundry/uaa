@@ -153,30 +153,24 @@ tasks.named<ProcessResources>("processResources") {
     }
 }
 
-tasks.register<Test>("integrationTest") {
-    onlyIf { //disable since we don't have any
-        false
-    }
-}
-
-val prodWiringTest = sourceSets.create("prodWiringTest") {
+sourceSets.create("integrationTest") {
     compileClasspath += sourceSets.main.get().output
     runtimeClasspath += sourceSets.main.get().output
 }
 
-configurations["prodWiringTestImplementation"].extendsFrom(configurations.testImplementation.get())
-configurations["prodWiringTestRuntimeOnly"].extendsFrom(configurations.testRuntimeOnly.get())
+configurations["integrationTestImplementation"].extendsFrom(configurations.testImplementation.get())
+configurations["integrationTestRuntimeOnly"].extendsFrom(configurations.testRuntimeOnly.get())
 
-tasks.register<Test>("prodWiringTest") {
-    description = "Tests that verify production bean wiring without test-scope class shadows."
+tasks.register<Test>("integrationTest") {
+    description = "Tests that run against the production implementation without test-scope class shadows."
     group = "verification"
-    testClassesDirs = prodWiringTest.output.classesDirs
-    classpath = prodWiringTest.runtimeClasspath
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
     useJUnitPlatform()
 }
 
-tasks.named("test") {
-    dependsOn("prodWiringTest")
+tasks.named("check") {
+    dependsOn("integrationTest")
 }
 
 val tomcatListenerJar by tasks.registering(Jar::class) {

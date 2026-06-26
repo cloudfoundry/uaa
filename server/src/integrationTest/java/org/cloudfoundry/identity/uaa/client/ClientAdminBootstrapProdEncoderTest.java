@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Regression test for UAA v79.0.0: verifies that running ClientAdminBootstrap twice
  * (simulating a UAA restart) does not re-encode the secret of a client with an empty secret.
  *
- * Uses the prodWiringTest source set so the real PasswordEncoderConfig (BCrypt-based,
+ * Uses the integrationTest source set so the real PasswordEncoderConfig (BCrypt-based,
  * wrapped in EmptyAwareDelegatingPasswordEncoder) is used — not the noop test shadow.
  * Without EmptyAwareDelegatingPasswordEncoder, Spring Security 7's BCryptPasswordEncoder
  * rejects empty rawPassword in matches(), causing the secret to be re-encoded on every
