@@ -13,11 +13,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.regex.Pattern;
 
 /** Issues UAA-signed JWT-SVIDs to authenticated Diego workload attestors. */
 @RestController
 @ConditionalOnProperty(prefix = "uaa.spiffe", name = "instance-identity-ca")
 public class JwtSvidController {
+
+    private static final Pattern PROCESS_TYPE_PATTERN = Pattern.compile("[a-zA-Z0-9_-]{1,63}");
+    private static final int MAX_AUDIENCE_LENGTH = 512;
 
     private final CertificateOuParser ouParser;
     private final InstanceIdentityVerifier identityVerifier;
@@ -39,6 +43,7 @@ public class JwtSvidController {
 
     @PostMapping(value = "/jwt-svid/sign", consumes = "application/json", produces = "application/json")
     public JwtSvidResponse sign(@RequestBody JwtSvidRequest request) {
+        validateRequest(request);
         X509Certificate certificate = parseCertificate(request.instanceCertificate());
         identityVerifier.verify(certificate);
 
@@ -61,6 +66,31 @@ public class JwtSvidController {
         } catch (CertificateException e) {
             throw new BadSvidRequestException("Unable to read instance certificate");
         }
+    }
+
+    /**
+     * Rejects structurally dangerous input before it is concatenated into the SPIFFE ID
+     * path ({@code process_type}) or the proof-of-possession message ({@code audience}).
+     * Constraining both fields to printable, newline-free values keeps the signed PoP
+     * message ({@code spiffeId \n audience \n timestamp}) unambiguous.
+     */
+    private static void validateRequest(JwtSvidRequest request) {
+        String processType = request.processType();
+        if (processType == null || !PROCESS_TYPE_PATTERN.matcher(processType).matches()) {
+            throw new BadSvidRequestException("process_type must match [A-Za-z0-9_-]{1,63}");
+        }
+        String audience = request.audience();
+        if (audience == null || audience.isBlank()
+                || audience.length() > MAX_AUDIENCE_LENGTH
+                || containsControlCharacter(audience)) {
+            throw new BadSvidRequestException(
+                    "audience must be non-blank, at most " + MAX_AUDIENCE_LENGTH
+                            + " characters, and free of control characters");
+        }
+    }
+
+    private static boolean containsControlCharacter(String value) {
+        return value.chars().anyMatch(Character::isISOControl);
     }
 
     @ResponseStatus(HttpStatus.UNAUTHORIZED)

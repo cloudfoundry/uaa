@@ -37,4 +37,12 @@ class InstanceIdentityVerifierTests {
 
         assertThat(verifier.isValid(leaf.certificate())).isFalse();
     }
+
+    @Test
+    void rejectsNotYetValidCert() {
+        SpiffeTestCerts.CertKey leaf = SpiffeTestCerts.newInstanceCert(ca, "o", "s", "a",
+                Instant.now().plus(1, ChronoUnit.HOURS), Instant.now().plus(2, ChronoUnit.HOURS));
+
+        assertThat(verifier.isValid(leaf.certificate())).isFalse();
+    }
 }

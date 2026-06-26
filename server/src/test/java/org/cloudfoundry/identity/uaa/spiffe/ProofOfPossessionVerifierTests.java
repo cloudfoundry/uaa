@@ -55,6 +55,23 @@ class ProofOfPossessionVerifierTests {
     }
 
     @Test
+    void rejectsFutureDatedTimestamp() throws Exception {
+        // Outside the symmetric freshness window even with an otherwise-valid signature.
+        long future = Instant.now().getEpochSecond() + 600;
+        String popSignature = sign(SPIFFE_ID, AUDIENCE, future);
+
+        assertThat(verifier.isValid(leaf.certificate(), SPIFFE_ID, AUDIENCE, future, popSignature)).isFalse();
+    }
+
+    @Test
+    void rejectsMalformedBase64Signature() {
+        long now = Instant.now().getEpochSecond();
+
+        assertThat(verifier.isValid(leaf.certificate(), SPIFFE_ID, AUDIENCE, now, "not valid base64 !!!"))
+                .isFalse();
+    }
+
+    @Test
     void shortCircuitsWhenPopDisabled() {
         SpiffeProperties disabled = new SpiffeProperties("td", "ca", null, 60, false);
         ProofOfPossessionVerifier off = new ProofOfPossessionVerifier(disabled);
