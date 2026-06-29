@@ -34,6 +34,6 @@ public class PasswordEncoderConfig {
         Map<String, PasswordEncoder> encoders = new HashMap<>();
         encoders.put("bcrypt", new BCryptPasswordEncoder());
         encoders.put("noop", noopPasswordEncoder);
-        return new DelegatingPasswordEncoder("noop", encoders);
+        return new EmptyAwareDelegatingPasswordEncoder(new DelegatingPasswordEncoder("noop", encoders));
     }
 }

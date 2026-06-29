@@ -1,15 +1,16 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.util.beans.EmptyAwareDelegatingPasswordEncoder;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class EmptyPasswordAwareEncoderTest {
+class EmptyAwareDelegatingPasswordEncoderTest {
 
     private final PasswordEncoder bcrypt = new BCryptPasswordEncoder();
-    private final EmptyPasswordAwareEncoder encoder = new EmptyPasswordAwareEncoder(bcrypt);
+    private final EmptyAwareDelegatingPasswordEncoder encoder = new EmptyAwareDelegatingPasswordEncoder(bcrypt);
 
     @Test
     void emptyRawPassword_matchesBcryptHashOfEmptyString() {
@@ -71,7 +72,7 @@ class EmptyPasswordAwareEncoderTest {
                 throw new AssertionError("matches should not be called for null rawPassword");
             }
         };
-        EmptyPasswordAwareEncoder guarded = new EmptyPasswordAwareEncoder(failingDelegate);
+        EmptyAwareDelegatingPasswordEncoder guarded = new EmptyAwareDelegatingPasswordEncoder(failingDelegate);
         assertThat(guarded.matches(null, bcrypt.encode(""))).isFalse();
         assertThat(guarded.matches(null, null)).isFalse();
     }
@@ -87,5 +88,19 @@ class EmptyPasswordAwareEncoderTest {
     void encode_delegatesToWrappedEncoder() {
         String encoded = encoder.encode("secret");
         assertThat(bcrypt.matches("secret", encoded)).isTrue();
+    }
+
+    @Test
+    void encode_emptyRawPassword_returnsNoopSentinel() {
+        assertThat(encoder.encode("")).isEqualTo("{noop}");
+        assertThat(encoder.matches("", encoder.encode(""))).isTrue();
+    }
+
+    @Test
+    void emptyRawPassword_doesNotMatchNoopPrefixWithNonEmptyValue() {
+        assertThat(encoder.matches("", "{noop}test")).isFalse();
+        assertThat(encoder.matches("", "{noop}")).isTrue();
+        assertThat(encoder.matches("", "{noop}a")).isFalse();
+        assertThat(encoder.matches("", "{noop}aaaa")).isFalse();
     }
 }

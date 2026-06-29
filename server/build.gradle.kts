@@ -153,10 +153,24 @@ tasks.named<ProcessResources>("processResources") {
     }
 }
 
+sourceSets.create("integrationTest") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
+configurations["integrationTestImplementation"].extendsFrom(configurations.testImplementation.get())
+configurations["integrationTestRuntimeOnly"].extendsFrom(configurations.testRuntimeOnly.get())
+
 tasks.register<Test>("integrationTest") {
-    onlyIf { //disable since we don't have any
-        false
-    }
+    description = "Tests that run against the production implementation without test-scope class shadows."
+    group = "verification"
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
+    useJUnitPlatform()
+}
+
+tasks.named("check") {
+    dependsOn("integrationTest")
 }
 
 val tomcatListenerJar by tasks.registering(Jar::class) {

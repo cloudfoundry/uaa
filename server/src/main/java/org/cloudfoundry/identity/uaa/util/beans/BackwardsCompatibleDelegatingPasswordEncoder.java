@@ -3,9 +3,12 @@ package org.cloudfoundry.identity.uaa.util.beans;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import static org.cloudfoundry.identity.uaa.util.beans.SecureStringComparison.constantTimeEquals;
+
 public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEncoder {
 
-    private static final String OPTIONAL_BCRYPT_PREFIX = "bcrypt";
+    private static final String NOOP_PREFIX = "{noop}";
+    private static final String BCRYPT_PREFIX = "{bcrypt}";
     private final BCryptPasswordEncoder defaultPasswordEncoder;
 
     public BackwardsCompatibleDelegatingPasswordEncoder(final BCryptPasswordEncoder defaultPasswordEncoder) {
@@ -27,6 +30,12 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return false;
         }
 
+        // Handle {noop} prefixed passwords with constant-time comparison
+        if (encodedPassword.startsWith(NOOP_PREFIX)) {
+            String storedPassword = encodedPassword.substring(NOOP_PREFIX.length());
+            return constantTimeEquals(rawPassword.toString(), storedPassword);
+        }
+
         return defaultPasswordEncoder.matches(rawPassword, verifyPrefixAndExtractPassword(encodedPassword));
     }
 
@@ -38,9 +47,10 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return encodedPassword;
         }
 
-        String prefix = encodedPassword.substring(startIndex + 1, endIndex);
-        if (!prefix.equals(OPTIONAL_BCRYPT_PREFIX)) {
-            throw new IllegalArgumentException("Password encoding {%s} is not supported".formatted(prefix));
+        // {noop}-prefixed values are already handled in matches() before reaching here.
+        String prefix = encodedPassword.substring(startIndex, endIndex + 1);
+        if (!prefix.equals(BCRYPT_PREFIX)) {
+            throw new IllegalArgumentException("Password encoding %s is not supported".formatted(prefix));
         }
         return encodedPassword.substring(endIndex + 1);
     }
