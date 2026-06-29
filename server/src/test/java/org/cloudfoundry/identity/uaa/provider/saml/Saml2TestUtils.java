@@ -150,6 +150,31 @@ public final class Saml2TestUtils {
     }
 
     /**
+     * Builds a SAML Response with a signed assertion targeting a custom ACS URL.
+     * <p>
+     * Use this to simulate IDP-initiated SSO where the SP alias (and thus ACS URL) differs from the
+     * default test destination. The {@code SubjectConfirmationData.Recipient} is set to {@code destination}
+     * so that Spring Security SAML accepts the response during processing.
+     */
+    public static Response responseWithAssertionsForDestination(String destination, String issuer) {
+        Response response = TestOpenSamlObjects.response(destination, issuer);
+        response.setIssueInstant(Instant.now());
+
+        Assertion rawAssertion = assertion(issuer, null, null);
+        // Override the Recipient to match the custom ACS URL
+        rawAssertion.getSubject().getSubjectConfirmations()
+                .forEach(sc -> sc.getSubjectConfirmationData().setRecipient(destination));
+        rawAssertion.getAttributeStatements().addAll(TestOpenSamlObjects.attributeStatements());
+
+        Assertion signedAssertion = TestOpenSamlObjects.signed(rawAssertion,
+                TestSaml2X509Credentials.assertingPartySigningCredential(),
+                RELYING_PARTY_ENTITY_ID,
+                SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1);
+        response.getAssertions().add(signedAssertion);
+        return response;
+    }
+
+    /**
      * Builds a SAML Response with a signed assertion, using a caller-supplied signing credential.
      * Use this when the test IDP has its own distinct key material rather than sharing the default
      * test credentials.
