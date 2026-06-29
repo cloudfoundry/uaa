@@ -10,8 +10,11 @@ import static org.cloudfoundry.identity.uaa.util.beans.SecureStringComparison.co
 /**
  * Wraps a {@link PasswordEncoder} to allow empty raw passwords.
  * Spring Security 7 {@code AbstractValidatingPasswordEncoder} returns {@code false} from {@code matches()}
- * when {@code rawPassword.length() == 0}. UAA legitimately supports clients with no secret (e.g. CF CLI),
- * whose stored hash is the encoding of an empty string.
+ * when {@code rawPassword.length() == 0}. UAA legitimately supports clients with no secret (e.g. CF CLI).
+ *
+ * <p>For an empty raw password, {@link #encode(CharSequence)} returns the literal {@code {noop}} sentinel
+ * (stable across restarts), while {@link #matches(CharSequence, String)} accepts either that {@code {noop}}
+ * sentinel or a legacy bcrypt hash of the empty string.
  */
 public class EmptyAwareDelegatingPasswordEncoder implements PasswordEncoder {
 

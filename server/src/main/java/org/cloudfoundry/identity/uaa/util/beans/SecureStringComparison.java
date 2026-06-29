@@ -15,7 +15,7 @@ public final class SecureStringComparison {
     /**
      * Performs constant-time string comparison to prevent timing attacks.
      * Uses MessageDigest.isEqual() which is designed for secure comparisons.
-     * 
+     *
      * @param a first string to compare
      * @param b second string to compare
      * @return true if strings are equal, false otherwise
@@ -27,10 +27,10 @@ public final class SecureStringComparison {
         if (a == null || b == null) {
             return false;
         }
-        
+
         byte[] aBytes = a.getBytes(StandardCharsets.UTF_8);
         byte[] bBytes = b.getBytes(StandardCharsets.UTF_8);
-        
+
         return MessageDigest.isEqual(aBytes, bBytes);
     }
 }

@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Pins that the production {@code nonCachingPasswordEncoder} bean wraps with
- * {@link EmptyAwareDelegatingPasswordEncoder}. Runs in the {@code prodWiringTest} source set
+ * {@link EmptyAwareDelegatingPasswordEncoder}. Runs in the {@code integrationTest} source set
  * so {@link PasswordEncoderConfig} is the production class, not the test-scope shadow.
  */
 class PasswordEncoderConfigTest {

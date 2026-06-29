@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Pins that the {@code cachingPasswordEncoder} bean also handles empty secrets correctly.
- * Runs in the {@code prodWiringTest} source set so {@link PasswordEncoderConfig} is the
+ * Runs in the {@code integrationTest} source set so {@link PasswordEncoderConfig} is the
  * production class, not the test-scope shadow.
  */
 class OauthEndpointBeanConfigurationTest {

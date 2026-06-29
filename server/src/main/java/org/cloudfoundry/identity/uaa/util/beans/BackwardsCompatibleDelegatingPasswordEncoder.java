@@ -47,8 +47,9 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return encodedPassword;
         }
 
+        // {noop}-prefixed values are already handled in matches() before reaching here.
         String prefix = encodedPassword.substring(startIndex, endIndex + 1);
-        if (!prefix.equals(BCRYPT_PREFIX) && !prefix.equals(NOOP_PREFIX)) {
+        if (!prefix.equals(BCRYPT_PREFIX)) {
             throw new IllegalArgumentException("Password encoding %s is not supported".formatted(prefix));
         }
         return encodedPassword.substring(endIndex + 1);
