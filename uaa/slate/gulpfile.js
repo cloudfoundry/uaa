@@ -1,9 +1,9 @@
-var gulp = require('gulp');
-var exec = require('child_process').exec;
-var webserver = require('gulp-webserver');
+const { watch, series, parallel } = require('gulp');
+const { exec } = require('child_process');
+const browserSync = require('browser-sync').create();
 
 function displayErrors(err, stdout, stderr) {
-  if(err != undefined) {
+  if (err != undefined) {
     console.log("\nERROR FOUND\n\n" + err);
     console.log("\nDUMPING STDOUT\n\n" + stdout);
     console.log("\nDUMPING STDERR\n\n" + stderr);
@@ -11,22 +11,24 @@ function displayErrors(err, stdout, stderr) {
   }
 }
 
-gulp.task('middleman', function(cb) {
+function middleman(cb) {
   exec('bundle exec middleman build', function(err, stdout, stderr) {
-    if(err) return displayErrors(err, stdout, stderr);
+    if (err) return displayErrors(err, stdout, stderr);
     cb();
   });
-});
+}
 
-gulp.task('webserver', ['middleman'], function() {
-  gulp.src('build').pipe(webserver({
-    livereload: true,
-    port: 9000
-  }));
-});
+function serve(cb) {
+  browserSync.init({
+    server: { baseDir: 'build' },
+    port: 9000,
+    files: 'build/**/*'
+  });
+  cb();
+}
 
-gulp.task('watch', function() {
-  gulp.watch(['source/**/*'], ['middleman']);
-});
+function watchFiles() {
+  watch('source/**/*', middleman);
+}
 
-gulp.task('default', ['middleman', 'webserver', 'watch']);
+exports.default = series(middleman, parallel(serve, watchFiles));
