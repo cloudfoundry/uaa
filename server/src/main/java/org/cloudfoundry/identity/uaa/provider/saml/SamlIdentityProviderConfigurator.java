@@ -147,13 +147,25 @@ public class SamlIdentityProviderConfigurator {
     }
 
     protected RelyingPartyRegistration configureURLMetadata(SamlIdentityProviderDefinition def) {
+        SamlIdentityProviderDefinition resolved = def.clone();
+        resolved.setMetaDataLocation(resolveMetadataXml(def));
+        return configureXMLMetadata(resolved);
+    }
+
+    /**
+     * Resolves a SAML IDP definition's metadata to its literal XML content. If the
+     * definition's metadata is a URL, it is fetched via the {@code skipSslValidation}-aware
+     * {@link FixedHttpMetaDataProvider} (the same trust/cache behavior used to validate an
+     * IDP on creation); otherwise the already-inline XML is returned unchanged.
+     */
+    public String resolveMetadataXml(SamlIdentityProviderDefinition def) {
+        if (def.getType() != SamlIdentityProviderDefinition.MetadataLocation.URL) {
+            return def.getMetaDataLocation();
+        }
         try {
-            def = def.clone();
             String adjustedMetadataURIForPort = adjustURIForPort(def.getMetaDataLocation());
             byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetadataURIForPort, def.isSkipSslValidation());
-
-            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
-            return configureXMLMetadata(def);
+            return new String(metadata, StandardCharsets.UTF_8);
         } catch (URISyntaxException e) {
             throw new IllegalStateException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
         }

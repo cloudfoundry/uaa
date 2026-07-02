@@ -89,7 +89,7 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
                 .samlEntityID(zonedSamlEntityID)
                 .samlSpNameId(nameID)
                 .keys(keyWithCerts)
-                .metadataLocation(identityProviderDefinition.getMetaDataLocation())
+                .metadataLocation(configurator.resolveMetadataXml(identityProviderDefinition))
                 .rpRegistrationId(registrationId)
                 .samlSpAlias(zonedSamlEntityIDAlias)
                 .requestSigned(requestSigned)

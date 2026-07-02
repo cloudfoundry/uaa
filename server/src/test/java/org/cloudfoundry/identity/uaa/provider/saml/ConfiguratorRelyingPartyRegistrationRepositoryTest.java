@@ -47,6 +47,8 @@ import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey2;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.x509Certificate1;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.x509Certificate2;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -92,6 +94,10 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     @BeforeEach
     void beforeEach() {
         repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, configurator, List.of(), DEFAULT_NAME_ID));
+        // resolveMetadataXml() is a no-op passthrough for non-URL (already-inline) metadata,
+        // which is what every test using the mocked `configurator` exercises.
+        lenient().when(configurator.resolveMetadataXml(any(SamlIdentityProviderDefinition.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, SamlIdentityProviderDefinition.class).getMetaDataLocation());
     }
 
     @Test
@@ -349,6 +355,8 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void findByRegistrationIdHonorsSkipSslValidationForUrlMetadata() throws Exception {
+        SamlConfiguration.setupOpenSaml();
+
         File keystore = NetworkTestUtils.getKeystore(new Date(), 10);
         String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
         HttpHeaders headers = new HttpHeaders();
