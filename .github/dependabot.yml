@@ -21,7 +21,7 @@ updates:
   ignore:
   - dependency-name: "org.springframework.boot:*"
     versions:
-    - ">= 4"  # Stay in Spring Boot major version 3 and do updates manually.
+    - ">= 5"  # Stay in Spring Boot major version 4 and do updates manually.
   groups:
     selenium:
       patterns:
@@ -35,6 +35,7 @@ updates:
     jackson:
       patterns:
       - "com.fasterxml.jackson.*:*"
+      - "tools.jackson.*:*"
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
