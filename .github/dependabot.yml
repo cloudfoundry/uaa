@@ -6,6 +6,12 @@ updates:
     interval: daily
     time: "11:00"
   open-pull-requests-limit: 10
+- package-ecosystem: npm
+  directory: "/uaa/slate"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
 - package-ecosystem: gradle
   directory: "/"
   schedule:
