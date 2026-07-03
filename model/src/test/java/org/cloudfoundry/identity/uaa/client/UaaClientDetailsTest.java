@@ -211,6 +211,23 @@ class UaaClientDetailsTest {
         }
 
         @Test
+        void tlsClientAuthConfigRoundTripsViaJson() throws Exception {
+            UaaClientDetails details = new UaaClientDetails();
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+                null
+            );
+            details.setTlsClientAuthConfiguration(config);
+
+            String json = new JsonMapper().writeValueAsString(details);
+            UaaClientDetails deserialized = new JsonMapper().readValue(json, UaaClientDetails.class);
+
+            assertThat(deserialized.getTlsClientAuthConfiguration()).isNotNull();
+            assertThat(deserialized.getTlsClientAuthConfiguration().getTrustedCaPem())
+                .isEqualTo(config.getTrustedCaPem());
+        }
+
+        @Test
         void autoApprove() {
             UaaClientDetails details = new UaaClientDetails();
             assertThat(details.getAutoApproveScopes()).isNull();
@@ -223,7 +240,7 @@ class UaaClientDetailsTest {
             uaaClientDetails.setRegisteredRedirectUri(Set.of("http://localhost:8080/uaa"));
             uaaClientDetails.setRefreshTokenValiditySeconds(1);
             uaaClientDetails.setAccessTokenValiditySeconds(1);
-            assertThat(uaaClientDetails.hashCode()).isPositive();
+            assertThat(uaaClientDetails.hashCode()).isNotZero();
         }
     }
 

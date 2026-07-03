@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
  *
  * Extended this class with fields
  *  - client_jwt_config (supporting private_key_jwt)
+ *  - tls-client-auth-ca (supporting RFC 8705 mTLS client authentication)
  */
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -86,6 +87,9 @@ public class UaaClientDetails implements ClientDetails {
     @JsonProperty("client_jwt_config")
     private String clientJwtConfig;
 
+    @JsonProperty(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+    private TlsClientAuthConfiguration tlsClientAuthConfiguration;
+
     public UaaClientDetails() {
     }
 
@@ -103,6 +107,7 @@ public class UaaClientDetails implements ClientDetails {
         this.setAdditionalInformation(prototype.getAdditionalInformation());
         if (prototype instanceof UaaClientDetails uaa) {
             this.setClientJwtConfig(uaa.getClientJwtConfig());
+            this.setTlsClientAuthConfiguration(uaa.getTlsClientAuthConfiguration());
         }
     }
 
@@ -302,6 +307,14 @@ public class UaaClientDetails implements ClientDetails {
         this.clientJwtConfig = clientJwtConfig;
     }
 
+    public TlsClientAuthConfiguration getTlsClientAuthConfiguration() {
+        return tlsClientAuthConfiguration;
+    }
+
+    public void setTlsClientAuthConfiguration(TlsClientAuthConfiguration tlsClientAuthConfiguration) {
+        this.tlsClientAuthConfiguration = tlsClientAuthConfiguration;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -344,7 +357,10 @@ public class UaaClientDetails implements ClientDetails {
         if (!Objects.equals(additionalInformation, other.additionalInformation)) {
             return false;
         }
-        return Objects.equals(clientJwtConfig, other.clientJwtConfig);
+        if (!Objects.equals(clientJwtConfig, other.clientJwtConfig)) {
+            return false;
+        }
+        return Objects.equals(tlsClientAuthConfiguration, other.tlsClientAuthConfiguration);
     }
 
     @Override
@@ -378,6 +394,7 @@ public class UaaClientDetails implements ClientDetails {
         result = prime * result + (scope == null ? 0 : scope.hashCode());
         result = prime * result + (additionalInformation == null ? 0 : additionalInformation.hashCode());
         result = prime * result + (clientJwtConfig == null ? 0 : clientJwtConfig.hashCode());
+        result = prime * result + (tlsClientAuthConfiguration == null ? 0 : tlsClientAuthConfiguration.hashCode());
         return result;
     }
 }
