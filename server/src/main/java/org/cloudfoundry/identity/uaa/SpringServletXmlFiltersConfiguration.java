@@ -231,4 +231,23 @@ public class SpringServletXmlFiltersConfiguration {
         bean.setEnabled(false);
         return bean;
     }
+
+    @Bean
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public FilterRegistrationBean<?> clientCertificateMapperFilter() {
+        try {
+            Class<?> mapperClass = Class.forName("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
+            java.lang.reflect.Constructor<?> ctor = mapperClass.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            jakarta.servlet.Filter mapper = (jakarta.servlet.Filter) ctor.newInstance();
+            FilterRegistrationBean bean = new FilterRegistrationBean(mapper);
+            bean.addUrlPatterns("/oauth/mtls/*");
+            bean.setOrder(10);
+            return bean;
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Failed to instantiate ClientCertificateMapper", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to create ClientCertificateMapper filter", e);
+        }
+    }
 }
