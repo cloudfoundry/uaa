@@ -10,9 +10,13 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
+import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.emptyMap;
@@ -66,6 +70,20 @@ class UaaTokenEndpointTests {
         Set<HttpMethod> methods = (Set<HttpMethod>) ReflectionTestUtils.getField(endpoint, "allowedRequestMethods");
         assertThat(methods)
                 .containsExactlyInAnyOrder(POST, GET);
+    }
+
+    @Test
+    void mapsMtlsTokenEndpointAndItsDescendants() throws NoSuchMethodException {
+        RequestMapping mapping = UaaTokenEndpoint.class.getAnnotation(RequestMapping.class);
+
+        assertThat(mapping.value())
+                .contains("/oauth/mtls/token");
+        assertThat(UaaTokenEndpoint.class.getDeclaredMethod("doDelegateGet", Principal.class, Map.class)
+                .getAnnotation(GetMapping.class).value())
+                .containsExactly("**");
+        assertThat(UaaTokenEndpoint.class.getDeclaredMethod("doDelegatePost", Principal.class, Map.class,
+                HttpServletRequest.class).getAnnotation(PostMapping.class).value())
+                .containsExactly("**");
     }
 
     @Test

@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.springBootStarterMail)
     implementation(libs.springBootSql)
     implementation(libs.springBootJdbc)
+    implementation(libs.springBootTomcat)
     implementation(libs.springBootTransaction)
     implementation(libs.openSamlApi)
     implementation(libs.springSecuritySamlServiceProvider)
@@ -39,6 +40,8 @@ dependencies {
     implementation(libs.bouncyCastlePkixFips)
     implementation(libs.bouncyCastleTlsFips)
     implementation(libs.bouncyCastleUtilFips)
+
+    implementation(libs.javaBuildpackClientCertificateMapper)
 
     implementation(libs.guava)
 
