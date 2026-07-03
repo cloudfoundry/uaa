@@ -5,10 +5,12 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
 
 import javax.security.auth.x500.X500Principal;
 import java.security.MessageDigest;
@@ -78,7 +80,7 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             return new HashMap<>();
         }
 
-        TlsClientAuthConfiguration config = clientDetails.getTlsClientAuthConfiguration();
+        TlsClientAuthConfiguration config = loadTlsConfig(clientDetails.getAdditionalInformation());
         if (!TlsClientAuthConfiguration.isConfigured(config)) {
             return new HashMap<>();
         }
@@ -120,13 +122,17 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
     /**
      * Extracts the value of a single-valued RDN (e.g. {@code "CN="}) from a RFC 2253 DN string.
+     * Handles multi-valued RDNs (attributes joined by {@code +}).
      * Returns {@code null} if no matching RDN is found.
      */
     private String extractRdnValue(String dn, String prefix) {
         for (String rdn : dn.split(",")) {
-            String trimmed = rdn.trim();
-            if (trimmed.startsWith(prefix)) {
-                return trimmed.substring(prefix.length());
+            // Multi-valued RDNs use '+' to separate attribute-value pairs within one RDN
+            for (String attrVal : rdn.split("\\+")) {
+                String trimmed = attrVal.trim();
+                if (trimmed.startsWith(prefix)) {
+                    return trimmed.substring(prefix.length());
+                }
             }
         }
         return null;
@@ -134,13 +140,17 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
     /**
      * Collects all OU values from a RFC 2253 DN string, in order.
+     * Handles multi-valued RDNs (attributes joined by {@code +}).
      */
     private List<String> extractOus(String dn) {
         List<String> ous = new ArrayList<>();
         for (String rdn : dn.split(",")) {
-            String trimmed = rdn.trim();
-            if (trimmed.startsWith("OU=")) {
-                ous.add(trimmed.substring(3));
+            // Multi-valued RDNs use '+' to separate attribute-value pairs within one RDN
+            for (String attrVal : rdn.split("\\+")) {
+                String trimmed = attrVal.trim();
+                if (trimmed.startsWith("OU=")) {
+                    ous.add(trimmed.substring(3));
+                }
             }
         }
         return ous;
@@ -159,6 +169,42 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             Matcher m = pat.matcher(ou);
             if (m.matches() && m.groupCount() >= 1) {
                 return m.group(1);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Builds a {@link TlsClientAuthConfiguration} from the client's {@code additionalInformation} map.
+     * Mirrors {@code ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration} so that
+     * DB-loaded clients (whose {@code tlsClientAuthConfiguration} field is null) are handled correctly.
+     */
+    private static TlsClientAuthConfiguration loadTlsConfig(Map<String, Object> info) {
+        if (info == null) {
+            return null;
+        }
+        Object raw = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        if (raw instanceof TlsClientAuthConfiguration cfg) {
+            return cfg;  // in-memory / test client
+        }
+        if (raw instanceof Map<?, ?>) {
+            try {
+                return JsonUtils.convertValue(raw, TlsClientAuthConfiguration.class);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        if (raw instanceof String pem) {
+            try {
+                List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
+                Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
+                if (rawMappings instanceof String mappingsJson) {
+                    claimMappings = JsonUtils.readValue(mappingsJson,
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                }
+                return new TlsClientAuthConfiguration(pem, claimMappings);
+            } catch (Exception e) {
+                return null;
             }
         }
         return null;
