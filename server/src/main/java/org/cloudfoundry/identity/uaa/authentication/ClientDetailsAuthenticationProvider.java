@@ -13,9 +13,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -29,13 +33,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
+import tools.jackson.core.type.TypeReference;
+
+import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_EMPTY;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_PRIVATE_KEY_JWT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_TLS_CLIENT_AUTH;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getSafeParameterValue;
 
 /**
@@ -50,11 +59,14 @@ import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getSafeParameter
 public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvider {
 
     private final JwtClientAuthentication jwtClientAuthentication;
+    private final TlsClientAuthentication tlsClientAuthentication;
 
-    public ClientDetailsAuthenticationProvider(UserDetailsService userDetailsService, PasswordEncoder encoder, JwtClientAuthentication jwtClientAuthentication) {
+    public ClientDetailsAuthenticationProvider(UserDetailsService userDetailsService, PasswordEncoder encoder,
+            JwtClientAuthentication jwtClientAuthentication, TlsClientAuthentication tlsClientAuthentication) {
         super(userDetailsService);
         setPasswordEncoder(encoder);
         this.jwtClientAuthentication = jwtClientAuthentication;
+        this.tlsClientAuthentication = tlsClientAuthentication;
     }
 
     @Override
@@ -73,6 +85,19 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         for (String pwd : passwordList) {
             try {
                 UaaClient uaaClient = new UaaClient(userDetails, pwd);
+                if (TlsClientAuthConfiguration.isConfigured(getTlsClientAuthConfiguration(uaaClient))) {
+                    if (!ObjectUtils.isEmpty(authentication.getCredentials())
+                            || !isTlsClientAuthPath(authentication.getDetails())) {
+                        error = new BadCredentialsException(
+                                "tls_client_auth: configured clients must authenticate at /oauth/mtls/token without client credentials");
+                    } else {
+                        setAuthenticationMethod(authentication, CLIENT_AUTH_TLS_CLIENT_AUTH);
+                        if (!validateTlsClientAuth(uaaClient)) {
+                            error = new BadCredentialsException("tls_client_auth: certificate validation failed");
+                        }
+                    }
+                    break;
+                }
                 if (ObjectUtils.isEmpty(authentication.getCredentials())) {
                     if (isPublicGrantTypeUsageAllowed(authentication.getDetails()) && uaaClient.isAllowPublic()) {
                         // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and continue even if no secret is in request
@@ -82,6 +107,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         setAuthenticationMethod(authentication, CLIENT_AUTH_PRIVATE_KEY_JWT);
                         if (!validatePrivateKeyJwt(authentication.getDetails(), uaaClient)) {
                             error = new BadCredentialsException("Bad client_assertion type");
+                        }
+                        break;
+                    } else if (isTlsClientAuthPath(authentication.getDetails())) {
+                        setAuthenticationMethod(authentication, CLIENT_AUTH_TLS_CLIENT_AUTH);
+                        if (!validateTlsClientAuth(uaaClient)) {
+                            error = new BadCredentialsException("tls_client_auth: certificate validation failed");
                         }
                         break;
                     } else {
@@ -164,5 +195,92 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     private boolean validatePrivateKeyJwt(Object uaaAuthenticationDetails, UaaClient uaaClient) {
         return jwtClientAuthentication.validateClientJwt(getRequestParameters(getUaaAuthenticationDetails(uaaAuthenticationDetails)),
                 uaaClient.getClientJwtConfiguration(), uaaClient.getUsername());
+    }
+
+    static boolean isTlsClientAuthPath(Object uaaAuthenticationDetails) {
+        UaaAuthenticationDetails details = getUaaAuthenticationDetails(uaaAuthenticationDetails);
+        String path = details != null ? details.getRequestPath() : null;
+        return RawPeerCertificateCaptureFilter.isMtlsTokenPath(path);
+    }
+
+    boolean validateTlsClientAuth(UaaClient uaaClient) {
+        // Cheap presence-only check (no config resolution, no JSON/claim-mapping parsing) before
+        // doing any work to resolve this client's TlsClientAuthConfiguration.
+        if (!tlsClientAuthentication.hasCertificateFromRequest()) {
+            return false;
+        }
+        TlsClientAuthConfiguration config = getTlsClientAuthConfiguration(uaaClient);
+        X509Certificate[] chain = tlsClientAuthentication.getCertificateChainFromRequest(config);
+        if (chain == null || chain.length == 0) {
+            return false;
+        }
+        return tlsClientAuthentication.validateClientCert(chain, config).isPresent()
+                && tlsClientAuthentication.certificateSatisfiesRequiredClaims(chain[0], config);
+    }
+
+    static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
+        Map<String, Object> info = uaaClient.getAdditionalInformation();
+        if (info == null) {
+            return null;
+        }
+        Object rawConfig = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        if (rawConfig instanceof String pem) {
+            try {
+                List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
+                Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
+                if (rawMappings instanceof String mappingsJson) {
+                    claimMappings = JsonUtils.readValue(mappingsJson,
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                } else if (rawMappings instanceof List<?> mappingsList) {
+                    // Jackson may parse a JSON array directly as a List when additionalInformation
+                    // is deserialized from JDBC without a String-encoded wrapper.
+                    String mappingsJson = JsonUtils.writeValueAsString(mappingsList);
+                    claimMappings = JsonUtils.readValue(mappingsJson,
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                }
+                String subTemplate = null;
+                Object rawSubTemplate = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
+                if (rawSubTemplate instanceof String st && !st.isBlank()) {
+                    subTemplate = st;
+                }
+
+                List<String> audTemplates = null;
+                Object rawAudTemplates = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
+                if (rawAudTemplates instanceof String audJson) {
+                    audTemplates = JsonUtils.readValue(audJson, new TypeReference<List<String>>() {});
+                } else if (rawAudTemplates instanceof List<?> audList) {
+                    audTemplates = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(audList),
+                            new TypeReference<List<String>>() {});
+                }
+
+                String trustedProxyCaPem = null;
+                Object rawTrustedProxyCa = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
+                if (rawTrustedProxyCa instanceof String tpc && !tpc.isBlank()) {
+                    trustedProxyCaPem = tpc;
+                }
+
+                Map<String, String> requiredClaims = null;
+                Object rawRequiredClaims = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+                if (rawRequiredClaims instanceof String requiredClaimsJson) {
+                    requiredClaims = JsonUtils.readValue(requiredClaimsJson,
+                            new TypeReference<Map<String, String>>() {});
+                } else if (rawRequiredClaims instanceof Map<?, ?> requiredClaimsMap) {
+                    requiredClaims = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(requiredClaimsMap),
+                            new TypeReference<Map<String, String>>() {});
+                }
+
+                TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
+                cfg.setSubTemplate(subTemplate);
+                cfg.setAudTemplates(audTemplates);
+                cfg.setTrustedProxyCaPem(trustedProxyCaPem);
+                cfg.setRequiredClaims(requiredClaims);
+                return cfg;
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
     }
 }
