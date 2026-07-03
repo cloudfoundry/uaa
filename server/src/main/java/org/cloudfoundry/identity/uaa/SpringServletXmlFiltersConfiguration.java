@@ -6,6 +6,8 @@ import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsManagedBean;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsPathGuardedFilter;
+import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter;
 import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
@@ -230,5 +232,55 @@ public class SpringServletXmlFiltersConfiguration {
         FilterRegistrationBean<HttpHeaderSecurityFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
         return bean;
+    }
+
+    @Bean
+    public FilterRegistrationBean<RawPeerCertificateCaptureFilter> rawPeerCertificateCaptureFilter() {
+        FilterRegistrationBean<RawPeerCertificateCaptureFilter> bean =
+                new FilterRegistrationBean<>(new RawPeerCertificateCaptureFilter());
+        // No addUrlPatterns(...): registered on the default (all-requests) pattern, like every other
+        // filter in this class. RawPeerCertificateCaptureFilter internally no-ops unless the request's
+         // effective (post-ZonePathContextRewritingFilter) servlet path is /oauth/mtls/token/** -- see
+        // RawPeerCertificateCaptureFilter.isMtlsTokenPath(...) -- so it still runs for zone-path-
+        // prefixed mTLS requests (e.g. /z/{subdomain}/oauth/mtls/token). A container URL-pattern
+         // registration for a literal "/oauth/mtls/token/**" is matched against the request's original,
+        // pre-rewrite URI, so it would never include this filter in the chain for such a request.
+        // Must run before clientCertificateMapperFilter() (order -200) so it captures the genuine
+        // TLS-handshake peer certificate before that filter overwrites the same standard
+        // jakarta.servlet.request.X509Certificate attribute with the XFCC-header-derived certificate.
+        bean.setOrder(-300);
+        return bean;
+    }
+
+    @Bean
+    public FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilter() {
+        // ClientCertificateMapper is a package-private final class in
+        // org.cloudfoundry.router.jakarta; its constructor is also package-private.
+        // The library is designed for Spring Boot autoconfiguration or Servlet container
+        // initializer use — direct instantiation from outside the package requires
+        // reflection. setAccessible(true) is the only available mechanism.
+        try {
+            Class<?> mapperClass = Class.forName("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
+            java.lang.reflect.Constructor<?> ctor = mapperClass.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            jakarta.servlet.Filter delegate = (jakarta.servlet.Filter) ctor.newInstance();
+            FilterRegistrationBean<jakarta.servlet.Filter> bean =
+                    new FilterRegistrationBean<>(new MtlsPathGuardedFilter(delegate));
+            // No addUrlPatterns(...): see rawPeerCertificateCaptureFilter() above.
+            // MtlsPathGuardedFilter internally scopes the delegate ClientCertificateMapper to the
+             // effective (post-ZonePathContextRewritingFilter) /oauth/mtls/token/** servlet path, so a literal
+             // "/oauth/mtls/token/**" URL-pattern registration -- which would not match zone-path-prefixed
+            // requests -- is not needed here either.
+            // Spring Boot registers its Security filter in the servlet container at order -100
+            // (org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterProperties
+            // .DEFAULT_FILTER_ORDER). This filter must run strictly before that so the
+            // jakarta.servlet.request.X509Certificate request attribute it derives from the
+            // XFCC header is already populated when ClientDetailsAuthenticationProvider /
+            // TlsClientAuthentication authenticate the /oauth/mtls/token request.
+            bean.setOrder(-200);
+            return bean;
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Failed to instantiate ClientCertificateMapper", e);
+        }
     }
 }

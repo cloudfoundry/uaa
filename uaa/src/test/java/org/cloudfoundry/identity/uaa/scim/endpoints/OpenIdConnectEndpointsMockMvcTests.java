@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -25,7 +26,10 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// mtls_endpoint_aliases/tls_client_auth are only advertised when uaa.mtls-enabled is true (the
+// default is false) -- enabled here since this test asserts on their presence.
 @DefaultTestContext
+@TestPropertySource(properties = "uaa.mtls-enabled=true")
 class OpenIdConnectEndpointsMockMvcTests {
 
     private IdentityZone identityZone;
@@ -62,7 +66,7 @@ class OpenIdConnectEndpointsMockMvcTests {
                 assertThat(openIdConfiguration.getIssuer()).isEqualTo("http://" + host + ":8080/uaa/oauth/token");
                 assertThat(openIdConfiguration.getAuthUrl()).isEqualTo("http://" + host + "/oauth/authorize");
                 assertThat(openIdConfiguration.getTokenUrl()).isEqualTo("http://" + host + "/oauth/token");
-                assertThat(openIdConfiguration.getTokenAMR()).containsExactly(new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt"});
+                assertThat(openIdConfiguration.getTokenAMR()).containsExactly(new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt", "tls_client_auth"});
                 assertThat(openIdConfiguration.getTokenEndpointAuthSigningValues()).containsExactly(new String[]{"RS256", "HS256"});
                 assertThat(openIdConfiguration.getUserInfoUrl()).isEqualTo("http://" + host + "/userinfo");
                 assertThat(openIdConfiguration.getScopes()).containsExactly(new String[]{"openid", "profile", "email", "phone", ROLES, USER_ATTRIBUTES});
@@ -74,6 +78,8 @@ class OpenIdConnectEndpointsMockMvcTests {
                 assertThat(openIdConfiguration.isClaimsParameterSupported()).isFalse();
                 assertThat(openIdConfiguration.getServiceDocumentation()).isEqualTo("http://docs.cloudfoundry.org/api/uaa/");
                 assertThat(openIdConfiguration.getUiLocalesSupported()).containsExactly(new String[]{"en-US"});
+                assertThat(openIdConfiguration.getMtlsEndpointAliases())
+                        .containsEntry("token_endpoint", "http://" + host + "/oauth/mtls/token");
             }
         }
     }

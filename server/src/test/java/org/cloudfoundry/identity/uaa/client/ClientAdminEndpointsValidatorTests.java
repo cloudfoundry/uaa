@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
@@ -35,6 +36,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.security.Security;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -49,6 +51,30 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ClientAdminEndpointsValidatorTests {
+
+    private static final String VALID_CERT = """
+            -----BEGIN CERTIFICATE-----
+            MIIDXTCCAkWgAwIBAgIJAOpOBuLToBXJMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+            BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+            aWRnaXRzIFB0eSBMdGQwHhcNMTcwNzE0MTcxNDE4WhcNMTcwODEzMTcxNDE4WjBF
+            MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+            ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+            CgKCAQEA3+07F4S5Fz3wv/UFm/OWsJXm6s3pKI2mp4fSAY8rx9+0cyLAHsedWzeq
+            5uKcDeRW858DOdnClaTOZC73FcvOmv1bw2eYcmfsbqHEhyR0dp+rDHt/7pr6kajC
+            yUvAW+hoRRSMpooiZckxrjJ7LOa5iqRyZRwshfGN+mFSygfVguMDKrsE2rvpK6/K
+            tkG/lcToLHiw4OnMnZ9ocrNRDAoCkzKGZTLJkUEr3MgOKmr2EO0P6KOAmNnOEmCf
+            05ohcrUXeFZVnS5MMUzoGAOzBstZhA0dd7l297IDnWH9uIhCANCvZ9sovZWz/o3J
+            pc2LyXsaI1cV7O1cGV4aEEn8zzWWGwIDAQABo1AwTjAdBgNVHQ4EFgQUXBO1+qo7
+            w6iiiv1pnm+zdrQ3CzkwHwYDVR0jBBgwFoAUXBO1+qo7w6iiiv1pnm+zdrQ3Czkw
+            DAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAT78lT5VEIetWPGk3szPz
+            CT9zNpR1F+7o3rvRTI6Psyjz4tGlyX5iU0Z99Xa9yimIEhWme2UVsgQ9uOzk2IgH
+            wMbB2TTP/RRK5+eO4BUu4zWWIXsIcfC6Rqw9Y3Hki+mRpuWMv+5pcOz/H+aYeSfy
+            WvVYfRZJOhcztysII4HWIxw8qqwBrf5kX8IRKZXay+A2W04A6kjjX3zfN2OzljTA
+            jZbtHedUGxSHvK8x6tHEwS0lZ9eZh+V4DWyRvrunwDCtA7zJQmrJd1qbM84H/1C8
+            cAC6dglvc82n1BTAZbZwWHYt+Ro3Vp0GMPsZLOXJ0g03LbkhXg4krwXjJPD42nus
+            3A==
+            -----END CERTIFICATE-----
+            """;
 
     UaaClientDetails client;
     UaaClientDetails caller;
@@ -70,11 +96,12 @@ class ClientAdminEndpointsValidatorTests {
 
     @BeforeEach
     void createClient() {
+        Security.addProvider(new BouncyCastleFipsProvider());
         client = new UaaClientDetails("newclient", "", "", "client_credentials", "");
         client.setClientSecret("secret");
         caller = new UaaClientDetails("caller", "", "", "client_credentials", "clients.write");
         SecurityContextAccessor mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
-        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor, new IdentityZoneManagerImpl());
+        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor, new IdentityZoneManagerImpl(), false);
         secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         validator.setClientSecretValidator(secretValidator);
 
@@ -313,5 +340,388 @@ class ClientAdminEndpointsValidatorTests {
 
         assertThatThrownBy(() -> validator.validate(client, true, true))
                 .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void rejectsTlsClientAuthCaWhenMtlsDisabled() {
+        ClientAdminEndpointsValidator mtlsDisabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), false);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsDisabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls-enabled");
+    }
+
+    @Test
+    void rejectsTlsClientAuthTrustedProxyCaWhenMtlsDisabled() {
+        ClientAdminEndpointsValidator mtlsDisabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), false);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem");
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsDisabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls-enabled");
+    }
+
+    @Test
+    void allowsTlsClientAuthCaWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        client.setAdditionalInformation(additionalInfo);
+
+        ClientDetails validated = mtlsEnabledValidator.validate(client, false, false);
+
+        assertThat(validated.getAdditionalInformation())
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+    }
+
+    @Test
+    void rejectsNestedTlsClientAuthConfigurationWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        client.setAdditionalInformation(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT)));
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                .hasMessageContaining("PEM string");
+    }
+
+    @Test
+    void rejectsBlankTlsClientAuthTrustedProxyCaWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "  ");
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
+                .hasMessageContaining("blank");
+    }
+
+    @Test
+    void rejectsMalformedTlsClientAuthTrustedProxyCaWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "not-a-certificate");
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
+    }
+
+    @Test
+    void rejectsMalformedTlsClientAuthCaWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "not-a-certificate");
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+    }
+
+    @Test
+    void allowsClientWithoutMtlsFieldsWhenMtlsDisabled() {
+        ClientAdminEndpointsValidator mtlsDisabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), false);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        client.setClientSecret("secret");
+
+        ClientDetails validated = mtlsDisabledValidator.validate(client, false, false);
+
+        assertThat(validated.getClientId()).isEqualTo(client.getClientId());
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_noOpWhenNoClaimMappingsKey() {
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(Map.of(), "client-id"));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_acceptsValidNativeClaimMappings() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid", "pattern", "^(.+)$"))
+        );
+
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_acceptsValidJsonStringClaimMappings() {
+        // Same logical field/claim/pattern data as
+        // validateTlsClientAuthClaimConfig_acceptsValidNativeClaimMappings, but supplied as a
+        // JSON string, to genuinely prove the two parsing shapes (native List/Map vs. JSON
+        // string) handle identical input equivalently.
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                "[{\"field\":\"subject_cn\",\"claim\":\"cf_instance_guid\",\"pattern\":\"^(.+)$\"}]"
+        );
+
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsMissingField() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("claim", "cf_instance_guid"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsUnrecognizedField() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_email", "claim", "cf_instance_guid"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsBlankClaim() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "  "))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsInvalidRegexPattern() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "claim", "cf_org", "pattern", "["))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsSubTemplateReferencingUndeclaredClaim() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "{cf_undeclared}");
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsNonStringSubTemplate() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, List.of("template"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
+                .hasMessageContaining("client-id");
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsAudTemplateReferencingUndeclaredClaim() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                List.of("https://valid.example.com/{cf_undeclared}"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsNativeNullAudTemplateEntry() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")),
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                Collections.singletonList(null));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
+                .hasMessageContaining("entry cannot be null")
+                .hasMessageContaining("client-id");
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsJsonNullAudTemplateEntry() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")),
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                "[null]");
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
+                .hasMessageContaining("entry cannot be null")
+                .hasMessageContaining("client-id");
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsReferencingUndeclaredClaim() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("cf_undeclared", "some-value"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsWithoutClaimMappings() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("cf_instance_guid", "instance-guid"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
+                .hasMessageContaining("undeclared claim")
+                .hasMessageContaining("client-id");
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsWithNullValue() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "claim", "cf_org")));
+        Map<String, String> requiredClaims = new java.util.HashMap<>();
+        requiredClaims.put("cf_org", null);
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, requiredClaims);
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsWithBlankValue() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "claim", "cf_org")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("cf_org", "   "));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_acceptsFullyValidConfig() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(
+                        Map.of("field", "subject_cn", "claim", "cf_instance_guid"),
+                        Map.of("field", "subject_ou", "claim", "cf_org", "pattern", "^org:(.+)$")
+                ));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "{cf_instance_guid}");
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                List.of("https://valid.example.com/{cf_org}"));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("cf_org", "myorg"));
+
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsSubTemplateExceedingMaxLength() {
+        // CodeQL: js/polynomial-redos on the PLACEHOLDER regex (\{([^}]+)\}). The possessive
+        // quantifier fix ([^}]++) only reduces the constant factor -- Matcher.find() still
+        // retries the full match attempt at every character position, so the real fix is to
+        // bound the input length before it ever reaches the regex.
+        String oversizedSubTemplate = "{".repeat(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH + 1);
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, oversizedSubTemplate);
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client-id")
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
+                .hasMessageContaining(String.valueOf(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsAudTemplateExceedingMaxLength() {
+        String oversizedAudTemplate = "{".repeat(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH + 1);
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, List.of(oversizedAudTemplate));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client-id")
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
+                .hasMessageContaining(String.valueOf(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_acceptsSubTemplateAtExactlyMaxLength() {
+        // A pathological all-'{' template of exactly MAX_TEMPLATE_LENGTH characters must still
+        // be processed quickly, confirming the bound (combined with the possessive quantifier)
+        // makes this genuinely fast rather than merely rejected.
+        String maxLengthSubTemplate = "{".repeat(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH);
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, maxLengthSubTemplate);
+
+        long start = System.nanoTime();
+        // The all-'{' template never closes a placeholder, so no undeclared-placeholder
+        // exception is thrown -- validateTemplatePlaceholders() simply finds no matches.
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
+
+        assertThat(elapsedMillis).isLessThan(100);
     }
 }

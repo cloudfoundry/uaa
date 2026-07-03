@@ -13,6 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
@@ -30,6 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DefaultTestContext
 @EnabledIfZonePathsEnabled
+// mtls_endpoint_aliases/tls_client_auth are only advertised when uaa.mtls-enabled is true (the
+// default is false) -- enabled here since this test asserts on their presence.
+@TestPropertySource(properties = "uaa.mtls-enabled=true")
 class OpenIdConnectEndpointsMockMvcZonePathTests {
 
     private IdentityZone identityZone;
@@ -76,7 +80,7 @@ class OpenIdConnectEndpointsMockMvcZonePathTests {
             assertThat(openIdConfiguration.getIssuer()).isEqualTo("http://" + identityZone.getSubdomain() + ".localhost:8080/uaa/oauth/token");
             assertThat(openIdConfiguration.getAuthUrl()).isEqualTo(expectedAuthUrl);
             assertThat(openIdConfiguration.getTokenUrl()).isEqualTo(expectedTokenUrl);
-            assertThat(openIdConfiguration.getTokenAMR()).containsExactly(new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt"});
+            assertThat(openIdConfiguration.getTokenAMR()).containsExactly(new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt", "tls_client_auth"});
             assertThat(openIdConfiguration.getTokenEndpointAuthSigningValues()).containsExactly(new String[]{"RS256", "HS256"});
             assertThat(openIdConfiguration.getUserInfoUrl()).isEqualTo(expectedUserInfoUrl);
             assertThat(openIdConfiguration.getScopes()).containsExactly(new String[]{"openid", "profile", "email", "phone", ROLES, USER_ATTRIBUTES});
@@ -88,6 +92,11 @@ class OpenIdConnectEndpointsMockMvcZonePathTests {
             assertThat(openIdConfiguration.isClaimsParameterSupported()).isFalse();
             assertThat(openIdConfiguration.getServiceDocumentation()).isEqualTo("http://docs.cloudfoundry.org/api/uaa/");
             assertThat(openIdConfiguration.getUiLocalesSupported()).containsExactly(new String[]{"en-US"});
+            String expectedMtlsTokenUrl = mode == ZoneResolutionMode.ZONE_PATH
+                    ? "http://localhost/z/" + identityZone.getSubdomain() + "/oauth/mtls/token"
+                    : "http://" + host + "/oauth/mtls/token";
+            assertThat(openIdConfiguration.getMtlsEndpointAliases())
+                    .containsEntry("token_endpoint", expectedMtlsTokenUrl);
         }
     }
 

@@ -68,6 +68,12 @@ class ClientCredentialsTokenGranterTests {
     }
 
     @Test
+    void tlsClientAuthIsAllowedForClientCredentials() {
+        assertThat(ClientCredentialsTokenGranter.isAllowedAuthMethod(
+                TokenConstants.CLIENT_AUTH_TLS_CLIENT_AUTH)).isTrue();
+    }
+
+    @Test
     void grantNoSecretFails() {
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("username", null, null);
         SecurityContextHolder.getContext().setAuthentication(authentication);

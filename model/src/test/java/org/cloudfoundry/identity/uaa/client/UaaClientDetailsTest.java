@@ -60,6 +60,22 @@ class UaaClientDetailsTest {
         }
 
         @Test
+        void copiesFlatTlsClientAuthAdditionalInformationWhenTypedConfigurationIsNull() {
+            Map<String, Object> tlsClientAuthAdditionalInformation = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "trusted-ca",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, "claim-mappings",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "sub-template",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, "aud-templates",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "trusted-proxy-ca",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, "required-claims");
+            testClient.setAdditionalInformation(tlsClientAuthAdditionalInformation);
+
+            UaaClientDetails copy = new UaaClientDetails(testClient);
+
+            assertThat(copy.getAdditionalInformation()).containsExactlyInAnyOrderEntriesOf(tlsClientAuthAdditionalInformation);
+        }
+
+        @Test
         void clientJwtConfig() {
             UaaClientDetails copy = new UaaClientDetails(testClient);
             copy.setClientJwtConfig("test");
@@ -209,6 +225,45 @@ class UaaClientDetailsTest {
         }
 
         @Test
+        void tlsClientAuthConfigRoundTripsViaJson() throws Exception {
+            UaaClientDetails details = new UaaClientDetails();
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+                null
+            );
+            details.setTlsClientAuthConfiguration(config);
+
+            String json = new JsonMapper().writeValueAsString(details);
+            UaaClientDetails deserialized = new JsonMapper().readValue(json, UaaClientDetails.class);
+
+            Object raw = deserialized.getAdditionalInformation()
+                    .get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            assertThat(raw).isEqualTo(config.getTrustedCaPem());
+        }
+
+        @Test
+        void setTlsClientAuthConfiguration_whenCleared_removesAllPersistedSettings() {
+            UaaClientDetails details = new UaaClientDetails();
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
+                    "trusted-ca", List.of(new TlsClientAuthConfiguration.ClaimMapping("field", "pattern", "claim")));
+            config.setSubTemplate("sub-template");
+            config.setAudTemplates(List.of("aud-template"));
+            config.setTrustedProxyCaPem("trusted-proxy-ca");
+            config.setRequiredClaims(Map.of("required-claim", "value"));
+
+            details.setTlsClientAuthConfiguration(config);
+            details.setTlsClientAuthConfiguration(null);
+
+            assertThat(details.getAdditionalInformation()).doesNotContainKeys(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+        }
+
+        @Test
         void autoApprove() {
             UaaClientDetails details = new UaaClientDetails();
             assertThat(details.getAutoApproveScopes()).isNull();
@@ -221,7 +276,7 @@ class UaaClientDetailsTest {
             uaaClientDetails.setRegisteredRedirectUri(Set.of("http://localhost:8080/uaa"));
             uaaClientDetails.setRefreshTokenValiditySeconds(1);
             uaaClientDetails.setAccessTokenValiditySeconds(1);
-            assertThat(uaaClientDetails.hashCode()).isPositive();
+            assertThat(uaaClientDetails.hashCode()).isNotZero();
         }
     }
 

@@ -85,7 +85,8 @@ class ClientAdminBootstrapProdEncoderTest {
                 Collections.emptySet(),
                 Collections.emptySet(),
                 jdbcTemplate,
-                Collections.emptySet());
+                Collections.emptySet(),
+                false);
 
         // First run — simulates UAA startup 1
         bootstrap.afterPropertiesSet();

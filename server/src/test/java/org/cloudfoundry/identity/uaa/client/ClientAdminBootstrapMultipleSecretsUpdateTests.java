@@ -61,7 +61,8 @@ class ClientAdminBootstrapMultipleSecretsUpdateTests {
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
                 null,
-                Collections.singleton(allowPublicId));
+                Collections.singleton(allowPublicId),
+                false);
 
         /* setup first a client with 2 secrets */
         Map<String, Object> map = ClientAdminBootstrapTests.createClientMap("foo");

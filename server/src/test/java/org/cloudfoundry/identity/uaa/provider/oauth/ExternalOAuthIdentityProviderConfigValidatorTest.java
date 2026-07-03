@@ -112,6 +112,16 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
     }
 
     @Test
+    void configWithTlsClientAuthMethod_ThrowsException() {
+        definition.setAuthMethod(ClientAuthentication.TLS_CLIENT_AUTH);
+
+        assertThatThrownBy(() -> validator.validate(definition))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Relying Party Authentication Method")
+                .hasMessageNotContaining(ClientAuthentication.TLS_CLIENT_AUTH);
+    }
+
+    @Test
     void configWithShowLinkTextTrue_mustHaveLinkText() {
         definition.setShowLinkText(true);
         definition.setLinkText(null);
