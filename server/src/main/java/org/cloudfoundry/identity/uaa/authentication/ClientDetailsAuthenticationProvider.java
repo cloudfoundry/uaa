@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
@@ -194,14 +195,21 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         return tlsClientAuthentication.validateClientCert(cert, config).isPresent();
     }
 
-    private static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
+    static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
         Map<String, Object> info = uaaClient.getAdditionalInformation();
         if (info == null) {
             return null;
         }
         Object rawConfig = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
         if (rawConfig instanceof TlsClientAuthConfiguration cfg) {
-            return cfg;
+            return cfg;  // in-memory client (tests)
+        }
+        if (rawConfig instanceof Map<?, ?>) {
+            try {
+                return JsonUtils.convertValue(rawConfig, TlsClientAuthConfiguration.class);
+            } catch (Exception e) {
+                return null;
+            }
         }
         return null;
     }
