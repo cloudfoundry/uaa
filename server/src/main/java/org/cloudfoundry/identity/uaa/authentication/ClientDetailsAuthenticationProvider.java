@@ -13,9 +13,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -29,6 +31,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +39,7 @@ import java.util.Optional;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_EMPTY;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_PRIVATE_KEY_JWT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_TLS_CLIENT_AUTH;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getSafeParameterValue;
 
 /**
@@ -50,11 +54,14 @@ import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getSafeParameter
 public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvider {
 
     private final JwtClientAuthentication jwtClientAuthentication;
+    private final TlsClientAuthentication tlsClientAuthentication;
 
-    public ClientDetailsAuthenticationProvider(UserDetailsService userDetailsService, PasswordEncoder encoder, JwtClientAuthentication jwtClientAuthentication) {
+    public ClientDetailsAuthenticationProvider(UserDetailsService userDetailsService, PasswordEncoder encoder,
+            JwtClientAuthentication jwtClientAuthentication, TlsClientAuthentication tlsClientAuthentication) {
         super(userDetailsService);
         setPasswordEncoder(encoder);
         this.jwtClientAuthentication = jwtClientAuthentication;
+        this.tlsClientAuthentication = tlsClientAuthentication;
     }
 
     @Override
@@ -82,6 +89,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         setAuthenticationMethod(authentication, CLIENT_AUTH_PRIVATE_KEY_JWT);
                         if (!validatePrivateKeyJwt(authentication.getDetails(), uaaClient)) {
                             error = new BadCredentialsException("Bad client_assertion type");
+                        }
+                        break;
+                    } else if (isTlsClientAuthPath(authentication.getDetails())) {
+                        setAuthenticationMethod(authentication, CLIENT_AUTH_TLS_CLIENT_AUTH);
+                        if (!validateTlsClientAuth(uaaClient)) {
+                            error = new BadCredentialsException("tls_client_auth: certificate validation failed");
                         }
                         break;
                     } else {
@@ -164,5 +177,32 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     private boolean validatePrivateKeyJwt(Object uaaAuthenticationDetails, UaaClient uaaClient) {
         return jwtClientAuthentication.validateClientJwt(getRequestParameters(getUaaAuthenticationDetails(uaaAuthenticationDetails)),
                 uaaClient.getClientJwtConfiguration(), uaaClient.getUsername());
+    }
+
+    static boolean isTlsClientAuthPath(Object uaaAuthenticationDetails) {
+        UaaAuthenticationDetails details = getUaaAuthenticationDetails(uaaAuthenticationDetails);
+        String path = details != null ? details.getRequestPath() : null;
+        return path != null && path.startsWith("/oauth/mtls");
+    }
+
+    private boolean validateTlsClientAuth(UaaClient uaaClient) {
+        X509Certificate cert = tlsClientAuthentication.getCertificateFromRequest();
+        if (cert == null) {
+            return false;
+        }
+        TlsClientAuthConfiguration config = getTlsClientAuthConfiguration(uaaClient);
+        return tlsClientAuthentication.validateClientCert(cert, config).isPresent();
+    }
+
+    private static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
+        Map<String, Object> info = uaaClient.getAdditionalInformation();
+        if (info == null) {
+            return null;
+        }
+        Object rawConfig = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        if (rawConfig instanceof TlsClientAuthConfiguration cfg) {
+            return cfg;
+        }
+        return null;
     }
 }
