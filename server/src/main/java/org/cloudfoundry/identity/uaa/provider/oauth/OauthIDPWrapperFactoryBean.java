@@ -191,7 +191,7 @@ public class OauthIDPWrapperFactoryBean {
             idpDefinition.setCacheJwks((boolean) idpDefinitionMap.get("cacheJwks"));
         }
         if (idpDefinitionMap.get("authMethod") instanceof String definedAuthMethod) {
-            if (ClientAuthentication.isMethodSupported(definedAuthMethod)) {
+            if (ClientAuthentication.isExternalOAuthMethodSupported(definedAuthMethod)) {
                 idpDefinition.setAuthMethod(definedAuthMethod);
             } else {
                 throw new IllegalArgumentException("Invalid IdP authentication method");

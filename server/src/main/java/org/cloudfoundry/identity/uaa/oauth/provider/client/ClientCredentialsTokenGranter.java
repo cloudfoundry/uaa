@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_PRIVATE_KEY_JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_SECRET;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_TLS_CLIENT_AUTH;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 
 /**
@@ -24,7 +25,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  */
 public class ClientCredentialsTokenGranter extends AbstractTokenGranter {
 
-    private static final List<String> ALLOWED_AUTH_METHODS = List.of(CLIENT_AUTH_SECRET, CLIENT_AUTH_PRIVATE_KEY_JWT);
+    private static final List<String> ALLOWED_AUTH_METHODS = List.of(CLIENT_AUTH_SECRET, CLIENT_AUTH_PRIVATE_KEY_JWT, CLIENT_AUTH_TLS_CLIENT_AUTH);
+
+    public static boolean isAllowedAuthMethod(String method) {
+        return ALLOWED_AUTH_METHODS.contains(method);
+    }
 
     public ClientCredentialsTokenGranter(AuthorizationServerTokenServices tokenServices,
             ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {

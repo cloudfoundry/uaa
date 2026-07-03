@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.security.Security;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,6 +63,30 @@ import static org.mockito.Mockito.when;
 @WithDatabaseContext
 class ClientAdminBootstrapTests {
 
+    private static final String VALID_CERT = """
+            -----BEGIN CERTIFICATE-----
+            MIIDXTCCAkWgAwIBAgIJAOpOBuLToBXJMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+            BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+            aWRnaXRzIFB0eSBMdGQwHhcNMTcwNzE0MTcxNDE4WhcNMTcwODEzMTcxNDE4WjBF
+            MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+            ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+            CgKCAQEA3+07F4S5Fz3wv/UFm/OWsJXm6s3pKI2mp4fSAY8rx9+0cyLAHsedWzeq
+            5uKcDeRW858DOdnClaTOZC73FcvOmv1bw2eYcmfsbqHEhyR0dp+rDHt/7pr6kajC
+            yUvAW+hoRRSMpooiZckxrjJ7LOa5iqRyZRwshfGN+mFSygfVguMDKrsE2rvpK6/K
+            tkG/lcToLHiw4OnMnZ9ocrNRDAoCkzKGZTLJkUEr3MgOKmr2EO0P6KOAmNnOEmCf
+            05ohcrUXeFZVnS5MMUzoGAOzBstZhA0dd7l297IDnWH9uIhCANCvZ9sovZWz/o3J
+            pc2LyXsaI1cV7O1cGV4aEEn8zzWWGwIDAQABo1AwTjAdBgNVHQ4EFgQUXBO1+qo7
+            w6iiiv1pnm+zdrQ3CzkwHwYDVR0jBBgwFoAUXBO1+qo7w6iiiv1pnm+zdrQ3Czkw
+            DAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAT78lT5VEIetWPGk3szPz
+            CT9zNpR1F+7o3rvRTI6Psyjz4tGlyX5iU0Z99Xa9yimIEhWme2UVsgQ9uOzk2IgH
+            wMbB2TTP/RRK5+eO4BUu4zWWIXsIcfC6Rqw9Y3Hki+mRpuWMv+5pcOz/H+aYeSfy
+            WvVYfRZJOhcztysII4HWIxw8qqwBrf5kX8IRKZXay+A2W04A6kjjX3zfN2OzljTA
+            jZbtHedUGxSHvK8x6tHEwS0lZ9eZh+V4DWyRvrunwDCtA7zJQmrJd1qbM84H/1C8
+            cAC6dglvc82n1BTAZbZwWHYt+Ro3Vp0GMPsZLOXJ0g03LbkhXg4krwXjJPD42nus
+            3A==
+            -----END CERTIFICATE-----
+            """;
+
     private ClientAdminBootstrap clientAdminBootstrap;
     private MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService;
     private ClientMetadataProvisioning clientMetadataProvisioning;
@@ -83,6 +109,7 @@ class ClientAdminBootstrapTests {
 
     @BeforeEach
     void setUpClientAdminTests() {
+        Security.addProvider(new BouncyCastleFipsProvider());
         randomValueStringGenerator = new RandomValueStringGenerator();
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
@@ -105,7 +132,8 @@ class ClientAdminBootstrapTests {
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
                 null,
-                Collections.singleton(allowPublicId));
+                Collections.singleton(allowPublicId),
+                false);
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -125,7 +153,8 @@ class ClientAdminBootstrapTests {
                     Collections.emptySet(),
                     Collections.emptySet(),
                     null,
-                    Collections.emptySet());
+                    Collections.emptySet(),
+                    false);
         }
 
         @Test
@@ -161,7 +190,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(clientIdToDelete),
                     Collections.singleton(clientIdToDelete),
-                    null, Collections.singleton(clientIdToDelete));
+                    null, Collections.singleton(clientIdToDelete), false);
             clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
         }
 
@@ -372,7 +401,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(autoApproveId),
                     Collections.emptySet(),
-                    null, Collections.singleton(allowPublicId));
+                    null, Collections.singleton(allowPublicId), false);
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
@@ -461,7 +490,7 @@ class ClientAdminBootstrapTests {
                         clients,
                         Collections.singleton(autoApproveId),
                         Collections.emptySet(),
-                        null, Collections.singleton(allowPublicId));
+                        null, Collections.singleton(allowPublicId), false);
             }
 
             @Test
@@ -644,6 +673,111 @@ class ClientAdminBootstrapTests {
         assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining("Client must have at least one authorized-grant-type");
+    }
+
+    @Test
+    void mtlsClientConfigRejectedWhenMtlsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls-enabled");
+    }
+
+    @Test
+    void mtlsClientTrustedProxyConfigRejectedWhenMtlsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "some-trusted-proxy-ca");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls-enabled");
+    }
+
+    @Test
+    void mtlsClientConfigAllowedWhenMtlsEnabled() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId),
+                true);
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap.afterPropertiesSet();
+
+        ClientDetails created = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(created.getAdditionalInformation()).containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+    }
+
+    @Test
+    void nestedTlsClientAuthConfigurationIsRejectedDuringBootstrap() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId),
+                true);
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT));
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                .hasMessageContaining("PEM string");
+    }
+
+    @Test
+    void invalidTlsClientAuthClaimConfigIsRejectedDuringBootstrap() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId),
+                true);
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "invalid", "claim", "cf_app")));
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("tls-client-auth-claim-mappings")
+                .hasMessageContaining("invalid field");
+    }
+
+    @Test
+    void ordinaryClientBootstrapsSuccessfullyWhenMtlsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        assertThat(created.getAdditionalInformation()).doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        assertThat(created.getAdditionalInformation()).doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
     }
 
     static ClientDetails doSimpleTest(
