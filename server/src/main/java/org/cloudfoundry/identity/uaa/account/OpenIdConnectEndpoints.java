@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.OK;
 
@@ -17,6 +18,9 @@ public class OpenIdConnectEndpoints {
 
     private final String issuer;
     private final IdentityZoneManager identityZoneManager;
+
+    @Value("${uaa.mtls_endpoint_path:/oauth/mtls/token}")
+    private String mtlsEndpointPath = "/oauth/mtls/token";
 
     public OpenIdConnectEndpoints(
             final @Value("${issuer.uri}") String issuer,
@@ -31,7 +35,9 @@ public class OpenIdConnectEndpoints {
             "/oauth/token/.well-known/openid-configuration"
     })
     public ResponseEntity<OpenIdConfiguration> getOpenIdConfiguration(HttpServletRequest request) throws URISyntaxException {
-        OpenIdConfiguration conf = new OpenIdConfiguration(getServerContextPath(request), getTokenEndpoint());
+        String contextPath = getServerContextPath(request);
+        OpenIdConfiguration conf = new OpenIdConfiguration(contextPath, getTokenEndpoint());
+        conf.setMtlsEndpointAliases(Map.of("token_endpoint", contextPath + mtlsEndpointPath));
         return new ResponseEntity<>(conf, OK);
     }
 
