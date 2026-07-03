@@ -40,6 +40,8 @@ dependencies {
     implementation(libs.bouncyCastleTlsFips)
     implementation(libs.bouncyCastleUtilFips)
 
+    implementation("org.cloudfoundry:java-buildpack-client-certificate-mapper-jakarta:2.0.1")
+
     implementation(libs.guava)
 
     implementation(libs.aspectJWeaver)
