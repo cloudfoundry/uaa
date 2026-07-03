@@ -46,4 +46,25 @@ class TlsClientAuthConfigurationTest {
         assertThat(mapping.getPattern()).isNull();
         assertThat(mapping.getClaim()).isEqualTo("instance_guid");
     }
+
+    @Test
+    void equalConfigurations() {
+        TlsClientAuthConfiguration a = new TlsClientAuthConfiguration(
+            EXAMPLE_CA,
+            List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "app_guid"))
+        );
+        TlsClientAuthConfiguration b = new TlsClientAuthConfiguration(
+            EXAMPLE_CA,
+            List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "app_guid"))
+        );
+        assertThat(a).isEqualTo(b);
+        assertThat(a.hashCode()).isEqualTo(b.hashCode());
+    }
+
+    @Test
+    void unequalWhenCaDiffers() {
+        TlsClientAuthConfiguration a = new TlsClientAuthConfiguration("ca-a", null);
+        TlsClientAuthConfiguration b = new TlsClientAuthConfiguration("ca-b", null);
+        assertThat(a).isNotEqualTo(b);
+    }
 }

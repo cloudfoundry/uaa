@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -31,6 +32,19 @@ public class TlsClientAuthConfiguration {
 
     public List<ClaimMapping> getClaimMappings() { return claimMappings; }
     public void setClaimMappings(List<ClaimMapping> claimMappings) { this.claimMappings = claimMappings; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TlsClientAuthConfiguration that)) return false;
+        return Objects.equals(trustedCaPem, that.trustedCaPem) &&
+               Objects.equals(claimMappings, that.claimMappings);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(trustedCaPem, claimMappings);
+    }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {
         return config != null && config.getTrustedCaPem() != null && !config.getTrustedCaPem().isBlank();
@@ -64,5 +78,19 @@ public class TlsClientAuthConfiguration {
         public void setField(String field)     { this.field = field; }
         public void setPattern(String pattern) { this.pattern = pattern; }
         public void setClaim(String claim)     { this.claim = claim; }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ClaimMapping that)) return false;
+            return Objects.equals(field, that.field) &&
+                   Objects.equals(pattern, that.pattern) &&
+                   Objects.equals(claim, that.claim);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(field, pattern, claim);
+        }
     }
 }
