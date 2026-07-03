@@ -32,8 +32,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
+import tools.jackson.core.type.TypeReference;
+
 import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -207,6 +210,19 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         if (rawConfig instanceof Map<?, ?>) {
             try {
                 return JsonUtils.convertValue(rawConfig, TlsClientAuthConfiguration.class);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        if (rawConfig instanceof String pem) {
+            try {
+                List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
+                Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
+                if (rawMappings instanceof String mappingsJson) {
+                    claimMappings = JsonUtils.readValue(mappingsJson,
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                }
+                return new TlsClientAuthConfiguration(pem, claimMappings);
             } catch (Exception e) {
                 return null;
             }

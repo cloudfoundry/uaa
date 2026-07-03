@@ -31,7 +31,7 @@ import java.util.Set;
 import static org.springframework.util.StringUtils.hasText;
 
 @Controller
-@RequestMapping(value = "/oauth/token") //used simply because TokenEndpoint wont match /oauth/token/alias/saml-entity-id
+@RequestMapping(value = {"/oauth/token", "/oauth/mtls/token"}) //used simply because TokenEndpoint wont match /oauth/token/alias/saml-entity-id
 public class UaaTokenEndpoint extends TokenEndpoint {
 
     private final boolean allowQueryString;
