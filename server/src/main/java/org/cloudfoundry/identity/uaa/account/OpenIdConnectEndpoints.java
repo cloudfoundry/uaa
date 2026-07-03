@@ -19,7 +19,7 @@ public class OpenIdConnectEndpoints {
     private final String issuer;
     private final IdentityZoneManager identityZoneManager;
 
-    @Value("${uaa.mtls_endpoint_path:/oauth/mtls/token}")
+    @Value("${mtls.endpoint:/oauth/mtls/token}")
     private String mtlsEndpointPath = "/oauth/mtls/token";
 
     public OpenIdConnectEndpoints(
