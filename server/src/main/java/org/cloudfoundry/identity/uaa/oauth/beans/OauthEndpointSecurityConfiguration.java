@@ -463,6 +463,40 @@ class OauthEndpointSecurityConfiguration {
         return new UaaFilterChain(chain, "externalOAuthCallbackEndpointSecurity");
     }
 
+    /**
+     * Security filter chain for the mTLS token endpoint ({@code /oauth/mtls/token}).
+     *
+     * <p>The {@code ClientCertificateMapper} servlet filter (registered separately) converts the
+     * {@code X-Forwarded-Client-Cert} header set by the Gorouter into a
+     * {@code jakarta.servlet.request.X509Certificate} request attribute before this chain runs.
+     * CSRF is disabled because this is a stateless machine-to-machine API endpoint.
+     */
+    @Bean
+    @Order(FilterChainOrder.OAUTH_11)
+    UaaFilterChain mtlsTokenEndpointSecurity(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher("/oauth/mtls/token", "/oauth/mtls/token/**")
+                .authenticationManager(clientAuthenticationManager)
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/**").access(anyOf().fullyAuthenticated());
+                    auth.anyRequest().denyAll();
+                })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(getClientParameterAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(tokenEndpointAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
+                                .accessDeniedHandler(oauthAccessDeniedHandler)
+                )
+                .securityContext(sc -> sc.requireExplicitSave(false))
+                .build();
+
+        return new UaaFilterChain(chain, "mtlsTokenEndpointSecurity");
+    }
+
     @Bean
     @Order(FilterChainOrder.OAUTH_10)
     UaaFilterChain oldAuthzEndpointSecurity(HttpSecurity http) throws Exception {
