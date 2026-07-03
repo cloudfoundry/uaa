@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
@@ -450,12 +451,14 @@ public class OauthEndpointBeanConfiguration {
     ClientDetailsAuthenticationProvider clientAuthenticationProvider(
             @Qualifier("clientDetailsUserService") UserDetailsService clientDetailsUserService,
             @Qualifier("cachingPasswordEncoder") PasswordEncoder cachingPasswordEncoder,
-            @Qualifier("jwtClientAuthentication") JwtClientAuthentication jwtClientAuthentication
+            @Qualifier("jwtClientAuthentication") JwtClientAuthentication jwtClientAuthentication,
+            TlsClientAuthentication tlsClientAuthentication
     ) {
         return new ClientDetailsAuthenticationProvider(
                 clientDetailsUserService,
                 cachingPasswordEncoder,
-                jwtClientAuthentication
+                jwtClientAuthentication,
+                tlsClientAuthentication
         );
     }
 
