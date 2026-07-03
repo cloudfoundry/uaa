@@ -7,6 +7,7 @@ import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.CLIEN
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.CLIENT_SECRET_POST;
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.NONE;
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.PRIVATE_KEY_JWT;
+import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.TLS_CLIENT_AUTH;
 
 class ClientAuthenticationTest {
 
@@ -77,5 +78,45 @@ class ClientAuthenticationTest {
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, null)).isFalse();
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, CLIENT_SECRET_BASIC)).isFalse();
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, NONE)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsARecognisedMethod() {
+        assertThat(ClientAuthentication.isMethodSupported(TLS_CLIENT_AUTH)).isTrue();
+    }
+
+    @Test
+    void tlsClientAuthDoesNotRequireASecret() {
+        assertThat(ClientAuthentication.secretNeeded(TLS_CLIENT_AUTH)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsCalculatedWhenHasCaConfig() {
+        String method = ClientAuthentication.getCalculatedMethod(null, false, false, true);
+        assertThat(method).isEqualTo(TLS_CLIENT_AUTH);
+    }
+
+    @Test
+    void tlsClientAuthIsValidMethodWhenHasCaConfig() {
+        assertThat(ClientAuthentication.isValidMethod(
+                TLS_CLIENT_AUTH, false, false, true)).isTrue();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWithoutCaConfig() {
+        assertThat(ClientAuthentication.isValidMethod(
+                ClientAuthentication.TLS_CLIENT_AUTH, false, false, false)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWhenHasSecret() {
+        assertThat(ClientAuthentication.isValidMethod(
+                ClientAuthentication.TLS_CLIENT_AUTH, true, false, true)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWhenHasKeyConfig() {
+        assertThat(ClientAuthentication.isValidMethod(
+                ClientAuthentication.TLS_CLIENT_AUTH, false, true, true)).isFalse();
     }
 }
