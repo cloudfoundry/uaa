@@ -103,7 +103,6 @@ dependencies {
     testImplementation(libs.seleniumRemoteDriver)
     testImplementation(libs.seleniumHttp)
     testImplementation(libs.orgJson)
-    testImplementation(libs.jsonAssert)
     testImplementation(libs.jsonPathAssert)
     testImplementation(libs.scim2SdkCommon)
     testImplementation(libs.springBootStarterLog4j2)

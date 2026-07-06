@@ -106,7 +106,6 @@ jacocoAgent = { module = "org.jacoco:org.jacoco.agent", version.ref = "jacocoAge
 jakartaValidationApi = { module = "jakarta.validation:jakarta.validation-api" }
 
 # JSON Processing
-jsonAssert = { module = "org.skyscreamer:jsonassert" }
 jsonPath = { module = "com.jayway.jsonpath:json-path" }
 jsonPathAssert = { module = "com.jayway.jsonpath:json-path-assert" }
 orgJson = { module = "org.json:json", version.ref = "orgJson" }

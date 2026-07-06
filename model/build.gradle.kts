@@ -37,8 +37,6 @@ dependencies {
     testRuntimeOnly(libs.jacocoAgent)
     testRuntimeOnly(libs.junit5PlatformLauncher)
 
-    testImplementation(libs.jsonAssert)
-    
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 }
