@@ -80,7 +80,12 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             return new HashMap<>();
         }
 
-        TlsClientAuthConfiguration config = loadTlsConfig(clientDetails.getAdditionalInformation());
+        // Check the typed field first (set directly on in-memory / admin-API clients);
+        // fall back to additionalInformation for JDBC-loaded clients.
+        TlsClientAuthConfiguration config = clientDetails.getTlsClientAuthConfiguration();
+        if (config == null) {
+            config = loadTlsConfig(clientDetails.getAdditionalInformation());
+        }
         if (!TlsClientAuthConfiguration.isConfigured(config)) {
             return new HashMap<>();
         }
@@ -199,6 +204,12 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                 List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
                 Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
                 if (rawMappings instanceof String mappingsJson) {
+                    claimMappings = JsonUtils.readValue(mappingsJson,
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                } else if (rawMappings instanceof List<?> mappingsList) {
+                    // Jackson may parse a JSON array directly as a List when additionalInformation
+                    // is deserialized from JDBC without a String-encoded wrapper.
+                    String mappingsJson = JsonUtils.writeValueAsString(mappingsList);
                     claimMappings = JsonUtils.readValue(mappingsJson,
                             new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
                 }

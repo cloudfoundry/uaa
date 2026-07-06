@@ -221,6 +221,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                 if (rawMappings instanceof String mappingsJson) {
                     claimMappings = JsonUtils.readValue(mappingsJson,
                             new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                } else if (rawMappings instanceof List<?> mappingsList) {
+                    // Jackson may parse a JSON array directly as a List when additionalInformation
+                    // is deserialized from JDBC without a String-encoded wrapper.
+                    String mappingsJson = JsonUtils.writeValueAsString(mappingsList);
+                    claimMappings = JsonUtils.readValue(mappingsJson,
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
                 }
                 return new TlsClientAuthConfiguration(pem, claimMappings);
             } catch (Exception e) {

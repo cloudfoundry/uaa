@@ -15,6 +15,7 @@ greenmail = "2.1.9"
 guava = "33.6.0-jre"
 jacoco = "4.0.2"
 jacocoAgent = "0.8.15"
+javaBuildpackClientCertificateMapper = "2.0.1"
 nimbusJwt = "10.9.1"
 opensaml = "5.2.3"
 orgJson = "20260522"
@@ -70,6 +71,9 @@ bouncyCastleUtilFips = { module = "org.bouncycastle:bcutil-fips", version.ref = 
 # ByteBuddy
 bytebuddy = { module = "net.bytebuddy:byte-buddy" }
 bytebuddyagent = { module = "net.bytebuddy:byte-buddy-agent" }
+
+# CloudFoundry
+javaBuildpackClientCertificateMapper = { module = "org.cloudfoundry:java-buildpack-client-certificate-mapper-jakarta", version.ref = "javaBuildpackClientCertificateMapper" }
 
 # Eclipse JGit
 eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "eclipseJgit" }
