@@ -26,8 +26,6 @@ dependencies {
     testImplementation(libs.junit5JupiterEngine)
     testImplementation(libs.unboundIdLdapSdk)
     testImplementation(libs.mockitoJunit5)
-    testImplementation(libs.bytebuddy)
-    testImplementation(libs.bytebuddyagent)
 
     testRuntimeOnly(libs.jacocoAgent)
     testRuntimeOnly(libs.junit5PlatformLauncher)

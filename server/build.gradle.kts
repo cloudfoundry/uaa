@@ -99,8 +99,6 @@ dependencies {
     testImplementation(libs.junit5JupiterEngine)
     testImplementation(libs.unboundIdLdapSdk)
     testImplementation(libs.springTest)
-    testImplementation(libs.bytebuddy)
-    testImplementation(libs.bytebuddyagent)
     testImplementation(libs.mockitoJunit5)
 
     testImplementation(libs.postgresql)

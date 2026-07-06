@@ -67,10 +67,6 @@ bouncyCastlePkixFips = { module = "org.bouncycastle:bcpkix-fips", version.ref = 
 bouncyCastleTlsFips = { module = "org.bouncycastle:bctls-fips", version.ref = "bouncyCastleTls" }
 bouncyCastleUtilFips = { module = "org.bouncycastle:bcutil-fips", version.ref = "bouncyCastleUtil" }
 
-# ByteBuddy
-bytebuddy = { module = "net.bytebuddy:byte-buddy" }
-bytebuddyagent = { module = "net.bytebuddy:byte-buddy-agent" }
-
 # Eclipse JGit
 eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "eclipseJgit" }
 
