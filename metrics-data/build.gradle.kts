@@ -18,7 +18,6 @@ dependencies {
     testImplementation(libs.junit5JupiterApi)
     testImplementation(libs.junit5JupiterParams)
     testImplementation(libs.junit5JupiterEngine)
-    testImplementation(libs.unboundIdLdapSdk)
 
     testRuntimeOnly(libs.jacocoAgent)
     testRuntimeOnly(libs.junit5PlatformLauncher)
