@@ -53,22 +53,9 @@ dependencies {
     }
     implementation(project(":cloudfoundry-identity-statsd-lib"))
     implementation(project(":cloudfoundry-identity-model"))
-    implementation(libs.springSecurityConfig)
     implementation(libs.springSecurityWeb)
     implementation(libs.springBootStarter)
     implementation(libs.springBootStarterWeb)
-    implementation(libs.thymeLeaf) {
-        exclude(module = "ognl")
-    }
-    implementation(libs.thymeleafSpring) {
-        exclude(module = "ognl")
-    }
-    implementation(libs.thymeleafDialect) {
-        exclude(module = "ognl")
-    }
-    implementation(libs.thymeleafExtrasSpringSecurity) {
-        exclude(module = "ognl")
-    }
     implementation(libs.braveInstrumentation)
     implementation(libs.braveContextSlf4j)
 
@@ -107,6 +94,7 @@ dependencies {
     testImplementation(libs.springContextSupport)
     testImplementation(libs.springSessionJdbc)
     testImplementation(libs.springTest)
+    testImplementation(libs.springSecurityConfig)
     testImplementation(libs.springSecurityLdap)
     testImplementation(libs.springSecurityTest)
     testImplementation(libs.springBootStarterMail)
