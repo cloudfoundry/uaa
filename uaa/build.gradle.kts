@@ -94,9 +94,6 @@ dependencies {
     testImplementation(libs.unboundIdLdapSdk)
     testImplementation(project(":cloudfoundry-identity-model"))
     testImplementation(project(":cloudfoundry-identity-metrics-data"))
-    testImplementation(libs.apacheLdapApi) {
-        exclude(module = "slf4j-api")
-    }
     testImplementation(libs.flywayCore)
     testImplementation(libs.hibernateValidator)
     testImplementation(libs.selenium)
