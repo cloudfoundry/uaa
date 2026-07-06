@@ -190,12 +190,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     }
 
     private boolean validateTlsClientAuth(UaaClient uaaClient) {
-        X509Certificate cert = tlsClientAuthentication.getCertificateFromRequest();
-        if (cert == null) {
+        X509Certificate[] chain = tlsClientAuthentication.getCertificateChainFromRequest();
+        if (chain == null || chain.length == 0) {
             return false;
         }
         TlsClientAuthConfiguration config = getTlsClientAuthConfiguration(uaaClient);
-        return tlsClientAuthentication.validateClientCert(cert, config).isPresent();
+        return tlsClientAuthentication.validateClientCert(chain, config).isPresent();
     }
 
     static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
