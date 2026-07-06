@@ -109,7 +109,6 @@ dependencies {
     testImplementation(libs.tomcatElApi)
     testImplementation(libs.tomcatJasperEl)
 
-    testImplementation(libs.jsonPathAssert)
     testImplementation(libs.xmlUnit)
     testImplementation(libs.awaitility)
 

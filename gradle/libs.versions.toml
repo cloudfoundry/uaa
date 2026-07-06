@@ -107,7 +107,6 @@ jakartaValidationApi = { module = "jakarta.validation:jakarta.validation-api" }
 
 # JSON Processing
 jsonPath = { module = "com.jayway.jsonpath:json-path" }
-jsonPathAssert = { module = "com.jayway.jsonpath:json-path-assert" }
 orgJson = { module = "org.json:json", version.ref = "orgJson" }
 
 # JUnit 5
