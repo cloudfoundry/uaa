@@ -129,7 +129,7 @@ public class TokenPolicy {
 
     @JsonIgnore
     public boolean isRefreshTokenUnique() {
-        return refreshTokenUnique > 0;
+        return refreshTokenUnique == 1;
     }
 
     @JsonIgnore

@@ -1054,8 +1054,9 @@ Accepted values:
 - A positive integer `N` — at most `N` concurrent refresh tokens per user/client pair
 
 When the limit is reached, the **oldest** refresh token is revoked to make room for the new
-one. Enforcement only takes effect when `jwt.token.revocable` is also `true` (revocable
-tokens must be enabled so UAA can track and delete them).
+one. Enforcement only takes effect when refresh tokens are revocable/stored (opaque
+refresh tokens are always stored; JWT refresh tokens require `jwt.token.revocable` to
+be `true` so UAA can track and delete them).
 
 Per-client overrides are supported: set `refreshTokenUnique` in the client's
 `additionalInformation` map to an integer to override the zone-level policy for that

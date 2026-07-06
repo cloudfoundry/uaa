@@ -70,7 +70,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String REFRESH_TOKEN_UNIQUE = "Maximum number of concurrent active refresh tokens (sessions) per user/client pair. " +
             "Accepts a boolean or an integer for backwards compatibility: `true` is equivalent to `1` (one session), " +
             "`false` or any non-positive value means no limit. A positive integer N allows up to N concurrent sessions. " +
-            "Only enforced when `jwtRevocable` is also `true`. Defaults to `false` (no limit).";
+            "Only enforced when refresh tokens are revocable/stored (opaque refresh tokens are always stored; JWT refresh tokens require `jwtRevocable` to be `true`). Defaults to `false` (no limit).";
     private static final String REFRESH_TOKEN_ROTATE = "If true, uaa will issue a new refresh token value in grant type refresh_token. Defaults to `false`.";
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
     private static final String ENTITY_ID_DESC = "Unique ID of the SAML2 entity";
