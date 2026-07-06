@@ -20,7 +20,7 @@ dependencies {
 
     implementation(libs.springWeb)
     implementation(libs.springWebMvc)
-    implementation(libs.springSecurityConfig)
+    implementation(libs.springSecurityCore)
 
     implementation(libs.nimbusJwt)
 
