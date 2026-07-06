@@ -83,7 +83,6 @@ dependencies {
     implementation(libs.log4jCore)
 
     implementation(libs.nimbusJwt)
-    implementation(libs.orgJson)
 
     implementation(libs.apacheHttpClient)
     implementation(libs.commonsIo)
@@ -99,6 +98,7 @@ dependencies {
     testImplementation(libs.junit5JupiterEngine)
     testImplementation(libs.springTest)
     testImplementation(libs.mockitoJunit5)
+    testImplementation(libs.orgJson)
 
     testImplementation(libs.postgresql)
     testImplementation(libs.mariaJdbcDriver)
