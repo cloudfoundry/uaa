@@ -6,9 +6,6 @@ import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.HamcrestCondition.matching;
-import static org.cloudfoundry.identity.uaa.test.JsonMatcher.isJsonFile;
-import static org.cloudfoundry.identity.uaa.test.JsonMatcher.isJsonString;
 import static org.cloudfoundry.identity.uaa.test.JsonTranslation.WithAllNullFields.EXPECT_EMPTY_JSON;
 import static org.cloudfoundry.identity.uaa.test.JsonTranslation.WithAllNullFields.EXPECT_NULLS_IN_JSON;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
@@ -65,7 +62,7 @@ public abstract class JsonTranslation<T> {
 
         String actual = objectMapper.writeValueAsString(subject);
 
-        assertThat(actual).is(matching(isJsonFile(subjectClass, jsonFileName)));
+        assertJsonEquals(actual, getResourceAsString(subjectClass, jsonFileName));
     }
 
     @Test
@@ -87,7 +84,7 @@ public abstract class JsonTranslation<T> {
         validate();
 
         String actual = objectMapper.writeValueAsString(subjectClass.newInstance());
-        assertThat(actual).is(matching(isJsonString("{}")));
+        assertJsonEquals(actual, "{}");
     }
 
     @Test
@@ -101,6 +98,12 @@ public abstract class JsonTranslation<T> {
         assertThat(subjectClass.getResourceAsStream(fileName)).as("file <%s/%s> must exist on classpath, or choose a different %s".formatted(subjectClass.getPackage().getName().replace(".", "/"), fileName, WithAllNullFields.class.getSimpleName())).isNotNull();
 
         String actual = objectMapper.writeValueAsString(subjectClass.newInstance());
-        assertThat(actual).is(matching(isJsonFile(this.getClass(), fileName)));
+        assertJsonEquals(actual, getResourceAsString(this.getClass(), fileName));
+    }
+
+    /** Compares two JSON documents structurally (field order and formatting insensitive). */
+    private void assertJsonEquals(String actualJson, String expectedJson) {
+        assertThat(objectMapper.readTree(actualJson))
+                .isEqualTo(objectMapper.readTree(expectedJson));
     }
 }

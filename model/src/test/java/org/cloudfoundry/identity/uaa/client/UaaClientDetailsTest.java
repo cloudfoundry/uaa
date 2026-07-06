@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.client;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.HamcrestCondition.matching;
 
 class UaaClientDetailsTest {
 
@@ -41,11 +39,10 @@ class UaaClientDetailsTest {
         void copiesUaaBaseClientDetails() {
             testClient.setClientSecret("secret");
             UaaClientDetails copy = new UaaClientDetails(testClient);
-            assertThat(copy).is(matching(UaaClientDetailsMatcher.aUaaClientDetails()
-                    .withClientId("test")
-                    .withClientSecret("secret")
-                    .withScope(Matchers.contains("test.none"))
-                    .withResourceIds(Matchers.emptyIterable())));
+            assertThat(copy.getClientId()).isEqualTo("test");
+            assertThat(copy.getClientSecret()).isEqualTo("secret");
+            assertThat(copy.getScope()).containsExactly("test.none");
+            assertThat(copy.getResourceIds()).isEmpty();
 
             List<String> authorities = copy.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
@@ -57,8 +54,9 @@ class UaaClientDetailsTest {
         void copiesAdditionalInformation() {
             testClient.setAdditionalInformation(Collections.singletonMap("key", "value"));
             UaaClientDetails copy = new UaaClientDetails(testClient);
-            assertThat(copy).is(matching(UaaClientDetailsMatcher.aUaaClientDetails()
-                    .withAdditionalInformation(Matchers.allOf(Matchers.aMapWithSize(1), Matchers.hasEntry("key", "value")))));
+            assertThat(copy.getAdditionalInformation())
+                    .hasSize(1)
+                    .containsEntry("key", "value");
         }
 
         @Test
@@ -98,7 +96,7 @@ class UaaClientDetailsTest {
         void splitsScopesWhichIncludeAComma() {
             UaaClientDetails client = new UaaClientDetails(new UaaClientDetails());
             client.setScope(Collections.singleton("foo,bar"));
-            assertThat(client).is(matching(UaaClientDetailsMatcher.aUaaClientDetails().withScope(Matchers.containsInAnyOrder("foo", "bar"))));
+            assertThat(client.getScope()).containsExactlyInAnyOrder("foo", "bar");
         }
     }
 
