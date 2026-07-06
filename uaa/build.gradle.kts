@@ -109,7 +109,6 @@ dependencies {
     testImplementation(libs.springBootStarterMail)
     testImplementation(libs.passay)
     testImplementation(libs.mockitoJunit5)
-    testImplementation(libs.tomcatJdbc)
     testImplementation(libs.springRestdocs)
     testImplementation(libs.greenmail)
     testImplementation(libs.commonsIo)
