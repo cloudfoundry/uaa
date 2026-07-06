@@ -313,6 +313,13 @@ public class UaaClientDetails implements ClientDetails {
 
     public void setTlsClientAuthConfiguration(TlsClientAuthConfiguration tlsClientAuthConfiguration) {
         this.tlsClientAuthConfiguration = tlsClientAuthConfiguration;
+        // Keep additionalInformation in sync so JDBC-loaded clients (which only
+        // persist the additional_information JSON column) see the same value.
+        if (tlsClientAuthConfiguration != null) {
+            this.additionalInformation.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfiguration);
+        } else {
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        }
     }
 
     @Override

@@ -233,21 +233,24 @@ public class SpringServletXmlFiltersConfiguration {
     }
 
     @Bean
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public FilterRegistrationBean<?> clientCertificateMapperFilter() {
+    public FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilter() {
+        // ClientCertificateMapper is a package-private final class in
+        // org.cloudfoundry.router.jakarta; its constructor is also package-private.
+        // The library is designed for Spring Boot autoconfiguration or Servlet container
+        // initializer use — direct instantiation from outside the package requires
+        // reflection. setAccessible(true) is the only available mechanism.
         try {
             Class<?> mapperClass = Class.forName("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
             java.lang.reflect.Constructor<?> ctor = mapperClass.getDeclaredConstructor();
             ctor.setAccessible(true);
-            jakarta.servlet.Filter mapper = (jakarta.servlet.Filter) ctor.newInstance();
-            FilterRegistrationBean bean = new FilterRegistrationBean(mapper);
+            @SuppressWarnings("unchecked")
+            FilterRegistrationBean<jakarta.servlet.Filter> bean =
+                    new FilterRegistrationBean<>((jakarta.servlet.Filter) ctor.newInstance());
             bean.addUrlPatterns("/oauth/mtls/*");
             bean.setOrder(10);
             return bean;
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("Failed to instantiate ClientCertificateMapper", e);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create ClientCertificateMapper filter", e);
         }
     }
 }
