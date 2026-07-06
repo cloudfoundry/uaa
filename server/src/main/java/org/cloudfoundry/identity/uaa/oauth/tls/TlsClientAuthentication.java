@@ -18,7 +18,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 
@@ -40,6 +40,19 @@ public class TlsClientAuthentication {
      * @return the client certificate, or {@code null} if none is present
      */
     public X509Certificate getCertificateFromRequest() {
+        X509Certificate[] chain = getCertificateChainFromRequest();
+        return (chain != null && chain.length > 0) ? chain[0] : null;
+    }
+
+    /**
+     * Returns the full X.509 certificate chain from the current request's
+     * {@code jakarta.servlet.request.X509Certificate} attribute
+     * (populated by the ClientCertificateMapper filter).
+     * Index 0 is the end-entity (leaf) certificate.
+     *
+     * @return the client certificate chain, or {@code null} if none is present
+     */
+    public X509Certificate[] getCertificateChainFromRequest() {
         ServletRequestAttributes attrs =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attrs == null) {
@@ -48,12 +61,14 @@ public class TlsClientAuthentication {
         HttpServletRequest request = attrs.getRequest();
         X509Certificate[] certs = (X509Certificate[])
                 request.getAttribute("jakarta.servlet.request.X509Certificate");
-        return (certs != null && certs.length > 0) ? certs[0] : null;
+        return (certs != null && certs.length > 0) ? certs : null;
     }
 
     /**
      * Validates {@code clientCert} against the trusted CA PEM configured in {@code config}
      * using PKIX path validation.
+     * For chains with intermediates, prefer
+     * {@link #validateClientCert(X509Certificate[], TlsClientAuthConfiguration)}.
      *
      * @param clientCert the certificate presented by the client, may be {@code null}
      * @param config     the per-client TLS configuration, may be {@code null}
@@ -63,8 +78,24 @@ public class TlsClientAuthentication {
      */
     public Optional<X509Certificate> validateClientCert(
             X509Certificate clientCert, TlsClientAuthConfiguration config) {
+        return validateClientCert(
+                clientCert != null ? new X509Certificate[]{clientCert} : null, config);
+    }
 
-        if (clientCert == null || !TlsClientAuthConfiguration.isConfigured(config)) {
+    /**
+     * Validates a full certificate chain against the trusted CA PEM configured in {@code config}
+     * using PKIX path validation. Supports chains that include intermediate CAs.
+     *
+     * @param chain  the full certificate chain (index 0 = end-entity), may be {@code null}
+     * @param config the per-client TLS configuration, may be {@code null}
+     * @return {@code Optional.of(chain[0])} when validation succeeds;
+     *         {@code Optional.empty()} when chain or config is absent
+     * @throws InvalidClientDetailsException if the CA PEM is malformed or the cert chain is invalid
+     */
+    public Optional<X509Certificate> validateClientCert(
+            X509Certificate[] chain, TlsClientAuthConfiguration config) {
+
+        if (chain == null || chain.length == 0 || !TlsClientAuthConfiguration.isConfigured(config)) {
             return Optional.empty();
         }
 
@@ -76,12 +107,12 @@ public class TlsClientAuthentication {
             params.setRevocationEnabled(false);
 
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            var certPath = cf.generateCertPath(Collections.singletonList(clientCert));
+            var certPath = cf.generateCertPath(Arrays.asList(chain));
 
             CertPathValidator validator = CertPathValidator.getInstance("PKIX");
             validator.validate(certPath, params);
 
-            return Optional.of(clientCert);
+            return Optional.of(chain[0]);
 
         } catch (CertPathValidatorException e) {
             throw new InvalidClientDetailsException(
