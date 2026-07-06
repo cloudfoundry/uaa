@@ -159,15 +159,16 @@ public class SamlIdentityProviderConfigurator {
      * IDP on creation); otherwise the already-inline XML is returned unchanged.
      */
     public String resolveMetadataXml(SamlIdentityProviderDefinition def) {
-        if (def.getType() != SamlIdentityProviderDefinition.MetadataLocation.URL) {
-            return def.getMetaDataLocation();
+        String metadataLocation = def.getMetaDataLocation();
+        if (!hasText(metadataLocation) || SamlIdentityProviderDefinition.getType(metadataLocation) != SamlIdentityProviderDefinition.MetadataLocation.URL) {
+            return metadataLocation;
         }
         try {
-            String adjustedMetadataURIForPort = adjustURIForPort(def.getMetaDataLocation());
+            String adjustedMetadataURIForPort = adjustURIForPort(metadataLocation);
             byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetadataURIForPort, def.isSkipSslValidation());
             return new String(metadata, StandardCharsets.UTF_8);
         } catch (URISyntaxException e) {
-            throw new IllegalStateException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
+            throw new IllegalStateException("Invalid socket factory(invalid URI):" + metadataLocation, e);
         }
     }
 }

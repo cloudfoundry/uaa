@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -393,13 +394,13 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
             when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
 
             // The metadata endpoint presents a self-signed cert the JVM does not trust.
-            // skipSslValidation=true should make UAA trust it here too, just like it does
-            // on the admin validate path -- today it does not, because the live login-path
-            // fetch (RelyingPartyRegistrations.fromMetadataLocation) ignores skipSslValidation.
+            // skipSslValidation=true makes UAA trust it here too, on the live login path,
+            // the same way it already did on the admin validate path.
             RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
             assertThat(registration.getRegistrationId()).isEqualTo(REGISTRATION_ID);
         } finally {
             httpsServer.stop(0);
+            Files.deleteIfExists(keystore.toPath());
         }
     }
 
