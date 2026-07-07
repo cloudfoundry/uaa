@@ -320,6 +320,36 @@ class MtlsClaimsEnhancerTest {
         assertThat(result).doesNotContainKey("aud");
     }
 
+    @Test
+    void stringPathInAdditionalInformationLoadsSubTemplateAndAudTemplates() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        // Do NOT call setTlsClientAuthConfiguration — use String values directly
+        clientDetails.setAdditionalInformation(Map.of(
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                "[{\"field\":\"subject_ou\",\"pattern\":\"^app:(.+)$\",\"claim\":\"cf.app\"},"
+                + "{\"field\":\"subject_cn\",\"claim\":\"cf_instance_guid\"}]",
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
+                "app/{cf.app}",
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                "[\"app/{cf.app}\"]"
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).containsEntry("sub", "app/app-guid");
+        assertThat(result).containsKey("aud");
+        @SuppressWarnings("unchecked")
+        List<String> aud = (List<String>) result.get("aud");
+        assertThat(aud).containsExactly("app/app-guid");
+    }
+
     private X509Certificate mockCfCert() throws Exception {
         X509Certificate cert = mock(X509Certificate.class);
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});

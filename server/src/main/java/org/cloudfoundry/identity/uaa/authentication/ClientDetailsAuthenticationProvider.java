@@ -228,7 +228,26 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                     claimMappings = JsonUtils.readValue(mappingsJson,
                             new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
                 }
-                return new TlsClientAuthConfiguration(pem, claimMappings);
+                String subTemplate = null;
+                Object rawSubTemplate = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
+                if (rawSubTemplate instanceof String st && !st.isBlank()) {
+                    subTemplate = st;
+                }
+
+                List<String> audTemplates = null;
+                Object rawAudTemplates = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
+                if (rawAudTemplates instanceof String audJson) {
+                    audTemplates = JsonUtils.readValue(audJson, new TypeReference<List<String>>() {});
+                } else if (rawAudTemplates instanceof List<?> audList) {
+                    audTemplates = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(audList),
+                            new TypeReference<List<String>>() {});
+                }
+
+                TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
+                cfg.setSubTemplate(subTemplate);
+                cfg.setAudTemplates(audTemplates);
+                return cfg;
             } catch (Exception e) {
                 return null;
             }
