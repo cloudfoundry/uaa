@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,10 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     static void beforeAll() {
         Security.addProvider(new BouncyCastleFipsProvider());
         samlConfigProps = Saml2TestUtils.createTestSamlProperties();
+        // DefaultRelyingPartyRegistrationRepository.findByRegistrationId() calls retrieveKeyManager(),
+        // which reads this zone-scoped static state -- needed for any test that resolves a
+        // registration id that falls through to the default/fallback repository.
+        new IdentityZoneHolder.Initializer(null, new SamlKeyManagerFactory(samlConfigProps));
     }
 
     @Test
@@ -91,6 +96,13 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
 
         assertThat(repository).isNotNull();
         assertThat(repository.findByRegistrationId(SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID)).isNotNull();
+
+        // The unreachable IDP itself must not have been registered: DefaultRelyingPartyRegistrationRepository
+        // is a catch-all fallback that returns a stub registration (entityId == the SP's own ENTITY_ID) for
+        // *any* unknown id, so asserting that confirms "unreachable-idp" was skipped rather than partially
+        // registered with broken/incomplete metadata.
+        assertThat(repository.findByRegistrationId("unreachable-idp").getAssertingPartyMetadata().getEntityId())
+                .isEqualTo(ENTITY_ID);
     }
 
     @Test
