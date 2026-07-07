@@ -536,10 +536,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.put(JTI, token.getAdditionalInformation().get(JTI));
         claims.putAll(token.getAdditionalInformation());
 
-        if (additionalRootClaims != null) {
-            claims.putAll(additionalRootClaims);
-        }
-
         claims.put(SUB, clientId);
         if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
             claims.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
@@ -569,6 +565,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         claims.put(AUD, UaaStringUtils.getValuesOrDefaultValue(resourceIds, clientId));
+
+        // Apply token enhancer overrides after all UAA-default claims are set.
+        // This allows enhancers to override sub/aud (e.g. mTLS cert-identity templates).
+        // Excluded claims are removed after so operator exclusions always win.
+        if (additionalRootClaims != null) {
+            claims.putAll(additionalRootClaims);
+        }
 
         for (String excludedClaim : getExcludedClaims()) {
             claims.remove(excludedClaim);

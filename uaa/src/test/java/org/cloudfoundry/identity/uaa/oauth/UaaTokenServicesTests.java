@@ -825,6 +825,56 @@ class UaaTokenServicesTests {
         }
     }
 
+    @Nested
+    @DisplayName("when token enhancer overrides sub and aud")
+    class WhenTokenEnhancerOverridesSubAndAud {
+
+        @Test
+        @DisplayName("enhancer sub and aud claims win over UAA defaults")
+        void enhancerSubAndAudClaimsWinOverUaaDefaults() {
+            UaaTokenEnhancer testEnhancer = new UaaTokenEnhancer() {
+                @Override
+                public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                    return Map.of();
+                }
+
+                @Override
+                public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("sub", "enhancer-sub");
+                    result.put("aud", List.of("enhancer-aud"));
+                    return result;
+                }
+            };
+
+            tokenServices.setUaaTokenEnhancers(List.of(testEnhancer));
+
+            try {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(
+                        clientId, GRANT_TYPE_CLIENT_CREDENTIALS, CLIENT_SCOPES.split(","));
+                OAuth2Authentication authentication = new OAuth2Authentication(
+                        authorizationRequest.createOAuth2Request(), null);
+
+                OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+                Jwt jwt = JwtHelper.decode(accessToken.getValue());
+                Map<String, Object> tokenClaims = JsonUtils.readValue(jwt.getClaims(),
+                        new TypeReference<Map<String, Object>>() {});
+                assertThat(tokenClaims).containsEntry("sub", "enhancer-sub");
+                // JWT RFC 7519 §4.1.3: single-audience MAY be serialized as a plain string
+                Object aud = tokenClaims.get("aud");
+                if (aud instanceof String s) {
+                    assertThat(s).isEqualTo("enhancer-aud");
+                } else {
+                    assertThat(aud).asInstanceOf(InstanceOfAssertFactories.list(Object.class))
+                            .containsExactly("enhancer-aud");
+                }
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+    }
+
     private OAuth2Authentication constructUserAuthenticationFromAuthzRequest(AuthorizationRequest authzRequest,
                                                                              String userId,
                                                                              String userOrigin,
