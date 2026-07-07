@@ -159,6 +159,35 @@ class MtlsClaimsEnhancerTest {
         assertThat(result).doesNotContainKey("cf");
     }
 
+    @Test
+    void dotNotationOverwritesFlatClaimWithSameParentKey() throws Exception {
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
+            "CN=inst-guid, OU=app:app-guid, O=cf-org"));
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_o",  null,          "cf"),      // flat "cf"
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$",  "cf.app")   // nested "cf.app"
+            )
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        OAuth2Authentication auth = mockAuthentication("instance-identity");
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), auth);
+
+        // Nested map must overwrite the flat "cf" string value
+        assertThat(result.get("cf")).isInstanceOf(Map.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cf = (Map<String, Object>) result.get("cf");
+        assertThat(cf).containsEntry("app", "app-guid");
+    }
+
     private OAuth2Authentication mockAuthentication(String clientId) {
         OAuth2Request request = mock(OAuth2Request.class);
         when(request.getClientId()).thenReturn(clientId);

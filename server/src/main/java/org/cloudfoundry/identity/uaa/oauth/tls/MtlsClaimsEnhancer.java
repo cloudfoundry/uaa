@@ -80,6 +80,8 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             return new HashMap<>();
         }
 
+        // Check the typed field first (set directly on in-memory / admin-API clients);
+        // fall back to additionalInformation for JDBC-loaded clients.
         TlsClientAuthConfiguration config = clientDetails.getTlsClientAuthConfiguration();
         if (config == null) {
             config = loadTlsConfig(clientDetails.getAdditionalInformation());
@@ -115,6 +117,8 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         for (Map.Entry<String, String> entry : vars.entrySet()) {
             String key   = entry.getKey();
             String value = entry.getValue();
+            // Only a single dot level is supported (spec: UAA-RFC8705-001 configurable-token-shape).
+            // A key like "cf.app.id" would produce parent="cf", child="app.id" (not deeper nesting).
             int dotIdx = key.indexOf('.');
             if (dotIdx > 0 && dotIdx < key.length() - 1) {
                 String parent = key.substring(0, dotIdx);
