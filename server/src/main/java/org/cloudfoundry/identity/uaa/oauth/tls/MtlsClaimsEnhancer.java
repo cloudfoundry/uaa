@@ -41,6 +41,7 @@ import java.util.regex.Pattern;
 public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
     private static final Logger logger = LoggerFactory.getLogger(MtlsClaimsEnhancer.class);
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]+)\\}");
 
     private final TlsClientAuthentication tlsClientAuthentication;
     private final ClientDetailsService clientDetailsService;
@@ -142,10 +143,8 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         }
 
         // PHASE 3 — template rendering for sub and aud
-        Pattern placeholder = Pattern.compile("\\{([^}]+)\\}");
-
         if (config.getSubTemplate() != null) {
-            String rendered = renderTemplate(config.getSubTemplate(), vars, placeholder);
+            String rendered = renderTemplate(config.getSubTemplate(), vars);
             if (rendered != null) {
                 result.put("sub", rendered);
             }
@@ -154,7 +153,7 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         if (config.getAudTemplates() != null && !config.getAudTemplates().isEmpty()) {
             List<String> audList = new ArrayList<>();
             for (String tmpl : config.getAudTemplates()) {
-                String rendered = renderTemplate(tmpl, vars, placeholder);
+                String rendered = renderTemplate(tmpl, vars);
                 if (rendered != null) {
                     audList.add(rendered);
                 }
@@ -229,9 +228,9 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
      * <p>Variable names may contain dots (e.g. {@code {cf.org}}); dots inside braces
      * are treated as part of the name, not as path separators.
      */
-    private String renderTemplate(String template, Map<String, String> vars, Pattern placeholder) {
-        StringBuffer sb = new StringBuffer();
-        Matcher m = placeholder.matcher(template);
+    private String renderTemplate(String template, Map<String, String> vars) {
+        StringBuilder sb = new StringBuilder();
+        Matcher m = PLACEHOLDER.matcher(template);
         while (m.find()) {
             String varName = m.group(1);
             String value   = vars.get(varName);

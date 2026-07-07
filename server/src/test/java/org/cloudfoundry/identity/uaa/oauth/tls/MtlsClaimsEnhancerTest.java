@@ -189,7 +189,7 @@ class MtlsClaimsEnhancerTest {
     }
 
     @Test
-    void subTemplateRenderedAndOverridesDefault() throws Exception {
+    void subTemplateRendered() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
 
