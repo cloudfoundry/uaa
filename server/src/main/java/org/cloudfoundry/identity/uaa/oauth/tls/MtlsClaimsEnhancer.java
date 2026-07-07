@@ -80,8 +80,6 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             return new HashMap<>();
         }
 
-        // Check the typed field first (set directly on in-memory / admin-API clients);
-        // fall back to additionalInformation for JDBC-loaded clients.
         TlsClientAuthConfiguration config = clientDetails.getTlsClientAuthConfiguration();
         if (config == null) {
             config = loadTlsConfig(clientDetails.getAdditionalInformation());
@@ -90,13 +88,12 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             return new HashMap<>();
         }
 
-        Map<String, Object> result = new HashMap<>();
-
-        // Apply per-client claim mappings from cert subject fields
+        // PHASE 1 — extract cert subject fields into vars (keyed by claim name)
+        Map<String, String> vars = new HashMap<>();
         if (config.getClaimMappings() != null) {
             X500Principal subject = cert.getSubjectX500Principal();
             String dn = subject.getName(X500Principal.RFC2253);
-            String cn = extractRdnValue(dn, "CN=");
+            String cn  = extractRdnValue(dn, "CN=");
             List<String> ous = extractOus(dn);
 
             for (TlsClientAuthConfiguration.ClaimMapping mapping : config.getClaimMappings()) {
@@ -107,10 +104,28 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                     default -> null;
                 };
                 if (value != null && !value.isBlank()) {
-                    result.put(mapping.getClaim(), value);
+                    vars.put(mapping.getClaim(), value);
                 }
             }
         }
+
+        // PHASE 2 — build JWT claims: dot-notation → nested object; flat → top-level
+        Map<String, Object> result = new HashMap<>();
+        Map<String, Map<String, Object>> nestedClaims = new HashMap<>();
+        for (Map.Entry<String, String> entry : vars.entrySet()) {
+            String key   = entry.getKey();
+            String value = entry.getValue();
+            int dotIdx = key.indexOf('.');
+            if (dotIdx > 0 && dotIdx < key.length() - 1) {
+                String parent = key.substring(0, dotIdx);
+                String child  = key.substring(dotIdx + 1);
+                nestedClaims.computeIfAbsent(parent, k -> new HashMap<>()).put(child, value);
+            } else {
+                result.put(key, value);
+            }
+        }
+        // Nested maps overwrite any flat claim that shares the same parent key
+        result.putAll(nestedClaims);
 
         // Always add cnf.x5t#S256 (RFC 8705 §3.1 confirmation claim)
         try {
@@ -121,6 +136,8 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         } catch (Exception ignored) {
             // Silently skip cnf claim if cert encoding fails
         }
+
+        // PHASE 3 — template rendering (added in next task)
 
         return result;
     }

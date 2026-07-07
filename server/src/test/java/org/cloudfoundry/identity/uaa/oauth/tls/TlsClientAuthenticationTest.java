@@ -22,7 +22,7 @@ class TlsClientAuthenticationTest {
     @Test
     void nullCertReturnsEmptyOptional() {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("...", null);
-        assertThat(service.validateClientCert(null, config)).isEmpty();
+        assertThat(service.validateClientCert((X509Certificate) null, config)).isEmpty();
     }
 
     @Test

@@ -90,6 +90,75 @@ class MtlsClaimsEnhancerTest {
         assertThat(result).doesNotContainKey("app_guid");
     }
 
+    @Test
+    void dotNotationClaimProducesNestedObject() throws Exception {
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
+            "CN=inst-guid, OU=app:app-guid, OU=space:space-guid, OU=organization:org-guid, O=Cloud Foundry"));
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$",          "cf.app"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^space:(.+)$",        "cf.space"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^organization:(.+)$", "cf.org"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null,                  "cf_instance_guid")
+            )
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        OAuth2Authentication auth = mockAuthentication("instance-identity");
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), auth);
+
+        assertThat(result).containsKey("cf");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cf = (Map<String, Object>) result.get("cf");
+        assertThat(cf).containsEntry("app",   "app-guid");
+        assertThat(cf).containsEntry("space", "space-guid");
+        assertThat(cf).containsEntry("org",   "org-guid");
+        assertThat(result).containsEntry("cf_instance_guid", "inst-guid");
+        // Dot-notation keys must NOT appear as top-level claims
+        assertThat(result).doesNotContainKey("cf.app");
+        assertThat(result).doesNotContainKey("cf.space");
+        assertThat(result).doesNotContainKey("cf.org");
+    }
+
+    @Test
+    void flatClaimsStillWorkAfterRefactor() throws Exception {
+        // Existing flat-key behaviour must be unchanged
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
+            "CN=instance-guid, OU=app:app-guid-123, OU=space:space-guid-456, OU=organization:org-guid-789, O=Cloud Foundry"));
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$",          "app_guid"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^space:(.+)$",        "space_guid"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^organization:(.+)$", "org_guid"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null,                  "cf_instance_guid")
+            )
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        OAuth2Authentication auth = mockAuthentication("instance-identity");
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), auth);
+
+        assertThat(result).containsEntry("app_guid",        "app-guid-123");
+        assertThat(result).containsEntry("space_guid",      "space-guid-456");
+        assertThat(result).containsEntry("org_guid",        "org-guid-789");
+        assertThat(result).containsEntry("cf_instance_guid","instance-guid");
+        assertThat(result).doesNotContainKey("cf");
+    }
+
     private OAuth2Authentication mockAuthentication(String clientId) {
         OAuth2Request request = mock(OAuth2Request.class);
         when(request.getClientId()).thenReturn(clientId);
