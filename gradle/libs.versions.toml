@@ -67,10 +67,6 @@ bouncyCastlePkixFips = { module = "org.bouncycastle:bcpkix-fips", version.ref = 
 bouncyCastleTlsFips = { module = "org.bouncycastle:bctls-fips", version.ref = "bouncyCastleTls" }
 bouncyCastleUtilFips = { module = "org.bouncycastle:bcutil-fips", version.ref = "bouncyCastleUtil" }
 
-# ByteBuddy
-bytebuddy = { module = "net.bytebuddy:byte-buddy" }
-bytebuddyagent = { module = "net.bytebuddy:byte-buddy-agent" }
-
 # Eclipse JGit
 eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "eclipseJgit" }
 
@@ -106,9 +102,7 @@ jacocoAgent = { module = "org.jacoco:org.jacoco.agent", version.ref = "jacocoAge
 jakartaValidationApi = { module = "jakarta.validation:jakarta.validation-api" }
 
 # JSON Processing
-jsonAssert = { module = "org.skyscreamer:jsonassert" }
 jsonPath = { module = "com.jayway.jsonpath:json-path" }
-jsonPathAssert = { module = "com.jayway.jsonpath:json-path-assert" }
 orgJson = { module = "org.json:json", version.ref = "orgJson" }
 
 # JUnit 5

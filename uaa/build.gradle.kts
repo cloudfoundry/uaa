@@ -53,22 +53,9 @@ dependencies {
     }
     implementation(project(":cloudfoundry-identity-statsd-lib"))
     implementation(project(":cloudfoundry-identity-model"))
-    implementation(libs.springSecurityConfig)
     implementation(libs.springSecurityWeb)
     implementation(libs.springBootStarter)
     implementation(libs.springBootStarterWeb)
-    implementation(libs.thymeLeaf) {
-        exclude(module = "ognl")
-    }
-    implementation(libs.thymeleafSpring) {
-        exclude(module = "ognl")
-    }
-    implementation(libs.thymeleafDialect) {
-        exclude(module = "ognl")
-    }
-    implementation(libs.thymeleafExtrasSpringSecurity) {
-        exclude(module = "ognl")
-    }
     implementation(libs.braveInstrumentation)
     implementation(libs.braveContextSlf4j)
 
@@ -103,21 +90,16 @@ dependencies {
     testImplementation(libs.seleniumRemoteDriver)
     testImplementation(libs.seleniumHttp)
     testImplementation(libs.orgJson)
-    testImplementation(libs.jsonAssert)
-    testImplementation(libs.jsonPathAssert)
-    testImplementation(libs.scim2SdkCommon)
     testImplementation(libs.springBootStarterLog4j2)
     testImplementation(libs.springContextSupport)
     testImplementation(libs.springSessionJdbc)
     testImplementation(libs.springTest)
+    testImplementation(libs.springSecurityConfig)
     testImplementation(libs.springSecurityLdap)
     testImplementation(libs.springSecurityTest)
     testImplementation(libs.springBootStarterMail)
     testImplementation(libs.passay)
     testImplementation(libs.mockitoJunit5)
-    testImplementation(libs.bytebuddy)
-    testImplementation(libs.bytebuddyagent)
-    testImplementation(libs.tomcatJdbc)
     testImplementation(libs.springRestdocs)
     testImplementation(libs.greenmail)
     testImplementation(libs.commonsIo)
