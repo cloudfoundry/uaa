@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.XpathExpectationsHelper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -84,8 +85,16 @@ class SamlMetadataEndpointMockMvcTests {
                 )
                 .andReturn();
         assertThat(result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION)).contains("filename=\"saml-sp.xml\";");
-        assertThat(result.getResponse().getContentAsString())
-                .contains(ALGO_ID_SIGNATURE_RSA_SHA256, ALGO_ID_DIGEST_SHA256);
+        assertThat(evaluateXpath(result, "/EntityDescriptor/Signature/SignedInfo/SignatureMethod/@Algorithm"))
+                .contains(ALGO_ID_SIGNATURE_RSA_SHA256);
+        assertThat(evaluateXpath(result, "/EntityDescriptor/Signature/SignedInfo/Reference/DigestMethod/@Algorithm"))
+                .contains(ALGO_ID_DIGEST_SHA256);
+    }
+
+    private static String evaluateXpath(MvcResult result, String xpathExpression) throws Exception {
+        return new XpathExpectationsHelper(xpathExpression, null)
+                .evaluateXpath(result.getResponse().getContentAsByteArray(),
+                        result.getResponse().getCharacterEncoding(), String.class);
     }
 
     @Test
@@ -179,7 +188,8 @@ class SamlMetadataEndpointMockMvcTests {
                     )
                     .andReturn();
             assertThat(result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION)).contains("filename=\"saml-sp.xml\";");
-            assertThat(result.getResponse().getContentAsString()).contains("/saml/SSO/alias/integration-saml-entity-id-alias"); // path contains login.saml.entityIDAlias
+            assertThat(evaluateXpath(result, "/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location"))
+                    .contains("/saml/SSO/alias/integration-saml-entity-id-alias"); // path contains login.saml.entityIDAlias
         }
 
         @Test
@@ -202,7 +212,7 @@ class SamlMetadataEndpointMockMvcTests {
                     )
                     .andReturn();
             assertThat(result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION)).contains("filename=\"saml-%s-sp.xml\";".formatted(subdomain));
-            assertThat(result.getResponse().getContentAsString())
+            assertThat(evaluateXpath(result, "/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location"))
                     .contains("/saml/SSO/alias/%s.integration-saml-entity-id-alias".formatted(subdomain)); // this needs to be: /saml/SSO/alias/[zone-subdomain].[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias, or fall back on login.entityID]
         }
 
@@ -226,7 +236,7 @@ class SamlMetadataEndpointMockMvcTests {
                     )
                     .andReturn();
             assertThat(result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION)).contains("filename=\"saml-%s-sp.xml\";".formatted(zoneSubdomain));
-            assertThat(result.getResponse().getContentAsString())
+            assertThat(evaluateXpath(result, "/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location"))
                     .contains("/saml/SSO/alias/%s.integration-saml-entity-id-alias".formatted(zoneSubdomain)); // this needs to be: /saml/SSO/alias/[zone-subdomain].[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias, or fall back on login.entityID]
         }
     }
@@ -251,7 +261,8 @@ class SamlMetadataEndpointMockMvcTests {
                     )
                     .andReturn();
             assertThat(result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION)).contains("filename=\"saml-sp.xml\";");
-            assertThat(result.getResponse().getContentAsString()).contains("/saml/SSO/alias/some.saml.provider");
+            assertThat(evaluateXpath(result, "/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location"))
+                    .contains("/saml/SSO/alias/some.saml.provider");
         }
 
         @Test
@@ -267,7 +278,8 @@ class SamlMetadataEndpointMockMvcTests {
                     )
                     .andReturn();
             assertThat(result.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION)).contains("filename=\"saml-%s-sp.xml\";".formatted(zoneSubdomain));
-            assertThat(result.getResponse().getContentAsString()).contains("/saml/SSO/alias/%s.some.saml.provider".formatted(zoneSubdomain));
+            assertThat(evaluateXpath(result, "/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location"))
+                    .contains("/saml/SSO/alias/%s.some.saml.provider".formatted(zoneSubdomain));
         }
     }
 
