@@ -128,8 +128,13 @@ class TlsClientAuthConfigurationTest {
         TlsClientAuthConfiguration c = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
         c.setSubTemplate("different");
 
+        TlsClientAuthConfiguration d = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        d.setSubTemplate("o/{cf.org}");   // same as a
+        // d.audTemplates left null        // differs from a
+
         assertThat(a).isEqualTo(b);
         assertThat(a.hashCode()).isEqualTo(b.hashCode());
         assertThat(a).isNotEqualTo(c);
+        assertThat(a).isNotEqualTo(d);
     }
 }
