@@ -1,10 +1,16 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import com.sun.net.httpserver.HttpsServer;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,17 +20,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.AssertingPartyMetadata;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.util.FileCopyUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +48,8 @@ import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey2;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.x509Certificate1;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.x509Certificate2;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -82,6 +95,10 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     @BeforeEach
     void beforeEach() {
         repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, configurator, List.of(), DEFAULT_NAME_ID));
+        // resolveMetadataXml() is a no-op passthrough for non-URL (already-inline) metadata,
+        // which is what every test using the mocked `configurator` exercises.
+        lenient().when(configurator.resolveMetadataXml(any(SamlIdentityProviderDefinition.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, SamlIdentityProviderDefinition.class).getMetaDataLocation());
     }
 
     @Test
@@ -335,6 +352,56 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
         assertThatThrownBy(() -> repository.findByRegistrationId(REGISTRATION_ID))
                 .isInstanceOf(Saml2Exception.class)
                 .hasMessageContaining(REGISTRATION_ID);
+    }
+
+    @Test
+    void findByRegistrationIdHonorsSkipSslValidationForUrlMetadata() throws Exception {
+        SamlConfiguration.setupOpenSaml();
+
+        File keystore = NetworkTestUtils.getKeystore(new Date(), 10);
+        String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        NetworkTestUtils.SimpleHttpResponseHandler handler = new NetworkTestUtils.SimpleHttpResponseHandler(headers, metadataXml);
+        HttpsServer httpsServer = NetworkTestUtils.startHttpsServer(keystore, NetworkTestUtils.keyPass, handler);
+        try {
+            String metadataUrl = "https://localhost:" + httpsServer.getAddress().getPort() + "/metadata";
+
+            // Real (non-mocked) configurator/metadata-provider so the SAML IDP's untrusted,
+            // self-signed certificate is genuinely exercised over the wire, the same way it
+            // would be for the admin validate path (SamlIdentityProviderConfigurator.configureURLMetadata).
+            SamlConfiguration samlConfiguration = new SamlConfiguration();
+            FixedHttpMetaDataProvider realFixedHttpMetaDataProvider = samlConfiguration.fixedHttpMetaDataProvider(
+                    RestTemplateConfig.createDefaults(), samlConfiguration.urlContentCache(samlConfiguration.timeService()));
+            IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
+            SamlIdentityProviderConfigurator realConfigurator =
+                    new SamlIdentityProviderConfigurator(provisioning, new IdentityZoneManagerImpl(), realFixedHttpMetaDataProvider);
+
+            SamlIdentityProviderDefinition untrustedCertDefinition = new SamlIdentityProviderDefinition()
+                    .setIdpEntityAlias(REGISTRATION_ID)
+                    .setMetaDataLocation(metadataUrl);
+            untrustedCertDefinition.setSkipSslValidation(true);
+
+            IdentityProvider<SamlIdentityProviderDefinition> idp = mock(IdentityProvider.class);
+            when(idp.getConfig()).thenReturn(untrustedCertDefinition);
+            when(provisioning.retrieveByOrigin(REGISTRATION_ID, "uaa")).thenReturn(idp);
+
+            repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, realConfigurator, List.of(), DEFAULT_NAME_ID));
+            when(repository.retrieveZone()).thenReturn(identityZone);
+            when(identityZone.getId()).thenReturn("uaa");
+            when(identityZone.isUaa()).thenReturn(true);
+            when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
+            when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
+
+            // The metadata endpoint presents a self-signed cert the JVM does not trust.
+            // skipSslValidation=true makes UAA trust it here too, on the live login path,
+            // the same way it already did on the admin validate path.
+            RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
+            assertThat(registration.getRegistrationId()).isEqualTo(REGISTRATION_ID);
+        } finally {
+            httpsServer.stop(0);
+            Files.deleteIfExists(keystore.toPath());
+        }
     }
 
     @Test

@@ -82,7 +82,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
                     .samlEntityID(samlEntityID)
                     .samlSpNameId(samlSpNameID)
                     .keys(defaultKeysWithCerts)
-                    .metadataLocation(samlIdentityProviderDefinition.getMetaDataLocation())
+                    .metadataLocation(samlIdentityProviderConfigurator.resolveMetadataXml(samlIdentityProviderDefinition))
                     .rpRegistrationId(samlIdentityProviderDefinition.getIdpEntityAlias())
                     .samlSpAlias(uaaWideSamlEntityIDAlias)
                     .requestSigned(samlConfigProps.getSignRequest())
