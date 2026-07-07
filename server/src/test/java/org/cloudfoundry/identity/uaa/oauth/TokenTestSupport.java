@@ -38,7 +38,7 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.oauth.token.matchers.AbstractOAuth2AccessTokenMatchers;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenClaims;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
@@ -184,7 +184,7 @@ public class TokenTestSupport {
 
     public void clear() {
         tokens.clear();
-        AbstractOAuth2AccessTokenMatchers.revocableTokens.remove();
+        TokenClaims.revocableTokens.remove();
     }
 
     public TokenTestSupport(UaaTokenEnhancer tokenEnhancer, KeyInfoService keyInfo) throws Exception {
@@ -275,7 +275,7 @@ public class TokenTestSupport {
             return result;
         });
 
-        AbstractOAuth2AccessTokenMatchers.revocableTokens.set(tokens);
+        TokenClaims.revocableTokens.set(tokens);
 
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         timeService = mock(TimeService.class);

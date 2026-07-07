@@ -44,7 +44,6 @@ import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -67,6 +66,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.util.XpathExpectationsHelper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -113,13 +113,6 @@ import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT
 import static org.cloudfoundry.identity.uaa.security.web.CorsFilter.X_REQUESTED_WITH;
 import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -139,7 +132,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -369,10 +361,15 @@ public class LoginMockMvcTests {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links)
+                            .containsEntry("forgotPasswordLink", "/forgot_password")
+                            .containsEntry("createAccountLink", "/create_account");
+                })
                 .andExpect(model().attributeExists("prompts"))
-                .andExpect(content().string(containsString("/create_account")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("/create_account"));
     }
 
     IdentityZone createZoneLinksZone() throws Exception {
@@ -392,9 +389,14 @@ public class LoginMockMvcTests {
                 )
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
-                .andExpect(content().string(containsString("/create_account")));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links)
+                            .containsEntry("forgotPasswordLink", "/forgot_password")
+                            .containsEntry("createAccountLink", "/create_account");
+                })
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("/create_account"));
 
         ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", new Links().setSelfService(
                 new Links.SelfService()
@@ -408,27 +410,39 @@ public class LoginMockMvcTests {
                 )
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/passwd?id=" + zone.getId())))
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "/signup?subdomain=" + zone.getSubdomain())))
-                .andExpect(content().string(containsString("/passwd?id=" + zone.getId())))
-                .andExpect(content().string(containsString("/signup?subdomain=" + zone.getSubdomain())));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links)
+                            .containsEntry("forgotPasswordLink", "/passwd?id=" + zone.getId())
+                            .containsEntry("createAccountLink", "/signup?subdomain=" + zone.getSubdomain());
+                })
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("/passwd?id=" + zone.getId())
+                        .contains("/signup?subdomain=" + zone.getSubdomain()));
 
         zone.getConfig().getLinks().setSelfService(
                 new Links.SelfService()
                         .setPasswd("/local_passwd?id={zone.id}")
                         .setSignup("/local_signup?subdomain={zone.subdomain}")
         );
-        zone = MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
+        IdentityZone updatedZone = MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
         mockMvc.perform(
                         get("/login")
-                                .header("Host", zone.getSubdomain() + ".localhost")
+                                .header("Host", updatedZone.getSubdomain() + ".localhost")
                 )
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/local_passwd?id=" + zone.getId())))
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "/local_signup?subdomain=" + zone.getSubdomain())))
-                .andExpect(content().string(containsString("/local_passwd?id=" + zone.getId())))
-                .andExpect(content().string(containsString("/local_signup?subdomain=" + zone.getSubdomain())));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links)
+                            .containsEntry("forgotPasswordLink", "/local_passwd?id=" + updatedZone.getId())
+                            .containsEntry("createAccountLink", "/local_signup?subdomain=" + updatedZone.getSubdomain());
+                })
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("/local_passwd?id=" + updatedZone.getId())
+                        .contains("/local_signup?subdomain=" + updatedZone.getSubdomain()));
 
     }
 
@@ -556,8 +570,9 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(loginPost)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
-                .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("\"username\":\"" + user.getUserName())
+                        .contains("\"email\":\"" + user.getPrimaryEmail()));
 
         loginPost = post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -566,8 +581,9 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(loginPost)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
-                .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("\"username\":\"" + user.getUserName())
+                        .contains("\"email\":\"" + user.getPrimaryEmail()));
     }
 
     @Test
@@ -591,9 +607,10 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(loginPost)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
-                .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())))
-                .andExpect(content().string(containsString("\"origin\":\"uaa\"")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("\"username\":\"" + user.getUserName())
+                        .contains("\"email\":\"" + user.getPrimaryEmail())
+                        .contains("\"origin\":\"uaa\""));
     }
 
     @Test
@@ -653,7 +670,7 @@ public class LoginMockMvcTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(model().attributeExists("prompts"))
-                .andExpect(content().string(not(containsString("/create_account"))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).doesNotContain("/create_account"));
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
     }
 
@@ -662,7 +679,9 @@ public class LoginMockMvcTests {
         setZoneFavIconAndProductLogo(webApplicationContext, identityZoneConfiguration, null, "/bASe/64+");
 
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/product-logo.png)")))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("url(data:image/png;base64,/bASe/64+)")
+                        .doesNotContain("url(/uaa/resources/oss/images/product-logo.png)"));
     }
 
     @Test
@@ -670,7 +689,9 @@ public class LoginMockMvcTests {
         setZoneFavIconAndProductLogo(webApplicationContext, identityZoneConfiguration, "/sM4lL==", null);
 
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4lL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("<link href='data:image/png;base64,/sM4lL==' rel='shortcut icon' />")
+                        .doesNotContain("square-logo.png"));
     }
 
     @Test
@@ -679,7 +700,9 @@ public class LoginMockMvcTests {
         setZoneFavIconAndProductLogo(webApplicationContext, identityZoneConfiguration, null, bigLogo);
 
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(allOf(containsString("<style>.header-image {background-image: url(data:image/png;base64," + bigLogo + ");}</style>"), not(containsString("product-logo.png")))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("<style>.header-image {background-image: url(data:image/png;base64," + bigLogo + ");}</style>")
+                        .doesNotContain("product-logo.png"));
     }
 
     @Test
@@ -687,15 +710,19 @@ public class LoginMockMvcTests {
         setZoneFavIconAndProductLogo(webApplicationContext, identityZoneConfiguration, "/sM4\n\nlL==", "/sM4\n\nlL==");
 
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4\n\nlL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))))
-                .andExpect(content().string(allOf(containsString("<style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("<link href='data:image/png;base64,/sM4\n\nlL==' rel='shortcut icon' />")
+                        .doesNotContain("square-logo.png")
+                        .contains("<style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>")
+                        .doesNotContain("product-logo.png"));
     }
 
     @Test
     void defaultFooter() throws Exception {
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(containsString(CF_COPYRIGHT_TEXT)))
-                .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains(CF_COPYRIGHT_TEXT)
+                        .doesNotContain(CF_LAST_LOGIN));
     }
 
     @Test
@@ -707,8 +734,10 @@ public class LoginMockMvcTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(CF_COPYRIGHT_TEXT)))))
-                .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains(customFooterText)
+                        .doesNotContain(CF_COPYRIGHT_TEXT)
+                        .doesNotContain(CF_LAST_LOGIN));
     }
 
     @Test
@@ -721,7 +750,7 @@ public class LoginMockMvcTests {
 
         String expectedFooterText = DEFAULT_COPYRIGHT_TEMPLATE.formatted(companyName);
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(allOf(containsString(expectedFooterText))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains(expectedFooterText));
     }
 
     @Test
@@ -744,7 +773,7 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(allOf(containsString(expectedFooterText))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains(expectedFooterText));
     }
 
     @Test
@@ -758,7 +787,8 @@ public class LoginMockMvcTests {
         identityZoneConfiguration.setBranding(branding);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
-        mockMvc.perform(get("/login")).andExpect(content().string(containsString("<a href=\"/privacy\">Privacy</a> &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
+        mockMvc.perform(get("/login")).andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                .contains("<a href=\"/privacy\">Privacy</a> &mdash; <a href=\"/terms.html\">Terms of Use</a>"));
     }
 
 
@@ -766,12 +796,14 @@ public class LoginMockMvcTests {
     void buildInfoInFooter() throws Exception {
         var footerTitleLocator = "//div[@class=\"copyright\"]/@title";
         mockMvc.perform(get("/login"))
-                .andExpect(
-                        xpath(footerTitleLocator).string(Matchers.containsString("UAA: http://localhost:8080/uaa"))
-                )
-                .andExpect(
-                        xpath(footerTitleLocator).string(Matchers.containsString("Version: 0.0.0, Commit:"))
-                );
+                .andExpect(result -> {
+                    String title = new XpathExpectationsHelper(footerTitleLocator, null)
+                            .evaluateXpath(result.getResponse().getContentAsByteArray(),
+                                    result.getResponse().getCharacterEncoding(), String.class);
+                    assertThat(title)
+                            .contains("UAA: http://localhost:8080/uaa")
+                            .contains("Version: 0.0.0, Commit:");
+                });
     }
 
     @Test
@@ -793,8 +825,9 @@ public class LoginMockMvcTests {
                 )
                 .andExpect(status().isOk())
                 .andExpect(view().name("change_password"))
-                .andExpect(content().string(containsString("action=\"/change_password.do\"")))
-                .andExpect(content().string(containsString("name=\"X-Uaa-Csrf\"")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("action=\"/change_password.do\"")
+                        .contains("name=\"X-Uaa-Csrf\""));
     }
 
     @Test
@@ -1103,10 +1136,12 @@ public class LoginMockMvcTests {
         @Test
         void buildInfoInFooter() throws Exception {
             mockMvc.perform(get("/login"))
-                    .andExpect(
-                            xpath("//div[@class=\"copyright\"]/@title")
-                                    .string(Matchers.containsString("UAA: https://uaa.exmaple.com/uaa"))
-                    );
+                    .andExpect(result -> {
+                        String title = new XpathExpectationsHelper("//div[@class=\"copyright\"]/@title", null)
+                                .evaluateXpath(result.getResponse().getContentAsByteArray(),
+                                        result.getResponse().getCharacterEncoding(), String.class);
+                        assertThat(title).contains("UAA: https://uaa.exmaple.com/uaa");
+                    });
         }
     }
 
@@ -1184,9 +1219,13 @@ public class LoginMockMvcTests {
             mockMvc.perform(get("/login").accept(TEXT_HTML))
                     .andExpect(status().isOk())
                     .andExpect(view().name("login"))
-                    .andExpect(model().attribute("prompts", hasKey("how")))
-                    .andExpect(model().attribute("prompts", hasKey("where")))
-                    .andExpect(model().attribute("prompts", not(hasKey("password"))));
+                    .andExpect(result -> {
+                        Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                        assertThat(prompts)
+                                .containsKey("how")
+                                .containsKey("where")
+                                .doesNotContainKey("password");
+                    });
         } finally {
             MockMvcUtils.setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
@@ -1204,9 +1243,13 @@ public class LoginMockMvcTests {
                             .accept(APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(view().name("login"))
-                    .andExpect(model().attribute("prompts", hasKey("how")))
-                    .andExpect(model().attribute("prompts", hasKey("where")))
-                    .andExpect(model().attribute("prompts", not(hasKey("password"))));
+                    .andExpect(result -> {
+                        Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                        assertThat(prompts)
+                                .containsKey("how")
+                                .containsKey("where")
+                                .doesNotContainKey("password");
+                    });
         } finally {
             MockMvcUtils.setPrompts(webApplicationContext, IdentityZone.getUaaZoneId(), original);
         }
@@ -1218,9 +1261,13 @@ public class LoginMockMvcTests {
                         .accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("username")))
-                .andExpect(model().attribute("prompts", not(hasKey("passcode"))))
-                .andExpect(model().attribute("prompts", hasKey("password")));
+                .andExpect(result -> {
+                    Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                    assertThat(prompts)
+                            .containsKey("username")
+                            .doesNotContainKey("passcode")
+                            .containsKey("password");
+                });
     }
 
     @Test
@@ -1229,8 +1276,12 @@ public class LoginMockMvcTests {
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("username")))
-                .andExpect(model().attribute("prompts", hasKey("password")));
+                .andExpect(result -> {
+                    Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                    assertThat(prompts)
+                            .containsKey("username")
+                            .containsKey("password");
+                });
     }
 
     @Test
@@ -1239,20 +1290,32 @@ public class LoginMockMvcTests {
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("username")))
-                .andExpect(model().attribute("prompts", hasKey("password")));
+                .andExpect(result -> {
+                    Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                    assertThat(prompts)
+                            .containsKey("username")
+                            .containsKey("password");
+                });
     }
 
     @Test
     void defaultAndCustomSignupLink() throws Exception {
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links).containsEntry("createAccountLink", "/create_account");
+                });
         identityZoneConfiguration.getLinks().getSelfService().setSignup("http://www.example.com/signup");
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "http://www.example.com/signup")));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links).containsEntry("createAccountLink", "http://www.example.com/signup");
+                });
     }
 
     @Test
@@ -1260,7 +1323,7 @@ public class LoginMockMvcTests {
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(model().attribute("createAccountLink", nullValue()));
+                .andExpect(result -> assertThat(result.getModelAndView().getModel().get("createAccountLink")).isNull());
     }
 
     @Test
@@ -1609,8 +1672,9 @@ public class LoginMockMvcTests {
                         .servletPath("/oauth_error")
                         .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Another sign-in is already in progress")))
-                .andExpect(content().string(containsString("Start a new login")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("Another sign-in is already in progress")
+                        .contains("Start a new login"));
     }
 
     @Test
@@ -1871,7 +1935,7 @@ public class LoginMockMvcTests {
                 .with(securityContext(marissaContext));
         mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("X-Uaa-Csrf"));
     }
 
     @Test
@@ -1884,7 +1948,7 @@ public class LoginMockMvcTests {
                 .with(securityContext(marissaContext));
         MockHttpSession session = (MockHttpSession) mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("X-Uaa-Csrf"))
                 .andReturn().getRequest().getSession();
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -1909,7 +1973,7 @@ public class LoginMockMvcTests {
                 .with(securityContext(marissaContext));
         MockHttpSession session = (MockHttpSession) mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("X-Uaa-Csrf"))
                 .andReturn().getRequest().getSession();
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -1954,7 +2018,7 @@ public class LoginMockMvcTests {
 
         MvcResult result = mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")))
+                .andExpect(res -> assertThat(res.getResponse().getContentAsString()).contains("X-Uaa-Csrf"))
                 .andReturn();
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession();
@@ -2011,7 +2075,7 @@ public class LoginMockMvcTests {
 
         mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("X-Uaa-Csrf"))
                 .andReturn();
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -2356,7 +2420,7 @@ public class LoginMockMvcTests {
                         .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/email"))
-                .andExpect(content().string(containsString("Sign in")))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Sign in"))
                 .andExpect(xpath("//input[@name='email']").exists())
                 .andExpect(xpath("//div[@class='action']//a").string("Create account"))
                 .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
@@ -2398,7 +2462,7 @@ public class LoginMockMvcTests {
                         .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/email"))
-                .andExpect(content().string(containsString("Sign in to continue to " + clientName)))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Sign in to continue to " + clientName))
                 .andExpect(xpath("//input[@name='email']").exists())
                 .andExpect(xpath("//div[@class='action']//a").string("Create account"))
                 .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
@@ -2608,8 +2672,9 @@ public class LoginMockMvcTests {
                         .servletPath("/login")
                         .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code&")))
-                .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("http://myauthurl.com?client_id=id&amp;response_type=code&")
+                        .contains("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&"));
     }
 
     @Test
@@ -2890,28 +2955,28 @@ public class LoginMockMvcTests {
         void hasValidError() throws Exception {
             mockMvc.perform(
                             get("/login?error=login_failure"))
-                    .andExpect(content().string(containsString("Provided credentials are invalid. Please try again.")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Provided credentials are invalid. Please try again."));
         }
 
         @Test
         void hasInvalidError() throws Exception {
             mockMvc.perform(
                             get("/login?error=foobar&error=login_failure"))
-                    .andExpect(content().string(containsString("Error!")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Error!"));
         }
 
         @Test
         void hasValidSuccess() throws Exception {
             mockMvc.perform(
                             get("/login?success=verify_success"))
-                    .andExpect(content().string(containsString("Verification successful. Login to access your account.")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Verification successful. Login to access your account."));
         }
 
         @Test
         void hasInvalidSuccess() throws Exception {
             mockMvc.perform(
                             get("/login?success=foobar&success=verify_success"))
-                    .andExpect(content().string(containsString("Success!")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Success!"));
         }
     }
 
@@ -2932,7 +2997,9 @@ public class LoginMockMvcTests {
 
     private static ResultMatcher emptyCurrentUserCookie() {
         return result -> {
-            cookie().value("Current-User", isEmptyOrNullString()).match(result);
+            Cookie currentUserCookie = result.getResponse().getCookie("Current-User");
+            assertThat(currentUserCookie).isNotNull();
+            assertThat(currentUserCookie.getValue()).isNullOrEmpty();
             cookie().maxAge("Current-User", 0).match(result);
             cookie().path("Current-User", "/").match(result);
         };

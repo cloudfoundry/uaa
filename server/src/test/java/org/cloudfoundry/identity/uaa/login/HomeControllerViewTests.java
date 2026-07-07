@@ -34,6 +34,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.ui.Model;
 import org.springframework.web.context.WebApplicationContext;
@@ -47,12 +48,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
@@ -157,18 +156,18 @@ class HomeControllerViewTests extends TestClassNullifier {
             "/saml_error"
     })
     void errorBranding(final String errorUrl) throws Exception {
-        mockMvc.perform(get(errorUrl).sessionAttr(WebAttributes.AUTHENTICATION_EXCEPTION, new InternalAuthenticationServiceException("auth error")))
+        MvcResult result = mockMvc.perform(get(errorUrl).sessionAttr(WebAttributes.AUTHENTICATION_EXCEPTION, new InternalAuthenticationServiceException("auth error")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @Test
     void errorOauthWithExceptionString() throws Exception {
-        mockMvc.perform(get("/oauth_error").sessionAttr("oauth_error", "auth error"))
+        MvcResult result = mockMvc.perform(get("/oauth_error").sessionAttr("oauth_error", "auth error"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     /**
@@ -178,66 +177,71 @@ class HomeControllerViewTests extends TestClassNullifier {
      */
     @Test
     void oauthError_withConcurrentLoginReason_showsFriendlyMessageAndRestartLink() throws Exception {
-        mockMvc.perform(get("/oauth_error").param("reason", "concurrent_login"))
+        MvcResult result = mockMvc.perform(get("/oauth_error").param("reason", "concurrent_login"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Another sign-in is already in progress")))
-                .andExpect(content().string(containsString("Start a new login")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("Another sign-in is already in progress", "Start a new login");
     }
 
     @Test
     void oauthError_withConcurrentLoginReason_doesNotShowGenericOAuthError() throws Exception {
-        mockMvc.perform(get("/oauth_error").param("reason", "concurrent_login"))
+        MvcResult result = mockMvc.perform(get("/oauth_error").param("reason", "concurrent_login"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("There was an error when authenticating"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("There was an error when authenticating");
     }
 
     @Test
     void oauthError_withConcurrentLoginReasonAndLeftoverSessionError_suppressesGenericOAuthError() throws Exception {
-        mockMvc.perform(get("/oauth_error")
+        MvcResult result = mockMvc.perform(get("/oauth_error")
                         .param("reason", "concurrent_login")
                         .sessionAttr("oauth_error", "There was an error when authenticating against the external identity provider: leftover"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Another sign-in is already in progress")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("leftover"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("Another sign-in is already in progress")
+                .doesNotContain("leftover");
     }
 
     @Test
     void oauthError_withoutConcurrentLoginReason_doesNotShowFriendlyMessage() throws Exception {
-        mockMvc.perform(get("/oauth_error"))
+        MvcResult result = mockMvc.perform(get("/oauth_error"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Another sign-in is already in progress"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("Another sign-in is already in progress");
     }
 
     @Test
     void error500WithGenericException() throws Exception {
-        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception("bad")))
+        MvcResult result = mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception("bad")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @Test
     void error500WithSAMLExceptionAsCause() throws Exception {
-        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new Saml2Exception("bad"))))
+        MvcResult result = mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new Saml2Exception("bad"))))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @Test
     void error500WithDirectSAMLException() throws Exception {
-        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Saml2Exception("metadata fetch failed")))
+        MvcResult result = mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Saml2Exception("metadata fetch failed")))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @Test
     void error500WithMetadataProviderNotFoundExceptionCause() throws Exception {
-        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
+        MvcResult result = mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @ParameterizedTest

@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import java.util.Collections;
@@ -26,10 +27,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTests {
@@ -329,12 +328,13 @@ class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         assertThat(tokenRevocationEventListener.getEvents().getFirst().getAuditEvent().getOrigin()).contains("admin");
 
         //we should fail attempting to use the token
-        mockMvc.perform(
+        MvcResult revokedClientResult = mockMvc.perform(
                         get("/oauth/clients")
                                 .header("Authorization", "Bearer " + readClientsToken)
                 )
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+                .andReturn();
+        assertThat(revokedClientResult.getResponse().getContentAsString()).contains("\"error\":\"invalid_token\"");
     }
 
     @Test
@@ -381,12 +381,13 @@ class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .doesNotContain("ClientID");
         assertThat(tokenRevocationEventListener.getEvents().getFirst().getAuditEvent().getOrigin()).contains("admin");
         //should fail with 401
-        mockMvc.perform(
+        MvcResult revokedUserResult = mockMvc.perform(
                         get("/userinfo")
                                 .header("Authorization", "Bearer " + userInfoToken)
                 )
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+                .andReturn();
+        assertThat(revokedUserResult.getResponse().getContentAsString()).contains("\"error\":\"invalid_token\"");
     }
 
     @Test
@@ -423,11 +424,12 @@ class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         assertThat(tokenRevocationEventListener.getEvents().getFirst().getAuditEvent().getOrigin()).contains(user.getUserName());
 
         //should fail with 401
-        mockMvc.perform(
+        MvcResult ownRevokedResult = mockMvc.perform(
                         get("/userinfo").header("Authorization", "Bearer " + userInfoToken)
                 )
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+                .andReturn();
+        assertThat(ownRevokedResult.getResponse().getContentAsString()).contains("\"error\":\"invalid_token\"");
     }
 
     @Test
@@ -564,12 +566,13 @@ class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         assertThat(tokenRevocationEventListener.getEvents().getFirst().getAuditEvent().getOrigin()).contains("admin");
 
         //should fail with 401
-        mockMvc.perform(
+        MvcResult client1UserRevokedResult = mockMvc.perform(
                         get("/userinfo")
                                 .header("Authorization", "Bearer " + client1UserToken)
                 )
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+                .andReturn();
+        assertThat(client1UserRevokedResult.getResponse().getContentAsString()).contains("\"error\":\"invalid_token\"");
 
         // ensure tokens issued for user to other clients still work
         mockMvc.perform(

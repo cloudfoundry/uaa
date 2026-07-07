@@ -52,10 +52,8 @@ import java.util.Collections;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 
@@ -133,8 +131,8 @@ public class InvitationsServiceMockMvcTests {
                                 .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
         MockHttpSession inviteSession = (MockHttpSession) result.getRequest().getSession(false);
         assertThat(inviteSession).isNotNull();
         assertThat(MockMvcUtils.getZoneSession(inviteSession).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
@@ -175,8 +173,8 @@ public class InvitationsServiceMockMvcTests {
                         .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(
@@ -243,8 +241,8 @@ public class InvitationsServiceMockMvcTests {
                         .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         result = mockMvc.perform(
@@ -335,8 +333,8 @@ public class InvitationsServiceMockMvcTests {
                         .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         code = jdbcTemplate.queryForObject("SELECT code FROM expiring_code_store", String.class);
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
@@ -387,9 +385,10 @@ public class InvitationsServiceMockMvcTests {
                 .accept(MediaType.TEXT_HTML)
                 .header("Host", zone.getZone().getIdentityZone().getSubdomain() + ".localhost")
         );
-        actions
+        MvcResult result = actions
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("LDAP user should not be verified after accepting invite until logging in").isFalse();
     }

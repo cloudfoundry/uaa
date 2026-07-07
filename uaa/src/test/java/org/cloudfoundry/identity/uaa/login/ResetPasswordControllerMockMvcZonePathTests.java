@@ -39,6 +39,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
@@ -56,11 +57,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.account.UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.hamcrest.Matchers.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -384,7 +382,7 @@ public class ResetPasswordControllerMockMvcZonePathTests {
         code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(request().attribute("message", equalTo("Your new password cannot be the same as the old password.")))
+                .andExpect(request().attribute("message", "Your new password cannot be the same as the old password."))
                 .andExpect(forwardedUrl("/reset_password"));
     }
 
@@ -411,7 +409,7 @@ public class ResetPasswordControllerMockMvcZonePathTests {
         code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(createChangePasswordRequest(user, code, true, "a", "a"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(request().attribute("message", equalTo("Password must be at least 3 characters in length.")))
+                .andExpect(request().attribute("message", "Password must be at least 3 characters in length."))
                 .andExpect(forwardedUrl("/reset_password"));
 
         uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
@@ -516,12 +514,14 @@ public class ResetPasswordControllerMockMvcZonePathTests {
         String expectedFormAction = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/forgot_password.do" : "/forgot_password.do";
         String expectedLoginPath = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/login" : "/login";
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/forgot_password")
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/forgot_password")
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("forgot_password"))
-                .andExpect(content().string(containsString("action=\"" + expectedFormAction + "\"")))
-                .andExpect(content().string(containsString(expectedLoginPath)));
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString())
+                .contains("action=\"" + expectedFormAction + "\"", expectedLoginPath);
     }
 
     /**
@@ -530,11 +530,13 @@ public class ResetPasswordControllerMockMvcZonePathTests {
      */
     @Test
     void forgotPasswordPageWithContextPath_returnsFormActionAndLoginLinkWithContextPath() throws Exception {
-        mockMvc.perform(get("/uaa/forgot_password").contextPath("/uaa").accept(MediaType.TEXT_HTML))
+        MvcResult result = mockMvc.perform(get("/uaa/forgot_password").contextPath("/uaa").accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("forgot_password"))
-                .andExpect(content().string(containsString("action=\"/uaa/forgot_password.do\"")))
-                .andExpect(content().string(containsString("/uaa/login")));
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString())
+                .contains("action=\"/uaa/forgot_password.do\"", "/uaa/login");
     }
 
     @ParameterizedTest
@@ -577,11 +579,13 @@ public class ResetPasswordControllerMockMvcZonePathTests {
         String expectedLoginHref = mode == ZoneResolutionMode.ZONE_PATH
                 ? "href=\"/z/" + subdomain + "/login\"" : "href=\"/login\"";
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/email_sent")
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/email_sent")
                         .param("code", "reset_password")
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedLoginHref)));
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).contains(expectedLoginHref);
     }
 
     @ParameterizedTest
@@ -629,13 +633,13 @@ public class ResetPasswordControllerMockMvcZonePathTests {
                     .param("code", code.getCode())
                     .accept(MediaType.TEXT_HTML);
 
-            mockMvc.perform(getRequest)
+            MvcResult result = mockMvc.perform(getRequest)
                     .andExpect(status().isOk())
                     .andExpect(view().name("reset_password"))
-                    .andExpect(content().string(containsString("Reset Password")))
-                    .andExpect(content().string(containsString("Username: " + user.getUserName())))
-                    .andExpect(content().string(containsString("Create new password")))
-                    .andExpect(content().string(containsString("action=\"" + expectedFormAction + "\"")));
+                    .andReturn();
+
+            assertThat(result.getResponse().getContentAsString())
+                    .contains("Reset Password", "Username: " + user.getUserName(), "Create new password", "action=\"" + expectedFormAction + "\"");
         } finally {
             IdentityZoneHolder.set(previousZone);
         }

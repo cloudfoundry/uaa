@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.limited;
 
+import com.jayway.jsonpath.JsonPath;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -25,16 +26,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedModeStatusFile;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -70,16 +72,18 @@ class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
                 "client_credentials",
                 true);
         String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, client.getClientId(), SECRET, null, null, true);
-        mockMvc.perform(
+        MvcResult result = mockMvc.perform(
                         post("/check_token")
                                 .param("token", token)
                                 .header(AUTHORIZATION,
                                         "Basic " + Base64.getEncoder().encodeToString((client.getClientId() + ":" + SECRET).getBytes(StandardCharsets.UTF_8)))
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.scope").value(containsInAnyOrder("clients.read", "uaa.resource")))
                 .andExpect(jsonPath("$.client_id").value(client.getClientId()))
-                .andExpect(jsonPath("$.jti").value(token));
+                .andExpect(jsonPath("$.jti").value(token))
+                .andReturn();
+        List<String> scopes = JsonPath.read(result.getResponse().getContentAsString(), "$.scope");
+        assertThat(scopes).containsExactlyInAnyOrder("clients.read", "uaa.resource");
     }
 
     private boolean isLimitedMode() {

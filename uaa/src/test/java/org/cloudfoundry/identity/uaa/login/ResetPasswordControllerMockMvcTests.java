@@ -48,7 +48,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.account.UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.hamcrest.Matchers.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
@@ -369,7 +368,7 @@ public class ResetPasswordControllerMockMvcTests {
         code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(request().attribute("message", equalTo("Your new password cannot be the same as the old password.")))
+                .andExpect(request().attribute("message", "Your new password cannot be the same as the old password."))
                 .andExpect(forwardedUrl("/reset_password"));
     }
 
@@ -396,7 +395,7 @@ public class ResetPasswordControllerMockMvcTests {
         code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(createChangePasswordRequest(user, code, true, "a", "a"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(request().attribute("message", equalTo("Password must be at least 3 characters in length.")))
+                .andExpect(request().attribute("message", "Password must be at least 3 characters in length."))
                 .andExpect(forwardedUrl("/reset_password"));
 
         uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());

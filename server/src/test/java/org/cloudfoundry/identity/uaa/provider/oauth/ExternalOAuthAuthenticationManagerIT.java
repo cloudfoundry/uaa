@@ -60,12 +60,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.client.RequestMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
@@ -103,7 +105,6 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
@@ -119,7 +120,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
@@ -548,10 +548,11 @@ class ExternalOAuthAuthenticationManagerIT {
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
-                .andExpect(content().string(containsString("grant_type=authorization_code")))
-                .andExpect(content().string(containsString("code=the_code")))
-                .andExpect(content().string(containsString("redirect_uri=http%3A%2F%2Flocalhost%2Fcallback%2Fthe_origin")))
-                .andExpect(content().string(containsString("response_type=code")))
+                .andExpect(bodyContains(
+                        "grant_type=authorization_code",
+                        "code=the_code",
+                        "redirect_uri=http%3A%2F%2Flocalhost%2Fcallback%2Fthe_origin",
+                        "response_type=code"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(oauth2TokenResponse));
 
         //UAA retrieves user info using an access token
@@ -581,8 +582,9 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setClientAuthInBody(true);
         mockUaaServer.expect(requestTo(config.getTokenUrl().toString()))
                 .andExpect(request -> assertThat(request.getHeaders().get("Authorization")).as("Check Auth header not present").isNull())
-                .andExpect(content().string(containsString("client_id=" + config.getRelyingPartyId())))
-                .andExpect(content().string(containsString("client_secret=" + config.getRelyingPartySecret())))
+                .andExpect(bodyContains(
+                        "client_id=" + config.getRelyingPartyId(),
+                        "client_secret=" + config.getRelyingPartySecret()))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(getIdTokenResponse()));
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
@@ -597,7 +599,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setClientAuthInBody(true);
         mockUaaServer.expect(requestTo(config.getTokenUrl().toString()))
                 .andExpect(request -> assertThat(request.getHeaders().get("Authorization")).as("Check Auth header not present").isNull())
-                .andExpect(content().string(containsString("client_id=" + config.getRelyingPartyId())))
+                .andExpect(bodyContains("client_id=" + config.getRelyingPartyId()))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(getIdTokenResponse()));
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
@@ -618,7 +620,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setClientAuthInBody(true);
         mockUaaServer.expect(requestTo(config.getTokenUrl().toString()))
                 .andExpect(request -> assertThat(request.getHeaders().get("Authorization")).as("Check Auth header not present").isNull())
-                .andExpect(content().string(containsString("client_id=" + config.getRelyingPartyId())))
+                .andExpect(bodyContains("client_id=" + config.getRelyingPartyId()))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(getIdTokenResponse()));
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
@@ -641,8 +643,9 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setAdditionalAuthzParameters(Map.of("token_format", "opaque"));
         mockUaaServer.expect(requestTo(config.getTokenUrl().toString()))
                 .andExpect(request -> assertThat(request.getHeaders().get("Authorization")).as("Check Auth header not present").isNull())
-                .andExpect(content().string(containsString("token_format=opaque")))
-                .andExpect(content().string(containsString("client_id=" + config.getRelyingPartyId())))
+                .andExpect(bodyContains(
+                        "token_format=opaque",
+                        "client_id=" + config.getRelyingPartyId()))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(getIdTokenResponse()));
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
@@ -1309,15 +1312,21 @@ class ExternalOAuthAuthenticationManagerIT {
         RequestContextHolder.setRequestAttributes(attributes);
     }
 
+    // Asserts that the outgoing request body contains all the given substrings.
+    private static RequestMatcher bodyContains(String... expectedSubstrings) {
+        return request -> assertThat(((MockClientHttpRequest) request).getBodyAsString()).contains(expectedSubstrings);
+    }
+
     private void mockToken() {
         String response = getIdTokenResponse();
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
-                .andExpect(content().string(containsString("grant_type=authorization_code")))
-                .andExpect(content().string(containsString("code=the_code")))
-                .andExpect(content().string(containsString("redirect_uri=http%3A%2F%2Flocalhost%2Fcallback%2Fthe_origin")))
-                .andExpect(content().string(containsString("response_type=id_token")))
+                .andExpect(bodyContains(
+                        "grant_type=authorization_code",
+                        "code=the_code",
+                        "redirect_uri=http%3A%2F%2Flocalhost%2Fcallback%2Fthe_origin",
+                        "response_type=id_token"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
 

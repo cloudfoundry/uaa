@@ -26,6 +26,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.HttpClientErrorException;
@@ -35,12 +36,11 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -107,29 +107,32 @@ class AccountsControllerViewZonePathTests extends TestClassNullifier {
     @EnumSource(ZoneRequestPathMode.class)
     void accountsEmailSentPageContainsZoneAwareCreateAccountLink(ZoneRequestPathMode mode) throws Exception {
         setZoneWithSelfServiceEnabled(mode);
-        mockMvc.perform(request(mode, "/accounts/email_sent"))
+        MvcResult result = mockMvc.perform(request(mode, "/accounts/email_sent"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedHref(mode, "/create_account"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(expectedHref(mode, "/create_account"));
     }
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
     void createAccountPageContainsZoneAwareFormActionAndLoginLink(ZoneRequestPathMode mode) throws Exception {
         setZoneWithSelfServiceEnabled(mode);
-        mockMvc.perform(request(mode, "/create_account"))
+        MvcResult result = mockMvc.perform(request(mode, "/create_account"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedAction(mode, "/create_account.do"))))
-                .andExpect(content().string(containsString(expectedHref(mode, "/login"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains(expectedAction(mode, "/create_account.do"), expectedHref(mode, "/login"));
     }
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
     void linkPromptPageContainsZoneAwareCreateAccountAndLoginLinks(ZoneRequestPathMode mode) throws Exception {
         setZoneWithSelfServiceEnabled(mode);
-        mockMvc.perform(request(mode, "/verify_user").param("code", "expired-code"))
+        MvcResult result = mockMvc.perform(request(mode, "/verify_user").param("code", "expired-code"))
                 .andExpect(status().is(HttpStatus.UNPROCESSABLE_ENTITY.value()))
-                .andExpect(content().string(containsString(expectedHref(mode, "/create_account"))))
-                .andExpect(content().string(containsString(expectedHref(mode, "/login"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains(expectedHref(mode, "/create_account"), expectedHref(mode, "/login"));
     }
 
     @EnableWebMvc

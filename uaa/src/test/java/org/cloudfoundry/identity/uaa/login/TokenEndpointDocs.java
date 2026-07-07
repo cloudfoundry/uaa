@@ -82,8 +82,8 @@ import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyKey;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyPassphrase;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -105,7 +105,6 @@ import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 import static org.springframework.security.config.BeanIds.SPRING_SECURITY_FILTER_CHAIN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -1401,11 +1400,12 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters));
 
-        mockMvc.perform(
+        MvcResult revokedResult = mockMvc.perform(
                 get("/oauth/clients")
                         .header("Authorization", "Bearer " + userInfoToken))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+                .andReturn();
+        assertThat(revokedResult.getResponse().getContentAsString()).contains("\"error\":\"invalid_token\"");
     }
 
     @Test
@@ -1464,11 +1464,12 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters));
 
-        mockMvc.perform(
+        MvcResult revokedResult = mockMvc.perform(
                 get("/userinfo")
                         .header("Authorization", "Bearer " + userInfoTokenToRevoke))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+                .andReturn();
+        assertThat(revokedResult.getResponse().getContentAsString()).contains("\"error\":\"invalid_token\"");
 
         mockMvc.perform(
                 get("/userinfo")
@@ -1508,11 +1509,12 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters));
 
-        mockMvc.perform(
+        MvcResult revokedResult = mockMvc.perform(
                 get("/oauth/clients")
                         .header("Authorization", "Bearer " + readClientsToken))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+                .andReturn();
+        assertThat(revokedResult.getResponse().getContentAsString()).contains("\"error\":\"invalid_token\"");
     }
 
     @Test

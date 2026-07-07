@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Collections;
 import java.util.Map;
@@ -39,10 +40,8 @@ import static org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken.ACCES
 import static org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
@@ -135,7 +134,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
                 null,
                 true);
 
-        mockMvc.perform(
+        MvcResult result = mockMvc.perform(
                         post("/oauth/token")
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + requestorToken)
                                 .accept(MediaType.APPLICATION_JSON)
@@ -146,7 +145,8 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
                                 .param("expires_in", "44000")
                 )
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"Authentication containing a user is required\"")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("\"Authentication containing a user is required\"");
     }
 
     @Test
@@ -170,7 +170,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
                 SECRET,
                 "uaa.user");
 
-        mockMvc.perform(
+        MvcResult result = mockMvc.perform(
                         post("/oauth/token")
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + requestorToken)
                                 .accept(MediaType.APPLICATION_JSON)
@@ -181,7 +181,8 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
                                 .param("expires_in", "44000")
                 )
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(containsString("\"Unauthorized grant type\"")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("\"Unauthorized grant type\"");
     }
 
     @Test

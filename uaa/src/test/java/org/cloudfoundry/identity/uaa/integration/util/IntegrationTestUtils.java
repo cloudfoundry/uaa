@@ -46,8 +46,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.hamcrest.Description;
-import org.hamcrest.TypeSafeMatcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.WebDriver;
@@ -1641,29 +1639,6 @@ public class IntegrationTestUtils {
         zoneClient.setClientSecret("admin-secret-in-zone");
         createOrUpdateClient(uaaAdminToken, baseUrl, zoneId, zoneClient);
         return getClientCredentialsToken(zoneUrl, "admin-client-in-zone", "admin-secret-in-zone");
-    }
-
-    public static class RegexMatcher extends TypeSafeMatcher<String> {
-
-        private final String regex;
-
-        RegexMatcher(final String regex) {
-            this.regex = regex;
-        }
-
-        public static RegexMatcher matchesRegex(final String regex) {
-            return new RegexMatcher(regex);
-        }
-
-        @Override
-        public void describeTo(final Description description) {
-            description.appendText("matches regex=`" + regex + "`");
-        }
-
-        @Override
-        public boolean matchesSafely(final String string) {
-            return string.matches(regex);
-        }
     }
 
     public static class HttpRequestFactory extends HttpComponentsClientHttpRequestFactory {

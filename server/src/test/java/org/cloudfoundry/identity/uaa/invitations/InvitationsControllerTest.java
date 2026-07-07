@@ -67,8 +67,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -81,7 +79,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -248,14 +245,13 @@ class InvitationsControllerTest {
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                 .param("code", "the_secret_code");
 
-        mockMvc.perform(get)
+        MvcResult result = mockMvc.perform(get)
                 .andExpect(view().name("invitations/accept_invite"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + "user@example.com")))
-                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
-                .andExpect(content().string(containsString("username")))
                 .andExpect(model().attribute("code", "the_secret_code"))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("Email: " + "user@example.com", "Sign in with enterprise credentials:", "username");
     }
 
     private Map<String, String> getInvitationsCode(String origin) {
@@ -363,19 +359,18 @@ class InvitationsControllerTest {
         when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
-        mockMvc.perform(post("/invitations/accept_enterprise.do")
+        MvcResult result = mockMvc.perform(post("/invitations/accept_enterprise.do")
                         .param("enterprise_username", "test-ldap-user")
                         .param("enterprise_password", "password")
                         .param("enterprise_email", "email")
                         .param("code", "the_secret_code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("invitations/accept_invite"))
-                .andExpect(content().string(containsString("Email: " + "user@example.com")))
-                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
-                .andExpect(content().string(containsString("username")))
                 .andExpect(model().attribute("code", "code"))
                 .andExpect(model().attribute("error_message", "invite.email_mismatch"))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("Email: " + "user@example.com", "Sign in with enterprise credentials:", "username");
 
         verify(ldapActual).authenticate(any());
     }
@@ -674,9 +669,10 @@ class InvitationsControllerTest {
         when(expiringCodeStore.peekCode("thecode", zoneId))
                 .thenReturn(expiringCode, null);
 
-        mockMvc.perform(get("/invitations/accept")
+        MvcResult result = mockMvc.perform(get("/invitations/accept")
                         .param("code", "thecode"))
-                .andExpect(content().string(containsString("Jaskanwal")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Jaskanwal");
 
         // cleanup changes to default zone
         defaultZone.getConfig().setBranding(null);
@@ -697,9 +693,10 @@ class InvitationsControllerTest {
         when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId)))
                 .thenReturn(expiringCode);
 
-        mockMvc.perform(get("/invitations/accept")
+        MvcResult result = mockMvc.perform(get("/invitations/accept")
                         .param("code", "thecode"))
-                .andExpect(content().string(not(containsString("I agree"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("I agree");
     }
 
     @Test

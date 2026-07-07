@@ -17,6 +17,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -25,9 +26,8 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -82,13 +82,13 @@ class SessionControllerViewZonePathTests extends TestClassNullifier {
     void sessionPageReturnsOkAndContainsExpectedPaths(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         String scriptPath = "/resources/javascripts/session/session_message_handler.js";
-        mockMvc.perform(request(mode, "/session")
+        MvcResult result = mockMvc.perform(request(mode, "/session")
                         .param("clientId", CLIENT_ID)
                         .param("messageOrigin", MESSAGE_ORIGIN))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("src=\"" + scriptSrc(mode, scriptPath) + "\"")))
-                .andExpect(content().string(containsString(CLIENT_ID)))
-                .andExpect(content().string(containsString(MESSAGE_ORIGIN)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("src=\"" + scriptSrc(mode, scriptPath) + "\"", CLIENT_ID, MESSAGE_ORIGIN);
     }
 
     @ParameterizedTest
@@ -98,15 +98,18 @@ class SessionControllerViewZonePathTests extends TestClassNullifier {
         String sjcl = "/resources/javascripts/session/sjcl.js";
         String sessionJs = "/resources/javascripts/session/session.js";
         String handlerJs = "/resources/javascripts/session/session_management_message_handler.js";
-        mockMvc.perform(request(mode, "/session_management")
+        MvcResult result = mockMvc.perform(request(mode, "/session_management")
                         .param("clientId", CLIENT_ID)
                         .param("messageOrigin", MESSAGE_ORIGIN))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("src=\"" + scriptSrc(mode, sjcl) + "\"")))
-                .andExpect(content().string(containsString("src=\"" + scriptSrc(mode, sessionJs) + "\"")))
-                .andExpect(content().string(containsString("src=\"" + scriptSrc(mode, handlerJs) + "\"")))
-                .andExpect(content().string(containsString(CLIENT_ID)))
-                .andExpect(content().string(containsString(MESSAGE_ORIGIN)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains(
+                        "src=\"" + scriptSrc(mode, sjcl) + "\"",
+                        "src=\"" + scriptSrc(mode, sessionJs) + "\"",
+                        "src=\"" + scriptSrc(mode, handlerJs) + "\"",
+                        CLIENT_ID,
+                        MESSAGE_ORIGIN);
     }
 
     @EnableWebMvc

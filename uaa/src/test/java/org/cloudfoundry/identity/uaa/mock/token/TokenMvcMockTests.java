@@ -133,9 +133,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_T
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -1396,7 +1393,7 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String state = new AlphanumericRandomValueStringGenerator().generate();
 
-        mockMvc.perform(
+        MvcResult result = mockMvc.perform(
                         post("/oauth/authorize")
                                 .session(session)
                                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
@@ -1407,8 +1404,10 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                                 .with(cookieCsrf())
                 )
                 .andExpect(status().is3xxRedirection())
-                .andExpect(header().string("Location", startsWith(redirectUrl)))
-                .andExpect(header().string("Location", containsString("error=interaction_required")));
+                .andReturn();
+        assertThat(result.getResponse().getHeader("Location"))
+                .startsWith(redirectUrl)
+                .contains("error=interaction_required");
     }
 
     @Test
@@ -1575,20 +1574,22 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void ensure_that_form_redirect_is_not_a_parameter_unless_there_is_a_saved_request() throws Exception {
         //make sure we don't create a session on the homepage
-        assertThat(mockMvc.perform(
+        MvcResult homepageResult = mockMvc.perform(
                         get("/login")
                 )
                 .andDo(print())
-                .andExpect(content().string(not(containsString(FORM_REDIRECT_PARAMETER))))
-                .andReturn().getRequest().getSession(false)).isNull();
+                .andReturn();
+        assertThat(homepageResult.getResponse().getContentAsString()).doesNotContain(FORM_REDIRECT_PARAMETER);
+        assertThat(homepageResult.getRequest().getSession(false)).isNull();
 
         //if there is a session, but no saved request
-        mockMvc.perform(
+        MvcResult sessionResult = mockMvc.perform(
                         get("/login")
                                 .session(new MockHttpSession())
                 )
                 .andDo(print())
-                .andExpect(content().string(not(containsString(FORM_REDIRECT_PARAMETER))));
+                .andReturn();
+        assertThat(sessionResult.getResponse().getContentAsString()).doesNotContain(FORM_REDIRECT_PARAMETER);
     }
 
     @Test
@@ -1653,14 +1654,15 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertThat(savedRequest).isNotNull();
         assertThat(savedRequest.getRedirectUrl()).isEqualTo(authUrl);
 
-        mockMvc.perform(
+        MvcResult loginPageResult = mockMvc.perform(
                         get("/login")
                                 .session(session)
                 )
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(FORM_REDIRECT_PARAMETER)))
-                .andExpect(content().string(containsString(encodedRedirectUri)));
+                .andReturn();
+        assertThat(loginPageResult.getResponse().getContentAsString())
+                .contains(FORM_REDIRECT_PARAMETER, encodedRedirectUri);
 
         //a failed login should survive the flow
         //attempt to login without a session
@@ -1672,22 +1674,23 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                                 .param("password", "invalid")
                 )
                 .andExpect(status().isFound())
-                .andExpect(header().string("Location", containsString("/login")))
                 .andReturn();
+        assertThat(result.getResponse().getHeader("Location")).contains("/login");
 
         session = (MockHttpSession) result.getRequest().getSession(false);
         assertThat(session).isNotNull();
         savedRequest = SessionUtils.getSavedRequestSession(MockMvcUtils.getZoneSession(session));
         assertThat(savedRequest).isNotNull();
 
-        mockMvc.perform(
+        MvcResult secondLoginPageResult = mockMvc.perform(
                         get("/login")
                                 .session(session)
                 )
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(FORM_REDIRECT_PARAMETER)))
-                .andExpect(content().string(containsString(encodedRedirectUri)));
+                .andReturn();
+        assertThat(secondLoginPageResult.getResponse().getContentAsString())
+                .contains(FORM_REDIRECT_PARAMETER, encodedRedirectUri);
 
         //attempt to login without a session
         mockMvc.perform(

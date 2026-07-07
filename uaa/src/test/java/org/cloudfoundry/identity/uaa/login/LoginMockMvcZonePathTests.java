@@ -49,7 +49,6 @@ import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -72,6 +71,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.util.XpathExpectationsHelper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -117,13 +117,6 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurit
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.security.web.CorsFilter.X_REQUESTED_WITH;
 import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -140,7 +133,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -392,12 +384,14 @@ public class LoginMockMvcZonePathTests {
                 .andExpect(model().attributeExists("prompts"));
         if (mode == ZoneResolutionMode.ZONE_PATH) {
             mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                    .andExpect(content().string(containsString("/z/" + subdomain + "/create_account")))
-                    .andExpect(content().string(containsString("/z/" + subdomain + "/forgot_password")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                            .contains("/z/" + subdomain + "/create_account")
+                            .contains("/z/" + subdomain + "/forgot_password"));
         } else {
             mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                    .andExpect(content().string(containsString("/create_account")))
-                    .andExpect(content().string(containsString("/forgot_password")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                            .contains("/create_account")
+                            .contains("/forgot_password"));
         }
     }
 
@@ -452,9 +446,10 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(content().string(containsString("action=\"" + expectedAction + "\"")))
-                .andExpect(content().string(containsString(expectedCreateAccount)))
-                .andExpect(content().string(containsString(expectedForgotPassword)));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("action=\"" + expectedAction + "\"")
+                        .contains(expectedCreateAccount)
+                        .contains(expectedForgotPassword));
     }
 
     IdentityZone createZoneLinksZone() throws Exception {
@@ -482,11 +477,16 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(getLogin.header("Accept", TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", expectedForgot)))
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", expectedCreate)));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links)
+                            .containsEntry("forgotPasswordLink", expectedForgot)
+                            .containsEntry("createAccountLink", expectedCreate);
+                });
         String createInContent = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/create_account" : "/create_account";
         mockMvc.perform(getLogin.header("Accept", TEXT_HTML))
-                .andExpect(content().string(containsString(createInContent)));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains(createInContent));
 
         ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", new Links().setSelfService(
                 new Links.SelfService()
@@ -501,17 +501,23 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(getLogin.header("Accept", TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/passwd?id=" + zone.getId())))
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "/signup?subdomain=" + zone.getSubdomain())))
-                .andExpect(content().string(containsString("/passwd?id=" + zone.getId())))
-                .andExpect(content().string(containsString("/signup?subdomain=" + zone.getSubdomain())));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links)
+                            .containsEntry("forgotPasswordLink", "/passwd?id=" + zone.getId())
+                            .containsEntry("createAccountLink", "/signup?subdomain=" + zone.getSubdomain());
+                })
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("/passwd?id=" + zone.getId())
+                        .contains("/signup?subdomain=" + zone.getSubdomain()));
 
         zone.getConfig().getLinks().setSelfService(
                 new Links.SelfService()
                         .setPasswd("/local_passwd?id={zone.id}")
                         .setSignup("/local_signup?subdomain={zone.subdomain}")
         );
-        zone = MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
+        IdentityZone updatedZone = MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
         getLogin = mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login");
         if (mode == ZoneResolutionMode.SUBDOMAIN) {
             getLogin = getLogin.header("Host", subdomain + ".localhost");
@@ -519,10 +525,16 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(getLogin.header("Accept", TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/local_passwd?id=" + zone.getId())))
-                .andExpect(model().attribute("links", hasEntry("createAccountLink", "/local_signup?subdomain=" + zone.getSubdomain())))
-                .andExpect(content().string(containsString("/local_passwd?id=" + zone.getId())))
-                .andExpect(content().string(containsString("/local_signup?subdomain=" + zone.getSubdomain())));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                    assertThat(links)
+                            .containsEntry("forgotPasswordLink", "/local_passwd?id=" + updatedZone.getId())
+                            .containsEntry("createAccountLink", "/local_signup?subdomain=" + updatedZone.getSubdomain());
+                })
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("/local_passwd?id=" + updatedZone.getId())
+                        .contains("/local_signup?subdomain=" + updatedZone.getSubdomain()));
     }
 
     @ParameterizedTest
@@ -674,8 +686,9 @@ public class LoginMockMvcZonePathTests {
 
         mockMvc.perform(loginPost)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
-                .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("\"username\":\"" + user.getUserName())
+                        .contains("\"email\":\"" + user.getPrimaryEmail()));
 
         loginPost = mode.createRequestBuilder(subdomain, HttpMethod.POST, "/authenticate")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -684,8 +697,9 @@ public class LoginMockMvcZonePathTests {
 
         mockMvc.perform(loginPost)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
-                .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("\"username\":\"" + user.getUserName())
+                        .contains("\"email\":\"" + user.getPrimaryEmail()));
     }
 
     @ParameterizedTest
@@ -713,9 +727,10 @@ public class LoginMockMvcZonePathTests {
 
         mockMvc.perform(loginPost)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
-                .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())))
-                .andExpect(content().string(containsString("\"origin\":\"uaa\"")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("\"username\":\"" + user.getUserName())
+                        .contains("\"email\":\"" + user.getPrimaryEmail())
+                        .contains("\"origin\":\"uaa\""));
     }
 
     @ParameterizedTest
@@ -732,16 +747,17 @@ public class LoginMockMvcZonePathTests {
         ScimUser user = new ScimUser(null, username, "givenname", "familyname");
         user.setPrimaryEmail(username);
         user.setPassword("secret");
-        user = MockMvcUtils.createUserInZone(mockMvc, adminToken, user, zoneResult.getIdentityZone().getSubdomain());
+        ScimUser createdUser = MockMvcUtils.createUserInZone(mockMvc, adminToken, user, zoneResult.getIdentityZone().getSubdomain());
 
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/authenticate")
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("username", user.getUserName())
+                        .param("username", createdUser.getUserName())
                         .param("password", "secret"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
-                .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("\"username\":\"" + createdUser.getUserName())
+                        .contains("\"email\":\"" + createdUser.getPrimaryEmail()));
     }
 
     @ParameterizedTest
@@ -816,7 +832,7 @@ public class LoginMockMvcZonePathTests {
                     .andExpect(status().isOk())
                     .andExpect(view().name("login"))
                     .andExpect(model().attributeExists("prompts"))
-                    .andExpect(content().string(not(containsString("/create_account"))));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).doesNotContain("/create_account"));
         } finally {
             idp = idpProvisioning.retrieveByOrigin(UAA, zone.getId());
             config = idp.getConfig() != null ? idp.getConfig() : new UaaIdentityProviderDefinition();
@@ -836,7 +852,9 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getId(), config);
 
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/product-logo.png)")))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("url(data:image/png;base64,/bASe/64+)")
+                        .doesNotContain("url(/uaa/resources/oss/images/product-logo.png)"));
     }
 
     @ParameterizedTest
@@ -849,7 +867,9 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getId(), config);
 
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4lL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("<link href='data:image/png;base64,/sM4lL==' rel='shortcut icon' />")
+                        .doesNotContain("square-logo.png"));
     }
 
     @ParameterizedTest
@@ -863,7 +883,9 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getId(), config);
 
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                .andExpect(content().string(allOf(containsString("<style>.header-image {background-image: url(data:image/png;base64," + bigLogo + ");}</style>"), not(containsString("product-logo.png")))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("<style>.header-image {background-image: url(data:image/png;base64," + bigLogo + ");}</style>")
+                        .doesNotContain("product-logo.png"));
     }
 
     @ParameterizedTest
@@ -876,8 +898,11 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getId(), config);
 
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                .andExpect(content().string(allOf(containsString("<link href='data:image/png;base64,/sM4\n\nlL==' rel='shortcut icon' />"), not(containsString("square-logo.png")))))
-                .andExpect(content().string(allOf(containsString("<style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("<link href='data:image/png;base64,/sM4\n\nlL==' rel='shortcut icon' />")
+                        .doesNotContain("square-logo.png")
+                        .contains("<style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>")
+                        .doesNotContain("product-logo.png"));
     }
 
     @ParameterizedTest
@@ -886,8 +911,9 @@ public class LoginMockMvcZonePathTests {
         String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                .andExpect(content().string(containsString(CF_COPYRIGHT_TEXT)))
-                .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains(CF_COPYRIGHT_TEXT)
+                        .doesNotContain(CF_LAST_LOGIN));
     }
 
     @ParameterizedTest
@@ -903,8 +929,10 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getId(), config);
 
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(CF_COPYRIGHT_TEXT)))))
-                .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains(customFooterText)
+                        .doesNotContain(CF_COPYRIGHT_TEXT)
+                        .doesNotContain(CF_LAST_LOGIN));
     }
 
     @ParameterizedTest
@@ -921,7 +949,7 @@ public class LoginMockMvcZonePathTests {
 
         String expectedFooterText = DEFAULT_COPYRIGHT_TEMPLATE.formatted(companyName);
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                .andExpect(content().string(allOf(containsString(expectedFooterText))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains(expectedFooterText));
     }
 
     @ParameterizedTest
@@ -940,7 +968,7 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login")
                         .accept(TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(content().string(allOf(containsString(expectedFooterText))));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains(expectedFooterText));
     }
 
     @ParameterizedTest
@@ -957,7 +985,9 @@ public class LoginMockMvcZonePathTests {
         config.setBranding(branding);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getId(), config);
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login")).andExpect(content().string(containsString("<a href=\"/privacy\">Privacy</a> &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("<a href=\"/privacy\">Privacy</a> &mdash; <a href=\"/terms.html\">Terms of Use</a>"));
     }
 
 
@@ -968,12 +998,14 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         var footerTitleLocator = "//div[@class=\"copyright\"]/@title";
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
-                .andExpect(
-                        xpath(footerTitleLocator).string(Matchers.containsString("UAA: http://localhost:8080/uaa"))
-                )
-                .andExpect(
-                        xpath(footerTitleLocator).string(Matchers.containsString("Version: 0.0.0, Commit:"))
-                );
+                .andExpect(result -> {
+                    String title = new XpathExpectationsHelper(footerTitleLocator, null)
+                            .evaluateXpath(result.getResponse().getContentAsByteArray(),
+                                    result.getResponse().getCharacterEncoding(), String.class);
+                    assertThat(title)
+                            .contains("UAA: http://localhost:8080/uaa")
+                            .contains("Version: 0.0.0, Commit:");
+                });
     }
 
     @ParameterizedTest
@@ -1007,8 +1039,9 @@ public class LoginMockMvcZonePathTests {
                 )
                 .andExpect(status().isOk())
                 .andExpect(view().name("change_password"))
-                .andExpect(content().string(containsString("action=\"/change_password.do\"")))
-                .andExpect(content().string(containsString("name=\"X-Uaa-Csrf\"")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("action=\"/change_password.do\"")
+                        .contains("name=\"X-Uaa-Csrf\""));
     }
 
     @ParameterizedTest
@@ -1392,10 +1425,12 @@ public class LoginMockMvcZonePathTests {
             String subdomain = new org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
             org.cloudfoundry.identity.uaa.zone.IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login"))
-                    .andExpect(
-                            xpath("//div[@class=\"copyright\"]/@title")
-                                    .string(Matchers.containsString("UAA: https://uaa.exmaple.com/uaa"))
-                    );
+                    .andExpect(result -> {
+                        String title = new XpathExpectationsHelper("//div[@class=\"copyright\"]/@title", null)
+                                .evaluateXpath(result.getResponse().getContentAsByteArray(),
+                                        result.getResponse().getCharacterEncoding(), String.class);
+                        assertThat(title).contains("UAA: https://uaa.exmaple.com/uaa");
+                    });
         }
     }
 
@@ -1500,9 +1535,14 @@ public class LoginMockMvcZonePathTests {
             mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(TEXT_HTML))
                     .andExpect(status().isOk())
                     .andExpect(view().name("login"))
-                    .andExpect(model().attribute("prompts", hasKey("how")))
-                    .andExpect(model().attribute("prompts", hasKey("where")))
-                    .andExpect(model().attribute("prompts", not(hasKey("password"))));
+                    .andExpect(result -> {
+                        @SuppressWarnings("unchecked")
+                        Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                        assertThat(prompts)
+                                .containsKey("how")
+                                .containsKey("where")
+                                .doesNotContainKey("password");
+                    });
         } finally {
             MockMvcUtils.setPrompts(webApplicationContext, zone.getId(), original);
         }
@@ -1522,9 +1562,14 @@ public class LoginMockMvcZonePathTests {
             mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(view().name("login"))
-                    .andExpect(model().attribute("prompts", hasKey("how")))
-                    .andExpect(model().attribute("prompts", hasKey("where")))
-                    .andExpect(model().attribute("prompts", not(hasKey("password"))));
+                    .andExpect(result -> {
+                        @SuppressWarnings("unchecked")
+                        Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                        assertThat(prompts)
+                                .containsKey("how")
+                                .containsKey("where")
+                                .doesNotContainKey("password");
+                    });
         } finally {
             MockMvcUtils.setPrompts(webApplicationContext, zone.getId(), original);
         }
@@ -1538,9 +1583,14 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("username")))
-                .andExpect(model().attribute("prompts", not(hasKey("passcode"))))
-                .andExpect(model().attribute("prompts", hasKey("password")));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                    assertThat(prompts)
+                            .containsKey("username")
+                            .doesNotContainKey("passcode")
+                            .containsKey("password");
+                });
     }
 
     @ParameterizedTest
@@ -1551,8 +1601,13 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("username")))
-                .andExpect(model().attribute("prompts", hasKey("password")));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                    assertThat(prompts)
+                            .containsKey("username")
+                            .containsKey("password");
+                });
     }
 
     @ParameterizedTest
@@ -1563,8 +1618,13 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/info").accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("username")))
-                .andExpect(model().attribute("prompts", hasKey("password")));
+                .andExpect(result -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, ?> prompts = (Map<String, ?>) result.getModelAndView().getModel().get("prompts");
+                    assertThat(prompts)
+                            .containsKey("username")
+                            .containsKey("password");
+                });
     }
 
     @ParameterizedTest
@@ -1577,7 +1637,11 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(mode == ZoneResolutionMode.SUBDOMAIN
-                        ? model().attribute("links", hasEntry("createAccountLink", expectedDefault))
+                        ? result -> {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                            assertThat(links).containsEntry("createAccountLink", expectedDefault);
+                        }
                         : result -> {
                             @SuppressWarnings("unchecked")
                             Map<String, ?> links = (Map<String, ?>) result.getModelAndView().getModel().get("links");
@@ -1589,7 +1653,11 @@ public class LoginMockMvcZonePathTests {
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(mode == ZoneResolutionMode.SUBDOMAIN
-                        ? model().attribute("links", hasEntry("createAccountLink", "http://www.example.com/signup"))
+                        ? result -> {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> links = (Map<String, Object>) result.getModelAndView().getModel().get("links");
+                            assertThat(links).containsEntry("createAccountLink", "http://www.example.com/signup");
+                        }
                         : result -> {
                             @SuppressWarnings("unchecked")
                             Map<String, ?> links = (Map<String, ?>) result.getModelAndView().getModel().get("links");
@@ -1606,7 +1674,7 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, zone.getId(), false);
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(model().attribute("createAccountLink", nullValue()));
+                .andExpect(result -> assertThat(result.getModelAndView().getModel().get("createAccountLink")).isNull());
     }
 
     @ParameterizedTest
@@ -1975,8 +2043,9 @@ public class LoginMockMvcZonePathTests {
                         .param("reason", "concurrent_login")
                         .accept(TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Another sign-in is already in progress")))
-                .andExpect(content().string(containsString("Start a new login")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("Another sign-in is already in progress")
+                        .contains("Start a new login"));
     }
 
     @Disabled("ZONE_PATH: redirect URL assertion differs for zone path")
@@ -2262,7 +2331,7 @@ public class LoginMockMvcZonePathTests {
                 .with(securityContext(marissaContext));
         mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("X-Uaa-Csrf"));
     }
 
     @ParameterizedTest
@@ -2282,7 +2351,7 @@ public class LoginMockMvcZonePathTests {
                 .with(securityContext(marissaContext));
         MockHttpSession session = (MockHttpSession) mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("X-Uaa-Csrf"))
                 .andReturn().getRequest().getSession();
 
         MockHttpServletRequestBuilder changeEmail = mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.POST, "/change_email.do")
@@ -2314,7 +2383,7 @@ public class LoginMockMvcZonePathTests {
                 .with(securityContext(marissaContext));
         MockHttpSession session = (MockHttpSession) mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("X-Uaa-Csrf"))
                 .andReturn().getRequest().getSession();
 
         MockHttpServletRequestBuilder changeEmail = mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.POST, "/change_email.do")
@@ -2372,7 +2441,7 @@ public class LoginMockMvcZonePathTests {
 
         MvcResult result = mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")))
+                .andExpect(res -> assertThat(res.getResponse().getContentAsString()).contains("X-Uaa-Csrf"))
                 .andReturn();
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession();
@@ -2439,7 +2508,7 @@ public class LoginMockMvcZonePathTests {
 
         mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("X-Uaa-Csrf")))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("X-Uaa-Csrf"))
                 .andReturn();
 
         MockHttpServletRequestBuilder changeEmail = mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.POST, "/change_email.do")
@@ -2851,7 +2920,7 @@ public class LoginMockMvcZonePathTests {
                         .header("Accept", TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/email"))
-                .andExpect(content().string(containsString("Sign in")))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Sign in"))
                 .andExpect(xpath("//input[@name='email']").exists())
                 .andExpect(xpath("//div[@class='action']//a").string("Create account"))
                 .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
@@ -2893,7 +2962,7 @@ public class LoginMockMvcZonePathTests {
                         .header("Accept", TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/email"))
-                .andExpect(content().string(containsString("Sign in to continue to " + clientName)))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Sign in to continue to " + clientName))
                 .andExpect(xpath("//input[@name='email']").exists())
                 .andExpect(xpath("//div[@class='action']//a").string("Create account"))
                 .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
@@ -3113,8 +3182,9 @@ public class LoginMockMvcZonePathTests {
                         .header("Accept", TEXT_HTML)
                         .servletPath(mode.getServletPath(zone.getSubdomain(), "/login")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code&")))
-                .andExpect(content().string(containsString("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&")));
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("http://myauthurl.com?client_id=id&amp;response_type=code&")
+                        .contains("http://myauthurl.com?client_id=id&amp;response_type=code+id_token&"));
     }
 
     @ParameterizedTest
@@ -3404,7 +3474,7 @@ public class LoginMockMvcZonePathTests {
             String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
             IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").param("error", "login_failure"))
-                    .andExpect(content().string(containsString("Provided credentials are invalid. Please try again.")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Provided credentials are invalid. Please try again."));
         }
 
         @ParameterizedTest
@@ -3413,7 +3483,7 @@ public class LoginMockMvcZonePathTests {
             String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
             IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").param("error", "foobar").param("error", "login_failure"))
-                    .andExpect(content().string(containsString("Error!")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Error!"));
         }
 
         @ParameterizedTest
@@ -3422,7 +3492,7 @@ public class LoginMockMvcZonePathTests {
             String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
             IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").param("success", "verify_success"))
-                    .andExpect(content().string(containsString("Verification successful. Login to access your account.")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Verification successful. Login to access your account."));
         }
 
         @ParameterizedTest
@@ -3431,7 +3501,7 @@ public class LoginMockMvcZonePathTests {
             String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
             IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").param("success", "foobar").param("success", "verify_success"))
-                    .andExpect(content().string(containsString("Success!")));
+                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Success!"));
         }
     }
 
@@ -3530,14 +3600,14 @@ public class LoginMockMvcZonePathTests {
 
     private static ResultMatcher emptyCurrentUserCookie(ZoneResolutionMode mode) {
         return result -> {
-            cookie().value("Current-User", isEmptyOrNullString()).match(result);
+            Cookie currentUserCookie = result.getResponse().getCookie("Current-User");
+            assertThat(currentUserCookie).isNotNull();
+            assertThat(currentUserCookie.getValue()).isNullOrEmpty();
             cookie().maxAge("Current-User", 0).match(result);
             String expectedPath = mode == ZoneResolutionMode.ZONE_PATH ? null : "/";
             if (expectedPath != null) {
                 cookie().path("Current-User", expectedPath).match(result);
             } else {
-                Cookie currentUserCookie = result.getResponse().getCookie("Current-User");
-                assertThat(currentUserCookie).isNotNull();
                 // Cookie path is always "/"
                 assertThat(currentUserCookie.getPath()).isEqualTo("/");
             }

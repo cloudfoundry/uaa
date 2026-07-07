@@ -120,7 +120,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
-import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -807,8 +806,8 @@ public final class MockMvcUtils {
         if (!zoneSubdomain.equals(IdentityZone.getUaa())) {
             createClientDelete = createClientDelete.header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zoneSubdomain);
         }
-        mockMvc.perform(createClientDelete)
-                .andExpect(status().is(not(500)));
+        MvcResult result = mockMvc.perform(createClientDelete).andReturn();
+        assertThat(result.getResponse().getStatus()).isNotEqualTo(500);
     }
 
     public static UaaClientDetails createClient(MockMvc mockMvc, String accessToken, UaaClientDetails clientDetails,

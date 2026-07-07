@@ -36,11 +36,9 @@ import java.util.regex.Pattern;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -147,8 +145,9 @@ class PasswordResetEndpointMockMvcTests {
 
         MvcResult result = mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<input type=\"hidden\" name=\"email\" value=\"%s\"/>".formatted(email))))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("<input type=\"hidden\" name=\"email\" value=\"%s\"/>".formatted(email));
 
         String resultingCodeString = getCodeFromPage(result);
         ExpiringCode resultingCode = jdbcExpiringCodeStore.retrieveCode(resultingCodeString, IdentityZoneHolder.get().getId());
@@ -174,8 +173,9 @@ class PasswordResetEndpointMockMvcTests {
 
         MvcResult result = mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<input type=\"hidden\" name=\"email\" value=\"%s\"/>".formatted(email))))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("<input type=\"hidden\" name=\"email\" value=\"%s\"/>".formatted(email));
 
         String resultingCodeString = getCodeFromPage(result);
 

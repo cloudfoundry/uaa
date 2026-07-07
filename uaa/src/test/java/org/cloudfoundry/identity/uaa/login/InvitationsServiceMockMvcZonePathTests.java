@@ -67,10 +67,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 
@@ -180,8 +178,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                                 .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
         MockHttpSession inviteSession = (MockHttpSession) result.getRequest().getSession(false);
         assertThat(inviteSession).isNotNull();
         assertThat(MockMvcUtils.getZoneSession(inviteSession).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
@@ -244,8 +242,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                         .param("code", code)
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
         MockHttpSession inviteSession = (MockHttpSession) result.getRequest().getSession(false);
         assertThat(inviteSession).isNotNull();
         assertThat(MockMvcUtils.getZoneSession(inviteSession, mode, subdomain).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
@@ -285,8 +283,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                         .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(
@@ -331,8 +329,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                         .param("code", code)
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(get("/profile").session(session).accept(MediaType.TEXT_HTML))
@@ -430,11 +428,12 @@ public class InvitationsServiceMockMvcZonePathTests {
         URL inviteLink = response.getNewInvites().getFirst().getInviteLink();
         String code = extractInvitationCode(inviteLink.toString());
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
                         .param("code", code)
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
     }
 
     @Test
@@ -510,8 +509,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                         .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         result = mockMvc.perform(
@@ -579,8 +578,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                         .param("code", code1)
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email1)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email1);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/invitations/accept.do")
@@ -612,8 +611,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                         .accept(MediaType.TEXT_HTML)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         code = jdbcTemplate.queryForObject("SELECT code FROM expiring_code_store", String.class);
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
@@ -677,8 +676,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                         .param("code", code)
                         .accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         MockHttpServletRequestBuilder postReq = mode.createRequestBuilder(subdomain, HttpMethod.POST, "/invitations/accept.do")
@@ -723,9 +722,10 @@ public class InvitationsServiceMockMvcZonePathTests {
                 .accept(MediaType.TEXT_HTML)
                 .header("Host", zone.getZone().getIdentityZone().getSubdomain() + ".localhost")
         );
-        actions
+        MvcResult result = actions
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Email: " + email);
 
         assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("LDAP user should not be verified after accepting invite until logging in").isFalse();
     }

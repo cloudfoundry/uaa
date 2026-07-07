@@ -34,6 +34,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
@@ -49,8 +50,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -196,9 +195,10 @@ class ForcePasswordChangeControllerZonePathMockMvcTest {
             String expectedFormAction = mode == ZoneResolutionMode.ZONE_PATH
                     ? "action=\"/z/" + subdomain + "/force_password_change\"" : "action=\"/force_password_change\"";
 
-            mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/force_password_change").session(session))
+            MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/force_password_change").session(session))
                     .andExpect(status().isOk())
-                    .andExpect(content().string(containsString(expectedFormAction)));
+                    .andReturn();
+            assertThat(result.getResponse().getContentAsString()).contains(expectedFormAction);
         }
     }
 

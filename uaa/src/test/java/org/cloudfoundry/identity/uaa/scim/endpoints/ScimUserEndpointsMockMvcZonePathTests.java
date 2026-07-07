@@ -25,7 +25,6 @@ import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
-import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
@@ -77,8 +76,6 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPos
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
@@ -386,17 +383,18 @@ class ScimUserEndpointsMockMvcZonePathTests {
         user.setPassword("password");
         user.setPrimaryEmail("test@test.org");
 
-        mockMvc.perform(post("/Users")
+        MvcResult result = mockMvc.perform(post("/Users")
                         .header("Authorization", "Bearer " + scimReadWriteToken)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(user)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", "A username must be provided.")
-                                        .put("message", "A username must be provided.")
-                                        .put("error", "invalid_scim_resource"))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", "A username must be provided.")
+                        .put("message", "A username must be provided.")
+                        .put("error", "invalid_scim_resource")
+                        .toString()));
     }
 
     @ParameterizedTest
@@ -405,17 +403,18 @@ class ScimUserEndpointsMockMvcZonePathTests {
         ScimUser user = new ScimUser(null, "a_user", "Joel", "D'sa");
         user.setPassword("password");
 
-        mockMvc.perform(post(url)
+        MvcResult result = mockMvc.perform(post(url)
                         .header("Authorization", "Bearer " + scimReadWriteToken)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(user)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", "Exactly one email must be provided.")
-                                        .put("message", "Exactly one email must be provided.")
-                                        .put("error", "invalid_scim_resource"))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", "Exactly one email must be provided.")
+                        .put("message", "Exactly one email must be provided.")
+                        .put("error", "invalid_scim_resource")
+                        .toString()));
     }
 
     @Test
@@ -423,18 +422,19 @@ class ScimUserEndpointsMockMvcZonePathTests {
         ScimUser user = setUpScimUser();
         user.setEmails(null);
 
-        mockMvc.perform(put("/Users/" + user.getId())
+        MvcResult result = mockMvc.perform(put("/Users/" + user.getId())
                         .header("Authorization", "Bearer " + scimReadWriteToken)
                         .header("If-Match", "\"" + user.getVersion() + "\"")
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(user)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", "Exactly one email must be provided.")
-                                        .put("message", "Exactly one email must be provided.")
-                                        .put("error", "invalid_scim_resource"))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", "Exactly one email must be provided.")
+                        .put("message", "Exactly one email must be provided.")
+                        .put("error", "invalid_scim_resource")
+                        .toString()));
     }
 
     @Test
@@ -445,7 +445,7 @@ class ScimUserEndpointsMockMvcZonePathTests {
         user.setActive(active);
         patchUser(user, scimReadWriteToken, user.getVersion())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.active", equalTo(active)));
+                .andExpect(jsonPath("$.active").value(active));
 
         performAuthentication(user, true);
 
@@ -453,7 +453,7 @@ class ScimUserEndpointsMockMvcZonePathTests {
         user.setActive(active);
         patchUser(user, scimReadWriteToken, user.getVersion() + 1)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.active", equalTo(active)));
+                .andExpect(jsonPath("$.active").value(active));
 
         performAuthentication(user, false);
     }
@@ -474,8 +474,8 @@ class ScimUserEndpointsMockMvcZonePathTests {
         scimUser.setOrigin("some-new-origin");
         patchUser(scimUser, scimReadWriteToken, scimUser.getVersion())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error_description", equalTo("Cannot change origin in patch of user.")))
-                .andExpect(jsonPath("$.error", equalTo("invalid_scim_resource")));
+                .andExpect(jsonPath("$.error_description").value("Cannot change origin in patch of user."))
+                .andExpect(jsonPath("$.error").value("invalid_scim_resource"));
     }
 
     @Test
@@ -486,14 +486,15 @@ class ScimUserEndpointsMockMvcZonePathTests {
 
         MockHttpServletRequestBuilder get = setUpVerificationLinkRequest(user, scimCreateToken);
 
-        mockMvc.perform(get)
+        MvcResult result = mockMvc.perform(get)
                 .andExpect(status().isMethodNotAllowed())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", UserAlreadyVerifiedException.DESC)
-                                        .put("message", UserAlreadyVerifiedException.DESC)
-                                        .put("error", "user_already_verified"))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", UserAlreadyVerifiedException.DESC)
+                        .put("message", UserAlreadyVerifiedException.DESC)
+                        .put("error", "user_already_verified")
+                        .toString()));
     }
 
     @Test
@@ -525,14 +526,15 @@ class ScimUserEndpointsMockMvcZonePathTests {
                 .param("redirect_uri", HTTP_REDIRECT_EXAMPLE_COM)
                 .accept(APPLICATION_JSON);
 
-        mockMvc.perform(get)
+        MvcResult result = mockMvc.perform(get)
                 .andExpect(status().isNotFound())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", "User 12345 does not exist")
-                                        .put("message", "User 12345 does not exist")
-                                        .put("error", "scim_resource_not_found"))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", "User 12345 does not exist")
+                        .put("message", "User 12345 does not exist")
+                        .put("error", "scim_resource_not_found")
+                        .toString()));
     }
 
     @ParameterizedTest
@@ -962,11 +964,11 @@ class ScimUserEndpointsMockMvcZonePathTests {
 
                 mockMvc.perform(put).andDo(print())
                         .andExpect(status().is(403))
-                        .andExpect(jsonPath("$.error", is("invalid_self_edit")))
-                        .andExpect(jsonPath("$.error_description", is(
+                        .andExpect(jsonPath("$.error").value("invalid_self_edit"))
+                        .andExpect(jsonPath("$.error_description").value(
                                 "Users are only allowed to edit their own User settings when internal user storage is enabled, " +
                                         "and in that case they may only edit the givenName and familyName.")
-                        ));
+                        );
             }
 
             @Test
@@ -1038,7 +1040,7 @@ class ScimUserEndpointsMockMvcZonePathTests {
 
                 @Test
                 void put_updateNothing_shouldFail() throws Exception {
-                    mockMvc.perform(put("/Users/" + regularUser.getId())
+                    MvcResult result = mockMvc.perform(put("/Users/" + regularUser.getId())
                                     .headers(zoneSeeder.getZoneIdRequestHeader())
                                     .header("Authorization", "Bearer " + uaaAdminToken)
                                     .header("If-Match", "\"" + regularUser.getVersion() + "\"")
@@ -1047,11 +1049,13 @@ class ScimUserEndpointsMockMvcZonePathTests {
                                     .content(JsonUtils.writeValueAsBytes(regularUser)))
                             .andDo(print())
                             .andExpect(status().is(403))
-                            .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
-                                    new JSONObject()
-                                            .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
-                                            .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
-                                            .put("error", "internal_user_management_disabled"))));
+                            .andReturn();
+                    assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                            .isEqualTo(JsonUtils.readTree(new JSONObject()
+                                    .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("error", "internal_user_management_disabled")
+                                    .toString()));
                 }
 
                 @Test
@@ -1068,13 +1072,15 @@ class ScimUserEndpointsMockMvcZonePathTests {
                             .accept(APPLICATION_JSON)
                             .contentType(APPLICATION_JSON)
                             .content(JsonUtils.writeValueAsBytes(regularUser));
-                    mockMvc.perform(put).andDo(print())
+                    MvcResult result = mockMvc.perform(put).andDo(print())
                             .andExpect(status().is(403))
-                            .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
-                                    new JSONObject()
-                                            .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
-                                            .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
-                                            .put("error", "internal_user_management_disabled"))));
+                            .andReturn();
+                    assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                            .isEqualTo(JsonUtils.readTree(new JSONObject()
+                                    .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("error", "internal_user_management_disabled")
+                                    .toString()));
                 }
 
                 @Test
@@ -1090,13 +1096,15 @@ class ScimUserEndpointsMockMvcZonePathTests {
                             .accept(APPLICATION_JSON)
                             .contentType(APPLICATION_JSON)
                             .content(JsonUtils.writeValueAsBytes(regularUser));
-                    mockMvc.perform(patch)
+                    MvcResult result = mockMvc.perform(patch)
                             .andExpect(status().is(403))
-                            .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(
-                                    new JSONObject()
-                                            .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
-                                            .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
-                                            .put("error", "internal_user_management_disabled"))));
+                            .andReturn();
+                    assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                            .isEqualTo(JsonUtils.readTree(new JSONObject()
+                                    .put("error_description", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("message", "Internal User Creation is currently disabled. External User Store is in use.")
+                                    .put("error", "internal_user_management_disabled")
+                                    .toString()));
                 }
             }
         }

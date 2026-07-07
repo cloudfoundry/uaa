@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -114,7 +113,7 @@ class TokenKeyEndpointMockMvcZonePathTests {
                         mode.createRequestBuilder(testZone.getSubdomain(), HttpMethod.GET, "/token_key")
                                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(header().string("ETag", any(String.class)))
+                .andExpect(header().exists("ETag"))
                 .andReturn();
     }
 
@@ -239,7 +238,7 @@ class TokenKeyEndpointMockMvcZonePathTests {
                         mode.createRequestBuilder(testZone.getSubdomain(), HttpMethod.GET, "/token_keys")
                                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(header().string("ETag", any(String.class)))
+                .andExpect(header().exists("ETag"))
                 .andReturn();
     }
 

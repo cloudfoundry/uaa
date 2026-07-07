@@ -30,6 +30,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -41,18 +42,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.hasValue;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -204,11 +200,13 @@ class ProfileControllerMockMvcTests {
         UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.UAA, null, currentIdentityZoneId);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
-        mockMvc.perform(get("/profile").principal(authentication))
+        MvcResult result = mockMvc.perform(get("/profile").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(model().attributeExists("approvals"))
                 .andExpect(content().contentTypeCompatibleWith(TEXT_HTML))
-                .andExpect(content().string(containsString("You have not yet authorized any third party applications.")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("You have not yet authorized any third party applications.");
     }
 
     @Test
@@ -216,11 +214,12 @@ class ProfileControllerMockMvcTests {
         UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.LDAP, "dnEntryForLdapUser", currentIdentityZoneId);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
-        mockMvc.perform(get("/profile").principal(authentication))
+        MvcResult result = mockMvc.perform(get("/profile").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("isUaaManagedUser", false))
                 .andExpect(model().attributeDoesNotExist("email"))
-                .andExpect(content().string(not(containsString("Change Password"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("Change Password");
     }
 
     @ParameterizedTest
@@ -275,20 +274,32 @@ class ProfileControllerMockMvcTests {
         UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", OriginKeys.UAA, null, currentIdentityZoneId);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
-        mockMvc.perform(get("/profile").principal(authentication))
+        MvcResult result = mockMvc.perform(get("/profile").principal(authentication))
                 .andExpect(status().isOk())
                 .andExpect(model().attributeExists("clientnames"))
-                .andExpect(model().attribute("clientnames", hasKey("app")))
-                .andExpect(model().attribute("clientnames", hasValue(is(name))))
                 .andExpect(model().attribute("isUaaManagedUser", true))
                 .andExpect(model().attribute("email", "email@example.com"))
-                .andExpect(model().attribute("approvals", hasKey("app")))
-                .andExpect(model().attribute("approvals", hasValue(hasSize(2))))
                 .andExpect(content().contentTypeCompatibleWith(TEXT_HTML))
-                .andExpect(content().string(containsString("These applications have been granted access to your account.")))
-                .andExpect(content().string(containsString("Change Password")))
-                .andExpect(content().string(containsString("<h3>" + name)))
-                .andExpect(content().string(containsString("Are you sure you want to revoke access to " + name)));
+                .andReturn();
+
+        Map<String, Object> model = result.getModelAndView().getModel();
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> clientNames = (Map<String, String>) model.get("clientnames");
+        assertThat(clientNames).containsKey("app");
+        assertThat(clientNames.values()).contains(name);
+
+        @SuppressWarnings("unchecked")
+        Map<String, List<DescribedApproval>> approvals = (Map<String, List<DescribedApproval>>) model.get("approvals");
+        assertThat(approvals).containsKey("app");
+        assertThat(approvals.values()).anySatisfy(value -> assertThat(value).hasSize(2));
+
+        assertThat(result.getResponse().getContentAsString())
+                .contains(
+                        "These applications have been granted access to your account.",
+                        "Change Password",
+                        "<h3>" + name,
+                        "Are you sure you want to revoke access to " + name);
     }
 
 }

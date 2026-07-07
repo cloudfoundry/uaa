@@ -86,9 +86,6 @@ guava = { module = "com.google.guava:guava", version.ref = "guava" }
 # Greenmail
 greenmail = { module = "com.icegreen:greenmail", version.ref = "greenmail" }
 
-# Hamcrest
-hamcrest = { module = "org.hamcrest:hamcrest" }
-
 # Hibernate
 hibernateValidator = { module = "org.hibernate.validator:hibernate-validator" }
 

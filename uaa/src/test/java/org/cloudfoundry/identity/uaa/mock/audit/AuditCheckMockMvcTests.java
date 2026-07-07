@@ -97,7 +97,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.httpBearer;
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -277,10 +276,13 @@ class AuditCheckMockMvcTests {
                 .param("username", testUser.getUserName())
                 .param("password", testPassword);
 
-        mockMvc.perform(loginPost)
+        MvcResult loginResult = mockMvc.perform(loginPost)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"username\":\"" + testUser.getUserName())))
-                .andExpect(content().string(containsString("\"email\":\"" + testUser.getPrimaryEmail())));
+                .andReturn();
+        assertThat(loginResult.getResponse().getContentAsString())
+                .contains(
+                        "\"username\":\"" + testUser.getUserName(),
+                        "\"email\":\"" + testUser.getPrimaryEmail());
 
         assertThatNumberOfAuditEventsReceivedIsEqualTo(2);
 
