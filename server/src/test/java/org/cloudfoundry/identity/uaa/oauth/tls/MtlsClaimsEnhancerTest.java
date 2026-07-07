@@ -188,6 +188,158 @@ class MtlsClaimsEnhancerTest {
         assertThat(cf).containsEntry("app", "app-guid");
     }
 
+    @Test
+    void subTemplateRenderedAndOverridesDefault() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setSubTemplate("o/{cf.org}/s/{cf.space}/a/{cf.app}");
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).containsEntry("sub",
+            "o/org-guid/s/space-guid/a/app-guid");
+    }
+
+    @Test
+    void audTemplatesRenderedAndOverrideDefault() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAudTemplates(List.of(
+            "o/{cf.org}/s/{cf.space}/a/{cf.app}",
+            "o/{cf.org}/s/{cf.space}",
+            "o/{cf.org}"
+        ));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).containsKey("aud");
+        @SuppressWarnings("unchecked")
+        List<String> aud = (List<String>) result.get("aud");
+        assertThat(aud).containsExactly(
+            "o/org-guid/s/space-guid/a/app-guid",
+            "o/org-guid/s/space-guid",
+            "o/org-guid"
+        );
+    }
+
+    @Test
+    void subOmittedWhenTemplateVarMissing() throws Exception {
+        // Cert has no OU fields → cf.org will not be in vars
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=only-cn"));
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "cf_instance_guid"))
+        );
+        config.setSubTemplate("o/{cf.org}");  // {cf.org} will have no value
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).doesNotContainKey("sub");
+        assertThat(result).containsEntry("cf_instance_guid", "only-cn");
+    }
+
+    @Test
+    void audEntryDroppedWhenTemplateVarMissing() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAudTemplates(List.of(
+            "a/{cf.app}",          // will resolve
+            "x/{missing_var}"      // {missing_var} not in vars → dropped
+        ));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).containsKey("aud");
+        @SuppressWarnings("unchecked")
+        List<String> aud = (List<String>) result.get("aud");
+        assertThat(aud).containsExactly("a/app-guid");
+    }
+
+    @Test
+    void audOmittedWhenAllTemplateEntriesFail() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAudTemplates(List.of("x/{missing}", "y/{also_missing}"));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).doesNotContainKey("aud");
+    }
+
+    @Test
+    void noTemplatesConfiguredLeavesSubAndAudAbsent() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        // Config with no subTemplate/audTemplates (original behaviour)
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(cfMappingsConfig());
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).doesNotContainKey("sub");
+        assertThat(result).doesNotContainKey("aud");
+    }
+
+    private X509Certificate mockCfCert() throws Exception {
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
+            "CN=inst-guid, OU=app:app-guid, OU=space:space-guid, OU=organization:org-guid, O=Cloud Foundry"));
+        return cert;
+    }
+
+    private TlsClientAuthConfiguration cfMappingsConfig() {
+        return new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$",          "cf.app"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^space:(.+)$",        "cf.space"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^organization:(.+)$", "cf.org"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null,                  "cf_instance_guid")
+            )
+        );
+    }
+
     private OAuth2Authentication mockAuthentication(String clientId) {
         OAuth2Request request = mock(OAuth2Request.class);
         when(request.getClientId()).thenReturn(clientId);

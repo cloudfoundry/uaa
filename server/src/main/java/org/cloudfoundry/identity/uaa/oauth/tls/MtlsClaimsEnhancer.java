@@ -141,7 +141,28 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             // Silently skip cnf claim if cert encoding fails
         }
 
-        // PHASE 3 — template rendering (added in next task)
+        // PHASE 3 — template rendering for sub and aud
+        Pattern placeholder = Pattern.compile("\\{([^}]+)\\}");
+
+        if (config.getSubTemplate() != null) {
+            String rendered = renderTemplate(config.getSubTemplate(), vars, placeholder);
+            if (rendered != null) {
+                result.put("sub", rendered);
+            }
+        }
+
+        if (config.getAudTemplates() != null && !config.getAudTemplates().isEmpty()) {
+            List<String> audList = new ArrayList<>();
+            for (String tmpl : config.getAudTemplates()) {
+                String rendered = renderTemplate(tmpl, vars, placeholder);
+                if (rendered != null) {
+                    audList.add(rendered);
+                }
+            }
+            if (!audList.isEmpty()) {
+                result.put("aud", audList);
+            }
+        }
 
         return result;
     }
@@ -198,6 +219,29 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             }
         }
         return null;
+    }
+
+    /**
+     * Renders a template string by substituting all {@code {varName}} placeholders
+     * from {@code vars}. Returns {@code null} if any placeholder has no corresponding
+     * value in {@code vars} (the whole template is then dropped by the caller).
+     *
+     * <p>Variable names may contain dots (e.g. {@code {cf.org}}); dots inside braces
+     * are treated as part of the name, not as path separators.
+     */
+    private String renderTemplate(String template, Map<String, String> vars, Pattern placeholder) {
+        StringBuffer sb = new StringBuffer();
+        Matcher m = placeholder.matcher(template);
+        while (m.find()) {
+            String varName = m.group(1);
+            String value   = vars.get(varName);
+            if (value == null) {
+                return null;  // unresolved placeholder → caller should drop this template
+            }
+            m.appendReplacement(sb, Matcher.quoteReplacement(value));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     /**
