@@ -67,4 +67,69 @@ class TlsClientAuthConfigurationTest {
         TlsClientAuthConfiguration b = new TlsClientAuthConfiguration("ca-b", null);
         assertThat(a).isNotEqualTo(b);
     }
+
+    @Test
+    void subTemplateRoundTripsViaJson() throws Exception {
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
+            EXAMPLE_CA,
+            List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "cf_instance_guid"))
+        );
+        config.setSubTemplate("o/{cf.org}/s/{cf.space}/a/{cf.app}");
+
+        JsonMapper mapper = new JsonMapper();
+        String json = mapper.writeValueAsString(config);
+        TlsClientAuthConfiguration deserialized = mapper.readValue(json, TlsClientAuthConfiguration.class);
+
+        assertThat(deserialized.getSubTemplate()).isEqualTo("o/{cf.org}/s/{cf.space}/a/{cf.app}");
+    }
+
+    @Test
+    void audTemplatesRoundTripsViaJson() throws Exception {
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        config.setAudTemplates(List.of(
+            "o/{cf.org}/s/{cf.space}/a/{cf.app}",
+            "o/{cf.org}/s/{cf.space}",
+            "o/{cf.org}"
+        ));
+
+        JsonMapper mapper = new JsonMapper();
+        String json = mapper.writeValueAsString(config);
+        TlsClientAuthConfiguration deserialized = mapper.readValue(json, TlsClientAuthConfiguration.class);
+
+        assertThat(deserialized.getAudTemplates()).containsExactly(
+            "o/{cf.org}/s/{cf.space}/a/{cf.app}",
+            "o/{cf.org}/s/{cf.space}",
+            "o/{cf.org}"
+        );
+    }
+
+    @Test
+    void nullSubTemplateAndAudTemplatesOmittedFromJson() throws Exception {
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        // subTemplate and audTemplates left null
+
+        JsonMapper mapper = new JsonMapper();
+        String json = mapper.writeValueAsString(config);
+
+        assertThat(json).doesNotContain("tls-client-auth-sub-template");
+        assertThat(json).doesNotContain("tls-client-auth-aud-templates");
+    }
+
+    @Test
+    void equalityIncludesSubTemplateAndAudTemplates() {
+        TlsClientAuthConfiguration a = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        a.setSubTemplate("o/{cf.org}");
+        a.setAudTemplates(List.of("o/{cf.org}"));
+
+        TlsClientAuthConfiguration b = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        b.setSubTemplate("o/{cf.org}");
+        b.setAudTemplates(List.of("o/{cf.org}"));
+
+        TlsClientAuthConfiguration c = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        c.setSubTemplate("different");
+
+        assertThat(a).isEqualTo(b);
+        assertThat(a.hashCode()).isEqualTo(b.hashCode());
+        assertThat(a).isNotEqualTo(c);
+    }
 }

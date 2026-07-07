@@ -13,12 +13,20 @@ public class TlsClientAuthConfiguration {
 
     public static final String TLS_CLIENT_AUTH_CA = "tls-client-auth-ca";
     public static final String TLS_CLIENT_AUTH_CLAIM_MAPPINGS = "tls-client-auth-claim-mappings";
+    public static final String TLS_CLIENT_AUTH_SUB_TEMPLATE = "tls-client-auth-sub-template";
+    public static final String TLS_CLIENT_AUTH_AUD_TEMPLATES = "tls-client-auth-aud-templates";
 
     @JsonProperty(TLS_CLIENT_AUTH_CA)
     private String trustedCaPem;
 
     @JsonProperty(TLS_CLIENT_AUTH_CLAIM_MAPPINGS)
     private List<ClaimMapping> claimMappings;
+
+    @JsonProperty(TLS_CLIENT_AUTH_SUB_TEMPLATE)
+    private String subTemplate;
+
+    @JsonProperty(TLS_CLIENT_AUTH_AUD_TEMPLATES)
+    private List<String> audTemplates;
 
     public TlsClientAuthConfiguration() {}
 
@@ -33,17 +41,25 @@ public class TlsClientAuthConfiguration {
     public List<ClaimMapping> getClaimMappings() { return claimMappings; }
     public void setClaimMappings(List<ClaimMapping> claimMappings) { this.claimMappings = claimMappings; }
 
+    public String getSubTemplate() { return subTemplate; }
+    public void setSubTemplate(String subTemplate) { this.subTemplate = subTemplate; }
+
+    public List<String> getAudTemplates() { return audTemplates; }
+    public void setAudTemplates(List<String> audTemplates) { this.audTemplates = audTemplates; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof TlsClientAuthConfiguration that)) return false;
         return Objects.equals(trustedCaPem, that.trustedCaPem) &&
-               Objects.equals(claimMappings, that.claimMappings);
+               Objects.equals(claimMappings, that.claimMappings) &&
+               Objects.equals(subTemplate, that.subTemplate) &&
+               Objects.equals(audTemplates, that.audTemplates);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(trustedCaPem, claimMappings);
+        return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {
