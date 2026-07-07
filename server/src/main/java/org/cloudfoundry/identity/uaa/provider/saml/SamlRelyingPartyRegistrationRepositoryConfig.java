@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
@@ -78,19 +77,23 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         relyingPartyRegistrations.add(exampleRelyingPartyRegistration);
 
         for (SamlIdentityProviderDefinition samlIdentityProviderDefinition : bootstrapSamlIdentityProviderData.getIdentityProviderDefinitions()) {
-            RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
-                    .samlEntityID(samlEntityID)
-                    .samlSpNameId(samlSpNameID)
-                    .keys(defaultKeysWithCerts)
-                    .metadataLocation(samlIdentityProviderConfigurator.resolveMetadataXml(samlIdentityProviderDefinition))
-                    .rpRegistrationId(samlIdentityProviderDefinition.getIdpEntityAlias())
-                    .samlSpAlias(uaaWideSamlEntityIDAlias)
-                    .requestSigned(samlConfigProps.getSignRequest())
-                    .signatureAlgorithms(signatureAlgorithms)
-                    .build();
             try {
+                RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
+                        .samlEntityID(samlEntityID)
+                        .samlSpNameId(samlSpNameID)
+                        .keys(defaultKeysWithCerts)
+                        .metadataLocation(samlIdentityProviderConfigurator.resolveMetadataXml(samlIdentityProviderDefinition))
+                        .rpRegistrationId(samlIdentityProviderDefinition.getIdpEntityAlias())
+                        .samlSpAlias(uaaWideSamlEntityIDAlias)
+                        .requestSigned(samlConfigProps.getSignRequest())
+                        .signatureAlgorithms(signatureAlgorithms)
+                        .build();
                 relyingPartyRegistrations.add(RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params));
-            } catch (Saml2Exception e) {
+            } catch (Exception e) {
+                // A single unreachable/misconfigured bootstrap IDP must not prevent UAA from starting;
+                // resolveMetadataXml() now performs a live fetch here and can throw RestClientException
+                // (e.g. DNS/connect failures) in addition to the Saml2Exception thrown by
+                // buildRelyingPartyRegistration() itself.
                 log.error("Error building relying party", e);
             }
         }

@@ -12,6 +12,7 @@ import org.springframework.security.saml2.provider.service.registration.Assertin
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.security.Security;
 import java.util.List;
@@ -70,6 +71,26 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
         RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository, ENTITY_ID, "http://localhost:8080/uaa");
 
         assertThat(resolver).isNotNull();
+    }
+
+    @Test
+    void relyingPartyRegistrationRepositoryToleratesUnreachableBootstrapIdpMetadata() {
+        SamlIdentityProviderDefinition unreachableIdp = new SamlIdentityProviderDefinition()
+                .setMetaDataLocation("http://simplesamlphp.invalid/saml2/idp/metadata.php")
+                .setIdpEntityAlias("unreachable-idp");
+        when(bootstrapSamlIdentityProviderData.getIdentityProviderDefinitions()).thenReturn(List.of(unreachableIdp));
+        when(samlIdentityProviderConfigurator.resolveMetadataXml(unreachableIdp))
+                .thenThrow(new ResourceAccessException("I/O error on GET request for metadata URL"));
+
+        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
+                samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
+
+        // A single unreachable bootstrap IDP must not prevent the bean (and therefore UAA startup)
+        // from succeeding -- it should be logged and skipped, leaving the default registration intact.
+        RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
+
+        assertThat(repository).isNotNull();
+        assertThat(repository.findByRegistrationId(SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID)).isNotNull();
     }
 
     @Test
