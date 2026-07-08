@@ -89,6 +89,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.test.util.XpathExpectationsHelper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -134,6 +135,18 @@ public final class MockMvcUtils {
 
     private MockMvcUtils() {
         throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
+    /**
+     * Evaluates an XPath expression against the (XML/HTML) response body of a completed request and
+     * returns the matched node's string value. Use with AssertJ, e.g.
+     * {@code assertThat(evaluateXpath(result, "/a/@b")).contains("expected")}, to keep the assertion
+     * scoped to a single node rather than the whole response body.
+     */
+    public static String evaluateXpath(MvcResult result, String xpathExpression) throws Exception {
+        return new XpathExpectationsHelper(xpathExpression, null)
+                .evaluateXpath(result.getResponse().getContentAsByteArray(),
+                        result.getResponse().getCharacterEncoding(), String.class);
     }
 
     /**

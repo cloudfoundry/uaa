@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.XpathExpectationsHelper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -22,6 +21,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.evaluateXpath;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_DIGEST_SHA256;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
 import static org.springframework.http.HttpHeaders.HOST;
@@ -89,12 +89,6 @@ class SamlMetadataEndpointMockMvcTests {
                 .contains(ALGO_ID_SIGNATURE_RSA_SHA256);
         assertThat(evaluateXpath(result, "/EntityDescriptor/Signature/SignedInfo/Reference/DigestMethod/@Algorithm"))
                 .contains(ALGO_ID_DIGEST_SHA256);
-    }
-
-    private static String evaluateXpath(MvcResult result, String xpathExpression) throws Exception {
-        return new XpathExpectationsHelper(xpathExpression, null)
-                .evaluateXpath(result.getResponse().getContentAsByteArray(),
-                        result.getResponse().getCharacterEncoding(), String.class);
     }
 
     @Test
