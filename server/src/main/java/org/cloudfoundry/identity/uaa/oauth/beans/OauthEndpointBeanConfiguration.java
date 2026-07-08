@@ -694,23 +694,7 @@ public class OauthEndpointBeanConfiguration {
         bean.setActiveKeyId(activeKeyId);
         bean.setJwtRevocable(jwtRevocable);
         bean.setRefreshTokenFormat(refreshTokenFormat);
-
-        int refreshTokenUnique = -1;
-        if ("true".equalsIgnoreCase(refreshTokenUniqueStr)) {
-            refreshTokenUnique = 1;
-        } else if ("false".equalsIgnoreCase(refreshTokenUniqueStr)) {
-            refreshTokenUnique = -1;
-        } else {
-            try {
-                refreshTokenUnique = Integer.parseInt(refreshTokenUniqueStr);
-                if (refreshTokenUnique <= 0) {
-                    refreshTokenUnique = -1;
-                }
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid jwt.token.refresh.unique value: " + refreshTokenUniqueStr + ". Must be 'true', 'false', or a positive integer.");
-            }
-        }
-        bean.setMaxSessionLimit(refreshTokenUnique);
+        bean.setMaxSessionLimit(TokenPolicy.parseRefreshTokenUnique(refreshTokenUniqueStr));
 
         bean.setRefreshTokenRotate(refreshTokenRotate);
         return bean;

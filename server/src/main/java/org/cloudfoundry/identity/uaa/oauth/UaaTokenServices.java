@@ -101,7 +101,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
@@ -318,7 +317,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens(clientAuth)) {
             tokenIdToBeDeleted = (String) jwtToken.getClaims().get(JTI);
         }
-        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, tokenClientId, user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
+        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, client, tokenClientId, user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
 
     private static String getAuthenticationMethod(OAuth2Request oAuth2Request) {
@@ -725,7 +724,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         isAccessTokenRevocable,
                         authenticationData);
 
-        return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, isOpaque, isAccessTokenRevocable, null);
+        return persistRevocableToken(tokenId, accessToken, refreshToken, client, clientId, userId, isOpaque, isAccessTokenRevocable, null);
     }
 
     private static String getClientSecretForHash(String clientSecret) {
@@ -764,6 +763,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             boolean isOpaque,
             boolean isRevocable,
             String tokenIdToBeDeleted) {
+        return persistRevocableToken(tokenId, token, refreshToken, null, clientId, userId, isOpaque, isRevocable, tokenIdToBeDeleted);
+    }
+
+    CompositeToken persistRevocableToken(String tokenId,
+            CompositeToken token,
+            CompositeExpiringOAuth2RefreshToken refreshToken,
+            UaaClientDetails client,
+            String clientId,
+            String userId,
+            boolean isOpaque,
+            boolean isRevocable,
+            String tokenIdToBeDeleted) {
 
         String scope = token.getScope().toString();
         long now = timeService.getCurrentTimeMillis();
@@ -797,7 +808,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     .setUserId(userId)
                     .setScope(scope)
                     .setValue(refreshToken.getValue());
-            enforceConcurrentSessionLimit(userId, clientId, resolveRefreshTokenUniqueLimit(clientId, zoneId), zoneId, refreshToken.getJti(), tokenIdToBeDeleted);
+            enforceConcurrentSessionLimit(userId, clientId, resolveRefreshTokenUniqueLimit(client, clientId, zoneId), zoneId, refreshToken.getJti(), tokenIdToBeDeleted);
             tokenProvisioning.createIfNotExists(revocableRefreshToken, zoneId);
             if (tokenIdToBeDeleted != null) {
                 tokenProvisioning.delete(tokenIdToBeDeleted, -1, IdentityZoneHolder.getCurrentZoneId());
@@ -969,13 +980,25 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      * A client-level override stored in the client's additional information takes precedence over the identity
      * zone's token policy. The value is interpreted as: {@code -1} (or any non-positive number) means unlimited,
      * while a positive number caps the active refresh tokens per user and client at that count.
+     * <p>
+     * The caller may supply an already-loaded {@link UaaClientDetails} to avoid a redundant lookup; when
+     * {@code null} the client is loaded by id.
      */
-    private int resolveRefreshTokenUniqueLimit(String clientId, String zoneId) {
+    private int resolveRefreshTokenUniqueLimit(UaaClientDetails client, String clientId, String zoneId) {
         int limit = getActiveTokenPolicy().getMaxSessionLimit();
         try {
-            UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, zoneId);
-            if (client != null && client.getAdditionalInformation().get(ClientConstants.REFRESH_TOKEN_UNIQUE) instanceof Number clientLimit) {
-                limit = clientLimit.intValue();
+            UaaClientDetails resolvedClient = client != null
+                    ? client
+                    : (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, zoneId);
+            if (resolvedClient != null) {
+                Object override = resolvedClient.getAdditionalInformation().get(ClientConstants.REFRESH_TOKEN_UNIQUE);
+                if (override instanceof Number clientLimit) {
+                    limit = clientLimit.intValue();
+                } else if (override instanceof Boolean clientLimit) {
+                    limit = clientLimit ? 1 : -1;
+                } else if (override instanceof String clientLimit) {
+                    limit = TokenPolicy.parseRefreshTokenUnique(clientLimit);
+                }
             }
         } catch (RuntimeException e) {
             logger.warn("Failed to read client-level {} override for client {}", ClientConstants.REFRESH_TOKEN_UNIQUE, clientId, e);
@@ -1023,7 +1046,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         for (int i = 0; i < numberToRevoke && i < candidatesToRevoke.size(); i++) {
             tokenProvisioning.delete(candidatesToRevoke.get(i).getTokenId(), -1, zoneId);
         }
-        
+
         publish(new TokenRevocationEvent(userId, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));
     }
 

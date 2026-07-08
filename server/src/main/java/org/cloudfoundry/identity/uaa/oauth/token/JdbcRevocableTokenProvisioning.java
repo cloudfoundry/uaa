@@ -16,12 +16,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isEmpty;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 
-    private static final String REFRESH_TOKEN_RESPONSE_TYPE = REFRESH_TOKEN.toString();
     private static final String FIELDS = "token_id,client_id,user_id,format,response_type,issued_at,expires_at,scope,data,identity_zone_id";
     private static final String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',') + 1, FIELDS.lastIndexOf(',')).replace(",", "=?,") + "=?";
     private static final String TABLE = "revocable_tokens";
