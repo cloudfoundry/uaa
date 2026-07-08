@@ -71,7 +71,6 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.test.util.XpathExpectationsHelper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -112,6 +111,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.evaluateXpath;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
@@ -999,9 +999,7 @@ public class LoginMockMvcZonePathTests {
         var footerTitleLocator = "//div[@class=\"copyright\"]/@title";
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
                 .andExpect(result -> {
-                    String title = new XpathExpectationsHelper(footerTitleLocator, null)
-                            .evaluateXpath(result.getResponse().getContentAsByteArray(),
-                                    result.getResponse().getCharacterEncoding(), String.class);
+                    String title = evaluateXpath(result, footerTitleLocator);
                     assertThat(title)
                             .contains("UAA: http://localhost:8080/uaa")
                             .contains("Version: 0.0.0, Commit:");
@@ -1426,9 +1424,7 @@ public class LoginMockMvcZonePathTests {
             org.cloudfoundry.identity.uaa.zone.IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login"))
                     .andExpect(result -> {
-                        String title = new XpathExpectationsHelper("//div[@class=\"copyright\"]/@title", null)
-                                .evaluateXpath(result.getResponse().getContentAsByteArray(),
-                                        result.getResponse().getCharacterEncoding(), String.class);
+                        String title = evaluateXpath(result, "//div[@class=\"copyright\"]/@title");
                         assertThat(title).contains("UAA: https://uaa.exmaple.com/uaa");
                     });
         }
