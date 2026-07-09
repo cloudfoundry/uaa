@@ -14,14 +14,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.io.File;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -258,30 +259,33 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
         void invalidBindPassword() throws Exception {
             definition.setBindPassword("!!!!!!!INVALID_BIND_PASSWORD!!!!!!!");
 
-            getMockMvc().perform(
+            MvcResult result = getMockMvc().perform(
                     baseRequest.content(JsonUtils.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().string(containsString("Caused by:")));
+                    .andReturn();
+            assertThat(result.getResponse().getContentAsString()).contains("Caused by:");
         }
 
         @Test
         void invalidLdapUrl() throws Exception {
             definition.setBaseUrl("ldap://foobar:9090");
 
-            getMockMvc().perform(
+            MvcResult result = getMockMvc().perform(
                     baseRequest.content(JsonUtils.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().string(containsString("Caused by:")));
+                    .andReturn();
+            assertThat(result.getResponse().getContentAsString()).contains("Caused by:");
         }
 
         @Test
         void invalidSearchBase() throws Exception {
             definition.setUserSearchBase(",,,,,dc=INVALID,dc=SEARCH_BASE");
 
-            getMockMvc().perform(
+            MvcResult result = getMockMvc().perform(
                     baseRequest.content(JsonUtils.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().string(containsString("Caused by:")));
+                    .andReturn();
+            assertThat(result.getResponse().getContentAsString()).contains("Caused by:");
         }
 
         /**
@@ -296,11 +300,12 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
                 definition.setBaseUrl(inMemoryLdapServer.getUrl());
                 definition.setSkipSSLVerification(false);
 
-                getMockMvc().perform(
+                MvcResult result = getMockMvc().perform(
                                 baseRequest.content(JsonUtils.writeValueAsString(request)))
                         .andDo(print())
                         .andExpect(status().isBadRequest())
-                        .andExpect(content().string(containsString("Caused by:")));
+                        .andReturn();
+                assertThat(result.getResponse().getContentAsString()).contains("Caused by:");
             } catch (Exception _) {
                 fail("should not be able to connect to LDAP server");
             }

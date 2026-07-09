@@ -44,8 +44,6 @@ import jakarta.servlet.http.Cookie;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -147,10 +145,10 @@ class ZonePathSessionMockMvcTests {
         MockHttpSession session = new MockHttpSession();
         session = performLogin("", DEFAULT_ZONE_USER, DEFAULT_ZONE_PASSWORD, session);
 
-        mockMvc.perform(withSessionCookie(MODE.createRequestBuilder("", HttpMethod.GET, "/profile"), session))
+        MvcResult result = mockMvc.perform(withSessionCookie(MODE.createRequestBuilder("", HttpMethod.GET, "/profile"), session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(DEFAULT_ZONE_USER)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", DEFAULT_ZONE_USER);
     }
 
     /**
@@ -163,38 +161,38 @@ class ZonePathSessionMockMvcTests {
     void loginToDefaultZoneAndBothPathZonesThenVerifyProfileInEach() throws Exception {
         MockHttpSession session = new MockHttpSession();
         session = performLogin("", DEFAULT_ZONE_USER, DEFAULT_ZONE_PASSWORD, session, true);
-        mockMvc.perform(withSessionCookie(MODE.createRequestBuilder("", HttpMethod.GET, "/profile"), session))
+        MvcResult result = mockMvc.perform(withSessionCookie(MODE.createRequestBuilder("", HttpMethod.GET, "/profile"), session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(DEFAULT_ZONE_USER)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", DEFAULT_ZONE_USER);
 
         session = performLogin(zone1Subdomain, userZone1Email, PASSWORD, session, false);
-        mockMvc.perform(withSessionCookie(MODE.createRequestBuilder(zone1Subdomain, HttpMethod.GET, "/profile"), session))
+        result = mockMvc.perform(withSessionCookie(MODE.createRequestBuilder(zone1Subdomain, HttpMethod.GET, "/profile"), session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(userZone1Email)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", userZone1Email);
 
         session = performLogin(zone2Subdomain, userZone2Email, PASSWORD, session, false);
-        mockMvc.perform(withSessionCookie(MODE.createRequestBuilder(zone2Subdomain, HttpMethod.GET, "/profile"), session))
+        result = mockMvc.perform(withSessionCookie(MODE.createRequestBuilder(zone2Subdomain, HttpMethod.GET, "/profile"), session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(userZone2Email)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", userZone2Email);
 
         //allow the user to browse around
-        mockMvc.perform(withSessionCookie(MODE.createRequestBuilder("", HttpMethod.GET, "/profile"), session))
+        result = mockMvc.perform(withSessionCookie(MODE.createRequestBuilder("", HttpMethod.GET, "/profile"), session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(DEFAULT_ZONE_USER)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", DEFAULT_ZONE_USER);
 
-        mockMvc.perform(withSessionCookie(MODE.createRequestBuilder(zone1Subdomain, HttpMethod.GET, "/profile"), session))
+        result = mockMvc.perform(withSessionCookie(MODE.createRequestBuilder(zone1Subdomain, HttpMethod.GET, "/profile"), session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(userZone1Email)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", userZone1Email);
 
-        mockMvc.perform(withSessionCookie(MODE.createRequestBuilder(zone2Subdomain, HttpMethod.GET, "/profile"), session))
+        result = mockMvc.perform(withSessionCookie(MODE.createRequestBuilder(zone2Subdomain, HttpMethod.GET, "/profile"), session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(userZone2Email)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", userZone2Email);
     }
 
     /**
@@ -211,15 +209,15 @@ class ZonePathSessionMockMvcTests {
         mockMvc.perform(MODE.createRequestBuilder(zone1Subdomain, HttpMethod.GET, "/logout.do").session(session))
                 .andExpect(status().isFound());
 
-        mockMvc.perform(MODE.createRequestBuilder("", HttpMethod.GET, "/profile").session(session))
+        MvcResult result = mockMvc.perform(MODE.createRequestBuilder("", HttpMethod.GET, "/profile").session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(DEFAULT_ZONE_USER)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", DEFAULT_ZONE_USER);
 
-        mockMvc.perform(MODE.createRequestBuilder(zone2Subdomain, HttpMethod.GET, "/profile").session(session))
+        result = mockMvc.perform(MODE.createRequestBuilder(zone2Subdomain, HttpMethod.GET, "/profile").session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Account Settings")))
-                .andExpect(content().string(containsString(userZone2Email)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Account Settings", userZone2Email);
 
         MvcResult zone1ProfileResult = mockMvc.perform(MODE.createRequestBuilder(zone1Subdomain, HttpMethod.GET, "/profile").session(session))
                 .andExpect(status().isFound())

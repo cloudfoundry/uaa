@@ -31,6 +31,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -40,12 +41,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.thymeleaf.TemplateEngine;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -102,9 +102,10 @@ class ResetPasswordControllerViewZonePathTests extends TestClassNullifier {
         } else {
             mode.setZone();
         }
-        mockMvc.perform(request(mode, "/email_sent").param("code", "reset_password"))
+        MvcResult result = mockMvc.perform(request(mode, "/email_sent").param("code", "reset_password"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedLoginHref(mode))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(expectedLoginHref(mode));
     }
 
     @EnableWebMvc

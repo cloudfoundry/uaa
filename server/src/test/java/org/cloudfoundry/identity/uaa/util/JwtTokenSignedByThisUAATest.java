@@ -48,6 +48,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
@@ -81,7 +82,7 @@ import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildRe
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -89,7 +90,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 public class JwtTokenSignedByThisUAATest {
     public static final String CLIENT_ID = "app";
@@ -408,16 +408,16 @@ public class JwtTokenSignedByThisUAATest {
 
         jwtToken.checkClientAndUser(uaaClient, uaaUser);
         verify(jwtToken, times(1))
-                .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
-                        (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
+                .checkRequiredUserGroups(argThat(containsInAnyOrder(new String[0])),
+                        argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
                 );
         Mockito.reset(jwtToken);
 
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, null);
         jwtToken.checkClientAndUser(uaaClient, uaaUser);
         verify(jwtToken, times(1))
-                .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
-                        (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
+                .checkRequiredUserGroups(argThat(containsInAnyOrder(new String[0])),
+                        argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
                 );
 
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("group1", "group2"));
@@ -428,9 +428,23 @@ public class JwtTokenSignedByThisUAATest {
 
         jwtToken.checkClientAndUser(uaaClient, uaaUser);
         verify(jwtToken, times(1))
-                .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[]{"group1", "group2"})),
-                        (Collection<String>) argThat(containsInAnyOrder(uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).toArray()))
+                .checkRequiredUserGroups(argThat(containsInAnyOrder(new String[]{"group1", "group2"})),
+                        argThat(containsInAnyOrder(uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).toArray()))
                 );
+    }
+
+    // Matches when the actual collection has exactly the same elements as expected, ignoring order,
+    // for use with Mockito's argThat.
+    private static ArgumentMatcher<Collection<String>> containsInAnyOrder(Object... expected) {
+        List<String> expectedStrings = Arrays.stream(expected).map(String::valueOf).toList();
+        return actual -> {
+            try {
+                assertThat(actual).containsExactlyInAnyOrderElementsOf(expectedStrings);
+                return true;
+            } catch (AssertionError e) {
+                return false;
+            }
+        };
     }
 
     @Test

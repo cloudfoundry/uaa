@@ -24,24 +24,20 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchExc
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
 import java.util.Collections;
 
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.RESPONSE_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.SCOPE;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(ZoneSeederExtension.class)
@@ -88,13 +84,15 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
 
             @Test
             void shouldRedirect_whenItReliesOnLegacyWildcardBehavior() throws Exception {
-                mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com/a/b"))
+                MvcResult implicitResult = mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com/a/b"))
                         .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com/a/b#token_type=bearer&access_token=")));
+                        .andReturn();
+                assertThat(implicitResult.getResponse().getHeader("Location")).startsWith("http://sample.com/a/b#token_type=bearer&access_token=");
 
-                mockMvc.perform(authCodeAuthorizeRequest("http://sample.com/a/b"))
+                MvcResult authCodeResult = mockMvc.perform(authCodeAuthorizeRequest("http://sample.com/a/b"))
                         .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com/a/b?code=")));
+                        .andReturn();
+                assertThat(authCodeResult.getResponse().getHeader("Location")).startsWith("http://sample.com/a/b?code=");
             }
         }
 
@@ -108,24 +106,28 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
 
             @Test
             void shouldRedirect_whenItReliesOnLegacyImplicitMatchingBehavior() throws Exception {
-                mockMvc.perform(implicitGrantAuthorizeRequest("http://subdomain.sample.com/path"))
+                MvcResult implicitResult = mockMvc.perform(implicitGrantAuthorizeRequest("http://subdomain.sample.com/path"))
                         .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://subdomain.sample.com/path#token_type=bearer&access_token=")));
+                        .andReturn();
+                assertThat(implicitResult.getResponse().getHeader("Location")).startsWith("http://subdomain.sample.com/path#token_type=bearer&access_token=");
 
-                mockMvc.perform(authCodeAuthorizeRequest("http://subdomain.sample.com/path"))
+                MvcResult authCodeResult = mockMvc.perform(authCodeAuthorizeRequest("http://subdomain.sample.com/path"))
                         .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://subdomain.sample.com/path?code=")));
+                        .andReturn();
+                assertThat(authCodeResult.getResponse().getHeader("Location")).startsWith("http://subdomain.sample.com/path?code=");
             }
 
             @Test
             void shouldRedirect_whenTheRequestRedirectUriIsAnExactMatch() throws Exception {
-                mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com"))
+                MvcResult implicitResult = mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com"))
                         .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com#token_type=bearer&access_token=")));
+                        .andReturn();
+                assertThat(implicitResult.getResponse().getHeader("Location")).startsWith("http://sample.com#token_type=bearer&access_token=");
 
-                mockMvc.perform(authCodeAuthorizeRequest("http://sample.com"))
+                MvcResult authCodeResult = mockMvc.perform(authCodeAuthorizeRequest("http://sample.com"))
                         .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com?code=")));
+                        .andReturn();
+                assertThat(authCodeResult.getResponse().getHeader("Location")).startsWith("http://sample.com?code=");
             }
         }
     }
@@ -150,21 +152,23 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
 
             @Test
             void shouldFail_whenTheRequestReliesOnLegacyWildcardMatchingBehavior() throws Exception {
-                mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com/a/b"))
+                MvcResult implicitResult = mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com/a/b"))
                         .andExpect(status().isBadRequest())
                         .andExpect(forwardedUrl("/oauth/error"))
-                        .andExpect(model().attribute("error", instanceOf(RedirectMismatchException.class)))
-                        .andExpect(model().attribute("error", hasProperty("message",
-                                is("Invalid redirect http://sample.com/a/b did not match one of the registered values")
-                        )));
+                        .andReturn();
+                Object implicitError = implicitResult.getModelAndView().getModel().get("error");
+                assertThat(implicitError).isInstanceOf(RedirectMismatchException.class);
+                assertThat(((RedirectMismatchException) implicitError).getMessage())
+                        .isEqualTo("Invalid redirect http://sample.com/a/b did not match one of the registered values");
 
-                mockMvc.perform(authCodeAuthorizeRequest("http://sample.com/a/b"))
+                MvcResult authCodeResult = mockMvc.perform(authCodeAuthorizeRequest("http://sample.com/a/b"))
                         .andExpect(status().isBadRequest())
                         .andExpect(forwardedUrl("/oauth/error"))
-                        .andExpect(model().attribute("error", instanceOf(RedirectMismatchException.class)))
-                        .andExpect(model().attribute("error", hasProperty("message",
-                                is("Invalid redirect http://sample.com/a/b did not match one of the registered values")
-                        )));
+                        .andReturn();
+                Object authCodeError = authCodeResult.getModelAndView().getModel().get("error");
+                assertThat(authCodeError).isInstanceOf(RedirectMismatchException.class);
+                assertThat(((RedirectMismatchException) authCodeError).getMessage())
+                        .isEqualTo("Invalid redirect http://sample.com/a/b did not match one of the registered values");
             }
         }
 
@@ -178,32 +182,36 @@ class UaaAuthorizationEndpointMockMvcZonePathTest {
 
             @Test
             void shouldFail_whenTheRequestReliesOnLegacyImplicitMatchingBehavior() throws Exception {
-                mockMvc.perform(implicitGrantAuthorizeRequest("http://subdomain.sample.com"))
+                MvcResult implicitResult = mockMvc.perform(implicitGrantAuthorizeRequest("http://subdomain.sample.com"))
                         .andExpect(status().isBadRequest())
                         .andExpect(forwardedUrl("/oauth/error"))
-                        .andExpect(model().attribute("error", instanceOf(RedirectMismatchException.class)))
-                        .andExpect(model().attribute("error", hasProperty("message",
-                                is("Invalid redirect http://subdomain.sample.com did not match one of the registered values")
-                        )));
+                        .andReturn();
+                Object implicitError = implicitResult.getModelAndView().getModel().get("error");
+                assertThat(implicitError).isInstanceOf(RedirectMismatchException.class);
+                assertThat(((RedirectMismatchException) implicitError).getMessage())
+                        .isEqualTo("Invalid redirect http://subdomain.sample.com did not match one of the registered values");
 
-                mockMvc.perform(authCodeAuthorizeRequest("http://subdomain.sample.com/path"))
+                MvcResult authCodeResult = mockMvc.perform(authCodeAuthorizeRequest("http://subdomain.sample.com/path"))
                         .andExpect(status().isBadRequest())
                         .andExpect(forwardedUrl("/oauth/error"))
-                        .andExpect(model().attribute("error", instanceOf(RedirectMismatchException.class)))
-                        .andExpect(model().attribute("error", hasProperty("message",
-                                is("Invalid redirect http://subdomain.sample.com/path did not match one of the registered values")
-                        )));
+                        .andReturn();
+                Object authCodeError = authCodeResult.getModelAndView().getModel().get("error");
+                assertThat(authCodeError).isInstanceOf(RedirectMismatchException.class);
+                assertThat(((RedirectMismatchException) authCodeError).getMessage())
+                        .isEqualTo("Invalid redirect http://subdomain.sample.com/path did not match one of the registered values");
             }
 
             @Test
             void shouldRedirect_whenTheRequestRedirectUriIsAnExactMatch() throws Exception {
-                mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com"))
+                MvcResult implicitResult = mockMvc.perform(implicitGrantAuthorizeRequest("http://sample.com"))
                         .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com#token_type=bearer&access_token=")));
+                        .andReturn();
+                assertThat(implicitResult.getResponse().getHeader("Location")).startsWith("http://sample.com#token_type=bearer&access_token=");
 
-                mockMvc.perform(authCodeAuthorizeRequest("http://sample.com"))
+                MvcResult authCodeResult = mockMvc.perform(authCodeAuthorizeRequest("http://sample.com"))
                         .andExpect(status().isFound())
-                        .andExpect(header().string("Location", startsWith("http://sample.com?code=")));
+                        .andReturn();
+                assertThat(authCodeResult.getResponse().getHeader("Location")).startsWith("http://sample.com?code=");
             }
         }
     }

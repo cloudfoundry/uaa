@@ -29,7 +29,6 @@ dependencies {
     testImplementation(libs.springBootStarterTest) {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
-    testImplementation(libs.hamcrest)
     testImplementation(libs.junit5JupiterApi)
     testImplementation(libs.junit5JupiterParams)
     testImplementation(libs.junit5JupiterEngine)

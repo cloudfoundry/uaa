@@ -90,7 +90,6 @@ import static org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken.ACCES
 import static org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.atLeast;
@@ -111,7 +110,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -260,12 +258,14 @@ public abstract class AbstractLdapMockMvcTest {
                 .header(HOST, host)
         );
         MvcResult result = actions.andExpect(status().isOk())
-                .andExpect(content().string(containsString("Link your account")))
-                .andExpect(content().string(containsString("Email: " + email)))
-                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
-                .andExpect(content().string(containsString("username")))
-                .andExpect(content().string(containsString("<input type=\"submit\" value=\"Sign in\" class=\"island-button\"/>")))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains(
+                        "Link your account",
+                        "Email: " + email,
+                        "Sign in with enterprise credentials:",
+                        "username",
+                        "<input type=\"submit\" value=\"Sign in\" class=\"island-button\"/>");
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
 
@@ -294,12 +294,13 @@ public abstract class AbstractLdapMockMvcTest {
         if (session!=null) {
             get = get.session(session);
         }
-        getMockMvc().perform(
+        MvcResult formRedirectResult = getMockMvc().perform(
                         get
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("form_redirect_uri")))
-                .andExpect(content().string(containsString(URLEncoder.encode(redirectUri, StandardCharsets.UTF_8))));
+                .andReturn();
+        assertThat(formRedirectResult.getResponse().getContentAsString())
+                .contains("form_redirect_uri", URLEncoder.encode(redirectUri, StandardCharsets.UTF_8));
         post = post("/login.do")
                 .with(cookieCsrf())
                 .param("username", "marissa2")
@@ -336,10 +337,12 @@ public abstract class AbstractLdapMockMvcTest {
                 .header(HOST, host)
         );
         result = actions.andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + email)))
-                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
-                .andExpect(content().string(containsString("username")))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains(
+                        "Email: " + email,
+                        "Sign in with enterprise credentials:",
+                        "username");
 
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
 
@@ -354,12 +357,13 @@ public abstract class AbstractLdapMockMvcTest {
         if (session!=null) {
             post = post.session(session);
         }
-        getMockMvc().perform(
+        MvcResult mismatchResult = getMockMvc().perform(
                         post
                 )
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(containsString("The authenticated email does not match the invited email. Please log in using a different account.")))
                 .andReturn();
+        assertThat(mismatchResult.getResponse().getContentAsString())
+                .contains("The authenticated email does not match the invited email. Please log in using a different account.");
         boolean userVerified = Boolean.parseBoolean(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select verified from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId()));
         assertThat(userVerified).isFalse();
     }

@@ -30,6 +30,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.List;
@@ -41,11 +42,9 @@ import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.RESPON
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.STATE;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -176,10 +175,11 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
     void get_approvals() throws Exception {
         oauth_authorize_without_csrf();
         MockHttpSession session = getAuthenticatedSession(user1);
-        mockMvc.perform(get("/profile")
+        MvcResult result = mockMvc.perform(get("/profile")
                         .session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(client1.getClientId() + "-test.scope1")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(client1.getClientId() + "-test.scope1");
     }
 
     @Test

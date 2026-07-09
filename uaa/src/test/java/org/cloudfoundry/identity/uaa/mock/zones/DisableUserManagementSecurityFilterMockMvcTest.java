@@ -9,7 +9,6 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
-import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -23,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -41,7 +41,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
@@ -88,13 +87,14 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     void userEndpointCreateNotAllowed_For_Origin_UAA() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
         ResultActions result = createUser(mockMvc, token);
-        result.andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+        MvcResult mvcResult = result.andExpect(status().isForbidden())
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
@@ -138,17 +138,18 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         PasswordChangeRequest request = new PasswordChangeRequest();
         request.setOldPassword(PASSWD);
         request.setPassword("n3wAw3som3Passwd");
-        mockMvc.perform(put("/Users/" + createdUser.getId() + "/password")
+        MvcResult mvcResult = mockMvc.perform(put("/Users/" + createdUser.getId() + "/password")
                         .header("Authorization", "Bearer " + token)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("message", MESSAGE_TEXT)
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
@@ -158,15 +159,16 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(delete("/Users/" + createdUser.getId())
+        MvcResult mvcResult = mockMvc.perform(delete("/Users/" + createdUser.getId())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
@@ -201,59 +203,63 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/Users/" + createdUser.getId() + "/verify")
+        MvcResult mvcResult = mockMvc.perform(get("/Users/" + createdUser.getId() + "/verify")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
     void accountsControllerCreateAccountNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/create_account"))
+        MvcResult result = mockMvc.perform(get("/create_account"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
     void accountsControllerSendActivationEmailNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(post("/create_account.do")
+        MvcResult result = mockMvc.perform(post("/create_account.do")
                         .with(cookieCsrf())
                         .param("client_id", "login")
                         .param("email", "another@example.com")
                         .param("password", "foobar")
                         .param("password_confirmation", "foobar"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
     void accountsControllerEmailSentNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/accounts/email_sent"))
+        MvcResult result = mockMvc.perform(get("/accounts/email_sent"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
@@ -267,15 +273,16 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         codeData.put("client_id", "login");
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/verify_user")
+        MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                         .param("code", getExpiringCode(codeData, codeStore, identityZoneManager).getCode()))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
@@ -286,17 +293,18 @@ class DisableUserManagementSecurityFilterMockMvcTest {
 
         MockHttpSession userSession = getUserSession(createdUser.getUserName(), PASSWD);
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/change_email")
+        MvcResult mvcResult = mockMvc.perform(get("/change_email")
                         .session(userSession)
                         .with(cookieCsrf())
                         .accept(ACCEPT_TEXT_HTML))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 
     @Test
@@ -306,19 +314,20 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(post("/change_email.do")
+        MvcResult mvcResult = mockMvc.perform(post("/change_email.do")
                         .session(getUserSession(createdUser.getUserName(), PASSWD))
                         .with(CookieCsrfPostProcessor.cookieCsrf())
                         .accept(ACCEPT_TEXT_HTML)
                         .param("newEmail", "newUser@example.com")
                         .param("client_id", "login"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
@@ -335,15 +344,16 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         ExpiringCode code = getExpiringCode(change, codeStore, identityZoneManager);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/verify_email")
+        MvcResult mvcResult = mockMvc.perform(get("/verify_email")
                         .param("code", code.getCode()))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
@@ -355,15 +365,16 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
 
-        mockMvc.perform(get("/change_password")
+        MvcResult mvcResult = mockMvc.perform(get("/change_password")
                         .session(getUserSession(createdUser.getUserName(), PASSWD)))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
@@ -374,7 +385,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
         MockHttpSession userSession = getUserSession(createdUser.getUserName(), PASSWD);
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(post("/change_password.do")
+        MvcResult mvcResult = mockMvc.perform(post("/change_password.do")
                         .session(userSession)
                         .with(CookieCsrfPostProcessor.cookieCsrf())
                         .accept(ACCEPT_TEXT_HTML)
@@ -382,71 +393,76 @@ class DisableUserManagementSecurityFilterMockMvcTest {
                         .param("new_password", "whatever")
                         .param("confirm_password", "whatever"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
     @Test
     void resetPasswordControllerForgotPasswordPageNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/forgot_password"))
+        MvcResult result = mockMvc.perform(get("/forgot_password"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
     @Test
     void resetPasswordControllerForgotPasswordNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(post("/forgot_password.do")
+        MvcResult result = mockMvc.perform(post("/forgot_password.do")
                         .param("email", "another@example.com"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
     @Test
     void resetPasswordControllerEmailSentPageNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/email_sent"))
+        MvcResult result = mockMvc.perform(get("/email_sent"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
     @Test
     void resetPasswordControllerResetPasswordPageNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(get("/reset_password")
+        MvcResult result = mockMvc.perform(get("/reset_password")
                         .param("code", "12345")
                         .param("email", "another@example.com"))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
@@ -459,7 +475,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         PasswordChange change = new PasswordChange(createdUser.getId(), createdUser.getUserName(), createdUser.getPasswordLastModified(), "", "");
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(post("/reset_password.do")
+        MvcResult mvcResult = mockMvc.perform(post("/reset_password.do")
                         .param("code", getExpiringCode(change, codeStore, identityZoneManager).getCode())
                         .param("email", createdUser.getUserName())
                         .param("password", "new-password")
@@ -467,12 +483,13 @@ class DisableUserManagementSecurityFilterMockMvcTest {
                         .param("password_confirmation", "new-password")
                         .with(CookieCsrfPostProcessor.cookieCsrf()))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", MESSAGE_TEXT)
-                                        .put("message", MESSAGE_TEXT)
-                                        .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
 
     }
 
@@ -545,17 +562,19 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        mockMvc.perform(put("/Users/" + createdUser.getId())
+        MvcResult mvcResult = mockMvc.perform(put("/Users/" + createdUser.getId())
                         .header("Authorization", "Bearer " + token)
                         .header("If-Match", "\"" + createdUser.getVersion() + "\"")
                         .accept(APPLICATION_JSON)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(createdUser)))
                 .andExpect(status().isForbidden())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                                .put("error_description", MESSAGE_TEXT)
-                                .put("message", MESSAGE_TEXT)
-                                .put("error", ERROR_TEXT))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(mvcResult.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT)
+                        .toString()));
     }
 }

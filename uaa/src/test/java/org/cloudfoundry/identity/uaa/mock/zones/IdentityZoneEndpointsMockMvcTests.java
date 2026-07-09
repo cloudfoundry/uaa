@@ -92,7 +92,6 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPos
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.EMPTY_STRING;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -100,7 +99,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -2350,8 +2348,8 @@ class IdentityZoneEndpointsMockMvcTests {
                                 .contentType(APPLICATION_JSON)
                                 .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().is(expect.value()))
-                .andExpect(content().string(containsString(expectedContent)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(expectedContent);
 
         if (expect.is2xxSuccessful()) {
             return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
@@ -2367,8 +2365,8 @@ class IdentityZoneEndpointsMockMvcTests {
                                 .content(JsonUtils.writeValueAsString(identityZone)))
                 .andDo(print())
                 .andExpect(status().is(expect.value()))
-                .andExpect(content().string(containsString(expectedContent)))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(expectedContent);
 
         if (expect.is2xxSuccessful()) {
             return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);

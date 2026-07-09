@@ -39,6 +39,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -50,7 +51,6 @@ import org.thymeleaf.TemplateEngine;
 import java.sql.Timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.contains;
 import static org.mockito.Mockito.eq;
@@ -62,7 +62,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -292,14 +291,16 @@ class ResetPasswordControllerTest extends TestClassNullifier {
     @Test
     void resetPasswordPage() throws Exception {
         ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
-        mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
+        MvcResult result = mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
                 .andExpect(status().isOk())
                 .andDo(print())
                 .andExpect(view().name("reset_password"))
                 .andExpect(model().attribute("email", "email"))
                 .andExpect(model().attribute("username", "username"))
-                .andExpect(content().string(containsString("<div class=\"email-display\">Username: username</div>")))
-                .andExpect(content().string(containsString("<input type=\"hidden\" name=\"username\" value=\"username\"/>")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("<div class=\"email-display\">Username: username</div>",
+                        "<input type=\"hidden\" name=\"username\" value=\"username\"/>");
     }
 
     @Test
@@ -307,14 +308,16 @@ class ResetPasswordControllerTest extends TestClassNullifier {
         ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(head("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
+        MvcResult result = mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
                 .andExpect(status().isOk())
                 .andDo(print())
                 .andExpect(view().name("reset_password"))
                 .andExpect(model().attribute("email", "email"))
                 .andExpect(model().attribute("username", "username"))
-                .andExpect(content().string(containsString("<div class=\"email-display\">Username: username</div>")))
-                .andExpect(content().string(containsString("<input type=\"hidden\" name=\"username\" value=\"username\"/>")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("<div class=\"email-display\">Username: username</div>",
+                        "<input type=\"hidden\" name=\"username\" value=\"username\"/>");
     }
 
     @Test

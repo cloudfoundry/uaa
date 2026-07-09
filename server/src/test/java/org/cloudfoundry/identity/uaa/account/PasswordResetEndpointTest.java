@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
@@ -26,6 +25,7 @@ import org.mockito.Mockito;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -35,8 +35,8 @@ import java.time.ZoneId;
 import java.util.Collections;
 import java.util.Date;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.AUTOLOGIN;
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -46,7 +46,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -177,10 +176,11 @@ class PasswordResetEndpointTest {
                 .content("user@example.com")
                 .accept(APPLICATION_JSON);
 
-        mockMvc.perform(post)
+        MvcResult result = mockMvc.perform(post)
                 .andExpect(status().isCreated())
-                .andExpect(content().string(containsString("\"code\":\"secret_code\"")))
-                .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("\"code\":\"secret_code\"", "\"user_id\":\"id001\"");
     }
 
     @Test
@@ -217,9 +217,11 @@ class PasswordResetEndpointTest {
                 .content("user@example.com")
                 .accept(APPLICATION_JSON);
 
-        mockMvc.perform(post)
+        MvcResult result = mockMvc.perform(post)
                 .andExpect(status().isConflict())
-                .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("\"user_id\":\"id001\"");
     }
 
     @Test
@@ -243,10 +245,11 @@ class PasswordResetEndpointTest {
                 .content("user\"'@example.com")
                 .accept(APPLICATION_JSON);
 
-        mockMvc.perform(post)
+        MvcResult result = mockMvc.perform(post)
                 .andExpect(status().isCreated())
-                .andExpect(content().string(containsString("\"code\":\"secret_code\"")))
-                .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("\"code\":\"secret_code\"", "\"user_id\":\"id001\"");
 
         when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
                 eq("user\"'@example.com"),
@@ -306,12 +309,15 @@ class PasswordResetEndpointTest {
                 .contentType(APPLICATION_JSON)
                 .content("{\"code\":\"secret_code\",\"new_password\":\"new_secret\"}");
 
-        mockMvc.perform(post)
+        MvcResult result = mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
                         .put("error_description", "Sorry, your reset password link is no longer valid. Please request a new one")
                         .put("message", "Sorry, your reset password link is no longer valid. Please request a new one")
-                        .put("error", "invalid_code"))));
+                        .put("error", "invalid_code")
+                        .toString()));
     }
 
     @Test
@@ -370,9 +376,11 @@ class PasswordResetEndpointTest {
                 .content("{\"code\":\"emailed_code\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
-        mockMvc.perform(post)
+        MvcResult result = mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("error_description", "Password flunks policy").put("message", "Password flunks policy").put("error", "invalid_password"))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject().put("error_description", "Password flunks policy").put("message", "Password flunks policy").put("error", "invalid_password").toString()));
     }
 
     @Test
@@ -400,8 +408,10 @@ class PasswordResetEndpointTest {
 
         SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
 
-        mockMvc.perform(post)
+        MvcResult result = mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("error_description", "Your new password cannot be the same as the old password.").put("message", "Your new password cannot be the same as the old password.").put("error", "invalid_password"))));
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject().put("error_description", "Your new password cannot be the same as the old password.").put("message", "Your new password cannot be the same as the old password.").put("error", "invalid_password").toString()));
     }
 }

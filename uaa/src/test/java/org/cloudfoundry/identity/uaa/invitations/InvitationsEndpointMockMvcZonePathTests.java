@@ -60,12 +60,9 @@ import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
@@ -458,11 +455,11 @@ class InvitationsEndpointMockMvcZonePathTests {
                     zoneSeeder.getAdminClientWithClientCredentialsGrant().getClientId(),
                     zoneSeeder.getPlainTextClientSecret(zoneSeeder.getAdminClientWithClientCredentialsGrant()));
 
-            mockMvc.perform(get(acceptInvitationLink)
+            MvcResult mvcResult = mockMvc.perform(get(acceptInvitationLink)
                             .header("Host", (zoneSeeder.getIdentityZoneSubdomain() + ".localhost")))
-                    .andExpect(content().string(containsString("Create your account")))
-                    .andExpect(content().string(containsString("Best Company")))
-                    .andExpect(content().string(containsString("Create account")));
+                    .andReturn();
+            assertThat(mvcResult.getResponse().getContentAsString())
+                    .contains("Create your account", "Best Company", "Create account");
         }
 
     }
@@ -599,9 +596,10 @@ class InvitationsEndpointMockMvcZonePathTests {
 
     @Test
     void acceptInvitationEmailWithDefaultCompanyName() throws Exception {
-        mockMvc.perform(get(getAcceptInvitationLink(webApplicationContext, mockMvc, clientId, clientSecret, generator, emailDomain, null, "admin", "adminsecret")))
-                .andExpect(content().string(containsString("Create your account")))
-                .andExpect(content().string(containsString("Create account")));
+        MvcResult mvcResult = mockMvc.perform(get(getAcceptInvitationLink(webApplicationContext, mockMvc, clientId, clientSecret, generator, emailDomain, null, "admin", "adminsecret")))
+                .andReturn();
+        assertThat(mvcResult.getResponse().getContentAsString())
+                .contains("Create your account", "Create account");
     }
 
     @ParameterizedTest
@@ -638,10 +636,11 @@ class InvitationsEndpointMockMvcZonePathTests {
 
         MockHttpServletRequestBuilder accept = mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
                 .param("code", code);
-        mockMvc.perform(accept)
+        MvcResult mvcResult = mockMvc.perform(accept)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Create your account")))
-                .andExpect(content().string(containsString("Create account")));
+                .andReturn();
+        assertThat(mvcResult.getResponse().getContentAsString())
+                .contains("Create your account", "Create account");
     }
 
     @Test
@@ -656,10 +655,11 @@ class InvitationsEndpointMockMvcZonePathTests {
         defaultZone.setConfig(config);
         identityZoneProvisioning.update(defaultZone);
         try {
-            mockMvc.perform(get(getAcceptInvitationLink(webApplicationContext, mockMvc, clientId, clientSecret, generator, emailDomain, null, "admin", "adminsecret")))
-                    .andExpect(content().string(containsString("Create your Best Company account")))
-                    .andExpect(content().string(containsString("Create Best Company account")))
-                    .andExpect(content().string(not(containsString("Create account"))));
+            MvcResult mvcResult = mockMvc.perform(get(getAcceptInvitationLink(webApplicationContext, mockMvc, clientId, clientSecret, generator, emailDomain, null, "admin", "adminsecret")))
+                    .andReturn();
+            assertThat(mvcResult.getResponse().getContentAsString())
+                    .contains("Create your Best Company account", "Create Best Company account")
+                    .doesNotContain("Create account");
         } finally {
             defaultZone.setConfig(defaultConfig);
             identityZoneProvisioning.update(defaultZone);
@@ -708,10 +708,11 @@ class InvitationsEndpointMockMvcZonePathTests {
 
         MockHttpServletRequestBuilder accept = mode.createRequestBuilder(subdomain, HttpMethod.GET, "/invitations/accept")
                 .param("code", code);
-        mockMvc.perform(accept)
+        MvcResult mvcResult = mockMvc.perform(accept)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Best Company")))
-                .andExpect(content().string(containsString("Create your account")));
+                .andReturn();
+        assertThat(mvcResult.getResponse().getContentAsString())
+                .contains("Best Company", "Create your account");
     }
 
     @ParameterizedTest
@@ -751,9 +752,11 @@ class InvitationsEndpointMockMvcZonePathTests {
         String expectedFormAction = mode == ZoneResolutionMode.ZONE_PATH
                 ? "<form action=\"/z/" + subdomain + "/invitations/accept.do\""
                 : "<form action=\"/invitations/accept.do\"";
-        mockMvc.perform(accept)
+        MvcResult mvcResult = mockMvc.perform(accept)
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedFormAction)));
+                .andReturn();
+        assertThat(mvcResult.getResponse().getContentAsString())
+                .contains(expectedFormAction);
     }
 
     private static InvitationsResponse sendRequestWithTokenAndReturnResponse(WebApplicationContext webApplicationContext,

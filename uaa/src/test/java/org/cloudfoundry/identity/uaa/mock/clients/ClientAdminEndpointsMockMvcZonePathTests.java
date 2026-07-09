@@ -718,11 +718,12 @@ class ClientAdminEndpointsMockMvcZonePathTests {
                 .content(JsonUtils.writeValueAsString(createPayload));
         mockMvc.perform(createRequest).andExpect(status().isCreated());
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/oauth/clients/" + clientId)
+        MvcResult getClientResult = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/oauth/clients/" + clientId)
                         .header("Authorization", "Bearer " + zoneToken)
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString(clientId)));
+                .andReturn();
+        assertThat(getClientResult.getResponse().getContentAsString()).contains(clientId);
     }
 
     @Test

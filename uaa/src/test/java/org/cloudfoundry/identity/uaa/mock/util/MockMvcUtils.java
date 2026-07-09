@@ -89,6 +89,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.test.util.XpathExpectationsHelper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -120,7 +121,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
-import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -135,6 +135,18 @@ public final class MockMvcUtils {
 
     private MockMvcUtils() {
         throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
+    /**
+     * Evaluates an XPath expression against the (XML/HTML) response body of a completed request and
+     * returns the matched node's string value. Use with AssertJ, e.g.
+     * {@code assertThat(evaluateXpath(result, "/a/@b")).contains("expected")}, to keep the assertion
+     * scoped to a single node rather than the whole response body.
+     */
+    public static String evaluateXpath(MvcResult result, String xpathExpression) throws Exception {
+        return new XpathExpectationsHelper(xpathExpression, null)
+                .evaluateXpath(result.getResponse().getContentAsByteArray(),
+                        result.getResponse().getCharacterEncoding(), String.class);
     }
 
     /**
@@ -807,8 +819,8 @@ public final class MockMvcUtils {
         if (!zoneSubdomain.equals(IdentityZone.getUaa())) {
             createClientDelete = createClientDelete.header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zoneSubdomain);
         }
-        mockMvc.perform(createClientDelete)
-                .andExpect(status().is(not(500)));
+        MvcResult result = mockMvc.perform(createClientDelete).andReturn();
+        assertThat(result.getResponse().getStatus()).isNotEqualTo(500);
     }
 
     public static UaaClientDetails createClient(MockMvc mockMvc, String accessToken, UaaClientDetails clientDetails,

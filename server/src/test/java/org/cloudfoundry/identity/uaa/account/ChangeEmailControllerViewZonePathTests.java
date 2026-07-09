@@ -27,6 +27,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -37,10 +38,9 @@ import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
 import java.util.Collections;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -106,9 +106,10 @@ class ChangeEmailControllerViewZonePathTests extends TestClassNullifier {
     @EnumSource(ZoneRequestPathMode.class)
     void changeEmailPageContainsZoneAwareFormAction(ZoneRequestPathMode mode) throws Exception {
         setSecurityContextWithUaaUser(mode);
-        mockMvc.perform(request(mode, "/change_email"))
+        MvcResult result = mockMvc.perform(request(mode, "/change_email"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedFormAction(mode))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(expectedFormAction(mode));
     }
 
     @EnableWebMvc

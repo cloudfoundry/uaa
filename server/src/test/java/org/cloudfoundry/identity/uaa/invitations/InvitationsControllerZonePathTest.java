@@ -52,7 +52,6 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -72,8 +71,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -86,7 +83,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
@@ -274,16 +270,16 @@ class InvitationsControllerZonePathTest {
         provider.setType(LDAP);
         when(providerProvisioning.retrieveByOrigin(eq(LDAP), anyString())).thenReturn(provider);
 
-        ResultActions actions = mockMvc.perform(requestGet(mode, "/invitations/accept").param("code", "the_secret_code"))
+        MvcResult result = mockMvc.perform(requestGet(mode, "/invitations/accept").param("code", "the_secret_code"))
                 .andExpect(view().name("invitations/accept_invite"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email: " + "user@example.com")))
-                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
-                .andExpect(content().string(containsString("username")))
-                .andExpect(model().attribute("code", "the_secret_code"));
+                .andExpect(model().attribute("code", "the_secret_code"))
+                .andReturn();
+        String content = result.getResponse().getContentAsString();
+        assertThat(content).contains("Email: " + "user@example.com", "Sign in with enterprise credentials:", "username");
         if (mode.redirectPrefix() != null && !mode.redirectPrefix().isEmpty()) {
             // LDAP flow shows enterprise form, so form action is accept_enterprise.do
-            actions.andExpect(content().string(containsString("action=\"" + mode.redirectPrefix() + "/invitations/accept_enterprise.do\"")));
+            assertThat(content).contains("action=\"" + mode.redirectPrefix() + "/invitations/accept_enterprise.do\"");
         }
     }
 
@@ -399,19 +395,18 @@ class InvitationsControllerZonePathTest {
         when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
-        mockMvc.perform(requestPost(mode, "/invitations/accept_enterprise.do")
+        MvcResult result = mockMvc.perform(requestPost(mode, "/invitations/accept_enterprise.do")
                         .param("enterprise_username", "test-ldap-user")
                         .param("enterprise_password", "password")
                         .param("enterprise_email", "email")
                         .param("code", "the_secret_code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("invitations/accept_invite"))
-                .andExpect(content().string(containsString("Email: " + "user@example.com")))
-                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
-                .andExpect(content().string(containsString("username")))
                 .andExpect(model().attribute("code", "code"))
                 .andExpect(model().attribute("error_message", "invite.email_mismatch"))
                 .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("Email: " + "user@example.com", "Sign in with enterprise credentials:", "username");
 
         verify(ldapActual).authenticate(any());
     }
@@ -743,8 +738,9 @@ class InvitationsControllerZonePathTest {
         when(expiringCodeStore.peekCode("thecode", zoneId))
                 .thenReturn(expiringCode, null);
 
-        mockMvc.perform(requestGet(mode, "/invitations/accept").param("code", "thecode"))
-                .andExpect(content().string(containsString("Jaskanwal")));
+        MvcResult result = mockMvc.perform(requestGet(mode, "/invitations/accept").param("code", "thecode"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Jaskanwal");
 
         // cleanup changes to default zone
         defaultZone.getConfig().setBranding(null);
@@ -767,8 +763,9 @@ class InvitationsControllerZonePathTest {
         when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId)))
                 .thenReturn(expiringCode);
 
-        mockMvc.perform(requestGet(mode, "/invitations/accept").param("code", "thecode"))
-                .andExpect(content().string(not(containsString("I agree"))));
+        MvcResult result = mockMvc.perform(requestGet(mode, "/invitations/accept").param("code", "thecode"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("I agree");
     }
 
     @ParameterizedTest

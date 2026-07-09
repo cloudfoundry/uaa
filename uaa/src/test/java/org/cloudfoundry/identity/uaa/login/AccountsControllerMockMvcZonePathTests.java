@@ -51,13 +51,10 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -114,8 +111,9 @@ class AccountsControllerMockMvcZonePathTests {
 
     @Test
     void createActivationEmailPage() throws Exception {
-        mockMvc.perform(get("/create_account"))
-                .andExpect(content().string(containsString("Create your account")));
+        MvcResult result = mockMvc.perform(get("/create_account"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Create your account");
     }
 
     @ParameterizedTest
@@ -124,16 +122,18 @@ class AccountsControllerMockMvcZonePathTests {
         String subdomain = generator.generate();
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/create_account"))
-                .andExpect(content().string(containsString("Create your account")));
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/create_account"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Create your account");
     }
 
     @Test
     void activationEmailSentPage() throws Exception {
-        mockMvc.perform(get("/accounts/email_sent"))
+        MvcResult result = mockMvc.perform(get("/accounts/email_sent"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Create your account")))
-                .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"));
+                .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Create your account");
     }
 
     @ParameterizedTest
@@ -142,11 +142,11 @@ class AccountsControllerMockMvcZonePathTests {
         String subdomain = generator.generate();
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/accounts/email_sent"))
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/accounts/email_sent"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Create your account")))
                 .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
-                .andExpect(content().string(containsString("Cloud Foundry")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Create your account", "Cloud Foundry");
     }
 
     /**
@@ -163,9 +163,10 @@ class AccountsControllerMockMvcZonePathTests {
         String expectedCreateAccountHref = mode == ZoneResolutionMode.ZONE_PATH
                 ? "href=\"/z/" + subdomain + "/create_account\"" : "href=\"/create_account\"";
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/accounts/email_sent"))
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/accounts/email_sent"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedCreateAccountHref)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(expectedCreateAccountHref);
     }
 
     /**
@@ -184,10 +185,10 @@ class AccountsControllerMockMvcZonePathTests {
         String expectedLoginHref = mode == ZoneResolutionMode.ZONE_PATH
                 ? "href=\"/z/" + subdomain + "/login\"" : "href=\"/login\"";
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/create_account"))
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/create_account"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedFormAction)))
-                .andExpect(content().string(containsString(expectedLoginHref)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(expectedFormAction, expectedLoginHref);
     }
 
     /**
@@ -206,18 +207,19 @@ class AccountsControllerMockMvcZonePathTests {
         String expectedLoginHref = mode == ZoneResolutionMode.ZONE_PATH
                 ? "href=\"/z/" + subdomain + "/login\"" : "href=\"/login\"";
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/verify_user")
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/verify_user")
                         .param("code", "expired-code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("accounts/link_prompt"))
-                .andExpect(content().string(containsString(expectedCreateAccountHref)))
-                .andExpect(content().string(containsString(expectedLoginHref)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(expectedCreateAccountHref, expectedLoginHref);
     }
 
     @Test
     void pageTitle() throws Exception {
-        mockMvc.perform(get("/create_account"))
-                .andExpect(content().string(containsString("<title>Cloud Foundry</title>")));
+        MvcResult result = mockMvc.perform(get("/create_account"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("<title>Cloud Foundry</title>");
     }
 
     @ParameterizedTest
@@ -226,8 +228,9 @@ class AccountsControllerMockMvcZonePathTests {
         String subdomain = generator.generate();
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/create_account"))
-                .andExpect(content().string(containsString("<title>" + zone.getName() + "</title>")));
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/create_account"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("<title>" + zone.getName() + "</title>");
     }
 
     @ParameterizedTest
@@ -266,8 +269,9 @@ class AccountsControllerMockMvcZonePathTests {
 
     @Test
     void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
-        mockMvc.perform(get("/create_account"))
-                .andExpect(content().string(containsString("background-image: url(/resources/oss/images/product-logo.png);")));
+        MvcResult result = mockMvc.perform(get("/create_account"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("background-image: url(/resources/oss/images/product-logo.png);");
     }
 
     @ParameterizedTest
@@ -276,8 +280,9 @@ class AccountsControllerMockMvcZonePathTests {
         String subdomain = generator.generate();
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/create_account"))
-                .andExpect(content().string(not(containsString("background-image: url(/resources/oss/images/product-logo.png);"))));
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/create_account"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("background-image: url(/resources/oss/images/product-logo.png);");
     }
 
     @Test
@@ -584,9 +589,9 @@ class AccountsControllerMockMvcZonePathTests {
         zone.getConfig().getBranding().getConsent().setLink(consentLink);
         MockMvcUtils.updateZone(mockMvc, zone);
 
-        mockMvc.perform(mode.createRequestBuilder(randomZoneSubdomain, HttpMethod.GET, "/create_account"))
-                .andExpect(content().string(containsString(consentText)))
-                .andExpect(content().string(containsString(consentLink)));
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(randomZoneSubdomain, HttpMethod.GET, "/create_account"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(consentText, consentLink);
     }
 
     @ParameterizedTest
@@ -602,8 +607,9 @@ class AccountsControllerMockMvcZonePathTests {
         zone.getConfig().getBranding().getConsent().setText(consentText);
         MockMvcUtils.updateZone(mockMvc, zone);
 
-        mockMvc.perform(mode.createRequestBuilder(randomZoneSubdomain, HttpMethod.GET, "/create_account"))
-                .andExpect(content().string(containsString(consentText)));
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(randomZoneSubdomain, HttpMethod.GET, "/create_account"))
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(consentText);
     }
 
     @ParameterizedTest
@@ -619,13 +625,14 @@ class AccountsControllerMockMvcZonePathTests {
         zone.getConfig().getBranding().getConsent().setText(consentText);
         MockMvcUtils.updateZone(mockMvc, zone);
 
-        mockMvc.perform(mode.createRequestBuilder(randomZoneSubdomain, HttpMethod.POST, "/create_account.do")
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(randomZoneSubdomain, HttpMethod.POST, "/create_account.do")
                         .with(cookieCsrf())
                         .param("email", userEmail)
                         .param("password", USER_PASSWORD)
                         .param("password_confirmation", USER_PASSWORD)
                         .param("does_user_consent", "false"))
-                .andExpect(content().string(containsString("Please agree before continuing.")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Please agree before continuing.");
     }
 
     private UaaClientDetails createTestClient() throws Exception {

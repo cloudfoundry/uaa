@@ -53,7 +53,6 @@ import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.seriali
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlDecode;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlDecodeAndInflate;
-import static org.hamcrest.Matchers.containsString;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_DIGEST_SHA256;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
@@ -62,7 +61,6 @@ import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -173,9 +171,9 @@ class SamlAuthenticationMockMvcTests {
                 )
                 .andDo(print())
                 .andExpectAll(
-                        status().isOk(),
-                        content().string(containsString("name=\"SAMLRequest\"")))
+                        status().isOk())
                 .andReturn();
+        assertThat(mvcResult.getResponse().getContentAsString()).contains("name=\"SAMLRequest\"");
 
         // Decode the SAMLRequest and check the AssertionConsumerServiceURL
         String samlRequestXml = new String(samlDecode(extractSamlRequestFromPostForm(mvcResult.getResponse().getContentAsString())), StandardCharsets.UTF_8);
@@ -289,9 +287,9 @@ class SamlAuthenticationMockMvcTests {
                     )
                     .andDo(print())
                     .andExpectAll(
-                            status().isOk(),
-                            content().string(containsString("name=\"SAMLRequest\"")))
+                            status().isOk())
                     .andReturn();
+            assertThat(mvcResult.getResponse().getContentAsString()).contains("name=\"SAMLRequest\"");
 
             // Decode the SAMLRequest and check the AssertionConsumerServiceURL
             String samlRequestXml = new String(samlDecode(extractSamlRequestFromPostForm(mvcResult.getResponse().getContentAsString())), StandardCharsets.UTF_8);
@@ -511,9 +509,9 @@ class SamlAuthenticationMockMvcTests {
                     )
                     .andDo(print())
                     .andExpectAll(
-                            status().isOk(),
-                            content().string(containsString("name=\"SAMLRequest\"")))
+                            status().isOk())
                     .andReturn();
+            assertThat(mvcResult.getResponse().getContentAsString()).contains("name=\"SAMLRequest\"");
 
             // Decode the SAMLRequest and check the AssertionConsumerServiceURL
             String samlRequestXml = new String(samlDecode(extractSamlRequestFromPostForm(mvcResult.getResponse().getContentAsString())), StandardCharsets.UTF_8);

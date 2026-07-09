@@ -36,6 +36,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.ui.Model;
@@ -52,13 +53,11 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
@@ -199,10 +198,11 @@ class HomeControllerViewZonePathTests extends TestClassNullifier {
     @EnumSource(ZoneRequestPathMode.class)
     void homePageContainsCorrectNavLinks(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
-        mockMvc.perform(request(mode, "/home"))
+        MvcResult result = mockMvc.perform(request(mode, "/home"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(expectedHref(mode, "/profile"))))
-                .andExpect(content().string(containsString(expectedHref(mode, "/logout.do"))));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains(expectedHref(mode, "/profile"), expectedHref(mode, "/logout.do"));
     }
 
     /**
@@ -213,19 +213,21 @@ class HomeControllerViewZonePathTests extends TestClassNullifier {
     @EnumSource(value = ZoneRequestPathMode.class, names = {"DEFAULT"})
     void homePageWithContextPath_containsNavLinksWithContextPath(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
-        mockMvc.perform(get("/uaa/home").contextPath("/uaa"))
+        MvcResult result = mockMvc.perform(get("/uaa/home").contextPath("/uaa"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("href=\"/uaa/profile\"")))
-                .andExpect(content().string(containsString("href=\"/uaa/logout.do\"")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("href=\"/uaa/profile\"", "href=\"/uaa/logout.do\"");
     }
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
     void errorPageContainsCorrectNavLinks(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
-        mockMvc.perform(request(mode, "/error"))
+        MvcResult result = mockMvc.perform(request(mode, "/error"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Uh oh.")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("Uh oh.");
     }
 
     @ParameterizedTest
@@ -233,9 +235,11 @@ class HomeControllerViewZonePathTests extends TestClassNullifier {
     void errorPageContainsCorrectResourceLink(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         String imagePath = "/resources/images/sad_cloud.png";
-        mockMvc.perform(request(mode, "/error"))
+        MvcResult result = mockMvc.perform(request(mode, "/error"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("src=\"" + expectedResourcePath(mode, imagePath) + "\"")));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString())
+                .contains("src=\"" + expectedResourcePath(mode, imagePath) + "\"");
     }
 
     static Stream<Arguments> errorBrandingParams() {
@@ -249,10 +253,10 @@ class HomeControllerViewZonePathTests extends TestClassNullifier {
     void errorBranding(ZoneRequestPathMode mode, String errorUrl) throws Exception {
         mode.setZone();
         applyTestBrandingToCurrentZone();
-        mockMvc.perform(request(mode, errorUrl).sessionAttr(WebAttributes.AUTHENTICATION_EXCEPTION, new InternalAuthenticationServiceException("auth error")))
+        MvcResult result = mockMvc.perform(request(mode, errorUrl).sessionAttr(WebAttributes.AUTHENTICATION_EXCEPTION, new InternalAuthenticationServiceException("auth error")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @ParameterizedTest
@@ -260,10 +264,10 @@ class HomeControllerViewZonePathTests extends TestClassNullifier {
     void errorOauthWithExceptionString(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         applyTestBrandingToCurrentZone();
-        mockMvc.perform(request(mode, "/oauth_error").sessionAttr("oauth_error", "auth error"))
+        MvcResult result = mockMvc.perform(request(mode, "/oauth_error").sessionAttr("oauth_error", "auth error"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @ParameterizedTest
@@ -271,10 +275,10 @@ class HomeControllerViewZonePathTests extends TestClassNullifier {
     void error500WithGenericException(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         applyTestBrandingToCurrentZone();
-        mockMvc.perform(request(mode, "/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception("bad")))
+        MvcResult result = mockMvc.perform(request(mode, "/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception("bad")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @ParameterizedTest
@@ -282,10 +286,10 @@ class HomeControllerViewZonePathTests extends TestClassNullifier {
     void error500WithSAMLExceptionAsCause(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         applyTestBrandingToCurrentZone();
-        mockMvc.perform(request(mode, "/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new Saml2Exception("bad"))))
+        MvcResult result = mockMvc.perform(request(mode, "/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new Saml2Exception("bad"))))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @ParameterizedTest
@@ -293,10 +297,10 @@ class HomeControllerViewZonePathTests extends TestClassNullifier {
     void error500WithMetadataProviderNotFoundExceptionCause(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         applyTestBrandingToCurrentZone();
-        mockMvc.perform(request(mode, "/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
+        MvcResult result = mockMvc.perform(request(mode, "/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString(customFooterText)))
-                .andExpect(content().string(containsString(base64ProductLogo)));
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains(customFooterText, base64ProductLogo);
     }
 
     @ParameterizedTest
