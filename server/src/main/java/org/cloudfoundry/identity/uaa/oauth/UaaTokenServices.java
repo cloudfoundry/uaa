@@ -984,10 +984,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     /**
-     * Enforces the per-user, per-client concurrent session limit by revoking the oldest refresh tokens so that
-     * at most {@code limit - 1} remain, leaving room for the refresh token that is about to be issued. A
-     * non-positive limit means unlimited and disables enforcement. This only takes effect when refresh tokens
-     * are revocable/stored (opaque refresh tokens are always stored; JWT refresh tokens require
+     * Enforces the per-user, per-client concurrent session limit by revoking the oldest refresh tokens.
+     * It ensures that the number of active refresh tokens does not exceed the limit, accounting for whether
+     * the new token replaces an existing one or increases the active count. A non-positive limit means
+     * unlimited and disables enforcement. This only takes effect when refresh tokens are revocable/stored
+     * (opaque refresh tokens are always stored; JWT refresh tokens require
      * {@code jwt.token.revocable=true}), which is guaranteed by the caller.
      */
     private void enforceConcurrentSessionLimit(String userId, String clientId, int limit, String zoneId, String newTokenId, String tokenIdToBeDeleted) {

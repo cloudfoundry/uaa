@@ -707,7 +707,7 @@ public class OauthEndpointBeanConfiguration {
                     refreshTokenUnique = -1;
                 }
             } catch (NumberFormatException e) {
-                refreshTokenUnique = -1;
+                throw new IllegalArgumentException("Invalid jwt.token.refresh.unique value: " + refreshTokenUniqueStr + ". Must be 'true', 'false', or a positive integer.");
             }
         }
         bean.setMaxSessionLimit(refreshTokenUnique);
