@@ -67,7 +67,10 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String ACCESS_TOKEN_VALIDITY_DESC = "Time in seconds between when a access token is issued and when it expires. Defaults to global `accessTokenValidity`";
     private static final String REFRESH_TOKEN_VALIDITY_DESC = "Time in seconds between when a refresh token is issued and when it expires. Defaults to global `refreshTokenValidity`";
     private static final String REFRESH_TOKEN_FORMAT = "The format for the refresh token. Allowed values are `jwt`, `opaque`. Defaults to `opaque`.";
-    private static final String REFRESH_TOKEN_UNIQUE = "If true, uaa will only issue one refresh token per client_id/user_id combination. Defaults to `false`.";
+    private static final String REFRESH_TOKEN_UNIQUE = "Maximum number of concurrent active refresh tokens (sessions) per user/client pair. " +
+            "Accepts a boolean or an integer for backwards compatibility: `true` is equivalent to `1` (one session), " +
+            "`false` or any non-positive value means no limit. A positive integer N allows up to N concurrent sessions. " +
+            "Only enforced when refresh tokens are revocable/stored (opaque refresh tokens are always stored; JWT refresh tokens require `jwtRevocable` to be `true`). Defaults to `false` (no limit).";
     private static final String REFRESH_TOKEN_ROTATE = "If true, uaa will issue a new refresh token value in grant type refresh_token. Defaults to `false`.";
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
     private static final String ENTITY_ID_DESC = "Unique ID of the SAML2 entity";
@@ -236,7 +239,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(VARIES).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenRotate").type(BOOLEAN).description(REFRESH_TOKEN_ROTATE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
@@ -385,7 +388,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
                 fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
                 fieldWithPath("[].config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC),
-                fieldWithPath("[].config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.tokenPolicy.refreshTokenUnique").type(VARIES).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("[].config.tokenPolicy.refreshTokenRotate").type(BOOLEAN).description(REFRESH_TOKEN_ROTATE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("[].config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
@@ -533,7 +536,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(VARIES).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenRotate").type(BOOLEAN).description(REFRESH_TOKEN_ROTATE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
@@ -717,7 +720,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
                 fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
                 fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(BOOLEAN).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(VARIES).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenRotate").type(BOOLEAN).description(REFRESH_TOKEN_ROTATE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 

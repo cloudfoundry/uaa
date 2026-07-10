@@ -1023,7 +1023,7 @@ class IdentityZoneEndpointsMockMvcTests {
                                 .contentType(APPLICATION_JSON)
                                 .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenUnique").value(true))
+                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenUnique").value(1))
                 .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenRotate").value(true))
                 .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenFormat").value(OPAQUE.getStringValue()));
 

@@ -57,6 +57,23 @@ class TokenPolicyTest {
     }
 
     @Test
+    void set_refresh_token_unique_boolean_true_sets_max_session_limit_1() {
+        TokenPolicy policy = new TokenPolicy();
+        policy.setRefreshTokenUnique(true);
+        assertThat(policy.isRefreshTokenUnique()).isTrue();
+        assertThat(policy.getMaxSessionLimit()).isEqualTo(1);
+    }
+
+    @Test
+    void set_refresh_token_unique_boolean_false_sets_max_session_limit_unlimited() {
+        TokenPolicy policy = new TokenPolicy();
+        policy.setMaxSessionLimit(5);
+        policy.setRefreshTokenUnique(false);
+        assertThat(policy.isRefreshTokenUnique()).isFalse();
+        assertThat(policy.getMaxSessionLimit()).isEqualTo(-1);
+    }
+
+    @Test
     void nullSigningKey() {
         TokenPolicy tokenPolicy = new TokenPolicy();
         assertThatThrownBy(() ->

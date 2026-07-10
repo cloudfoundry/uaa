@@ -14,7 +14,7 @@
       "accessTokenValidity": -1,
       "refreshTokenValidity": -1,
       "jwtRevocable": false,
-      "refreshTokenUnique": false,
+      "refreshTokenUnique": -1,
       "refreshTokenFormat": "jwt",
       "activeKeyId": "key-id-1",
       "keys" : {

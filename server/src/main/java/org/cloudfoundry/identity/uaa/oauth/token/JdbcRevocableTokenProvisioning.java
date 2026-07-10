@@ -16,12 +16,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isEmpty;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 
-    private static final String REFRESH_TOKEN_RESPONSE_TYPE = REFRESH_TOKEN.toString();
     private static final String FIELDS = "token_id,client_id,user_id,format,response_type,issued_at,expires_at,scope,data,identity_zone_id";
     private static final String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',') + 1, FIELDS.lastIndexOf(',')).replace(",", "=?,") + "=?";
     private static final String TABLE = "revocable_tokens";
@@ -34,7 +32,6 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     private static final String UPDATE_QUERY = "UPDATE " + TABLE + " SET " + UPDATE_FIELDS + " WHERE token_id=? and identity_zone_id=?";
     private static final String INSERT_QUERY = "INSERT INTO " + TABLE + " (" + FIELDS + ") VALUES (?,?,?,?,?,?,?,?,?,?)";
     private static final String DELETE_QUERY = "DELETE FROM " + TABLE + " WHERE token_id=? and identity_zone_id=?";
-    private static final String DELETE_REFRESH_TOKEN_QUERY = "DELETE FROM " + TABLE + " WHERE user_id=? AND client_id=? AND response_type='" + REFRESH_TOKEN_RESPONSE_TYPE + "' AND identity_zone_id=?";
     private static final String DELETE_BY_CLIENT_QUERY = "DELETE FROM " + TABLE + " WHERE client_id = ? AND identity_zone_id=?";
     private static final String DELETE_BY_USER_QUERY = "DELETE FROM " + TABLE + " WHERE user_id = ? AND identity_zone_id=?";
     private static final String DELETE_BY_ZONE_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=?";
@@ -86,11 +83,6 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     @Override
     public RevocableToken retrieve(String id, String zoneId) {
         return retrieve(id, true, zoneId);
-    }
-
-    @Override
-    public int deleteRefreshTokensForClientAndUserId(String clientId, String userId, String zoneId) {
-        return template.update(DELETE_REFRESH_TOKEN_QUERY, userId, clientId, zoneId);
     }
 
     public void createIfNotExists(RevocableToken t, String zoneId) {

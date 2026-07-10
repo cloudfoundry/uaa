@@ -234,20 +234,6 @@ class JdbcRevocableTokenProvisioningTest {
     }
 
     @Test
-    void deleteRefreshTokenForClientIdUserId() {
-        revocableToken.setResponseType(REFRESH_TOKEN);
-        jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
-        revocableToken = createRevocableToken(generator.generate(), TEST_USER_ID, TEST_CLIENT_ID, random);
-        revocableToken.setResponseType(REFRESH_TOKEN);
-        jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
-        assertThat(jdbcRevocableTokenProvisioning.deleteRefreshTokensForClientAndUserId(TEST_CLIENT_ID, TEST_USER_ID, IdentityZoneHolder.get().getId())).isEqualTo(2);
-        // should be empty on second call
-        assertThat(jdbcRevocableTokenProvisioning.deleteRefreshTokensForClientAndUserId(TEST_CLIENT_ID, TEST_USER_ID, IdentityZoneHolder.get().getId())).isZero();
-        List<RevocableToken> userTokens = jdbcRevocableTokenProvisioning.getUserTokens(TEST_USER_ID, TEST_CLIENT_ID, IdentityZoneHolder.get().getId());
-        assertThat(userTokens.stream().filter(t -> t.getResponseType().equals(REFRESH_TOKEN)).count()).isZero();
-    }
-
-    @Test
     void ensureExpiredTokenIsDeleted() {
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, revocableToken.getTokenId());
