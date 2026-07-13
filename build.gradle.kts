@@ -230,7 +230,15 @@ gradle.taskGraph.whenReady {
             testTask.systemProperty("spring.profiles.active", activeProfiles)
             testTask.systemProperty("testId", System.getProperty("testId", ""))
             testTask.systemProperty("zones.paths.enabled", System.getProperty("zones.paths.enabled", "true"))
-            localDatabaseCredentialArgs(activeProfiles).forEach { (key, value) -> testTask.systemProperty(key, value) }
+            // Only the integrationTest task connects to a real external mysql/postgresql (via CI service
+            // containers) with no other source of connection details now that application-mysql.properties/
+            // application-postgresql.properties no longer ship them. Scoped to this task name only: the plain
+            // `test` task includes tests (DatabasePropertiesTest, YamlServletProfileInitializerTest) that
+            // deliberately exercise their own per-profile/custom database property fixtures, which a
+            // blanket system property override would incorrectly clobber.
+            if (testTask.name == "integrationTest") {
+                localDatabaseCredentialArgs(activeProfiles).forEach { (key, value) -> testTask.systemProperty(key, value) }
+            }
         }
     }
 }
