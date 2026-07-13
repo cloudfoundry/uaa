@@ -3,6 +3,28 @@ import javax.inject.Inject
 
 val identityServer = parent!!.subprojects.find { "cloudfoundry-identity-server" == it.name }!!
 
+// Local-dev-only DB credentials for the mysql/postgresql profiles, matching the database
+// bootstrapped by README.md / scripts/lib_db_helper.sh / scripts/docker-compose.yml.
+// These are intentionally not shipped in application-mysql.properties/application-postgresql.properties
+// (which are packaged into the WAR), so callers that boot a real mysql/postgresql locally must
+// supply them here instead. Override any of them with the matching -D system property.
+fun localDatabaseCredentialArgs(activeProfiles: String): Map<String, String> {
+    val profiles = activeProfiles.split(",").map { it.trim() }
+    return when {
+        profiles.contains("mysql") -> mapOf(
+            "database.username" to System.getProperty("database.username", "root"),
+            "database.password" to System.getProperty("database.password", "changeme"),
+            "database.url" to System.getProperty("database.url", "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true"),
+        )
+        profiles.contains("postgresql") -> mapOf(
+            "database.username" to System.getProperty("database.username", "root"),
+            "database.password" to System.getProperty("database.password", "changeme"),
+            "database.url" to System.getProperty("database.url", "jdbc:postgresql:uaa"),
+        )
+        else -> emptyMap()
+    }
+}
+
 plugins {
     war
     alias(libs.plugins.springBoot)
@@ -266,6 +288,8 @@ tasks.register<Test>("integrationTest") {
         val springProfile = System.getProperty("spring.profiles.active", "hsqldb")
         val warFile = file("build/libs/cloudfoundry-identity-uaa-0.0.0.war")
         val bootDir = rootProject.file("scripts/boot")
+        val databaseArgsList = localDatabaseCredentialArgs(springProfile).map { (key, value) -> "-D$key=$value" }
+        val databaseArgs = if (databaseArgsList.isEmpty()) "" else databaseArgsList.joinToString(" \\\n            ") + " \\\n            "
 
         logger.lifecycle("Starting UAA application for integration tests...")
 
@@ -276,7 +300,7 @@ tasks.register<Test>("integrationTest") {
             -Dsmtp.host=localhost \
             -Dsmtp.port=2525 \
             -Dspring.profiles.active=$springProfile \
-            -jar ${warFile.absolutePath} > ${bootLogFile.absolutePath} 2>&1 & echo ${'$'}!"""
+            $databaseArgs-jar ${warFile.absolutePath} > ${bootLogFile.absolutePath} 2>&1 & echo ${'$'}!"""
 
         val proc = ProcessBuilder("bash", "-c", javaCmd).start()
         proc.waitFor()
@@ -319,7 +343,9 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     systemProperty("logging.level.org.springframework.security", "TRACE")
     systemProperty("logging.config", file("../scripts/boot/log4j2.properties").absolutePath)
     systemProperty("uaa.boot.location.tomcat", System.getProperty("uaa.boot.location.tomcat", file("../scripts/boot/tomcat").absolutePath))
-    systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "hsqldb"))
+    val activeProfiles = System.getProperty("spring.profiles.active", "hsqldb")
+    systemProperty("spring.profiles.active", activeProfiles)
+    localDatabaseCredentialArgs(activeProfiles).forEach { (key, value) -> systemProperty(key, value) }
     systemProperty("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
     systemProperty("smtp.host", "localhost")
     systemProperty("smtp.port", 2525)
