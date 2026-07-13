@@ -2,6 +2,28 @@ import org.apache.tools.ant.filters.ReplaceTokens
 import java.nio.file.Path
 import java.nio.file.Paths
 
+// Local-dev-only DB credentials for the mysql/postgresql profiles, matching the database
+// bootstrapped by README.md / scripts/lib_db_helper.sh / scripts/docker-compose.yml.
+// These are intentionally not shipped in application-mysql.properties/application-postgresql.properties
+// (which are packaged into the WAR), so callers that boot a real mysql/postgresql locally must
+// supply them here instead. Override any of them with the matching -D system property.
+fun localDatabaseCredentialArgs(activeProfiles: String): Map<String, String> {
+    val profiles = activeProfiles.split(",").map { it.trim() }
+    return when {
+        profiles.contains("mysql") -> mapOf(
+            "database.username" to System.getProperty("database.username", "root"),
+            "database.password" to System.getProperty("database.password", "changeme"),
+            "database.url" to System.getProperty("database.url", "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true"),
+        )
+        profiles.contains("postgresql") -> mapOf(
+            "database.username" to System.getProperty("database.username", "root"),
+            "database.password" to System.getProperty("database.password", "changeme"),
+            "database.url" to System.getProperty("database.url", "jdbc:postgresql:uaa"),
+        )
+        else -> emptyMap()
+    }
+}
+
 plugins {
     alias(libs.plugins.springDependencyManagement) apply false
     alias(libs.plugins.springBoot) apply false
@@ -204,9 +226,11 @@ configure<org.sonarqube.gradle.SonarExtension> {
 gradle.taskGraph.whenReady {
     allprojects.forEach { proj ->
         proj.tasks.withType<Test>().forEach { testTask ->
-            testTask.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "hsqldb"))
+            val activeProfiles = System.getProperty("spring.profiles.active", "hsqldb")
+            testTask.systemProperty("spring.profiles.active", activeProfiles)
             testTask.systemProperty("testId", System.getProperty("testId", ""))
             testTask.systemProperty("zones.paths.enabled", System.getProperty("zones.paths.enabled", "true"))
+            localDatabaseCredentialArgs(activeProfiles).forEach { (key, value) -> testTask.systemProperty(key, value) }
         }
     }
 }
@@ -241,7 +265,9 @@ tasks.register<JavaExec>("bootWarRun") {
     classpath(files(file("uaa/build/libs/cloudfoundry-identity-uaa-0.0.0.war")))
     systemProperty("server.tomcat.basedir", file("scripts/boot/tomcat/").absolutePath)
     systemProperty("SECRETS_DIR", System.getProperty("SECRETS_DIR", file("scripts/boot").absolutePath))
-    systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "hsqldb"))
+    val activeProfiles = System.getProperty("spring.profiles.active", "hsqldb")
+    systemProperty("spring.profiles.active", activeProfiles)
+    localDatabaseCredentialArgs(activeProfiles).forEach { (key, value) -> systemProperty(key, value) }
     systemProperty("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
     systemProperty("smtp.host", "localhost")
     systemProperty("smtp.port", 2525)
