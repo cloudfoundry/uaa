@@ -2,9 +2,9 @@
 
 [versions]
 bouncyCastleFips = "2.1.2"
-bouncyCastlePkix = "2.1.11"
-bouncyCastleTls = "2.1.23"
-bouncyCastleUtil = "2.1.6"
+bouncyCastlePkix = "2.1.12"
+bouncyCastleTls = "2.1.24"
+bouncyCastleUtil = "2.1.7"
 brave = "6.3.1"
 commonsCodec = "1.22.0"
 commonsIo = "2.22.0"
