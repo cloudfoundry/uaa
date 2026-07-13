@@ -288,7 +288,10 @@ tasks.register<Test>("integrationTest") {
         val springProfile = System.getProperty("spring.profiles.active", "hsqldb")
         val warFile = file("build/libs/cloudfoundry-identity-uaa-0.0.0.war")
         val bootDir = rootProject.file("scripts/boot")
-        val databaseArgsList = localDatabaseCredentialArgs(springProfile).map { (key, value) -> "-D$key=$value" }
+        // Single-quoted: this string is parsed fresh by `bash -c` below (not expanded from an
+        // already-set shell variable), so an unescaped `&` in the mysql JDBC URL would otherwise
+        // be lexed as a background-job operator and silently truncate the java invocation.
+        val databaseArgsList = localDatabaseCredentialArgs(springProfile).map { (key, value) -> "-D$key='$value'" }
         val databaseArgs = if (databaseArgsList.isEmpty()) "" else databaseArgsList.joinToString(" \\\n            ") + " \\\n            "
 
         logger.lifecycle("Starting UAA application for integration tests...")
