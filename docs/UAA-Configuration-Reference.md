@@ -294,6 +294,9 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#ldapgroupsgroupsearchfilter"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.groupSearchFilter` | —| Group membership filter|
 | <a href="#ldapgroupsmaxsearchdepth"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.maxSearchDepth` | `10`| Max nested group depth|
 | <a href="#ldapgroupsautoadd"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.autoAdd` | —| Auto-add LDAP groups|
+| <a href="#ldapgroupsgrouproleattribute"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.groupRoleAttribute` | `description`| Attribute holding the scope name(s) for `groups-as-scopes`|
+| <a href="#ldapexternalgroupswhitelist"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.externalGroupsWhitelist` | —| External group names/patterns allowed into the `roles` field|
+| <a href="#ldapincludeexternalgroupdn"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.includeExternalGroupDn` | `false`| Also match external groups by full DN|
 
 ### Encryption
 
@@ -2681,6 +2684,51 @@ Maximum depth for nested group lookups.
 **Type:** `boolean`
 
 When `true`, LDAP groups are automatically created as UAA groups if they don't exist.
+
+[Back to table](#ldap)
+
+---
+
+### `ldap.groups.groupRoleAttribute`
+
+**Default:** `description`
+**Source:** YAML config
+**Type:** `String`
+
+Used with `groups-as-scopes` (`ldap.groups.file: ldap/ldap-groups-as-scopes.xml`), defines the
+LDAP attribute that holds the scope name(s) for a group. Ignored by `groups-map-to-scopes`, where
+the group's DN is used instead.
+
+[Back to table](#ldap)
+
+---
+
+### `ldap.externalGroupsWhitelist`
+
+**Default:** — (not set, meaning all external groups are allowed)
+**Source:** YAML config
+**Type:** `List<String>`
+
+Allowlist of external group names/patterns (wildcards supported) that may be reported as the
+user's external groups — used to populate the `/userinfo` endpoint's `roles` field. By default,
+each LDAP group the user belongs to is matched by its bare `cn` (e.g. `cf_admin`), not its full
+`DN`. Set `ldap.includeExternalGroupDn` to `true` to also allow matching on the group's full `DN`.
+
+[Back to table](#ldap)
+
+---
+
+### `ldap.includeExternalGroupDn`
+
+**Default:** `false`
+**Source:** YAML config
+**Type:** `boolean`
+
+When `true`, the full `DN` of each LDAP group the user belongs to is added as an additional
+candidate value (alongside the existing `cn` value) when matching against
+`ldap.externalGroupsWhitelist` and when populating the `/userinfo` endpoint's `roles` field. This
+does not replace the `cn`-based value, so existing `cn`-based whitelist entries keep working when
+this is enabled.
 
 [Back to table](#ldap)
 
