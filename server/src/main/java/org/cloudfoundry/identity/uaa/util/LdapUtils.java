@@ -55,6 +55,7 @@ public final class LdapUtils {
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_BASE_USER_DN_PATTERN_DELIMITER, definition.getUserDNPatternDelimiter(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN, definition.getEmailDomain(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_EXTERNAL_GROUPS_WHITELIST, definition.getExternalGroupsWhitelist(), properties);
+        setIfNotNull(LdapIdentityProviderDefinition.LDAP_INCLUDE_EXTERNAL_GROUP_DN, definition.isIncludeExternalGroupDn(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_GROUPS_AUTO_ADD, definition.isAutoAddGroups(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_GROUPS_FILE, definition.getLdapGroupFile(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, definition.getGroupRoleAttribute(), properties);
@@ -99,6 +100,10 @@ public final class LdapUtils {
 
         if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EXTERNAL_GROUPS_WHITELIST) != null) {
             definition.setExternalGroupsWhitelist((List<String>) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EXTERNAL_GROUPS_WHITELIST));
+        }
+
+        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_INCLUDE_EXTERNAL_GROUP_DN) != null) {
+            definition.setIncludeExternalGroupDn((Boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_INCLUDE_EXTERNAL_GROUP_DN));
         }
 
         if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS) != null) {

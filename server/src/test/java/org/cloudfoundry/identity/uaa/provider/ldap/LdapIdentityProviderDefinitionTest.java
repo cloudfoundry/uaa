@@ -35,6 +35,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_INCLUDE_EXTERNAL_GROUP_DN;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_SSL_TLS;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_EXTERNAL;
@@ -48,6 +49,7 @@ class LdapIdentityProviderDefinitionTest {
     @Test
     void property_types() {
         assertThat(LDAP_PROPERTY_TYPES).containsEntry(LDAP_SSL_TLS, String.class);
+        assertThat(LDAP_PROPERTY_TYPES).containsEntry(LDAP_INCLUDE_EXTERNAL_GROUP_DN, Boolean.class);
     }
 
     @Test
@@ -64,6 +66,12 @@ class LdapIdentityProviderDefinitionTest {
         assertThat(ldapIdentityProviderDefinition2).isNotEqualTo(ldapIdentityProviderDefinition1);
 
         ldapIdentityProviderDefinition2.setAddShadowUserOnLogin(true);
+        assertThat(ldapIdentityProviderDefinition2).isEqualTo(ldapIdentityProviderDefinition1);
+
+        ldapIdentityProviderDefinition1.setIncludeExternalGroupDn(true);
+        assertThat(ldapIdentityProviderDefinition2).isNotEqualTo(ldapIdentityProviderDefinition1);
+
+        ldapIdentityProviderDefinition2.setIncludeExternalGroupDn(true);
         assertThat(ldapIdentityProviderDefinition2).isEqualTo(ldapIdentityProviderDefinition1);
     }
 
@@ -238,6 +246,7 @@ class LdapIdentityProviderDefinitionTest {
         assertThat(def.getMaxGroupSearchDepth()).isEqualTo(10);
         assertThat(def.isAutoAddGroups()).isTrue();
         assertThat(def.getGroupRoleAttribute()).isNull();
+        assertThat(def.isIncludeExternalGroupDn()).isFalse();
     }
 
     @Test
@@ -275,6 +284,7 @@ class LdapIdentityProviderDefinitionTest {
         assertThat(def.getMaxGroupSearchDepth()).isEqualTo(10);
         assertThat(def.isAutoAddGroups()).isTrue();
         assertThat(def.getGroupRoleAttribute()).isNull();
+        assertThat(def.isIncludeExternalGroupDn()).isFalse();
     }
 
     @Test
@@ -319,6 +329,25 @@ class LdapIdentityProviderDefinitionTest {
         assertThat(def.getMaxGroupSearchDepth()).isEqualTo(30);
         assertThat(def.isAutoAddGroups()).isTrue();
         assertThat(def.getGroupRoleAttribute()).isNull();
+    }
+
+    @Test
+    void search_and_bind_with_include_external_group_dn_config() {
+        String config = """
+                ldap:
+                  profile:
+                    file: ldap/ldap-search-and-bind.xml
+                  base:
+                    url: 'ldap://localhost:10389/'
+                    mailAttributeName: mail
+                    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+                    password: 'password'
+                    searchBase: ''
+                    searchFilter: 'cn={0}'
+                  includeExternalGroupDn: true""";
+        LdapIdentityProviderDefinition def = LdapUtils.fromConfig(getLdapConfig(config));
+
+        assertThat(def.isIncludeExternalGroupDn()).isTrue();
     }
 
     @Test
@@ -445,6 +474,16 @@ class LdapIdentityProviderDefinitionTest {
         assertThat(def.getExternalGroupsWhitelist()).containsExactlyElementsOf(Collections.singletonList("value"));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
         assertThat(def.getExternalGroupsWhitelist()).containsExactlyElementsOf(Collections.singletonList("value"));
+    }
+
+    @Test
+    void set_include_external_group_dn() {
+        LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
+        assertThat(def.isIncludeExternalGroupDn()).isFalse();
+        def.setIncludeExternalGroupDn(true);
+        assertThat(def.isIncludeExternalGroupDn()).isTrue();
+        def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
+        assertThat(def.isIncludeExternalGroupDn()).isTrue();
     }
 
     @Test

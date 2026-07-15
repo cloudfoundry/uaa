@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
+import org.cloudfoundry.identity.uaa.provider.ldap.extension.SpringSecurityLdapTemplate;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -270,6 +271,89 @@ class LdapLoginAuthenticationManagerTests {
 
         definition.setExternalGroupsWhitelist(Collections.singletonList("ldap*"));
         assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2");
+    }
+
+    @Test
+    void group_white_list_does_not_match_dn_by_default() {
+        UaaUser user = getUaaUser();
+        ExtendedLdapUserImpl authDetails =
+                getAuthDetails(
+                        user.getEmail(),
+                        user.getGivenName(),
+                        user.getFamilyName(),
+                        user.getPhoneNumber(),
+                        new AttributeInfo(UAA_MANAGER, new String[]{KARI_THE_ANT_EATER, JOHN_THE_SLOTH}),
+                        new AttributeInfo(COST_CENTER, new String[]{DENVER_CO})
+                );
+        Map<String, String[]> role1 = new HashMap<>();
+        role1.put("cn", new String[]{"ldap.role.1"});
+        role1.put(SpringSecurityLdapTemplate.DN_KEY, new String[]{"cn=role1,ou=test,ou=com"});
+        authDetails.setAuthorities(
+                Collections.singletonList(new LdapAuthority("role1", "cn=role1,ou=test,ou=com", role1))
+        );
+
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+
+        definition.setExternalGroupsWhitelist(Collections.singletonList("cn=role1,ou=test,ou=com"));
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder();
+    }
+
+    @Test
+    void group_white_list_matches_dn_when_include_dn_enabled() {
+        UaaUser user = getUaaUser();
+        ExtendedLdapUserImpl authDetails =
+                getAuthDetails(
+                        user.getEmail(),
+                        user.getGivenName(),
+                        user.getFamilyName(),
+                        user.getPhoneNumber(),
+                        new AttributeInfo(UAA_MANAGER, new String[]{KARI_THE_ANT_EATER, JOHN_THE_SLOTH}),
+                        new AttributeInfo(COST_CENTER, new String[]{DENVER_CO})
+                );
+        Map<String, String[]> role1 = new HashMap<>();
+        role1.put("cn", new String[]{"ldap.role.1"});
+        role1.put(SpringSecurityLdapTemplate.DN_KEY, new String[]{"cn=role1,ou=test,ou=com"});
+        authDetails.setAuthorities(
+                Collections.singletonList(new LdapAuthority("role1", "cn=role1,ou=test,ou=com", role1))
+        );
+
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+
+        definition.setIncludeExternalGroupDn(true);
+        definition.setExternalGroupsWhitelist(Collections.singletonList("cn=role1,ou=test,ou=com"));
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("cn=role1,ou=test,ou=com");
+    }
+
+    @Test
+    void group_white_list_matches_both_cn_and_dn_when_include_dn_enabled() {
+        UaaUser user = getUaaUser();
+        ExtendedLdapUserImpl authDetails =
+                getAuthDetails(
+                        user.getEmail(),
+                        user.getGivenName(),
+                        user.getFamilyName(),
+                        user.getPhoneNumber(),
+                        new AttributeInfo(UAA_MANAGER, new String[]{KARI_THE_ANT_EATER, JOHN_THE_SLOTH}),
+                        new AttributeInfo(COST_CENTER, new String[]{DENVER_CO})
+                );
+        Map<String, String[]> role1 = new HashMap<>();
+        role1.put("cn", new String[]{"ldap.role.1"});
+        role1.put(SpringSecurityLdapTemplate.DN_KEY, new String[]{"cn=role1,ou=test,ou=com"});
+        Map<String, String[]> role2 = new HashMap<>();
+        role2.put("cn", new String[]{"ldap.role.2"});
+        role2.put(SpringSecurityLdapTemplate.DN_KEY, new String[]{"cn=role2,ou=test,ou=com"});
+        authDetails.setAuthorities(
+                Arrays.asList(
+                        new LdapAuthority("role1", "cn=role1,ou=test,ou=com", role1),
+                        new LdapAuthority("role2", "cn=role2,ou=test,ou=com", role2)
+                )
+        );
+
+        final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
+
+        definition.setIncludeExternalGroupDn(true);
+        definition.setExternalGroupsWhitelist(Arrays.asList("cn=role1,ou=test,ou=com", "ldap.role.2"));
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("cn=role1,ou=test,ou=com", "ldap.role.2");
     }
 
     void test_authentication_attributes(boolean storeUserInfo) {
