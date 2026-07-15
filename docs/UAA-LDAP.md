@@ -684,8 +684,19 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
 * <a name="ldap.externalGroupsWhitelist">`ldap.externalGroupsWhitelist`</a>
   List<String> value,
   Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
-  The list should contain `DN` values for the groups that are associated with the user.
-  The display name of the group in the ID token will be the taken from the `ldap.groups.groupRoleAttribute` attribute
+  By default, the list is matched against the bare `cn` of each LDAP group the user belongs to (e.g. `cf_admin`),
+  not the group's full `DN`. Set `ldap.includeExternalGroupDn` to `true` to also allow matching on the full `DN`
+  (e.g. `cn=cf_admin,ou=dev,dc=example,dc=com`).
+
+
+* <a name="ldap.includeExternalGroupDn">`ldap.includeExternalGroupDn`</a>
+  boolean value, defaults to `false`.
+  When `true`, the full `DN` of each LDAP group the user belongs to is added as an additional candidate value
+  (alongside the existing bare `cn` value) when matching against `ldap.externalGroupsWhitelist` and when
+  populating the external groups reported via the `/userinfo` endpoint's `roles` field. This does not replace
+  the `cn`-based value, so existing `cn`-based whitelist entries keep working when this is enabled.
+  Useful when an external system (for example, a role-to-external-group mapping configured with a group's
+  full `DN`) needs to match against the `DN` rather than the bare `cn`.
 
 
 * <a name="ldap.attributeMappings">`ldap.attributeMappings`</a>
