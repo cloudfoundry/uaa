@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ '25' ]
+        java: [ '25', '26' ]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
