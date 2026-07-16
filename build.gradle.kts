@@ -136,6 +136,12 @@ subprojects {
         // Add system property to enable detailed test timing
         systemProperty("junit.jupiter.execution.timeout.default", System.getProperty("junit.jupiter.execution.timeout.default", "0"))
 
+        // Java 26 disables Unsafe-based class definition by default; Mockito/ByteBuddy still
+        // rely on it as a fallback when generating mock subclasses. Opt back in until
+        // Mockito/ByteBuddy ship a method-handle-based injection path by default.
+        // See: net.bytebuddy.dynamic.loading.ClassInjector$UsingLookup
+        systemProperty("net.bytebuddy.safe", "true")
+
         // Log slow tests to help identify bottlenecks
         addTestListener(object : TestListener {
             override fun beforeSuite(suite: TestDescriptor) {}
