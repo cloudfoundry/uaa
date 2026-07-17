@@ -120,6 +120,22 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
     }
 
     @Test
+    void additionalConfigurationIsMapped() {
+        Map<String, Object> additionalConfiguration = map(
+                entry("origin_override", map(entry("uaa", "uaa")))
+        );
+        idpDefinitionMap.put("additionalConfiguration", additionalConfiguration);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertThat(providerDefinition.getAdditionalConfiguration()).containsExactlyInAnyOrderEntriesOf(additionalConfiguration);
+    }
+
+    @Test
+    void additionalConfigurationIsNullWhenNotProvided() {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertThat(providerDefinition.getAdditionalConfiguration()).isNull();
+    }
+
+    @Test
     void jwtClientAuthenticationTrue() {
         Map<String, Map> definitions = new HashMap<>();
         idpDefinitionMap.put("jwtclientAuthentication", Boolean.TRUE);

@@ -148,6 +148,7 @@ public class OauthIDPWrapperFactoryBean {
         idpDefinition.setTokenKey((String) idpDefinitionMap.get("tokenKey"));
         idpDefinition.setIssuer((String) idpDefinitionMap.get("issuer"));
         idpDefinition.setAttributeMappings((Map<String, Object>) idpDefinitionMap.get(ATTRIBUTE_MAPPINGS));
+        idpDefinition.setAdditionalConfiguration((Map<String, Object>) idpDefinitionMap.get("additionalConfiguration"));
         idpDefinition.setScopes((List<String>) idpDefinitionMap.get("scopes"));
         idpDefinition.setUserPropagationParameter((String) idpDefinitionMap.get("userPropagationParameter"));
         idpDefinition.setGroupMappingMode(parseExternalGroupMappingMode(idpDefinitionMap.get("groupMappingMode")));
