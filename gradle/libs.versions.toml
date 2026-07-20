@@ -1,7 +1,7 @@
 # Gradle Version Catalog for UAA
 
 [versions]
-bouncyCastleFips = "2.1.2"
+bouncyCastleFips = "2.1.3"
 bouncyCastlePkix = "2.1.12"
 bouncyCastleTls = "2.1.24"
 bouncyCastleUtil = "2.1.7"
