@@ -2730,6 +2730,15 @@ candidate value (alongside the existing `cn` value) when matching against
 does not replace the `cn`-based value, so existing `cn`-based whitelist entries keep working when
 this is enabled.
 
+**Caution:** this can meaningfully grow the size of the `/userinfo` response and any token that
+carries the `roles` claim. Each group now contributes two entries instead of one, and a `DN` is
+typically far longer than a bare `cn` (e.g. `cf_admin` vs.
+`cn=cf_admin,ou=dev,dc=example,dc=com` — roughly 6x the characters), so the size increase is
+driven more by `DN` length than by the doubled entry count. For a user in many or deeply-nested
+groups, with a broad `externalGroupsWhitelist` (e.g. `*`), this can add up to a substantial
+increase in payload size — worth checking against any downstream token/header size limits before
+enabling broadly.
+
 [Back to table](#ldap)
 
 ---
