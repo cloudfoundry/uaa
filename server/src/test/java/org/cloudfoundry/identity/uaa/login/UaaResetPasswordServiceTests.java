@@ -203,7 +203,8 @@ class UaaResetPasswordServiceTests {
         user.setMeta(new ScimMeta(new Date(), new Date(), 0));
         user.setPrimaryEmail("foo@example.com");
         ExpiringCode expiringCode = new ExpiringCode("good_code",
-                new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
+                new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "{\"user_id\":\"user-id\",\"username\":\"username\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}",
+                UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX + "user-id");
         when(codeStore.retrieveCode("good_code", currentZoneId)).thenReturn(expiringCode);
         when(scimUserProvisioning.retrieve("user-id", currentZoneId)).thenReturn(user);
         when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld", currentZoneId))
@@ -234,6 +235,18 @@ class UaaResetPasswordServiceTests {
         } catch (InvalidCodeException e) {
             assertThat(e.getMessage()).isEqualTo("Sorry, your reset password link is no longer valid. Please request a new one");
         }
+    }
+
+    @Test
+    void resetPassword_rejectsNonForgotPasswordIntent() {
+        ExpiringCode inviteCode = new ExpiringCode("good_code",
+                new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME),
+                "{\"user_id\":\"user-id\",\"client_id\":\"invite-client\",\"created_new_user\":\"false\"}", "INVITATION");
+
+        assertThatThrownBy(() -> uaaResetPasswordService.resetPassword(inviteCode, "new_secret"))
+                .isInstanceOf(InvalidCodeException.class)
+                .hasMessage("Sorry, your reset password link is no longer valid. Please request a new one");
+        verify(scimUserProvisioning, times(0)).changePassword(anyString(), any(), anyString(), anyString());
     }
 
     @Test
@@ -320,7 +333,8 @@ class UaaResetPasswordServiceTests {
         String zoneId = currentZoneId;
         when(scimUserProvisioning.retrieve(eq("usermans-id"), eq(zoneId))).thenReturn(user);
         ExpiringCode code = new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
-                "{\"user_id\":\"usermans-id\",\"username\":\"userman\",\"passwordModifiedTime\":null,\"client_id\":\"" + clientId + "\",\"redirect_uri\":\"" + redirectUri + "\"}", null);
+                "{\"user_id\":\"usermans-id\",\"username\":\"userman\",\"passwordModifiedTime\":null,\"client_id\":\"" + clientId + "\",\"redirect_uri\":\"" + redirectUri + "\"}",
+                UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX + "usermans-id");
         when(codeStore.retrieveCode(eq("secret_code"), anyString())).thenReturn(code);
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
