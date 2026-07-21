@@ -88,6 +88,10 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     }
 
     private ResetPasswordResponse changePasswordCodeAuthenticated(ExpiringCode expiringCode, String newPassword) {
+        String intent = expiringCode.getIntent();
+        if (intent == null || !intent.startsWith(FORGOT_PASSWORD_INTENT_PREFIX)) {
+            throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
+        }
         String userId;
         String userName;
         Date passwordLastModified;
