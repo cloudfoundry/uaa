@@ -13,10 +13,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -24,16 +24,20 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationDetails;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import tools.jackson.core.type.TypeReference;
 
 import java.io.Serial;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isJwtToken;
 import static org.springframework.util.StringUtils.hasText;
@@ -49,6 +53,9 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     @Serial
     private static final long serialVersionUID = -7639844193401892160L;
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractUaaEvent.class);
+
     private final transient String zoneId;
 
     private Authentication authentication;
@@ -115,28 +122,48 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
             builder.append("caller=").append(caller.getName());
         }
 
-        if (caller.getDetails() != null) {
+        Object details = caller.getDetails();
+        if (details != null) {
             builder.append(", details=(");
-            try {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> map =
-                        JsonUtils.readValue((String) caller.getDetails(), new TypeReference<Map<String, Object>>(){
-                        });
-                if (map.containsKey("remoteAddress")) {
-                    builder.append("remoteAddress=").append(map.get("remoteAddress")).append(", ");
-                }
-                builder.append("type=").append(caller.getDetails().getClass().getSimpleName());
-            } catch (Exception _) {
-                // ignore
-                builder.append(caller.getDetails());
-            }
+            extractRemoteAddress(details).ifPresent(address -> builder.append("remoteAddress=").append(address).append(", "));
+            builder.append("type=").append(details.getClass().getSimpleName());
             appendTokenDetails(caller, builder);
             builder.append(")");
         }
+
         return builder.toString();
     }
 
-    protected void appendTokenDetails(Authentication caller, StringBuilder builder) {
+    private Optional<String> extractRemoteAddress(Object details) {
+        return switch (details) {
+            case UaaAuthenticationDetails d -> Optional.ofNullable(d.getOrigin());
+            case OAuth2AuthenticationDetails d -> Optional.ofNullable(d.getRemoteAddress());
+            case Map<?, ?> map -> Optional.ofNullable(map.get("remoteAddress")).map(Object::toString);
+            case String jsonBlob -> extractRemoteAddressFromJson(jsonBlob);
+            default -> {
+                logger.warn("Unhandled Authentication.details type in audit origin: {}", details.getClass().getName());
+                yield Optional.empty();
+            }
+        };
+    }
+
+    private Optional<String> extractRemoteAddressFromJson(String jsonBlob) {
+        Map<String, Object> map;
+        try {
+            map = JsonUtils.readValue(jsonBlob, new TypeReference<>() {
+            });
+        } catch (Exception _) {
+            return Optional.empty();
+        }
+
+        if (map == null) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(map.get("remoteAddress")).map(Object::toString);
+    }
+
+    private void appendTokenDetails(Authentication caller, StringBuilder builder) {
         String tokenValue = null;
         if (caller instanceof UaaOauth2Authentication uaaOauth2Authentication) {
             tokenValue = uaaOauth2Authentication.getTokenValue();
