@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -185,6 +186,38 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId);
+    }
+
+    @Test
+    void buildsCorrectRegistrationWhenFetchedUrlMetadataHasLeadingByteOrderMarker() {
+        // Some IdPs prepend a UTF-8 byte order marker to their federation metadata response.
+        // SamlIdentityProviderConfigurator.resolveMetadataXml() fetches and decodes that response
+        // *before* handing it to RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(),
+        // so this simulates exactly what that decode produces for a URL-type IDP, one call
+        // further down the real login path than a plain getType() unit test reaches. Without the
+        // fix, the BOM defeats the DATA/URL sniffing in buildRelyingPartyRegistration() and the
+        // fetched XML is mistaken for a classpath resource location (Saml2Exception wrapping a
+        // FileNotFoundException).
+        String metadata = loadResouceAsString("saml-sample-metadata.xml");
+        when(repository.retrieveZone()).thenReturn(identityZone);
+        when(identityZone.isUaa()).thenReturn(true);
+        when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
+        when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
+        when(definition.getIdpEntityAlias()).thenReturn(REGISTRATION_ID);
+        when(definition.getNameID()).thenReturn(NAME_ID);
+        when(definition.getMetaDataLocation())
+                .thenReturn("https://login.microsoftonline.com/tenant-id/federationmetadata/2007-06/federationmetadata.xml");
+        when(configurator.resolveMetadataXml(definition))
+                .thenReturn(UaaStringUtils.BYTE_ORDER_MARKER + metadata);
+        when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
+
+        RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
+        assertThat(registration)
+                .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
+                .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
+                .returns(NAME_ID, RelyingPartyRegistration::getNameIdFormat)
                 .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
                 .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId);
     }

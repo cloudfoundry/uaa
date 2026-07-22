@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.apache.commons.io.ByteOrderMark;
 import org.apache.hc.client5.http.ConnectTimeoutException;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
@@ -37,6 +38,7 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.web.client.ResourceAccessException;
 
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -154,6 +156,92 @@ public class SamlIdentityProviderConfiguratorTests {
                     fail("Unknown provider %s".formatted(def.getIdpEntityAlias()));
             }
         }
+    }
+
+    @Test
+    void resolvesUrlMetadataWithLeadingUtf8ByteOrderMark() {
+        // Some IdPs (e.g. Microsoft Entra ID's federation metadata endpoint) prepend a UTF-8
+        // byte order marker (EF BB BF) to their XML response.
+        byte[] utf8Bom = ByteOrderMark.UTF_8.getBytes();
+        byte[] metadataBytes = concat(utf8Bom, getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_8));
+        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(metadataBytes);
+
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
+                .setMetaDataLocation("http://simplesamlphp.somewhere.com/metadata")
+                .setIdpEntityAlias("simplesamlphp-utf8-bom")
+                .setZoneId("uaa");
+
+        RelyingPartyRegistration extendedMetadataDelegate = configurator.getExtendedMetadataDelegate(def);
+        assertThat(extendedMetadataDelegate.getAssertingPartyMetadata().getEntityId())
+                .isEqualTo("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php");
+    }
+
+    @Test
+    void resolvesUrlMetadataWithLeadingUtf16LittleEndianByteOrderMark() {
+        byte[] utf16LeBom = ByteOrderMark.UTF_16LE.getBytes();
+        byte[] metadataBytes = concat(utf16LeBom, getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_16LE));
+        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(metadataBytes);
+
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
+                .setMetaDataLocation("http://simplesamlphp.somewhere.com/metadata")
+                .setIdpEntityAlias("simplesamlphp-utf16-le-bom")
+                .setZoneId("uaa");
+
+        RelyingPartyRegistration extendedMetadataDelegate = configurator.getExtendedMetadataDelegate(def);
+        assertThat(extendedMetadataDelegate.getAssertingPartyMetadata().getEntityId())
+                .isEqualTo("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php");
+    }
+
+    @Test
+    void resolvesUrlMetadataWithLeadingUtf16BigEndianByteOrderMark() {
+        byte[] utf16BeBom = ByteOrderMark.UTF_16BE.getBytes();
+        byte[] metadataBytes = concat(utf16BeBom, getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_16BE));
+        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(metadataBytes);
+
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
+                .setMetaDataLocation("http://simplesamlphp.somewhere.com/metadata")
+                .setIdpEntityAlias("simplesamlphp-utf16-be-bom")
+                .setZoneId("uaa");
+
+        RelyingPartyRegistration extendedMetadataDelegate = configurator.getExtendedMetadataDelegate(def);
+        assertThat(extendedMetadataDelegate.getAssertingPartyMetadata().getEntityId())
+                .isEqualTo("http://simplesamlphp.somewhere.com/saml2/idp/metadata.php");
+    }
+
+    @Test
+    void detectCharsetReturnsUtf8WhenNoByteOrderMarkIsPresent() {
+        byte[] metadataBytes = getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_8);
+        assertThat(SamlIdentityProviderConfigurator.detectCharset(metadataBytes)).isEqualTo(StandardCharsets.UTF_8);
+    }
+
+    @Test
+    void detectCharsetReturnsUtf8WhenUtf8ByteOrderMarkIsPresent() {
+        byte[] metadataBytes = concat(ByteOrderMark.UTF_8.getBytes(), getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_8));
+        assertThat(SamlIdentityProviderConfigurator.detectCharset(metadataBytes)).isEqualTo(StandardCharsets.UTF_8);
+    }
+
+    @Test
+    void detectCharsetReturnsUtf16LittleEndianWhenThatByteOrderMarkIsPresent() {
+        byte[] metadataBytes = concat(ByteOrderMark.UTF_16LE.getBytes(), getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_16LE));
+        assertThat(SamlIdentityProviderConfigurator.detectCharset(metadataBytes)).isEqualTo(StandardCharsets.UTF_16LE);
+    }
+
+    @Test
+    void detectCharsetReturnsUtf16BigEndianWhenThatByteOrderMarkIsPresent() {
+        byte[] metadataBytes = concat(ByteOrderMark.UTF_16BE.getBytes(), getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_16BE));
+        assertThat(SamlIdentityProviderConfigurator.detectCharset(metadataBytes)).isEqualTo(StandardCharsets.UTF_16BE);
+    }
+
+    @Test
+    void detectCharsetReturnsUtf8ForByteArrayShorterThanAnyByteOrderMark() {
+        assertThat(SamlIdentityProviderConfigurator.detectCharset(new byte[]{(byte) 0xFF})).isEqualTo(StandardCharsets.UTF_8);
+    }
+
+    private static byte[] concat(byte[] first, byte[] second) {
+        byte[] result = new byte[first.length + second.length];
+        System.arraycopy(first, 0, result, 0, first.length);
+        System.arraycopy(second, 0, result, first.length, second.length);
+        return result;
     }
 
     @Test

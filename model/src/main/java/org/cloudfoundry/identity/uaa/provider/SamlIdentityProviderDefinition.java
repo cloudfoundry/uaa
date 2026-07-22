@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.util.StringUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -91,7 +92,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public static MetadataLocation getType(String urlOrXmlData) {
-        String trimmedValue = urlOrXmlData.trim();
+        String trimmedValue = stripLeadingCharacters(urlOrXmlData);
 
         if (trimmedValue.startsWith("<?xml") ||
                 trimmedValue.startsWith("<md:EntityDescriptor") ||
@@ -109,6 +110,20 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
             }
         }
         return MetadataLocation.UNKNOWN;
+    }
+
+    /**
+     * Trims whitespace and, if present, a leading byte order marker character. Some IdPs (e.g.
+     * Microsoft Entra ID's federation metadata endpoint) prepend a byte order marker to their
+     * XML response; whether it was originally a UTF-8, UTF-16LE, or UTF-16BE BOM, correctly
+     * decoded bytes leave this same character (U+FEFF) at the start of the resulting String,
+     * which would otherwise defeat the {@code startsWith} sniffing in {@link #getType(String)}.
+     */
+    private static String stripLeadingCharacters(String value) {
+        String trimmedValue = value.trim();
+        return trimmedValue.startsWith(UaaStringUtils.BYTE_ORDER_MARKER)
+                ? trimmedValue.substring(UaaStringUtils.BYTE_ORDER_MARKER.length()).trim()
+                : trimmedValue;
     }
 
     @JsonIgnore

@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ReflectionUtils;
@@ -138,6 +139,18 @@ public class SamlIdentityProviderDefinitionTests {
     @Test
     void get_data_type_when_valid() {
         definition.setMetaDataLocation(IDP_METADATA);
+        assertThat(definition.getType()).isEqualTo(DATA);
+    }
+
+    @Test
+    void get_data_type_when_valid_with_leading_byte_order_marker() {
+        // Microsoft Entra ID's federation metadata endpoint prepends a byte order marker to its
+        // XML response. Whether the original bytes were a UTF-8, UTF-16LE, or UTF-16BE BOM,
+        // correctly decoded text has this same character (U+FEFF) leading it; String.trim() does
+        // not strip it, so metadata that is otherwise identical to get_data_type_when_valid()
+        // must still classify as DATA, not UNKNOWN.
+        String byteOrderMarkerPrefixedMetadata = UaaStringUtils.BYTE_ORDER_MARKER + IDP_METADATA;
+        definition.setMetaDataLocation(byteOrderMarkerPrefixedMetadata);
         assertThat(definition.getType()).isEqualTo(DATA);
     }
 
