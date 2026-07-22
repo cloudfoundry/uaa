@@ -148,19 +148,13 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     }
 
     private Optional<String> extractRemoteAddressFromJson(String jsonBlob) {
-        Map<String, Object> map;
         try {
-            map = JsonUtils.readValue(jsonBlob, new TypeReference<>() {
+            Map<String, Object> map = JsonUtils.readValue(jsonBlob, new TypeReference<>() {
             });
-        } catch (Exception _) {
+            return map == null ? Optional.empty() : extractRemoteAddress(map);
+        } catch (JsonUtils.JsonUtilException _) {
             return Optional.empty();
         }
-
-        if (map == null) {
-            return Optional.empty();
-        }
-
-        return Optional.ofNullable(map.get("remoteAddress")).map(Object::toString);
     }
 
     private void appendTokenDetails(Authentication caller, StringBuilder builder) {
