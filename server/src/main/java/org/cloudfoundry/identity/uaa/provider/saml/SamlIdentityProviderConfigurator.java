@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.apache.commons.io.ByteOrderMark;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.core5.net.URIBuilder;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -17,7 +18,9 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.springframework.util.StringUtils.hasText;
@@ -166,9 +169,31 @@ public class SamlIdentityProviderConfigurator {
         try {
             String adjustedMetadataURIForPort = adjustURIForPort(metadataLocation);
             byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetadataURIForPort, def.isSkipSslValidation());
-            return new String(metadata, StandardCharsets.UTF_8);
+            return new String(metadata, detectCharset(metadata));
         } catch (URISyntaxException e) {
             throw new IllegalStateException("Invalid socket factory(invalid URI):" + metadataLocation, e);
         }
+    }
+
+    /**
+     * Detects the charset of fetched metadata bytes from a leading byte order marker. Only
+     * UTF-16 needs to be sniffed explicitly here: a UTF-8 byte order marker, if present, already
+     * decodes correctly under the UTF-8 default and is stripped later by
+     * {@link SamlIdentityProviderDefinition#getType(String)}, since it decodes to the same
+     * character (U+FEFF) as a correctly-decoded UTF-16 BOM.
+     */
+    static Charset detectCharset(byte[] metadata) {
+        if (hasLeadingByteOrderMark(metadata, ByteOrderMark.UTF_16LE)) {
+            return StandardCharsets.UTF_16LE;
+        }
+        if (hasLeadingByteOrderMark(metadata, ByteOrderMark.UTF_16BE)) {
+            return StandardCharsets.UTF_16BE;
+        }
+        return StandardCharsets.UTF_8;
+    }
+
+    private static boolean hasLeadingByteOrderMark(byte[] data, ByteOrderMark byteOrderMark) {
+        byte[] bom = byteOrderMark.getBytes();
+        return data.length >= bom.length && Arrays.equals(data, 0, bom.length, bom, 0, bom.length);
     }
 }

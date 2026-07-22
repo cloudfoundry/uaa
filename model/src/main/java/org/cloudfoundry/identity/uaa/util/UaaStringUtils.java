@@ -51,6 +51,14 @@ public final class UaaStringUtils {
 
     public static final String EMPTY_STRING = "";
 
+    /**
+     * The Unicode byte order marker (codepoint U+FEFF), as decoded into a Java String. This is
+     * the same character regardless of which encoding's BOM bytes produced it (UTF-8's EF BB BF,
+     * UTF-16LE's FF FE, UTF-16BE's FE FF, ...) once decoded with the correct charset for that
+     * encoding, or when a UTF-8 BOM survives an incorrect {@code new String(bytes, UTF_8)} decode.
+     */
+    public static final String BYTE_ORDER_MARKER = String.valueOf((char) 0xFEFF);
+
     public static final String DEFAULT_UAA_URL = "http://localhost:8080/uaa";
 
     private UaaStringUtils() {
