@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import tools.jackson.core.type.TypeReference;
 
 import java.io.Serial;
@@ -138,6 +139,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
         return switch (details) {
             case UaaAuthenticationDetails d -> Optional.ofNullable(d.getOrigin());
             case OAuth2AuthenticationDetails d -> Optional.ofNullable(d.getRemoteAddress());
+            case WebAuthenticationDetails d -> Optional.of(d.getRemoteAddress());
             case Map<?, ?> map -> Optional.ofNullable(map.get("remoteAddress")).map(Object::toString);
             case String jsonBlob -> extractRemoteAddressFromJson(jsonBlob);
             default -> {

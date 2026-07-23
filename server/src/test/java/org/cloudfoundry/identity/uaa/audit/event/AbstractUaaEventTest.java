@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
 import java.util.Map;
 
@@ -192,6 +193,21 @@ class AbstractUaaEventTest {
         String originString = event.getOrigin(authentication);
         assertThat(originString).contains("client=clientid")
                 .contains("details=(remoteAddress=172.18.0.1, type=OAuth2AuthenticationDetails");
+    }
+
+    @Test
+    void getOrigin_whenWebAuthenticationDetails_extractsRemoteAddressFromAccessor() {
+        UaaOauth2Authentication authentication = mock(UaaOauth2Authentication.class);
+        OAuth2Request oAuth2Request = mock(OAuth2Request.class);
+        when(authentication.getOAuth2Request()).thenReturn(oAuth2Request);
+        when(authentication.getName()).thenReturn("marissa");
+        WebAuthenticationDetails webDetails = mock(WebAuthenticationDetails.class);
+        when(webDetails.getRemoteAddress()).thenReturn("192.168.1.5");
+        when(authentication.getDetails()).thenReturn(webDetails);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String originString = event.getOrigin(authentication);
+        assertThat(originString).contains("marissa")
+                .contains("details=(remoteAddress=192.168.1.5, type=WebAuthenticationDetails");
     }
 
     @Test
