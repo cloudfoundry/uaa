@@ -42,7 +42,10 @@ subprojects {
         extra["tomcat.version"] = libs.versions.tomcat.get()
         extra["commons-codec.version"] = libs.versions.commonsCodec.get()
         extra["selenium.version"] = libs.versions.selenium.get()
-        
+        extra["jackson-2-bom.version"] = libs.versions.jackson2.get()
+        extra["jackson-bom.version"] = libs.versions.jackson.get()
+        extra["postgresql.version"] = libs.versions.postgresql.get()
+
         configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
             imports {
                 mavenBom(libs.springBootBom.get().toString())
