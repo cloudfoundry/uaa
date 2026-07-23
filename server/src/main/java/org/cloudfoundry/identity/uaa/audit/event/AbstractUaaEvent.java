@@ -31,6 +31,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.util.StringUtils;
 import tools.jackson.core.type.TypeReference;
 
 import java.io.Serial;
@@ -41,7 +42,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isJwtToken;
-import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Base class for UAA events that want to publish audit records.
@@ -137,10 +137,10 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     private Optional<String> extractRemoteAddress(Object details) {
         return switch (details) {
-            case UaaAuthenticationDetails d -> Optional.ofNullable(d.getOrigin());
-            case OAuth2AuthenticationDetails d -> Optional.ofNullable(d.getRemoteAddress());
-            case WebAuthenticationDetails d -> Optional.of(d.getRemoteAddress());
-            case Map<?, ?> map -> Optional.ofNullable(map.get("remoteAddress")).map(Object::toString);
+            case UaaAuthenticationDetails d -> Optional.ofNullable(d.getOrigin()).filter(StringUtils::hasText);
+            case OAuth2AuthenticationDetails d -> Optional.ofNullable(d.getRemoteAddress()).filter(StringUtils::hasText);
+            case WebAuthenticationDetails d -> Optional.ofNullable(d.getRemoteAddress()).filter(StringUtils::hasText);
+            case Map<?, ?> map -> Optional.ofNullable(map.get("remoteAddress")).map(Object::toString).filter(StringUtils::hasText);
             case String jsonBlob -> extractRemoteAddressFromJson(jsonBlob);
             default -> {
                 logger.warn("Unhandled Authentication.details type in audit origin: {}", details.getClass().getName());
@@ -166,7 +166,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
         } else if (caller.getDetails() instanceof OAuth2AuthenticationDetails oAuth2AuthenticationDetails) {
             tokenValue = oAuth2AuthenticationDetails.getTokenValue();
         }
-        if (hasText(tokenValue)) {
+        if (StringUtils.hasText(tokenValue)) {
             if (isJwtToken(tokenValue)) {
                 try {
                     Jwt token = JwtHelper.decode(tokenValue);
