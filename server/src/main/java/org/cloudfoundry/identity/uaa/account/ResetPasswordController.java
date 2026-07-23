@@ -214,6 +214,10 @@ public class ResetPasswordController {
             return null;
         }
         String userId = data.get("user_id");
+        if (!intent.equals(FORGOT_PASSWORD_INTENT_PREFIX + userId)) {
+            logger.debug("reset_password ExpiringCode intent does not match user_id. Aborting.");
+            return null;
+        }
         try {
             userDatabase.retrieveUserById(userId);
         } catch (UsernameNotFoundException _) {

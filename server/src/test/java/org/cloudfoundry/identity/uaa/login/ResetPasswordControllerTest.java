@@ -342,7 +342,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    void resetPasswordPage_withInvitationCode_returns422() throws Exception {
+    void resetPasswordPageWithInvitationCodeReturns422() throws Exception {
         ExpiringCode inviteCode = codeStore.generateCode(
                 "{\"user_id\":\"some-user-id\",\"client_id\":\"invite-client\",\"created_new_user\":\"false\"}",
                 new Timestamp(System.currentTimeMillis() + 1000000),

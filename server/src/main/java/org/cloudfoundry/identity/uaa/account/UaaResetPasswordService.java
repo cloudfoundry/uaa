@@ -104,6 +104,9 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
         }
         userId = change.getUserId();
+        if (!intent.equals(FORGOT_PASSWORD_INTENT_PREFIX + userId)) {
+            throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
+        }
         userName = change.getUsername();
         passwordLastModified = change.getPasswordModifiedTime();
         clientId = change.getClientId();
