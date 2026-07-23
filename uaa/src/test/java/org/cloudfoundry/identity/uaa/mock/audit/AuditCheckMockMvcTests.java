@@ -1392,12 +1392,14 @@ class AuditCheckMockMvcTests {
         assertThat(actualLogMessage).startsWith(expectedAuditEventType.toString() + " ")
                 .contains("principal=%s,".formatted(expectedPrincipal))
                 .contains(" ('%s'): ".formatted(expectedUserName))
-                .contains(", identityZoneId=[uaa]");
+                .contains(", identityZoneId=[uaa]")
+                .doesNotContain("sessionId");
     }
 
     private static void assertGroupMembershipLogMessage(String actualLogMessage, AuditEventType expectedEventType, String expectedGroupDisplayName, String expectedGroupId, String... expectedUserIds) {
         assertThat(actualLogMessage).startsWith(expectedEventType.toString() + " ")
-                .contains("principal=%s,".formatted(expectedGroupId));
+                .contains("principal=%s,".formatted(expectedGroupId))
+                .doesNotContain("sessionId");
 
         Pattern groupLogPattern = Pattern.compile(" \\('\\{\"group_name\":\"" + Pattern.quote(expectedGroupDisplayName) + "\",\"members\":\\[(.*?)]}'\\): ");
         Matcher patternMatcher = groupLogPattern.matcher(actualLogMessage);
