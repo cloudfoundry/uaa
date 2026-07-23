@@ -200,7 +200,7 @@ public class ResetPasswordController {
         }
         String intent = code.getIntent();
         if (intent == null || !intent.startsWith(FORGOT_PASSWORD_INTENT_PREFIX)) {
-            logger.debug("reset_password ExpiringCode[{}] intent is not a forgot-password intent. Aborting.", code.getCode());
+            logger.debug("reset_password ExpiringCode intent is not a forgot-password intent. Aborting.");
             return null;
         }
         if (!hasText(code.getData())) {

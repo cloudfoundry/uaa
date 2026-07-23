@@ -453,7 +453,14 @@ class PasswordResetEndpointTest {
                 .content("{\"code\":\"null_intent_code\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
-        mockMvc.perform(post)
-                .andExpect(status().isUnprocessableEntity());
+        MvcResult result = mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn();
+        assertThat(JsonUtils.readTree(result.getResponse().getContentAsString()))
+                .isEqualTo(JsonUtils.readTree(new JSONObject()
+                        .put("error_description", "Sorry, your reset password link is no longer valid. Please request a new one")
+                        .put("message", "Sorry, your reset password link is no longer valid. Please request a new one")
+                        .put("error", "invalid_code")
+                        .toString()));
     }
 }
