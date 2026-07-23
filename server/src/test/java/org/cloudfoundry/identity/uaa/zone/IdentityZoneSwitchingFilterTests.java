@@ -24,6 +24,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -60,6 +61,27 @@ class IdentityZoneSwitchingFilterTests {
         HttpServletRequest modifiedRequest = requestArgumentCaptor.getValue();
         assertThat(modifiedRequest).isInstanceOf(HttpHeadersFilterRequestWrapper.class);
         assertThat(modifiedRequest.getHeader(HEADER)).isNull();
+    }
+
+    @Test
+    void bothHeadersRemovedIfSwitchingToUaaZone() throws Exception {
+        IdentityZoneProvisioning zoneProvisioning = mock(IdentityZoneProvisioning.class);
+        when(zoneProvisioning.retrieve(anyString())).thenReturn(IdentityZone.getUaa());
+        IdentityZoneSwitchingFilter filter = new IdentityZoneSwitchingFilter(zoneProvisioning);
+
+        FilterChain chain = mock(FilterChain.class);
+        ArgumentCaptor<HttpServletRequest> requestArgumentCaptor = ArgumentCaptor.forClass(HttpServletRequest.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getHeader(HEADER)).thenReturn(IdentityZone.getUaaZoneId());
+        when(request.getHeader(SUBDOMAIN_HEADER)).thenReturn("uaa");
+
+        filter.doFilterInternal(request, null, chain);
+        verify(chain).doFilter(requestArgumentCaptor.capture(), any());
+
+        HttpServletRequest modifiedRequest = requestArgumentCaptor.getValue();
+        assertThat(modifiedRequest).isInstanceOf(HttpHeadersFilterRequestWrapper.class);
+        assertThat(modifiedRequest.getHeader(HEADER)).isNull();
+        assertThat(modifiedRequest.getHeader(SUBDOMAIN_HEADER)).isNull();
     }
 
 }

@@ -417,8 +417,9 @@ login:
     signMetaData: true
     # Local/SP metadata - requests signed
     signRequest: true
-    # Deprecated (78.13.0): still affects SP metadata WantAssertionsSigned and decrypt of unsigned Response+EncryptedAssertion.
-    # Authentication always requires a verifiable signature on the Response or on each Assertion.
+    # Deprecated (78.13.0): only affects SP metadata WantAssertionsSigned. No longer affects authentication-
+    # behavior encrypted assertions are always decrypted, and authentication always requires a verifiable
+    # signature on the Response or on every Assertion after decryption, regardless of this setting.
     wantAssertionSigned: true
     # Algorithm for SAML signatures. Defaults to SHA256. Accepts SHA1, SHA256, SHA512
     signatureAlgorithm: SHA256
