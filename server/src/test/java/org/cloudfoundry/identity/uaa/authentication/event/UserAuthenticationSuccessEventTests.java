@@ -27,6 +27,6 @@ class UserAuthenticationSuccessEventTests {
 
         assertThat(origin).contains("remoteAddress=127.10.10.10")
                 .contains("clientId=client-id")
-                .contains("sessionId=<SESSION>");
+                .doesNotContain("sessionId");
     }
 }
