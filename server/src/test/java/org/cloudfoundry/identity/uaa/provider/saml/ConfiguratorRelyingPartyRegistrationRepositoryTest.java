@@ -190,6 +190,31 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     }
 
     @Test
+    void buildsCorrectRegistrationWhenMetadataXmlHasLeadingUtf8Bom() {
+        // Regression for cloudfoundry/uaa#3994: inline SAML metadata beginning with a UTF-8 BOM
+        // (U+FEFF) -- as served by Microsoft Entra/ADFS federationmetadata.xml -- was
+        // misclassified as a metadata *location* (not DATA) and handed to
+        // RelyingPartyRegistrations.fromMetadataLocation(), throwing FileNotFoundException and a
+        // Saml2Exception during login. It must instead be parsed as inline XML.
+        String metadata = '\uFEFF' + loadResouceAsString("saml-sample-metadata.xml");
+        when(repository.retrieveZone()).thenReturn(identityZone);
+        when(identityZone.isUaa()).thenReturn(true);
+        when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
+        when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
+        when(definition.getIdpEntityAlias()).thenReturn(REGISTRATION_ID);
+        when(definition.getNameID()).thenReturn(NAME_ID);
+        when(definition.getMetaDataLocation()).thenReturn(metadata);
+        when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
+
+        RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
+        assertThat(registration)
+                .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
+                .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
+                .extracting(RelyingPartyRegistration::getAssertingPartyMetadata)
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", AssertingPartyMetadata::getEntityId);
+    }
+
+    @Test
     void zoneWithCredentialsUsesCorrectValues() {
         samlConfigProps.setKeys(Map.of(keyName1(), samlKey1(), keyName2(), samlKey2()));
         samlConfigProps.setActiveKeyId(keyName1());

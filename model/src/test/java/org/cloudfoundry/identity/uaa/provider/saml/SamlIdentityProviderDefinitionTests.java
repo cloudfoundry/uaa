@@ -141,6 +141,22 @@ public class SamlIdentityProviderDefinitionTests {
         assertThat(definition.getType()).isEqualTo(DATA);
     }
 
+    @Test
+    void get_data_type_when_valid_with_leading_utf8_bom() {
+        // Microsoft Entra/ADFS federationmetadata.xml is served UTF-8-with-BOM and the BOM
+        // (U+FEFF) is frequently pasted verbatim into idpMetadata. String.trim() does not strip
+        // it, so getType() must handle it explicitly, otherwise the metadata is misclassified as
+        // UNKNOWN and login fails. See cloudfoundry/uaa#3994.
+        definition.setMetaDataLocation('\uFEFF' + IDP_METADATA);
+        assertThat(definition.getType()).isEqualTo(DATA);
+    }
+
+    @Test
+    void get_url_type_with_leading_utf8_bom() {
+        definition.setMetaDataLocation('\uFEFF' + "http://uaa.com/saml/metadata");
+        assertThat(definition.getType()).isEqualTo(URL);
+    }
+
     public static final String ALIAS = "alias";
     public static final String IDP_METADATA = "<?xml version=\"1.0\"?>\n" +
             "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://" + ALIAS + ".cfapps.io/saml2/idp/metadata.php\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +

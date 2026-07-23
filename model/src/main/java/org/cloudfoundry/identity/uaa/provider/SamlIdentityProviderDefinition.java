@@ -91,7 +91,15 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public static MetadataLocation getType(String urlOrXmlData) {
+        // Strip a leading UTF-8 BOM (U+FEFF) before classifying. String.trim() only removes
+        // characters <= U+0020, so a BOM survives and would cause the startsWith("<?xml") /
+        // startsWith("<EntityDescriptor") checks below to fail, misclassifying inline XML as
+        // UNKNOWN. Microsoft Entra/ADFS federationmetadata.xml is served UTF-8-with-BOM and is
+        // frequently pasted verbatim into idpMetadata. See cloudfoundry/uaa#3994.
         String trimmedValue = urlOrXmlData.trim();
+        if (!trimmedValue.isEmpty() && trimmedValue.charAt(0) == '\uFEFF') {
+            trimmedValue = trimmedValue.substring(1).trim();
+        }
 
         if (trimmedValue.startsWith("<?xml") ||
                 trimmedValue.startsWith("<md:EntityDescriptor") ||

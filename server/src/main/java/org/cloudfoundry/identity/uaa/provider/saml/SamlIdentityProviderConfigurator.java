@@ -166,7 +166,14 @@ public class SamlIdentityProviderConfigurator {
         try {
             String adjustedMetadataURIForPort = adjustURIForPort(metadataLocation);
             byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetadataURIForPort, def.isSkipSslValidation());
-            return new String(metadata, StandardCharsets.UTF_8);
+            String xml = new String(metadata, StandardCharsets.UTF_8);
+            // Strip a leading UTF-8 BOM (U+FEFF) that some IDP metadata endpoints (notably
+            // Microsoft Entra/ADFS) prepend, so downstream classification/parsing treats the
+            // response as inline XML rather than an opaque resource location. See cloudfoundry/uaa#3994.
+            if (!xml.isEmpty() && xml.charAt(0) == '\uFEFF') {
+                xml = xml.substring(1);
+            }
+            return xml;
         } catch (URISyntaxException e) {
             throw new IllegalStateException("Invalid socket factory(invalid URI):" + metadataLocation, e);
         }
