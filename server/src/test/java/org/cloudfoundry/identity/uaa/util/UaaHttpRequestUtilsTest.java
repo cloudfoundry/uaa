@@ -9,11 +9,13 @@ import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.protocol.HttpContext;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,10 +25,14 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
+import java.security.KeyStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
@@ -79,11 +85,12 @@ class UaaHttpRequestUtilsTest {
     HttpsServer httpsServer;
     HttpServer httpServer;
     private String httpsUrl;
+    private File keystore;
 
     @BeforeEach
     void setup() throws Exception {
         clearSystemProxyConfig();
-        File keystore = NetworkTestUtils.getKeystore(new Date(), 10);
+        keystore = NetworkTestUtils.getKeystore(new Date(), 10);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         httpResponseHandler = new NetworkTestUtils.SimpleHttpResponseHandler(headers, "OK");
@@ -230,6 +237,41 @@ class UaaHttpRequestUtilsTest {
             fail("We should not reach this step if the above URL is using a self signed certificate");
         } catch (RestClientException e) {
             assertThat(e.getCause().getClass()).isEqualTo(SSLHandshakeException.class);
+        }
+    }
+
+    @Nested
+    class SslContextOverload {
+
+        @Test
+        void trustsServerWhenCertIsInTrustStore() throws Exception {
+            KeyStore ks = KeyStore.getInstance("JKS");
+            try (FileInputStream fis = new FileInputStream(keystore)) {
+                ks.load(fis, NetworkTestUtils.keyPass.toCharArray());
+            }
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(ks);
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, tmf.getTrustManagers(), null);
+
+            RestTemplate restTemplate = new RestTemplate(createRequestFactory(sslContext, 10_000, 10_000, RestTemplateConfig.createDefaults()));
+            assertThat(restTemplate.getForEntity(httpsUrl, String.class).getStatusCode()).isEqualTo(OK);
+        }
+
+        @Test
+        void rejectsServerWhenCertIsNotInTrustStore() throws Exception {
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init((KeyStore) null);
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, tmf.getTrustManagers(), null);
+
+            RestTemplate restTemplate = new RestTemplate(createRequestFactory(sslContext, 10_000, 10_000, RestTemplateConfig.createDefaults()));
+            try {
+                restTemplate.getForEntity(httpsUrl, String.class);
+                fail("We should not reach this step if the above URL is using a self signed certificate");
+            } catch (RestClientException e) {
+                assertThat(e.getCause().getClass()).isEqualTo(SSLHandshakeException.class);
+            }
         }
     }
 

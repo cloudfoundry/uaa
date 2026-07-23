@@ -26,6 +26,7 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
 import org.apache.hc.client5.http.socket.PlainConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.TrustSelfSignedStrategy;
@@ -134,6 +135,11 @@ public abstract class UaaHttpRequestUtils {
         return createRequestFactory(getClientBuilder(skipSslValidation, config), config.connectionRequestTimeoutInMs());
     }
 
+    public static ClientHttpRequestFactory createRequestFactory(SSLContext sslContext, int connectTimeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
+        HttpClientConfig config = new HttpClientConfig(restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount, connectTimeout, readTimeout, connectTimeout);
+        return createRequestFactory(getClientBuilder(sslContext, config), config.connectionRequestTimeoutInMs());
+    }
+
     protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int connectionRequestTimeoutInMs) {
         HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(builder.build());
         factory.setConnectionRequestTimeout(connectionRequestTimeoutInMs);
@@ -141,10 +147,7 @@ public abstract class UaaHttpRequestUtils {
     }
 
     static HttpClientBuilder getClientBuilder(boolean skipSslValidation, HttpClientConfig config) {
-        HttpClientBuilder builder = HttpClients.custom()
-                .useSystemProperties()
-                .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
-                .setRedirectStrategy(new DefaultRedirectStrategy());
+        HttpClientBuilder builder = newClientBuilder();
         PoolingHttpClientConnectionManager cm;
         if (skipSslValidation) {
             SSLContext sslContext = getNonValidatingSslContext();
@@ -160,6 +163,35 @@ public abstract class UaaHttpRequestUtils {
         } else {
             cm = new PoolingHttpClientConnectionManager();
         }
+        return configureConnectionManager(builder, cm, config);
+    }
+
+    /**
+     * Like {@link #getClientBuilder(boolean, HttpClientConfig)}, but validates against a caller-supplied
+     * {@link SSLContext} instead of choosing between the skip-validation and JDK-default-truststore paths.
+     * This is a real-validation path (not skip-validation), so hostname verification stays on.
+     */
+    static HttpClientBuilder getClientBuilder(SSLContext sslContext, HttpClientConfig config) {
+        HttpClientBuilder builder = newClientBuilder();
+        final String[] supportedProtocols = split(System.getProperty("https.protocols"));
+        final String[] supportedCipherSuites = split(System.getProperty("https.cipherSuites"));
+        SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites, new DefaultHostnameVerifier());
+        Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register("https", sslSocketFactory)
+                .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                .build();
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+        return configureConnectionManager(builder, cm, config);
+    }
+
+    private static HttpClientBuilder newClientBuilder() {
+        return HttpClients.custom()
+                .useSystemProperties()
+                .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
+                .setRedirectStrategy(new DefaultRedirectStrategy());
+    }
+
+    private static HttpClientBuilder configureConnectionManager(HttpClientBuilder builder, PoolingHttpClientConnectionManager cm, HttpClientConfig config) {
         cm.setMaxTotal(config.poolSize());
         cm.setDefaultMaxPerRoute(config.defaultMaxPerRoute());
         cm.setValidateAfterInactivity(TimeValue.of(config.validateAfterInactivity(), TimeUnit.MILLISECONDS));
