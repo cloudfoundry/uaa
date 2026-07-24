@@ -86,11 +86,13 @@ public class UaaMacSigner implements JWSSigner {
             JWK jwKey = jwkSet.getKeys().stream().filter(e -> kid.equals(e.getKeyID())).findFirst().orElseThrow();
             UaaMacSigner internal = new UaaMacSigner((String) jwKey.toJSONObject().get(JWKParameterNames.OCT_KEY_VALUE));
             // symmetric signature check: create internal signature and compare if matches the signature from token, using a constant-time comparison
-            Base64URL expectedSignature = internal.sign(header, token.getSigningInput());
-            if (MessageDigest.isEqual(token.getSignature().decode(), expectedSignature.decode()) && SUPPORTED_ALGORITHMS.contains(header.getAlgorithm())) {
-                return token.getJWTClaimsSet();
+            if (SUPPORTED_ALGORITHMS.contains(header.getAlgorithm())) {
+                Base64URL expectedSignature = internal.sign(header, token.getSigningInput());
+                if (MessageDigest.isEqual(token.getSignature().decode(), expectedSignature.decode())) {
+                    return token.getJWTClaimsSet();
+                }
             }
-            throw new InvalidSignatureException("HMAC not mached");
+            throw new InvalidSignatureException("HMAC not matched");
         } catch (ParseException | JOSEException e) {
             throw new InvalidSignatureException("Invalid signed token", e);
         }
