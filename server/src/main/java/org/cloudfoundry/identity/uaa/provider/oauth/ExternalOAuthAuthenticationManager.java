@@ -98,6 +98,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -658,13 +659,20 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 final var algorithm = Optional.ofNullable(jsonData)
                         .map(it -> it.get("algorithm"))
                         .orElse(null);
-                if (algorithm != null && !"HMAC-SHA256".equals(algorithm)) {
-                    log.debug("Unknown algorithm was used to sign request! No claims returned.");
+                if (!"HMAC-SHA256".equals(algorithm)) {
+                    log.debug("Missing or unknown algorithm was used to sign request! No claims returned.");
                     return null;
                 }
-                //check if data is signed correctly
-                if (!hmacSignAndEncode(signedRequests[1], secret).equals(signature)) {
-                    log.debug("Signature is not correct, possibly the data was tampered with! No claims returned.");
+                // check if data is signed correctly using constant-time comparison
+                try {
+                    byte[] expectedMac = Base64.decodeBase64(hmacSignAndEncode(signedRequests[1], secret));
+                    byte[] suppliedMac = Base64.decodeBase64(signature);
+                    if (!MessageDigest.isEqual(expectedMac, suppliedMac)) {
+                        log.debug("Signature is not correct, possibly the data was tampered with! No claims returned.");
+                        return null;
+                    }
+                } catch (Exception _) {
+                    log.debug("Failed to validate signature due to encoding or computation error! No claims returned.");
                     return null;
                 }
                 return jsonData;

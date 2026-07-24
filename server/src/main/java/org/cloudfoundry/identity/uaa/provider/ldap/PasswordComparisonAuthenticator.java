@@ -34,6 +34,7 @@ import org.springframework.security.ldap.authentication.AbstractLdapAuthenticato
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
@@ -117,7 +118,7 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
                     } else {
                         String encodedPassword = passwordEncoder.encode(password);
                         byte[] passwordBytes = Utf8.encode(encodedPassword);
-                        match = Arrays.equals(passwordBytes, valBytes);
+                        match = MessageDigest.isEqual(passwordBytes, valBytes);
                     }
                 }
             }
