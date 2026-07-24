@@ -17,6 +17,10 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.springframework.security.core.Authentication;
 
+import java.util.StringJoiner;
+
+import static org.springframework.util.StringUtils.hasText;
+
 /**
  * @author Luke Taylor
  */
@@ -27,7 +31,21 @@ public abstract class AbstractUaaAuthenticationEvent extends AbstractUaaEvent {
     }
 
     protected String getOrigin(UaaAuthenticationDetails details) {
-        return details == null ? "unknown" : details.toString();
+        if (details == null) {
+            return "unknown";
+        }
+
+        StringJoiner joiner = new StringJoiner(", ");
+
+        if (hasText(details.getOrigin())) {
+            joiner.add("remoteAddress=" + details.getOrigin());
+        }
+
+        if (hasText(details.getClientId())) {
+            joiner.add("clientId=" + details.getClientId());
+        }
+
+        return joiner.length() == 0 ? "unknown" : joiner.toString();
     }
 
     UaaAuthenticationDetails getAuthenticationDetails() {
