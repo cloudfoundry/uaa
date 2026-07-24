@@ -331,7 +331,8 @@ public class ResetPasswordControllerMockMvcTests {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
                 .hasSize(1);
-        ExpiringCode code = codeStore.generateCode(users.getFirst().getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
+        PasswordChange change = new PasswordChange(users.getFirst().getId(), users.getFirst().getUserName(), users.getFirst().getPasswordLastModified(), "", "");
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), FORGOT_PASSWORD_INTENT_PREFIX + users.getFirst().getId(), IdentityZoneHolder.get().getId());
 
         mockMvc.perform(createChangePasswordRequest(users.getFirst(), code, false))
                 .andExpect(status().isFound())
@@ -389,10 +390,10 @@ public class ResetPasswordControllerMockMvcTests {
                 .hasSize(1);
         ScimUser user = users.getFirst();
         PasswordChange passwordChange = new PasswordChange(user.getId(), user.getUserName(), null, null, null);
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), FORGOT_PASSWORD_INTENT_PREFIX + user.getId(), IdentityZoneHolder.get().getId());
         mockMvc.perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"));
 
-        code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
+        code = codeStore.generateCode(JsonUtils.writeValueAsString(passwordChange), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), FORGOT_PASSWORD_INTENT_PREFIX + user.getId(), IdentityZoneHolder.get().getId());
         mockMvc.perform(createChangePasswordRequest(user, code, true, "a", "a"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(request().attribute("message", "Password must be at least 3 characters in length."))

@@ -420,7 +420,7 @@ class PasswordResetEndpointTest {
     }
 
     @Test
-    void changePassword_withInvitationCode_returns422() throws Exception {
+    void changingPasswordWithInvitationCodeReturns422() throws Exception {
         String inviteData = "{\"user_id\":\"eyedee\",\"client_id\":\"invite-client\",\"created_new_user\":\"false\"}";
         ExpiringCode inviteCode = new ExpiringCode("invite_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME),
                 inviteData, INVITATION.name());
@@ -443,7 +443,7 @@ class PasswordResetEndpointTest {
     }
 
     @Test
-    void changePassword_withNullIntentCode_returns422() throws Exception {
+    void changingPasswordWithNullIntentCodeReturns422() throws Exception {
         ExpiringCode nullIntentCode = new ExpiringCode("null_intent_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME),
                 "{\"user_id\":\"eyedee\",\"username\":\"user@example.com\",\"passwordModifiedTime\":null,\"client_id\":\"\",\"redirect_uri\":\"\"}", null);
         when(mockExpiringCodeStore.retrieveCode("null_intent_code", currentZoneId)).thenReturn(nullIntentCode);

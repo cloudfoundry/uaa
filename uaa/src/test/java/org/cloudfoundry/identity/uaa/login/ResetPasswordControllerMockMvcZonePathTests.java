@@ -345,7 +345,8 @@ public class ResetPasswordControllerMockMvcZonePathTests {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"", IdentityZoneHolder.get().getId());
         assertThat(users)
                 .hasSize(1);
-        ExpiringCode code = codeStore.generateCode(users.getFirst().getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null, IdentityZoneHolder.get().getId());
+        PasswordChange change = new PasswordChange(users.getFirst().getId(), users.getFirst().getUserName(), users.getFirst().getPasswordLastModified(), "", "");
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), FORGOT_PASSWORD_INTENT_PREFIX + users.getFirst().getId(), IdentityZoneHolder.get().getId());
 
         mockMvc.perform(createChangePasswordRequest(users.getFirst(), code, false))
                 .andExpect(status().isFound())
