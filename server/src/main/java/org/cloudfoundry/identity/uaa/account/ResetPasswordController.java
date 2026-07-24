@@ -38,6 +38,7 @@ import jakarta.servlet.http.HttpSession;
 import java.sql.Timestamp;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.account.UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX;
 import static org.springframework.util.StringUtils.hasText;
 
 @Controller
@@ -197,6 +198,11 @@ public class ResetPasswordController {
             logger.debug("reset_password ExpiringCode object is null. Aborting.");
             return null;
         }
+        String intent = code.getIntent();
+        if (intent == null || !intent.startsWith(FORGOT_PASSWORD_INTENT_PREFIX)) {
+            logger.debug("reset_password ExpiringCode intent is not a forgot-password intent. Aborting.");
+            return null;
+        }
         if (!hasText(code.getData())) {
             logger.debug("reset_password ExpiringCode[{}] data string is null or empty. Aborting.", code.getCode());
             return null;
@@ -208,6 +214,10 @@ public class ResetPasswordController {
             return null;
         }
         String userId = data.get("user_id");
+        if (!intent.equals(FORGOT_PASSWORD_INTENT_PREFIX + userId)) {
+            logger.debug("reset_password ExpiringCode intent does not match user_id. Aborting.");
+            return null;
+        }
         try {
             userDatabase.retrieveUserById(userId);
         } catch (UsernameNotFoundException _) {

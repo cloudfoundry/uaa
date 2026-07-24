@@ -51,6 +51,8 @@ import org.thymeleaf.TemplateEngine;
 import java.sql.Timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.account.UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX;
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.contains;
 import static org.mockito.Mockito.eq;
@@ -290,7 +292,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     void resetPasswordPage() throws Exception {
-        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
+        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), FORGOT_PASSWORD_INTENT_PREFIX + "some-user-id", IdentityZoneHolder.get().getId());
         MvcResult result = mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
                 .andExpect(status().isOk())
                 .andDo(print())
@@ -305,7 +307,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     void resetPasswordPageWithPriorHeadRequest() throws Exception {
-        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
+        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), FORGOT_PASSWORD_INTENT_PREFIX + "some-user-id", IdentityZoneHolder.get().getId());
         mockMvc.perform(head("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
                 .andExpect(status().isOk());
         MvcResult result = mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
@@ -322,7 +324,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     void resetPasswordPageDuplicate() throws Exception {
-        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
+        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), FORGOT_PASSWORD_INTENT_PREFIX + "some-user-id", IdentityZoneHolder.get().getId());
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("reset_password"));
@@ -334,6 +336,20 @@ class ResetPasswordControllerTest extends TestClassNullifier {
     @Test
     void resetPasswordPageWhenExpiringCodeNull() throws Exception {
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "code1"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("forgot_password"))
+                .andExpect(model().attribute("message_code", "bad_code"));
+    }
+
+    @Test
+    void resetPasswordPageWithInvitationCodeReturns422() throws Exception {
+        ExpiringCode inviteCode = codeStore.generateCode(
+                "{\"user_id\":\"some-user-id\",\"client_id\":\"invite-client\",\"created_new_user\":\"false\"}",
+                new Timestamp(System.currentTimeMillis() + 1000000),
+                INVITATION.name(),
+                IdentityZoneHolder.get().getId());
+
+        mockMvc.perform(get("/reset_password").param("code", inviteCode.getCode()))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("forgot_password"))
                 .andExpect(model().attribute("message_code", "bad_code"));
