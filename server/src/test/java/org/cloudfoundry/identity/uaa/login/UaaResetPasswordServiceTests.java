@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -241,7 +242,7 @@ class UaaResetPasswordServiceTests {
     void resetPassword_rejectsNonForgotPasswordIntent() {
         ExpiringCode inviteCode = new ExpiringCode("good_code",
                 new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME),
-                "{\"user_id\":\"user-id\",\"client_id\":\"invite-client\",\"created_new_user\":\"false\"}", "INVITATION");
+                "{\"user_id\":\"user-id\",\"client_id\":\"invite-client\",\"created_new_user\":\"false\"}", ExpiringCodeType.INVITATION.name());
 
         assertThatThrownBy(() -> uaaResetPasswordService.resetPassword(inviteCode, "new_secret"))
                 .isInstanceOf(InvalidCodeException.class)
