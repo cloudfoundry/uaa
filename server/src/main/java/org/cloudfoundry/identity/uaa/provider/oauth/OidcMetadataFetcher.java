@@ -33,14 +33,24 @@ public class OidcMetadataFetcher {
     private final UrlContentCache contentCache;
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
+    private final RestTemplate safeRestTemplate;
 
     public OidcMetadataFetcher(UrlContentCache contentCache,
             RestTemplate trustingRestTemplate,
             RestTemplate nonTrustingRestTemplate
     ) {
+        this(contentCache, trustingRestTemplate, nonTrustingRestTemplate, nonTrustingRestTemplate);
+    }
+
+    public OidcMetadataFetcher(UrlContentCache contentCache,
+            RestTemplate trustingRestTemplate,
+            RestTemplate nonTrustingRestTemplate,
+            RestTemplate safeRestTemplate
+    ) {
         this.contentCache = contentCache;
         this.trustingRestTemplate = trustingRestTemplate;
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
+        this.safeRestTemplate = safeRestTemplate;
     }
 
     public void fetchMetadataAndUpdateDefinition(OIDCIdentityProviderDefinition definition) throws OidcMetadataFetchingException {
@@ -73,7 +83,7 @@ public class OidcMetadataFetcher {
         if (clientJwtConfiguration.getJwkSet() != null) {
             return clientJwtConfiguration.getJwkSet();
         } else if (clientJwtConfiguration.getJwksUri() != null) {
-            byte[] rawContents = getJsonBody(clientJwtConfiguration.getJwksUri(), false, true, null);
+            byte[] rawContents = getJsonBody(clientJwtConfiguration.getJwksUri(), false, true, null, safeRestTemplate);
             if (rawContents != null && rawContents.length > 0) {
                 ClientJwtConfiguration clientKeys = ClientJwtConfiguration.parse(null, new String(rawContents, StandardCharsets.UTF_8));
                 if (clientKeys != null && clientKeys.getJwkSet() != null) {
@@ -85,6 +95,11 @@ public class OidcMetadataFetcher {
     }
 
     private byte[] getJsonBody(String uri, boolean isSkipSslValidation, boolean isCached, String authorizationValue) {
+        return getJsonBody(uri, isSkipSslValidation, isCached, authorizationValue,
+                isSkipSslValidation ? trustingRestTemplate : nonTrustingRestTemplate);
+    }
+
+    private byte[] getJsonBody(String uri, boolean isSkipSslValidation, boolean isCached, String authorizationValue, RestTemplate restTemplate) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         if (authorizationValue != null) {
             headers.add("Authorization", authorizationValue);
@@ -92,32 +107,19 @@ public class OidcMetadataFetcher {
         headers.add("Accept", "application/json,application/jwk-set+json");
         HttpEntity<Object> tokenKeyRequest = new HttpEntity<>(null, headers);
         if (isCached) {
-            return getCachedResponse(uri, isSkipSslValidation, HttpMethod.GET, tokenKeyRequest);
+            return contentCache.getUrlContent(uri, restTemplate, HttpMethod.GET, tokenKeyRequest);
         } else {
-            return getResponse(uri, isSkipSslValidation, HttpMethod.GET, tokenKeyRequest);
+            return getResponse(uri, HttpMethod.GET, tokenKeyRequest, restTemplate);
         }
     }
 
-    private byte[] getResponse(String uri, boolean isSkipSslValidation, HttpMethod method, HttpEntity<Object> header) {
-        ResponseEntity<byte[]> responseEntity;
-        if (isSkipSslValidation) {
-            responseEntity = trustingRestTemplate.exchange(uri, method, header, byte[].class);
-        } else {
-            responseEntity = nonTrustingRestTemplate.exchange(uri, method, header, byte[].class);
-        }
+    private byte[] getResponse(String uri, HttpMethod method, HttpEntity<Object> header, RestTemplate restTemplate) {
+        ResponseEntity<byte[]> responseEntity = restTemplate.exchange(uri, method, header, byte[].class);
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
             return responseEntity.getBody();
         } else {
             throw new IllegalArgumentException(
                     "Unable to fetch content, status:" + HttpStatus.resolve(responseEntity.getStatusCode().value()).getReasonPhrase());
-        }
-    }
-
-    private byte[] getCachedResponse(String uri, boolean isSkipSslValidation, HttpMethod method, HttpEntity<Object> header) {
-        if (isSkipSslValidation) {
-            return contentCache.getUrlContent(uri, trustingRestTemplate, method, header);
-        } else {
-            return contentCache.getUrlContent(uri, nonTrustingRestTemplate, method, header);
         }
     }
 
@@ -130,12 +132,8 @@ public class OidcMetadataFetcher {
     }
 
     private OidcMetadata fetchMetadata(URL discoveryUrl, boolean shouldDoSslValidation) throws OidcMetadataFetchingException {
-        byte[] rawContents;
-        if (shouldDoSslValidation) {
-            rawContents = contentCache.getUrlContent(discoveryUrl.toString(), trustingRestTemplate);
-        } else {
-            rawContents = contentCache.getUrlContent(discoveryUrl.toString(), nonTrustingRestTemplate);
-        }
+        RestTemplate restTemplate = shouldDoSslValidation ? trustingRestTemplate : nonTrustingRestTemplate;
+        byte[] rawContents = contentCache.getUrlContent(discoveryUrl.toString(), restTemplate);
         try {
             return OBJECT_MAPPER.readValue(rawContents, OidcMetadata.class);
         } catch (JacksonException e) {

@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.PrivateNetworkGuard;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
@@ -244,6 +245,17 @@ public class ClientJwtConfiguration implements Cloneable {
         }
         if ("http".equals(validateJwksUri.getScheme()) && !validateJwksUri.getHost().endsWith("localhost")) {
             throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri with http is not on localhost");
+        }
+        // Only apply the private-network check for HTTPS URIs — HTTP is already
+        // restricted to localhost above, and localhost resolves to a loopback address.
+        if ("https".equals(validateJwksUri.getScheme())) {
+            try {
+                PrivateNetworkGuard.assertPublic(validateJwksUri);
+            } catch (IllegalArgumentException e) {
+                throw new InvalidClientDetailsException(e.getMessage());
+            } catch (java.net.UnknownHostException _) {
+                // Unresolvable host: allow through at validation time; the fetch will fail.
+            }
         }
         return true;
     }

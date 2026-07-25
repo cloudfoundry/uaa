@@ -44,6 +44,22 @@ class ClientJwtConfigurationTest {
     }
 
     @Test
+    void jwksUri_privateIpIsRejected() {
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://192.168.1.1/jwks"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("blocked");
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://10.0.0.1/jwks"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("blocked");
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://169.254.169.254/latest/meta-data"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("blocked");
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://127.0.0.1/jwks"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("blocked");
+    }
+
+    @Test
     void jwkSetValidity() {
         assertThat(ClientJwtConfiguration.parse(jsonWebKey)).isNotNull();
         assertThat(ClientJwtConfiguration.parse(jsonJwkSet)).isNotNull();

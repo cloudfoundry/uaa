@@ -23,6 +23,7 @@ import org.apache.hc.client5.http.impl.NoopUserTokenHandler;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
 import org.apache.hc.client5.http.socket.PlainConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
@@ -87,6 +88,34 @@ public abstract class UaaHttpRequestUtils {
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
         HttpClientConfig config = HttpClientConfig.defaults(timeout, timeout);
         return createRequestFactory(getClientBuilder(skipSslValidation, config), config.connectionRequestTimeoutInMs());
+    }
+
+    /**
+     * Creates a request factory whose DNS resolver blocks private/loopback/link-local
+     * addresses at connection time. Use this for outbound fetches to operator-supplied
+     * URLs (e.g. jwks_uri) to guard against SSRF and DNS rebinding.
+     */
+    public static ClientHttpRequestFactory createSafeRequestFactory(int timeout) {
+        HttpClientConfig config = HttpClientConfig.defaults(timeout, timeout);
+        HttpClientBuilder builder = HttpClients.custom()
+                .useSystemProperties()
+                .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
+                .setRedirectStrategy(new DefaultRedirectStrategy());
+        PoolingHttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+                .setDnsResolver(PrivateNetworkBlockingDnsResolver.INSTANCE)
+                .build();
+        cm.setMaxTotal(config.poolSize());
+        cm.setDefaultMaxPerRoute(config.defaultMaxPerRoute());
+        cm.setValidateAfterInactivity(TimeValue.of(config.validateAfterInactivity(), TimeUnit.MILLISECONDS));
+        cm.setDefaultConnectionConfig(ConnectionConfig.custom()
+                .setConnectTimeout(toTimeout(config.connectTimeoutInMs()))
+                .build());
+        cm.setDefaultSocketConfig(SocketConfig.custom()
+                .setSoTimeout(toTimeout(config.readTimeoutInMs()))
+                .build());
+        builder.setConnectionManager(cm);
+        builder.setConnectionReuseStrategy((_, _, _) -> false);
+        return createRequestFactory(builder, config.connectionRequestTimeoutInMs());
     }
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int connectTimeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
