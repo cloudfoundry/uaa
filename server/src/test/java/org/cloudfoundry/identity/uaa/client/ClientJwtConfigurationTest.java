@@ -31,7 +31,7 @@ class ClientJwtConfigurationTest {
     @Test
     void jwksValidity() {
         assertThat(ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri")).isNotNull();
-        assertThat(ClientJwtConfiguration.parse("http://any.localhost/openid/jwks-uri")).isNotNull();
+        assertThat(ClientJwtConfiguration.parse("http://localhost/openid/jwks-uri")).isNotNull();
     }
 
     @Test
@@ -39,6 +39,7 @@ class ClientJwtConfigurationTest {
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("custom://any.domain.net/openid/jwks-uri", null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("test", null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("http://any.domain.net/openid/jwks-uri")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("http://any.localhost/openid/jwks-uri")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("ftp://any.domain.net/openid/jwks-uri")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }

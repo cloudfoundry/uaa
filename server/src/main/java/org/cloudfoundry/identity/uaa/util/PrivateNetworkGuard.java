@@ -61,7 +61,7 @@ public final class PrivateNetworkGuard {
             return true;
         }
         // IPv6 unique-local (fc00::/7)
-        if (raw.length == 16 && (raw[0] & 0xfe) == (byte) 0xfc) {
+        if (raw.length == 16 && (raw[0] & 0xfe) == 0xfc) {
             return true;
         }
         return false;
