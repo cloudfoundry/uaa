@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -84,11 +85,14 @@ public class UaaMacSigner implements JWSSigner {
             String kid = header.getKeyID();
             JWK jwKey = jwkSet.getKeys().stream().filter(e -> kid.equals(e.getKeyID())).findFirst().orElseThrow();
             UaaMacSigner internal = new UaaMacSigner((String) jwKey.toJSONObject().get(JWKParameterNames.OCT_KEY_VALUE));
-            // symmetric signature check: create internal signature and compare if matches the signature from token
-            if (token.getSignature().equals(internal.sign(header, token.getSigningInput())) && SUPPORTED_ALGORITHMS.contains(header.getAlgorithm())) {
-                return token.getJWTClaimsSet();
+            // symmetric signature check: create internal signature and compare if matches the signature from token, using a constant-time comparison
+            if (SUPPORTED_ALGORITHMS.contains(header.getAlgorithm())) {
+                Base64URL expectedSignature = internal.sign(header, token.getSigningInput());
+                if (MessageDigest.isEqual(token.getSignature().decode(), expectedSignature.decode())) {
+                    return token.getJWTClaimsSet();
+                }
             }
-            throw new InvalidSignatureException("HMAC not mached");
+            throw new InvalidSignatureException("HMAC not matched");
         } catch (ParseException | JOSEException e) {
             throw new InvalidSignatureException("Invalid signed token", e);
         }
