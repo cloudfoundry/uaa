@@ -100,7 +100,7 @@ public class UaaProperties {
             SessionCookie sessionCookie,
             @DefaultValue("1800")
             int idleTimeout,
-            @DefaultValue({"X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-Prefix", "Forwarded"})
+            @DefaultValue({"X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Proto", "X-Forwarded-Prefix", "Forwarded", "X-Client-IP", "X-Real-IP"})
             List<String> filteredHeaders
     ) {
         public Servlet {
