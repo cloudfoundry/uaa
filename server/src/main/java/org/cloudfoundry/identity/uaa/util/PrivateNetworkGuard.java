@@ -12,7 +12,6 @@ public final class PrivateNetworkGuard {
 
     // AWS/GCP/Azure instance-metadata address
     private static final byte[] METADATA_V4 = {(byte) 169, (byte) 254, (byte) 169, (byte) 254};
-
     private PrivateNetworkGuard() {}
 
     /**
@@ -55,6 +54,14 @@ public final class PrivateNetworkGuard {
         // 169.254.169.254 — cloud instance-metadata (IPv4)
         if (raw.length == 4 && raw[0] == METADATA_V4[0] && raw[1] == METADATA_V4[1]
                 && raw[2] == METADATA_V4[2] && raw[3] == METADATA_V4[3]) {
+            return true;
+        }
+        // Unspecified / any-local (0.0.0.0 or ::)
+        if (addr.isAnyLocalAddress()) {
+            return true;
+        }
+        // IPv6 unique-local (fc00::/7)
+        if (raw.length == 16 && (raw[0] & 0xfe) == (byte) 0xfc) {
             return true;
         }
         return false;

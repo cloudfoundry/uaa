@@ -114,7 +114,7 @@ public abstract class UaaHttpRequestUtils {
                 .setSoTimeout(toTimeout(config.readTimeoutInMs()))
                 .build());
         builder.setConnectionManager(cm);
-        builder.setConnectionReuseStrategy((_, _, _) -> false);
+        builder.setConnectionReuseStrategy((request, response, context) -> false);
         return createRequestFactory(builder, config.connectionRequestTimeoutInMs());
     }
 

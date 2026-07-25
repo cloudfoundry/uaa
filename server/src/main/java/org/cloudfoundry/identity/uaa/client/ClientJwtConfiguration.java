@@ -243,7 +243,7 @@ public class ClientJwtConfiguration implements Cloneable {
         if (!"https".equals(validateJwksUri.getScheme()) && !"http".equals(validateJwksUri.getScheme())) {
             throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri must be either using https or http");
         }
-        if ("http".equals(validateJwksUri.getScheme()) && !validateJwksUri.getHost().endsWith("localhost")) {
+        if ("http".equals(validateJwksUri.getScheme()) && !"localhost".equals(validateJwksUri.getHost())) {
             throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri with http is not on localhost");
         }
         // Only apply the private-network check for HTTPS URIs — HTTP is already
@@ -253,7 +253,7 @@ public class ClientJwtConfiguration implements Cloneable {
                 PrivateNetworkGuard.assertPublic(validateJwksUri);
             } catch (IllegalArgumentException e) {
                 throw new InvalidClientDetailsException(e.getMessage());
-            } catch (java.net.UnknownHostException _) {
+            } catch (java.net.UnknownHostException ignored) {
                 // Unresolvable host: allow through at validation time; the fetch will fail.
             }
         }

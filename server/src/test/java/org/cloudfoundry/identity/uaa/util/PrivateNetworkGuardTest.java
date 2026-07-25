@@ -23,6 +23,10 @@ class PrivateNetworkGuardTest {
             "169.254.1.1",      // link-local
             "169.254.169.254",  // cloud metadata
             "224.0.0.1",        // multicast
+            "0.0.0.0",          // unspecified IPv4
+            "::",               // unspecified IPv6
+            "fc00::1",          // IPv6 unique-local (fc00::/7)
+            "fd00::1",          // IPv6 unique-local (fd00::/8, within fc00::/7)
     })
     void blockedAddresses(String ip) throws UnknownHostException {
         assertThat_isBlocked(ip, true);
