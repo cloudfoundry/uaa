@@ -45,7 +45,8 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
         SavedRequest savedRequest = this.requestCache.getRequest(request, response);
         if (savedRequest == null) {
             String relayState = UaaStringUtils.getCleanedUserControlString(request.getParameter(Saml2ParameterNames.RELAY_STATE), UaaStringUtils.EMPTY_STRING);
-            if (UaaStringUtils.hasText(relayState) && UaaUrlUtils.isUrl(relayState)) {
+            if (UaaStringUtils.hasText(relayState) && UaaUrlUtils.isUrl(relayState)
+                    && UaaUrlUtils.uriHasMatchingHost(relayState, request.getServerName())) {
                 log.debug("Redirecting to relayState URI: {}", relayState);
                 this.getRedirectStrategy().sendRedirect(request, response, relayState);
             } else {
@@ -66,11 +67,11 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
 
     @Override
     public String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
-        Object redirectAttribute = request.getAttribute(URI_OVERRIDE_ATTRIBUTE);
+        String redirectAttribute = request.getAttribute(URI_OVERRIDE_ATTRIBUTE) instanceof String overrideString ? overrideString : null;
         String redirectFormParam = request.getParameter(FORM_REDIRECT_PARAMETER);
-        if (redirectAttribute != null) {
+        if (redirectAttribute != null && UaaUrlUtils.uriHasMatchingHost(redirectAttribute, request.getServerName())) {
             log.debug("Returning redirectAttribute saved URI: {}", redirectAttribute);
-            return (String) redirectAttribute;
+            return redirectAttribute;
         } else if (UaaUrlUtils.uriHasMatchingHost(redirectFormParam, request.getServerName())) {
             return redirectFormParam;
         } else {

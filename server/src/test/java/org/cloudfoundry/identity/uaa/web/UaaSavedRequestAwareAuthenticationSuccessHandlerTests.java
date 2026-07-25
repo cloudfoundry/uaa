@@ -45,16 +45,23 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     }
 
     @Test
-    void allow_url_override() {
-        String overrideUrl = "https://test.com";
+    void allow_url_override_same_host() {
+        String overrideUrl = "https://" + request.getServerName() + "/path";
         request.setAttribute(URI_OVERRIDE_ATTRIBUTE, overrideUrl);
         assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo(overrideUrl);
     }
 
     @Test
-    void form_parameter_is_overridden() {
-        request.setParameter(FORM_REDIRECT_PARAMETER, "https://test.com");
-        String overrideUrl = "https://override.test.com";
+    void external_url_override_is_rejected() {
+        request.setAttribute(URI_OVERRIDE_ATTRIBUTE, "https://external.attacker.com/steal");
+        assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo("/");
+    }
+
+    @Test
+    void form_parameter_is_overridden_same_host() {
+        String formParam = "https://" + request.getServerName() + "/form";
+        request.setParameter(FORM_REDIRECT_PARAMETER, formParam);
+        String overrideUrl = "https://" + request.getServerName() + "/override";
         request.setAttribute(URI_OVERRIDE_ATTRIBUTE, overrideUrl);
         assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo(overrideUrl);
     }
@@ -76,8 +83,8 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     }
 
     @Test
-    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl() throws Exception {
-        String redirectUri = "https://test.com/test2";
+    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl_sameHost() throws Exception {
+        String redirectUri = request.getScheme() + "://" + request.getServerName() + "/test2";
         request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
 
         var response = new MockHttpServletResponse();
@@ -85,6 +92,17 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
         handler.onAuthenticationSuccess(request, response, authentication);
 
         assertThat(response.getRedirectedUrl()).isEqualTo(redirectUri);
+    }
+
+    @Test
+    void onAuthenticationSuccess_noSavedRequest_externalRelayStateUrl_isRejected() throws Exception {
+        request.setParameter(Saml2ParameterNames.RELAY_STATE, "https://external.attacker.com/steal");
+
+        var response = new MockHttpServletResponse();
+        var authentication = mock(Authentication.class);
+        handler.onAuthenticationSuccess(request, response, authentication);
+
+        assertThat(response.getRedirectedUrl()).isEqualTo("/");
     }
 
     @Test
