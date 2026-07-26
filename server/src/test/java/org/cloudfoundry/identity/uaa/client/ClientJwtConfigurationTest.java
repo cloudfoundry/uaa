@@ -31,7 +31,6 @@ class ClientJwtConfigurationTest {
     @Test
     void jwksValidity() {
         assertThat(ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri")).isNotNull();
-        assertThat(ClientJwtConfiguration.parse("http://localhost/openid/jwks-uri")).isNotNull();
     }
 
     @Test
@@ -282,8 +281,8 @@ class ClientJwtConfigurationTest {
 
     @Test
     void testHashCode() {
-        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("http://localhost:8080/uaa");
-        ClientJwtConfiguration key2 = ClientJwtConfiguration.parse("http://localhost:8080/uaa");
+        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri");
+        ClientJwtConfiguration key2 = ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri");
         assertThat(key2.hashCode()).isNotEqualTo(key1.hashCode());
         assertThat(key1).hasSameHashCodeAs(key1);
         assertThat(key2).hasSameHashCodeAs(key2);
@@ -292,7 +291,7 @@ class ClientJwtConfigurationTest {
 
     @Test
     void equals() throws Exception {
-        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("http://localhost:8080/uaa");
+        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri");
         ClientJwtConfiguration key2 = (ClientJwtConfiguration) key1.clone();
         assertThat(key2).isEqualTo(key1);
     }

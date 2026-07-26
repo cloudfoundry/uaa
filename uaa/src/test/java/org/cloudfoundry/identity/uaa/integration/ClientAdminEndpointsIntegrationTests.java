@@ -13,7 +13,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -617,7 +616,7 @@ public class ClientAdminEndpointsIntegrationTests {
         client.setResourceIds(Collections.singleton("foo"));
 
         ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
-        def.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        def.setJsonWebKeyUri("https://login.example.com/token_keys");
         def.setClientId("admin");
 
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
@@ -634,7 +633,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
         client.setResourceIds(Collections.singleton("foo"));
 
-        ClientJwtChangeRequest def = new ClientJwtChangeRequest("admin", "http://localhost:8080/uaa/token_key", null);
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest("admin", "http://localhost:8080/uaa/token_keys", null);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
                 serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
                 HttpMethod.PUT, new HttpEntity<>(def, headers), Void.class,
@@ -662,7 +661,7 @@ public class ClientAdminEndpointsIntegrationTests {
         client.setResourceIds(Collections.singleton("foo"));
 
         ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
-        def.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        def.setJsonWebKeyUri("https://login.example.com/token_keys");
         def.setClientId("admin");
 
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(

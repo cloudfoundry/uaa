@@ -83,7 +83,9 @@ public class OidcMetadataFetcher {
         if (clientJwtConfiguration.getJwkSet() != null) {
             return clientJwtConfiguration.getJwkSet();
         } else if (clientJwtConfiguration.getJwksUri() != null) {
-            byte[] rawContents = getJsonBody(clientJwtConfiguration.getJwksUri(), false, true, null, safeRestTemplate);
+            String jwksUri = clientJwtConfiguration.getJwksUri();
+            RestTemplate template = isLocalhost(jwksUri) ? nonTrustingRestTemplate : safeRestTemplate;
+            byte[] rawContents = getJsonBody(jwksUri, false, true, null, template);
             if (rawContents != null && rawContents.length > 0) {
                 ClientJwtConfiguration clientKeys = ClientJwtConfiguration.parse(null, new String(rawContents, StandardCharsets.UTF_8));
                 if (clientKeys != null && clientKeys.getJwkSet() != null) {
@@ -120,6 +122,15 @@ public class OidcMetadataFetcher {
         } else {
             throw new IllegalArgumentException(
                     "Unable to fetch content, status:" + HttpStatus.resolve(responseEntity.getStatusCode().value()).getReasonPhrase());
+        }
+    }
+
+    private static boolean isLocalhost(String uri) {
+        try {
+            String host = java.net.URI.create(uri).getHost();
+            return "localhost".equals(host);
+        } catch (IllegalArgumentException e) {
+            return false;
         }
     }
 

@@ -12,6 +12,11 @@ public final class PrivateNetworkGuard {
 
     // AWS/GCP/Azure instance-metadata address
     private static final byte[] METADATA_V4 = {(byte) 169, (byte) 254, (byte) 169, (byte) 254};
+    // RFC 6598 — Carrier-grade NAT (100.64.0.0/10)
+    private static final int RFC6598_START = (100 << 24) | (64 << 16);
+    private static final int RFC6598_END   = (100 << 24) | (127 << 16) | (255 << 8) | 255;
+    // IPv4-mapped IPv6 prefix: ::ffff:0:0/96
+    private static final byte[] IPV4_MAPPED_PREFIX = {0,0, 0,0, 0,0, 0,0, 0,0, (byte)0xff,(byte)0xff};
     private PrivateNetworkGuard() {}
 
     /**
@@ -61,6 +66,34 @@ public final class PrivateNetworkGuard {
             return true;
         }
         // IPv6 unique-local (fc00::/7)
-        return (raw.length == 16 && (raw[0] & 0xfe) == 0xfc);
+        if (raw.length == 16 && (raw[0] & 0xfe) == 0xfc) {
+            return true;
+        }
+        // RFC 6598 — carrier-grade NAT (100.64.0.0/10)
+        if (raw.length == 4) {
+            int ip = ((raw[0] & 0xff) << 24) | ((raw[1] & 0xff) << 16) | ((raw[2] & 0xff) << 8) | (raw[3] & 0xff);
+            if (ip >= RFC6598_START && ip <= RFC6598_END) {
+                return true;
+            }
+        }
+        // IPv4-mapped IPv6 (::ffff:x.y.z.w) — check the embedded IPv4 part
+        if (raw.length == 16) {
+            boolean isMapped = true;
+            for (int i = 0; i < IPV4_MAPPED_PREFIX.length; i++) {
+                if (raw[i] != IPV4_MAPPED_PREFIX[i]) {
+                    isMapped = false;
+                    break;
+                }
+            }
+            if (isMapped) {
+                byte[] v4 = {raw[12], raw[13], raw[14], raw[15]};
+                try {
+                    return isBlocked(java.net.InetAddress.getByAddress(v4));
+                } catch (java.net.UnknownHostException ignored) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

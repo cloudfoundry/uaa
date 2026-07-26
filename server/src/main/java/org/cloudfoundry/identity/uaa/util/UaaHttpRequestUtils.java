@@ -119,6 +119,9 @@ public abstract class UaaHttpRequestUtils {
                 .build());
         builder.setConnectionManager(cm);
         builder.setConnectionReuseStrategy((_, _, _) -> false);
+        if (config.retryCount() > 0) {
+            builder.setRetryStrategy(new UaaHttpRequestRetryHandler(config.retryCount()));
+        }
         return createRequestFactory(builder, config.connectionRequestTimeoutInMs());
     }
 

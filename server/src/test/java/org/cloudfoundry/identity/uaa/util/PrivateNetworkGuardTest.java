@@ -27,6 +27,12 @@ class PrivateNetworkGuardTest {
             "::",               // unspecified IPv6
             "fc00::1",          // IPv6 unique-local (fc00::/7)
             "fd00::1",          // IPv6 unique-local (fd00::/8, within fc00::/7)
+            "100.64.0.1",       // RFC 6598 carrier-grade NAT start
+            "100.100.100.100",  // RFC 6598 middle
+            "100.127.255.255",  // RFC 6598 end
+            "::ffff:192.168.1.1", // IPv4-mapped IPv6 — private
+            "::ffff:10.0.0.1",    // IPv4-mapped IPv6 — private class A
+            "::ffff:127.0.0.1",   // IPv4-mapped IPv6 — loopback
     })
     void blockedAddresses(String ip) throws UnknownHostException {
         assertThat_isBlocked(ip, true);
