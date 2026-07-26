@@ -525,14 +525,14 @@ class MultitenantJdbcClientDetailsServiceTests {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("newClientIdWithNoDetails");
         service.addClientDetails(clientDetails);
-        service.addClientJwtConfig(clientDetails.getClientId(), "https://login.example.com/token_keys", currentZoneId, true);
+        service.addClientJwtConfig(clientDetails.getClientId(), "https://1.1.1.1/token_keys", currentZoneId, true);
 
         Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
                 "newClientIdWithNoDetails");
 
         assertThat(map).containsEntry("client_id", "newClientIdWithNoDetails")
                 .containsKey("client_jwt_config");
-        assertThat((String) map.get("client_jwt_config")).isEqualTo("{\"jwks_uri\":\"https://login.example.com/token_keys\"}");
+        assertThat((String) map.get("client_jwt_config")).isEqualTo("{\"jwks_uri\":\"https://1.1.1.1/token_keys\"}");
     }
 
     @Test

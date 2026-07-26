@@ -118,7 +118,11 @@ public abstract class UaaHttpRequestUtils {
                 .setSoTimeout(toTimeout(config.readTimeoutInMs()))
                 .build());
         builder.setConnectionManager(cm);
-        builder.setConnectionReuseStrategy((_, _, _) -> false);
+        if (config.maxKeepAlive() <= 0) {
+            builder.setConnectionReuseStrategy((_, _, _) -> false);
+        } else {
+            builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(config.maxKeepAlive()));
+        }
         if (config.retryCount() > 0) {
             builder.setRetryStrategy(new UaaHttpRequestRetryHandler(config.retryCount()));
         }

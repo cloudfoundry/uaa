@@ -616,7 +616,7 @@ public class ClientAdminEndpointsIntegrationTests {
         client.setResourceIds(Collections.singleton("foo"));
 
         ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
-        def.setJsonWebKeyUri("https://login.example.com/token_keys");
+        def.setJsonWebKeyUri("https://1.1.1.1/token_keys");
         def.setClientId("admin");
 
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(

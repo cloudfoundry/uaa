@@ -259,7 +259,7 @@ class ClientAdminBootstrapTests {
         map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
         map.put("authorities", "uaa.none");
         map.put("redirect-uri", "http://localhost/callback");
-        map.put("jwks_uri", "https://login.example.com/token_keys");
+        map.put("jwks_uri", "https://1.1.1.1/token_keys");
         UaaClientDetails clientDetails = (UaaClientDetails) doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertThat(clientDetails.getClientJwtConfig()).isNotNull();
     }

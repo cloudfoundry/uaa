@@ -79,7 +79,7 @@ class ClientJwtConfigurationTest {
 
     @Test
     void hasConfiguration() {
-        assertThat(ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri").hasConfiguration()).isTrue();
+        assertThat(ClientJwtConfiguration.parse("https://1.1.1.1/openid/jwks-uri").hasConfiguration()).isTrue();
         assertThat(ClientJwtConfiguration.parse(null).hasConfiguration()).isFalse();
         assertThat(new ClientJwtConfiguration().hasConfiguration()).isFalse();
         assertThat(ClientJwtConfiguration.parse(jsonJwkSet).hasConfiguration()).isTrue();
@@ -91,7 +91,7 @@ class ClientJwtConfigurationTest {
         ClientJwtConfiguration config = new ClientJwtConfiguration(ClientJwtCredential.parse("[{\"iss\":\"http://localhost:8080/uaa\",\"sub\":\"client_with_jwks_trust\"}]"));
         assertThat(config.getClientJwtCredentials()).hasSize(1);
         assertThat(config.hasConfiguration()).isTrue();
-        ClientJwtConfiguration mergeConfig = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri"), config, false);
+        ClientJwtConfiguration mergeConfig = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse("https://1.1.1.1/openid/jwks-uri"), config, false);
         assertThat(mergeConfig.getClientJwtCredentials()).isNotNull();
         assertThat(mergeConfig.getJwksUri()).isNotNull();
         assertThat(mergeConfig.getJwkSet()).isNull();
@@ -291,7 +291,7 @@ class ClientJwtConfigurationTest {
 
     @Test
     void equals() throws Exception {
-        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri");
+        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("https://1.1.1.1/openid/jwks-uri");
         ClientJwtConfiguration key2 = (ClientJwtConfiguration) key1.clone();
         assertThat(key2).isEqualTo(key1);
     }
