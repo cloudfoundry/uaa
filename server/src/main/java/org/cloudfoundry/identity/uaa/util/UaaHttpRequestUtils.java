@@ -92,15 +92,19 @@ public abstract class UaaHttpRequestUtils {
 
     /**
      * Creates a request factory whose DNS resolver blocks private/loopback/link-local
-     * addresses at connection time. Use this for outbound fetches to operator-supplied
-     * URLs (e.g. jwks_uri) to guard against SSRF and DNS rebinding.
+     * addresses at connection time. Redirects are disabled to prevent SSRF via a
+     * redirect to a private IP literal that would bypass DNS-based blocking.
+     * Use this for outbound fetches to operator-supplied URLs (e.g. jwks_uri).
      */
-    public static ClientHttpRequestFactory createSafeRequestFactory(int timeout) {
-        HttpClientConfig config = HttpClientConfig.defaults(timeout, timeout);
+    public static ClientHttpRequestFactory createSafeRequestFactory(RestTemplateConfig restTemplateConfig) {
+        HttpClientConfig config = new HttpClientConfig(restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute,
+                restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity,
+                restTemplateConfig.retryCount, restTemplateConfig.timeout, restTemplateConfig.timeout,
+                restTemplateConfig.timeout);
         HttpClientBuilder builder = HttpClients.custom()
                 .useSystemProperties()
                 .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
-                .setRedirectStrategy(new DefaultRedirectStrategy());
+                .disableRedirectHandling();
         PoolingHttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
                 .setDnsResolver(PrivateNetworkBlockingDnsResolver.INSTANCE)
                 .build();
@@ -114,7 +118,7 @@ public abstract class UaaHttpRequestUtils {
                 .setSoTimeout(toTimeout(config.readTimeoutInMs()))
                 .build());
         builder.setConnectionManager(cm);
-        builder.setConnectionReuseStrategy((request, response, context) -> false);
+        builder.setConnectionReuseStrategy((_, _, _) -> false);
         return createRequestFactory(builder, config.connectionRequestTimeoutInMs());
     }
 

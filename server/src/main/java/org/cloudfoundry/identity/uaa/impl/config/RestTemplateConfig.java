@@ -38,7 +38,7 @@ public class RestTemplateConfig {
 
     @Bean
     public RestTemplate safeRestTemplate() {
-        return new RestTemplate(UaaHttpRequestUtils.createSafeRequestFactory(timeout));
+        return new RestTemplate(UaaHttpRequestUtils.createSafeRequestFactory(this));
     }
 
     public static RestTemplateConfig createDefaults() {

@@ -253,7 +253,7 @@ public class ClientJwtConfiguration implements Cloneable {
                 PrivateNetworkGuard.assertPublic(validateJwksUri);
             } catch (IllegalArgumentException e) {
                 throw new InvalidClientDetailsException(e.getMessage());
-            } catch (java.net.UnknownHostException ignored) {
+            } catch (java.net.UnknownHostException _) {
                 // Unresolvable host: allow through at validation time; the fetch will fail.
             }
         }
