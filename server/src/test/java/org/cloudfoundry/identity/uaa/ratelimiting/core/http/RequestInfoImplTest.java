@@ -38,6 +38,18 @@ class RequestInfoImplTest {
     }
 
     @Test
+    void getClientIP_fallsBackToRemoteAddr_whenSpoofableHeadersAbsent() {
+        // Regression: after HeaderFilter strips X-Client-IP and X-Real-IP, rate limiting must
+        // use the TCP remote address rather than any client-supplied value.
+        when(mockHSRequest.getHeader("X-Client-IP")).thenReturn(null);
+        when(mockHSRequest.getHeader("X-Real-IP")).thenReturn(null);
+        when(mockHSRequest.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(mockHSRequest.getRemoteAddr()).thenReturn("10.0.0.1");
+        RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
+        assertThat(requestInfo.getClientIP()).isEqualTo("10.0.0.1");
+    }
+
+    @Test
     void getClientIP_X_Client() {
         when(mockHSRequest.getHeader("X-Client-IP")).thenReturn("Mocked-IP-C ");
         when(mockHSRequest.getHeader("X-Real-IP")).thenReturn("Mocked-IP-R ");

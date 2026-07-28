@@ -201,6 +201,8 @@ public class SpringServletXmlSecurityConfiguration {
         bean.setIgnore(Arrays.asList("secFilterOpen05Healthz"));
         int filterPos = 0;
         Map<SecurityFilterChainPostProcessor.FilterPosition, Filter> additionalFilters = new LinkedHashMap<>();
+        // headerFilter must run before rateLimitingFilter: it strips spoofable IP headers (X-Client-IP, X-Real-IP)
+        // so that RateLimiterImpl.getClientIP() cannot be influenced by untrusted client-supplied values.
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), headerFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), rateLimitingFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), springRequestContextFilter.getFilter());
