@@ -93,7 +93,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#servletsession-cookieencode-base64"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.session-cookie.encode-base64` | `true`| Base64-encode session cookie|
 | <a href="#servletsession-cookiemax-age"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.session-cookie.max-age` | — (null)| Session cookie max age|
 | <a href="#servletidle-timeout"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.idle-timeout` | `1800`| Session idle timeout (s)|
-| <a href="#servletfiltered-headers"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.filtered-headers` | `X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Proto, X-Forwarded-Prefix, Forwarded`| Headers to filter|
+| <a href="#servletfiltered-headers"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.filtered-headers` | `X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Proto, X-Forwarded-Prefix, Forwarded, X-Client-IP, X-Real-IP`| Headers to filter|
 
 ### JWT Token Policy
 
@@ -379,7 +379,6 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 |----------|---------|-------------|
 | <a href="#loggingfilenamepath"><img src="images/click-me.png" width="14" height="14"/></a> `logging.file.name.path` | —| Log file directory|
 
-
 ---
 
 ## Detailed Property Descriptions
@@ -433,6 +432,7 @@ other contexts where the login page URL is needed. Typically the same as `uaa.ur
 **Type:** `String` (comma-separated)
 
 Controls which Spring profiles are active. Common values:
+
 - `hsqldb` — in-memory HSQLDB (default for testing)
 - `postgresql` — PostgreSQL database
 - `mysql` — MySQL/MariaDB database
@@ -554,6 +554,7 @@ Set to `false` to require email verification before allowing authentication.
 **Type:** `String`
 
 The fully-qualified JDBC driver class name. Typically auto-resolved from the active profile:
+
 - HSQLDB: `org.hsqldb.jdbc.JDBCDriver`
 - PostgreSQL: `org.postgresql.Driver`
 - MySQL: `org.mariadb.jdbc.Driver`
@@ -812,6 +813,7 @@ Use this to work around database driver parameter limits.
 **Type:** `String`
 
 The session storage mechanism. Accepted values:
+
 - `memory` — In-memory sessions (default, suitable for multi-instance deployments that support sticky sessions)
 - `database` — Database-backed sessions via Spring Session JDBC
 
@@ -859,7 +861,7 @@ Session idle timeout in seconds. After this period of inactivity, the session ex
 
 ### `servlet.filtered-headers`
 
-**Default:** `[X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Proto, X-Forwarded-Prefix, Forwarded]`
+**Default:** `[X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Proto, X-Forwarded-Prefix, Forwarded, X-Client-IP, X-Real-IP]`
 **Source:** `@ConfigurationProperties(prefix = "servlet")` in [`UaaProperties.Servlet`](../server/src/main/java/org/cloudfoundry/identity/uaa/UaaProperties.java)
 **Type:** `List<String>`
 
@@ -956,6 +958,7 @@ enabling key rotation.
 **Type:** `Map<String, Map<String, String>>`
 
 A map of key IDs to signing key configurations. Each entry has:
+
 - `signingKey` — RSA private key in PEM format
 - `signingAlg` — Algorithm (e.g. `RS256`)
 
@@ -1032,6 +1035,7 @@ Global default for refresh token lifetime in seconds. Applies to all zones unles
 **Type:** `String`
 
 Format of issued refresh tokens. Accepted values:
+
 - `opaque` — Opaque, randomly generated token stored in the database
 - `jwt` — Self-contained JWT refresh token
 
@@ -1125,6 +1129,7 @@ the `authorities` claim: `exclude: [authorities]`.
 **Type:** `Map<String, OAuthClientConfig>`
 
 Bootstrap client definitions loaded at startup. Each entry is keyed by client ID and contains:
+
 - `id` — Client ID
 - `secret` — Client secret
 - `authorized-grant-types` — Comma-separated grant types
@@ -1563,6 +1568,7 @@ Bootstrap users created at startup. Each entry is a pipe-delimited string:
 `username|password|email|firstName|lastName|groups[|origin]`
 
 Example:
+
 ```yaml
 scim:
   users:
@@ -1807,6 +1813,7 @@ The label text displayed for the password input field on the login page.
 **Type:** `Map<String, Object>`
 
 Customizes the visual branding of the login UI. Supports the following sub-keys:
+
 - `companyName` — Company name displayed in the UI
 - `productLogo` — Base64-encoded product logo image
 - `squareLogo` — Base64-encoded square logo
@@ -1820,6 +1827,7 @@ Customizes the visual branding of the login UI. Supports the following sub-keys:
 - `loginConsent` — Login consent modal configuration (see sub-properties below)
 
 **Login Consent Configuration (`loginConsent`):**
+
 - `enabled` — (boolean, default: `false`) When `true`, displays a mandatory consent modal on login
 - `title` — (string, default: `"Terms and Conditions"`) Modal heading text
 - `text` — (string, required when enabled) Body content; HTML is allowed
@@ -1913,6 +1921,7 @@ When `true`, enables identity provider and client alias entities across identity
 **Type:** `Map<String, Map>`
 
 External OAuth 2.0 and OIDC provider definitions. Each provider entry includes:
+
 - `type` — `oauth2.0` or `oidc1.0`
 - `authUrl` / `discoveryUrl` — Authorization or discovery URL
 - `tokenUrl` — Token endpoint
@@ -1959,6 +1968,7 @@ signed with this key.
 **Type:** `Map<String, SamlKey>`
 
 Map of key IDs to SAML key configurations. Each key has:
+
 - `key` — RSA private key in PEM format
 - `certificate` — X.509 certificate in PEM format
 - `passphrase` — Optional key passphrase
@@ -2128,6 +2138,7 @@ The value of `idpMetadata` determines how UAA parses the IDP's entity ID:
 
 Legacy property for the SAML SP private key. Use `login.saml.keys` instead.
 The key, password, and certificate are grouped together:
+
 - `login.serviceProviderKey` — RSA private key in PEM
 - `login.serviceProviderKeyPassword` — Key passphrase
 - `login.serviceProviderCertificate` — X.509 certificate in PEM
@@ -2517,6 +2528,7 @@ When `true`, verifies SSL certificates when connecting to the notification servi
 **Type:** `String`
 
 Path to the LDAP profile configuration file. Determines the bind mode:
+
 - `ldap/ldap-simple-bind.xml` — Simple bind (user DN pattern)
 - `ldap/ldap-search-and-bind.xml` — Search then bind
 - `ldap/ldap-search-and-compare.xml` — Search then compare
@@ -2706,6 +2718,7 @@ Used for encrypting new data. All listed keys can be used for decryption.
 **Type:** `List<EncryptionKey>`
 
 List of encryption keys. Each key has:
+
 - `label` — Unique identifier
 - `passphrase` — Encryption passphrase
 
@@ -2733,6 +2746,7 @@ old data encrypted with any listed key can still be decrypted.
 **Type:** `String`
 
 Controls rate limiting log verbosity. Accepted values:
+
 - `OnlyLimited` — Only log when a request is rate-limited
 - `AllCalls` — Log all calls with rate-limit info
 - `AllCallsWithDetails` — Log all calls with full details
@@ -2761,6 +2775,7 @@ rate limiting. Example: `'JWT:Claims+"sub"\s*:\s*"(.*?)"'`
 **Type:** `List<LimiterMapping>`
 
 List of rate limiting rules. Each mapping has:
+
 - `name` — Rule name
 - `withCallerRemoteAddressID` — Per-IP rate limit (e.g. `50r/s`)
 - `withCallerCredentialsID` — Per-credential rate limit
@@ -3008,6 +3023,7 @@ This allows multiple zones to be accessed through the same hostname using differ
 URL paths instead of different subdomains.
 
 **Examples:**
+
 - Subdomain access (default): `https://myzone.uaa.example.com/login`
 - Path access (when enabled): `https://uaa.example.com/z/myzone/login`
 

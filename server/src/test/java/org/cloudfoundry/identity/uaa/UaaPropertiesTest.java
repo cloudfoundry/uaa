@@ -73,7 +73,9 @@ class UaaPropertiesTest {
                             "X-Forwarded-Host",
                             "X-Forwarded-Proto",
                             "X-Forwarded-Prefix",
-                            "Forwarded"
+                            "Forwarded",
+                            "X-Client-IP",
+                            "X-Real-IP"
                     );
 
                 });
