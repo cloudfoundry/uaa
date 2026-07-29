@@ -143,15 +143,16 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         try {
             TokenCode tokenCode = (TokenCode) template.queryForObject(SQL_SELECT_STATEMENT, rowMapper, code);
             if (tokenCode != null) {
-                try {
-                    if (tokenCode.isExpired()) {
-                        logger.debug("[oauth_code] Found code, but it expired:{}", tokenCode);
-                        throw new InvalidGrantException("Authorization code expired: " + code);
-                    } else {
-                        return tokenCode.deserialize();
-                    }
-                } finally {
-                    template.update(SQL_DELETE_STATEMENT, code);
+                int deletedRows = template.update(SQL_DELETE_STATEMENT, code);
+                if (deletedRows == 0) {
+                    throw new InvalidGrantException("Invalid authorization code: " + code);
+                }
+                
+                if (tokenCode.isExpired()) {
+                    logger.debug("[oauth_code] Found code, but it expired:{}", tokenCode);
+                    throw new InvalidGrantException("Authorization code expired: " + code);
+                } else {
+                    return tokenCode.deserialize();
                 }
             }
         } catch (EmptyResultDataAccessException _) {
