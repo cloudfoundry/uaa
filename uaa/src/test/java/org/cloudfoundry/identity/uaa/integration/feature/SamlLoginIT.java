@@ -517,8 +517,9 @@ public class SamlLoginIT {
         // UAA should redirect to the welcome page
         new SamlWelcomePage(webDriver, samlServerConfig);
 
-        // UAA Should no longer be logged in
-        HomePage.assertThatGoHome_redirectsToLoginPage(webDriver, baseUrl);
+        // Unsigned SLO request from simpleSAMLphp should be rejected, leaving user logged in
+        webDriver.get(baseUrl + "/home");
+        new HomePage(webDriver, baseUrl);
     }
 
     @Test

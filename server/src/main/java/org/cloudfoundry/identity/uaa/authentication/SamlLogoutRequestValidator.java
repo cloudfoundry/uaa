@@ -35,25 +35,10 @@ public class SamlLogoutRequestValidator implements Saml2LogoutRequestValidator {
         if (parameters != null
                 && parameters.getLogoutRequest().getBinding() == Saml2MessageBinding.REDIRECT
                 && parameters.getLogoutRequest().getParameters().get(Saml2ParameterNames.SIG_ALG) == null) {
-            // Signature present without SigAlg is malformed — reject rather than bypass.
-            if (parameters.getLogoutRequest().getParameters().get(Saml2ParameterNames.SIGNATURE) != null) {
-                return Saml2LogoutValidatorResult.withErrors(new Saml2Error(
-                        Saml2ErrorCodes.INVALID_SIGNATURE, "Signature present without SigAlg")).build();
-            }
-            return SamlUnsignedMessageValidator.validateLogoutRequest(
-                    parameters.getLogoutRequest().getSamlRequest(),
-                    parameters.getLogoutRequest().getBinding(),
-                    parameters.getRelyingPartyRegistration());
+            return Saml2LogoutValidatorResult.withErrors(new Saml2Error(
+                    Saml2ErrorCodes.INVALID_SIGNATURE, "Missing signature")).build();
         }
 
-        Saml2LogoutValidatorResult result = delegate.validate(parameters);
-        if (!result.hasErrors()) {
-            return result;
-        }
-
-        Collection<Saml2Error> errors = result.getErrors().stream()
-                .filter(error -> !error.getDescription().contains("signature"))
-                .toList();
-        return Saml2LogoutValidatorResult.withErrors().errors(c -> c.addAll(errors)).build();
+        return delegate.validate(parameters);
     }
 }

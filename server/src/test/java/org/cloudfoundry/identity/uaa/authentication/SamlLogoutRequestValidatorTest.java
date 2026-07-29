@@ -62,13 +62,6 @@ class SamlLogoutRequestValidatorTest {
         }
 
         @Test
-        void validateRemovesMissingSignatureError() {
-            Saml2Error signatureError = new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE, "Missing signature for object");
-            when(delegate.validate(any())).thenReturn(Saml2LogoutValidatorResult.withErrors(signatureError).build());
-            assertThat(validator.validate(parameters).hasErrors()).isFalse();
-        }
-
-        @Test
         void validateDifferentErrorIsPassedThru() {
             Saml2Error otherError = new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE, "Failed to match issuer to configured issuer");
             when(delegate.validate(any())).thenReturn(Saml2LogoutValidatorResult.withErrors(otherError).build());
@@ -77,34 +70,16 @@ class SamlLogoutRequestValidatorTest {
     }
 
     @Test
-    void unsignedRedirectRequestBypassesDelegateAndValidatesIssuerAndDestination() {
-        String destination = "http://sp.example.com/saml/SingleLogout";
-        String issuer = "http://idp.example.com";
-        String xml = """
-                <samlp:LogoutRequest
-                    xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
-                    xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
-                    Destination="%s">
-                  <saml:Issuer>%s</saml:Issuer>
-                  <saml:NameID>user@example.com</saml:NameID>
-                </samlp:LogoutRequest>
-                """.formatted(destination, issuer);
-
+    void unsignedRedirectRequestIsRejected() {
         when(logoutRequest.getBinding()).thenReturn(Saml2MessageBinding.REDIRECT);
         when(logoutRequest.getParameters()).thenReturn(Collections.emptyMap()); // no SigAlg
-        when(logoutRequest.getSamlRequest()).thenReturn(Saml2Utils.samlEncode(Saml2Utils.samlDeflate(xml)));
-
-        AssertingPartyMetadata party = mock(AssertingPartyMetadata.class);
-        when(party.getEntityId()).thenReturn(issuer);
-        RelyingPartyRegistration reg = mock(RelyingPartyRegistration.class);
-        when(reg.getAssertingPartyMetadata()).thenReturn(party);
-        when(reg.getSingleLogoutServiceLocation()).thenReturn(destination);
-        when(parameters.getRelyingPartyRegistration()).thenReturn(reg);
 
         Saml2LogoutValidatorResult result = validator.validate(parameters);
-
-        assertThat(result.hasErrors()).isFalse();
         verify(delegate, never()).validate(any());
+
+        assertThat(result.hasErrors()).isTrue();
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().iterator().next().getDescription()).isEqualTo("Missing signature");
     }
 
     @Test
