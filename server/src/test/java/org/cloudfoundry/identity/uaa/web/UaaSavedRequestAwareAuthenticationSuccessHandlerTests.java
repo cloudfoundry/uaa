@@ -76,7 +76,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     }
 
     @Test
-    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl() throws Exception {
+    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl_notWhitelisted() throws Exception {
         String redirectUri = "https://test.com/test2";
         request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
 
@@ -84,7 +84,27 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
         var authentication = mock(Authentication.class);
         handler.onAuthenticationSuccess(request, response, authentication);
 
+        assertThat(response.getRedirectedUrl()).isEqualTo("/");
+    }
+
+    @Test
+    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl_whitelisted() throws Exception {
+        String redirectUri = "https://test.com/test2";
+        request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
+
+        org.cloudfoundry.identity.uaa.zone.IdentityZone zone = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
+        zone.getConfig().getLinks().getLogout().setWhitelist(java.util.List.of("https://test.com/test2"));
+        org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
+
+        var response = new MockHttpServletResponse();
+        var authentication = mock(Authentication.class);
+        handler.onAuthenticationSuccess(request, response, authentication);
+
         assertThat(response.getRedirectedUrl()).isEqualTo(redirectUri);
+        
+        // clean up
+        zone.getConfig().getLinks().getLogout().setWhitelist(null);
+        org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.clear();
     }
 
     @Test
