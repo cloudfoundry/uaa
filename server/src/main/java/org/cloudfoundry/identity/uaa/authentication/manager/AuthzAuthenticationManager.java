@@ -40,6 +40,8 @@ import java.util.Date;
 import java.util.Locale;
 
 public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
+    private static final String DUMMY_BCRYPT_HASH = "{bcrypt}$2a$10$xn3igMIdgceZX.mK6/0.n.MvJk1.L/0R15Tz3gGZ/7eM/T.xI.1wO";
+
     private final HttpSession httpSession;
     private final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(getClass());
     private final PasswordEncoder encoder;
@@ -74,6 +76,9 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         UaaUser user = getUaaUser(req);
 
         if (user == null) {
+            if (((CharSequence) req.getCredentials()).length() != 0) {
+                encoder.matches((CharSequence) req.getCredentials(), DUMMY_BCRYPT_HASH);
+            }
             logger.debug("No user named '" + req.getName() + "' was found for origin:" + origin);
             publish(new UserNotFoundEvent(req, IdentityZoneHolder.getCurrentZoneId()));
         } else {
