@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
@@ -65,6 +66,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
@@ -563,7 +565,9 @@ public class OauthEndpointBeanConfiguration {
         @Qualifier("oidcMetadataFetcher") OidcMetadataFetcher oidcMetadataFetcher,
         @Qualifier("userDatabase") UaaUserDatabase userDatabase,
         @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager externalMembershipManager,
-        @Value("${login.oauth.externalGroupsFromMappedAuthorities:false}") boolean externalGroupsFromMappedAuthorities
+        @Value("${login.oauth.externalGroupsFromMappedAuthorities:false}") boolean externalGroupsFromMappedAuthorities,
+        IdpOutboundTrustCache idpOutboundTrustCache,
+        RestTemplateConfig restTemplateConfig
     ) {
         ExternalOAuthAuthenticationManager bean = new ExternalOAuthAuthenticationManager(
                 providerProvisioning,
@@ -573,7 +577,9 @@ public class OauthEndpointBeanConfiguration {
                 tokenEndpointBuilder,
                 keyInfoService,
                 oidcMetadataFetcher,
-                externalGroupsFromMappedAuthorities
+                externalGroupsFromMappedAuthorities,
+                idpOutboundTrustCache,
+                restTemplateConfig
         );
         bean.setUserDatabase(userDatabase);
         bean.setExternalMembershipManager(externalMembershipManager);

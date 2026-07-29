@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -28,6 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProvider
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.web.beans.UaaRequestRejectedHandler;
@@ -245,9 +247,12 @@ public class SpringServletXmlBeansConfiguration {
             UrlContentCache contentCache,
             @Qualifier("trustingRestTemplate") RestTemplate trustingRestTemplate,
             @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate,
-            @Qualifier("safeRestTemplate") RestTemplate safeRestTemplate
+            @Qualifier("safeRestTemplate") RestTemplate safeRestTemplate,
+            IdpOutboundTrustCache idpOutboundTrustCache,
+            RestTemplateConfig restTemplateConfig
     ) {
-        return new OidcMetadataFetcher(contentCache, trustingRestTemplate, nonTrustingRestTemplate, safeRestTemplate);
+        return new OidcMetadataFetcher(contentCache, trustingRestTemplate, nonTrustingRestTemplate, safeRestTemplate,
+                idpOutboundTrustCache, restTemplateConfig);
     }
 
     @Bean

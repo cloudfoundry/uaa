@@ -1147,7 +1147,7 @@ class ExternalOAuthAuthenticationManagerTest {
             }
 
             @Override
-            public RestTemplate getRestTemplate(AbstractExternalOAuthIdentityProviderDefinition config) {
+            public RestTemplate getRestTemplate(IdentityProvider<?> identityProvider) {
                 return restTemplate;
             }
         };

@@ -77,6 +77,29 @@ class OIDCIdentityProviderDefinitionTests {
     }
 
     @Test
+    void serialize_caCertificates() {
+        OIDCIdentityProviderDefinition def = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
+        assertThat(def.getCaCertificates()).isNull();
+        List<String> caCertificates = List.of("-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----");
+        def.setCaCertificates(caCertificates);
+        String json = JsonUtils.writeValueAsString(def);
+        def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
+        assertThat(def.getCaCertificates()).containsExactlyElementsOf(caCertificates);
+    }
+
+    @Test
+    void caCertificates_areIncludedInEqualsAndHashCode() throws Exception {
+        OIDCIdentityProviderDefinition original = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
+        original.setCaCertificates(List.of("cert-a"));
+        OIDCIdentityProviderDefinition same = (OIDCIdentityProviderDefinition) original.clone();
+        assertThat(original).isEqualTo(same).hasSameHashCodeAs(same);
+
+        OIDCIdentityProviderDefinition different = (OIDCIdentityProviderDefinition) original.clone();
+        different.setCaCertificates(List.of("cert-b"));
+        assertThat(original).isNotEqualTo(different);
+    }
+
+    @Test
     void serialize_jwtClientAuthentication() {
         OIDCIdentityProviderDefinition def = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
         assertThat(def.getPrompts()).isNull();
