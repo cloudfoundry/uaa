@@ -779,7 +779,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
         Page.assertThatUrlEventuallySatisfies(webDriver,
-                assertUrl -> assertUrl.startsWith("https://www.google.com"));
+                assertUrl -> assertUrl.startsWith(baseUrl));
 
         webDriver.get("%s/logout.do".formatted(baseUrl));
     }
@@ -1228,7 +1228,7 @@ public class SamlLoginIT {
         sendCredentials(testAccounts.getUserName(), "koala");
 
         Page.assertThatUrlEventuallySatisfies(webDriver,
-                assertUrl -> assertUrl.startsWith("https://www.google.com"));
+                assertUrl -> assertUrl.startsWith(zoneUrl));
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(zoneUrl + "/logout.do");
     }

@@ -47,7 +47,12 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
             String relayState = UaaStringUtils.getCleanedUserControlString(request.getParameter(Saml2ParameterNames.RELAY_STATE), UaaStringUtils.EMPTY_STRING);
             if (UaaStringUtils.hasText(relayState) && UaaUrlUtils.isUrl(relayState)) {
                 log.debug("Redirecting to relayState URI: {}", relayState);
-                this.getRedirectStrategy().sendRedirect(request, response, relayState);
+                java.util.List<String> samlRelayStateWhitelist = java.util.Optional.ofNullable(
+                        org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get().getConfig().getLinks().getLogout().getWhitelist()
+                ).orElse(java.util.Collections.emptyList());
+                String fallbackUrl = this.getDefaultTargetUrl();
+                String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(samlRelayStateWhitelist, relayState, fallbackUrl);
+                this.getRedirectStrategy().sendRedirect(request, response, matchingRedirectUri);
             } else {
                 super.onAuthenticationSuccess(request, response, authentication);
             }
