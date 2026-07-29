@@ -2172,7 +2172,7 @@ public class LoginMockMvcTests {
      */
     @Test
     void logOutCorsPreflightForIdentityZone() throws Exception {
-        corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^.*\\.localhost$"));
         corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout.do$"));
         corsFilter.getFilter().initialize();
 
@@ -2266,7 +2266,7 @@ public class LoginMockMvcTests {
     @Test
     void xhrCorsPreflightForNonDefaultZoneWhenZoneSpecificCorsPolicyIsNull() throws Exception {
         // setting the default zone CORS policy
-        corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^.*\\.localhost$"));
         corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout.do$"));
         corsFilter.getFilter().initialize();
 

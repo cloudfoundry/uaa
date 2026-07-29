@@ -324,7 +324,7 @@ public class CorsFilter extends OncePerRequestFilter {
     protected boolean isAllowedOrigin(final String origin, CorsConfiguration configuration) {
         for (Pattern pattern : configuration.getAllowedOriginPatterns()) {
             // Making sure that the pattern matches
-            if (pattern.matcher(origin).find()) {
+            if (pattern.matcher(origin).matches()) {
                 return true;
             }
         }
@@ -366,6 +366,16 @@ public class CorsFilter extends OncePerRequestFilter {
         return getDefaultConfiguration();
     }
 
+    private String anchorPattern(String pattern) {
+        if (!pattern.startsWith("^")) {
+            pattern = "^" + pattern;
+        }
+        if (!pattern.endsWith("$")) {
+            pattern = pattern + "$";
+        }
+        return pattern;
+    }
+
     private void compileAllowedOriginsAndUris(CorsConfiguration configuration, String type) {
         if (configuration.getAllowedUris() != null) {
             for (String allowedUri : configuration.getAllowedUris()) {
@@ -380,7 +390,7 @@ public class CorsFilter extends OncePerRequestFilter {
         if (configuration.getAllowedOrigins() != null) {
             for (String allowedOrigin : configuration.getAllowedOrigins()) {
                 try {
-                    configuration.getAllowedOriginPatterns().add(Pattern.compile(allowedOrigin));
+                    configuration.getAllowedOriginPatterns().add(Pattern.compile(anchorPattern(allowedOrigin)));
                     log.debug("Origin '%s' is allowed for a %s CORS requests.".formatted(allowedOrigin, type));
                 } catch (PatternSyntaxException patternSyntaxException) {
                     log.error("Invalid regular expression pattern in cors.{}.allowed.origins: {}", type, allowedOrigin, patternSyntaxException);
