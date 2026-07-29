@@ -449,7 +449,7 @@ class UaaTokenServicesTests {
     @Nested
     @DisplayName("when performing the refresh grant type")
     @DefaultTestContext
-    @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa", "jwt.token.refresh.rotate=true"})
+    @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa", "jwt.token.refresh.rotate=true", "jwt.token.revocable=true"})
     @DirtiesContext
     class WhenRefreshGrant {
         @Autowired

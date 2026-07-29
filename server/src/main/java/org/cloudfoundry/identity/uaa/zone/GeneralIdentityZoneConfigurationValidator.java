@@ -49,6 +49,11 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
 
             TokenPolicy tokenPolicy = config.getTokenPolicy();
             if (tokenPolicy != null) {
+                if (tokenPolicy.isRefreshTokenRotate() &&
+                        "jwt".equalsIgnoreCase(tokenPolicy.getRefreshTokenFormat()) &&
+                        !tokenPolicy.isJwtRevocable()) {
+                    throw new InvalidIdentityZoneConfigurationException("A token policy cannot have JWT-format refresh tokens with rotation enabled unless they are also revocable.");
+                }
                 String activeKeyId = tokenPolicy.getActiveKeyId();
                 if (StringUtils.hasText(activeKeyId)) {
                     Map<String, TokenPolicy.KeyInformation> jwtKeys = tokenPolicy.getKeys();

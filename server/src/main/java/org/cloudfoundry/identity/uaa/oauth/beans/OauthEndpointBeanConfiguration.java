@@ -697,6 +697,11 @@ public class OauthEndpointBeanConfiguration {
         bean.setMaxSessionLimit(TokenPolicy.parseRefreshTokenUnique(refreshTokenUniqueStr));
 
         bean.setRefreshTokenRotate(refreshTokenRotate);
+        
+        if (refreshTokenRotate && "jwt".equalsIgnoreCase(refreshTokenFormat) && !jwtRevocable) {
+            throw new IllegalArgumentException("A token policy cannot have JWT-format refresh tokens with rotation enabled unless they are also revocable.");
+        }
+        
         return bean;
     }
 
