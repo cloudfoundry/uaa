@@ -166,6 +166,17 @@ class CookieBasedCsrfTokenRepositoryTests {
     }
 
     private Cookie saveTokenAndReturnCookie(boolean isSecure, String protocol) {
-        return saveTokenAndReturnResponse(isSecure, protocol).getCookie("X-Uaa-Csrf");
+        MockHttpServletResponse response = saveTokenAndReturnResponse(isSecure, protocol);
+        boolean expectSecure = isSecure || "https".equals(protocol);
+        String expectedCookieName = expectSecure ? "__Host-X-Uaa-Csrf" : "X-Uaa-Csrf";
+        
+        String setCookie = response.getHeader("Set-Cookie");
+        if (setCookie != null && setCookie.contains(expectedCookieName + "=")) {
+            Cookie cookie = new Cookie(expectedCookieName, "");
+            cookie.setSecure(setCookie.contains("Secure"));
+            cookie.setHttpOnly(setCookie.contains("HttpOnly"));
+            return cookie;
+        }
+        return response.getCookie(expectedCookieName);
     }
 }
