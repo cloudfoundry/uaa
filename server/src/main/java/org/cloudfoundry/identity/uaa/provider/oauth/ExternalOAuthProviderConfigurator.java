@@ -120,7 +120,9 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
 
         if (OIDCIdentityProviderDefinition.class.equals(definition.getParameterizedClass())) {
             var nonceGenerator = new RandomValueStringGenerator(22);
-            uriBuilder.queryParam("nonce", nonceGenerator.generate());
+            String nonce = nonceGenerator.generate();
+            SessionUtils.setStateParam(request.getSession(), SessionUtils.nonceParameterAttributeKeyForIdp(idpOriginKey), nonce);
+            uriBuilder.queryParam("nonce", nonce);
 
             Map<String, String> additionalParameters = ofNullable(((OIDCIdentityProviderDefinition) definition).getAdditionalAuthzParameters()).orElse(emptyMap());
             additionalParameters.keySet().forEach(e -> uriBuilder.queryParam(e, additionalParameters.get(e)));

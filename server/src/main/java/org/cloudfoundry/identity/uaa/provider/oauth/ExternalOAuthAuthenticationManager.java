@@ -713,8 +713,21 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             Jwt decodeIdToken = jwtToken.getJwt();
             log.debug("Deserializing id_token claims");
 
-            return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<>() {
+            Map<String, Object> claims = JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<>() {
             });
+            
+            if (config instanceof OIDCIdentityProviderDefinition) {
+                String expectedNonce = getSessionValue(SessionUtils.nonceParameterAttributeKeyForIdp(identityProvider.getOriginKey()));
+                if (StringUtils.hasText(expectedNonce)) {
+                    String tokenNonce = (String) claims.get("nonce");
+                    if (!expectedNonce.equals(tokenNonce)) {
+                        throw new InvalidTokenException("ID token nonce does not match session nonce");
+                    }
+                    clearSessionValue(SessionUtils.nonceParameterAttributeKeyForIdp(identityProvider.getOriginKey()));
+                }
+            }
+            
+            return claims;
         }
     }
 
@@ -876,6 +889,18 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         } catch (Exception e) {
             log.warn("Exception", e);
             return "";
+        }
+    }
+
+    private void clearSessionValue(String value) {
+        try {
+            ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            jakarta.servlet.http.HttpSession session = attr.getRequest().getSession(false);
+            if (session != null) {
+                session.removeAttribute(value);
+            }
+        } catch (Exception e) {
+            log.warn("Exception", e);
         }
     }
 
