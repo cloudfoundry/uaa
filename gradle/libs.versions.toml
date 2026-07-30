@@ -6,7 +6,7 @@ bouncyCastlePkix = "2.1.12"
 bouncyCastleTls = "2.1.24"
 bouncyCastleUtil = "2.1.7"
 brave = "6.3.1"
-commonsCodec = "1.22.0"
+commonsCodec = "1.22.1"
 commonsIo = "2.22.0"
 # Pin cryptacular for the OpenSAML 5.2.x upgrade to maintain compatibility with our FIPS dependency set.
 cryptacular = "1.2.6"
