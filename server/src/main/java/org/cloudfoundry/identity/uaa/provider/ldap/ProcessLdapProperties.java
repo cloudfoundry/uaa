@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.provider.ldap;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.DefaultTlsDirContextAuthenticationStrategy;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExternalTlsDirContextAuthenticationStrategy;
+import org.cloudfoundry.identity.uaa.security.CaCertAwareLdapSocketFactory;
 import org.cloudfoundry.identity.uaa.security.LdapSocketFactory;
 import org.cloudfoundry.identity.uaa.security.SkipSslLdapSocketFactory;
 import org.springframework.ldap.core.support.AbstractTlsDirContextAuthenticationStrategy;
@@ -43,23 +44,35 @@ public class ProcessLdapProperties {
     public static final String LDAP_SSL_SOCKET_FACTORY = "org.cloudfoundry.identity.ldap.ssl.factory.socket";
     public static final String SKIP_SSL_VERIFICATION_SOCKET_FACTORY = SkipSslLdapSocketFactory.class.getName();
     public static final String EXPIRY_CHECKING_SOCKET_FACTORY = LdapSocketFactory.class.getName();
+    public static final String CA_CERT_AWARE_SOCKET_FACTORY = CaCertAwareLdapSocketFactory.class.getName();
 
     private boolean disableSslVerification;
     private String baseUrl;
     private String tlsConfig;
+    private boolean hasCaCertificates;
 
     public ProcessLdapProperties(String baseUrl,
             boolean disableSslVerification,
             String tlsConfig) {
+        this(baseUrl, disableSslVerification, tlsConfig, false);
+    }
+
+    public ProcessLdapProperties(String baseUrl,
+            boolean disableSslVerification,
+            String tlsConfig,
+            boolean hasCaCertificates) {
         this.baseUrl = baseUrl;
         this.disableSslVerification = disableSslVerification;
         this.tlsConfig = tlsConfig;
+        this.hasCaCertificates = hasCaCertificates;
     }
 
     public Map process(Map map) {
         Map result = new LinkedHashMap(map);
         if (isDisableSslVerification()) {
             result.put(LDAP_SSL_SOCKET_FACTORY, SKIP_SSL_VERIFICATION_SOCKET_FACTORY);
+        } else if (hasCaCertificates) {
+            result.put(LDAP_SSL_SOCKET_FACTORY, CA_CERT_AWARE_SOCKET_FACTORY);
         } else {
             result.put(LDAP_SSL_SOCKET_FACTORY, EXPIRY_CHECKING_SOCKET_FACTORY);
         }
@@ -89,6 +102,10 @@ public class ProcessLdapProperties {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    public void setHasCaCertificates(boolean hasCaCertificates) {
+        this.hasCaCertificates = hasCaCertificates;
     }
 
 

@@ -66,6 +66,8 @@ public final class LdapUtils {
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_PROFILE_FILE, definition.getLdapProfileFile(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_SSL_SKIPVERIFICATION, definition.isSkipSSLVerification(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_SSL_TLS, definition.getTlsConfiguration(), properties);
+        setIfNotNull(LdapIdentityProviderDefinition.LDAP_SSL_HAS_CA_CERTIFICATES,
+                definition.getCaCertificates() != null && !definition.getCaCertificates().isEmpty(), properties);
         setIfNotNull("ldap.addShadowUserOnLogin", definition.isAddShadowUserOnLogin(), properties);
 
         MapPropertySource source = new NestedMapPropertySource("ldap", properties);

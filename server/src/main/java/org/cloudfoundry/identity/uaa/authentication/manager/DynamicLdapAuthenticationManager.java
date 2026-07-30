@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.impl.config.EnvironmentPropertiesFactoryBea
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.security.CaCertAwareLdapSocketFactory;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.BeansException;
@@ -56,6 +57,13 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             return manager;
         }
         if (context == null) {
+            // IdentityZoneHolder is reliably set here -- this path only runs from within authenticate(),
+            // on the same thread IdentityZoneResolvingFilter set it on for this request. Registering here
+            // (rather than deeper in ProcessLdapProperties, which has no zone context of its own) keeps
+            // CaCertAwareLdapSocketFactory's per-zone trust registry in sync with whatever definition is
+            // actually in play, including on every rebuild triggered by a caCertificates change.
+            CaCertAwareLdapSocketFactory.registerZoneTrust(IdentityZoneHolder.getCurrentZoneId(),
+                    definition.getCaCertificates(), definition.isSkipSSLVerification());
             ConfigurableEnvironment environment = LdapUtils.getLdapConfigurationEnvironment(definition);
             //create parent BeanFactory to inject singletons from the parent
             DefaultListableBeanFactory parentBeanFactory = new DefaultListableBeanFactory();

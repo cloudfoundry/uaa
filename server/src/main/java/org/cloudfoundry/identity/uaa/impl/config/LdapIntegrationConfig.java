@@ -24,7 +24,8 @@ public class LdapIntegrationConfig {
         boolean skipSslVerification = parseBoolean(environment.getProperty("ldap.ssl.skipverification"));
         String baseUrl = ofNullable(environment.getProperty("ldap.base.url")).orElse("ldap://localhost:389/dc=test,dc=com");
         String tlsConfig = ofNullable(environment.getProperty("ldap.ssl.tls")).orElse("none");
-        return new ProcessLdapProperties(baseUrl, skipSslVerification, tlsConfig);
+        boolean hasCaCertificates = parseBoolean(environment.getProperty("ldap.ssl.hasCaCertificates"));
+        return new ProcessLdapProperties(baseUrl, skipSslVerification, tlsConfig, hasCaCertificates);
     }
 
     @Bean

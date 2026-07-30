@@ -68,6 +68,40 @@ class LdapIdentityProviderDefinitionTest {
     }
 
     @Test
+    void caCertificates_areIncludedInEquals() {
+        LdapIdentityProviderDefinition original = new LdapIdentityProviderDefinition();
+        original.setCaCertificates(List.of("cert-a"));
+
+        LdapIdentityProviderDefinition same = new LdapIdentityProviderDefinition();
+        same.setCaCertificates(List.of("cert-a"));
+        assertThat(original).isEqualTo(same).hasSameHashCodeAs(same);
+
+        LdapIdentityProviderDefinition different = new LdapIdentityProviderDefinition();
+        different.setCaCertificates(List.of("cert-b"));
+        assertThat(original).isNotEqualTo(different);
+
+        LdapIdentityProviderDefinition absent = new LdapIdentityProviderDefinition();
+        assertThat(original).isNotEqualTo(absent);
+    }
+
+    @Test
+    void caCertificates_setsHasCaCertificatesEnvironmentProperty() {
+        LdapIdentityProviderDefinition withCerts = new LdapIdentityProviderDefinition();
+        withCerts.setCaCertificates(List.of("cert-a"));
+        assertThat(LdapUtils.getLdapConfigurationEnvironment(withCerts).getProperty("ldap.ssl.hasCaCertificates"))
+                .isEqualTo("true");
+
+        LdapIdentityProviderDefinition withoutCerts = new LdapIdentityProviderDefinition();
+        assertThat(LdapUtils.getLdapConfigurationEnvironment(withoutCerts).getProperty("ldap.ssl.hasCaCertificates"))
+                .isEqualTo("false");
+
+        LdapIdentityProviderDefinition emptyCerts = new LdapIdentityProviderDefinition();
+        emptyCerts.setCaCertificates(List.of());
+        assertThat(LdapUtils.getLdapConfigurationEnvironment(emptyCerts).getProperty("ldap.ssl.hasCaCertificates"))
+                .isEqualTo("false");
+    }
+
+    @Test
     void noPasswordCastException() {
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         assertThat(definition.getBindPassword()).isNull();

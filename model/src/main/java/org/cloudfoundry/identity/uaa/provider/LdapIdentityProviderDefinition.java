@@ -66,6 +66,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public static final String LDAP_PROFILE_FILE_SIMPLE_BIND = "ldap/ldap-simple-bind.xml";
     public static final String LDAP_SSL_SKIPVERIFICATION = LDAP_PREFIX + "ssl.skipverification";
     public static final String LDAP_SSL_TLS = LDAP_PREFIX + "ssl.tls";
+    public static final String LDAP_SSL_HAS_CA_CERTIFICATES = LDAP_PREFIX + "ssl.hasCaCertificates";
     public static final String MAIL = "mail";
 
     public static final List<String> VALID_PROFILE_FILES =
@@ -140,6 +141,8 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String groupRoleAttribute;
 
     private String tlsConfiguration = LDAP_TLS_NONE;
+
+    private List<String> caCertificates;
 
     public static LdapIdentityProviderDefinition searchAndBindMapGroupToScopes(
             String baseUrl,
@@ -405,6 +408,14 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     }
 
+    public List<String> getCaCertificates() {
+        return caCertificates;
+    }
+
+    public void setCaCertificates(List<String> caCertificates) {
+        this.caCertificates = caCertificates;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -485,7 +496,10 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         if (!Objects.equals(groupSearchSubTree, that.groupSearchSubTree)) {
             return false;
         }
-        return Objects.equals(groupRoleAttribute, that.groupRoleAttribute);
+        if (!Objects.equals(groupRoleAttribute, that.groupRoleAttribute)) {
+            return false;
+        }
+        return Objects.equals(caCertificates, that.caCertificates);
 
     }
 
@@ -493,6 +507,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (baseUrl != null ? baseUrl.hashCode() : 0);
+        result = 31 * result + (caCertificates != null ? caCertificates.hashCode() : 0);
         return result;
     }
 
