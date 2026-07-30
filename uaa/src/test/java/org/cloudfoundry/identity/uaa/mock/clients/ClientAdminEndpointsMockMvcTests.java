@@ -1968,7 +1968,7 @@ class ClientAdminEndpointsMockMvcTests {
         String id = generator.generate();
         ClientDetails client = createClient(token, id, SECRET, Collections.singleton("client_credentials"));
         ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, null);
-        request.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        request.setJsonWebKeyUri("http://localhost:8080/uaa/token_keys");
         request.setClientId("admin");
         request.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
         MockHttpServletResponse response = mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", client.getClientId())
@@ -1998,7 +1998,7 @@ class ClientAdminEndpointsMockMvcTests {
         String id = generator.generate();
         ClientDetails client = createClient(token, id, SECRET, Collections.singleton("client_credentials"));
         ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, null);
-        request.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        request.setJsonWebKeyUri("http://localhost:8080/uaa/token_keys");
         request.setClientId("admin");
         request.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
         MockHttpServletResponse response = mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", client.getClientId())
