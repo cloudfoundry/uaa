@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider;
 import org.cloudfoundry.identity.uaa.provider.ldap.LdapIdentityProviderConfigValidator;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator;
 import org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator;
+import org.cloudfoundry.identity.uaa.util.PemCertificateParser;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -58,7 +59,24 @@ public class IdentityProviderConfigValidationDelegator implements IdentityProvid
                 break;
             case SAML:
                 checkReservedOriginKeys(provider);
+                validateSamlCaCertificates(provider);
                 break;
+        }
+    }
+
+    /**
+     * SAML has no dedicated config validator class (unlike OAuth/LDAP/UAA) -- real SAML validation
+     * happens later, via a live metadata fetch in SamlIdentityProviderConfigurator, called directly
+     * from IdentityProviderEndpoints. This check just needs to run before that, so malformed PEM is
+     * rejected here rather than surfacing as a confusing metadata-fetch failure.
+     */
+    private void validateSamlCaCertificates(IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
+        if (provider.getConfig() instanceof SamlIdentityProviderDefinition samlDefinition && samlDefinition.getCaCertificates() != null) {
+            try {
+                PemCertificateParser.parseCertificates(samlDefinition.getCaCertificates());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid config for Identity Provider " + e.getMessage());
+            }
         }
     }
 }

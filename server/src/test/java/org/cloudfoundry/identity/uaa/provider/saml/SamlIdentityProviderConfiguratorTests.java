@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -127,7 +128,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @Test
     void getEntityID() {
-        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes());
+        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean(), any(), any())).thenReturn(getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes());
         BootstrapSamlIdentityProviderData bootstrap = new BootstrapSamlIdentityProviderData(configurator);
         bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
         bootstrap.afterPropertiesSet();
@@ -164,7 +165,7 @@ public class SamlIdentityProviderConfiguratorTests {
         // byte order marker (EF BB BF) to their XML response.
         byte[] utf8Bom = ByteOrderMark.UTF_8.getBytes();
         byte[] metadataBytes = concat(utf8Bom, getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_8));
-        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(metadataBytes);
+        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean(), any(), any())).thenReturn(metadataBytes);
 
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation("http://simplesamlphp.somewhere.com/metadata")
@@ -180,7 +181,7 @@ public class SamlIdentityProviderConfiguratorTests {
     void resolvesUrlMetadataWithLeadingUtf16LittleEndianByteOrderMark() {
         byte[] utf16LeBom = ByteOrderMark.UTF_16LE.getBytes();
         byte[] metadataBytes = concat(utf16LeBom, getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_16LE));
-        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(metadataBytes);
+        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean(), any(), any())).thenReturn(metadataBytes);
 
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation("http://simplesamlphp.somewhere.com/metadata")
@@ -196,7 +197,7 @@ public class SamlIdentityProviderConfiguratorTests {
     void resolvesUrlMetadataWithLeadingUtf16BigEndianByteOrderMark() {
         byte[] utf16BeBom = ByteOrderMark.UTF_16BE.getBytes();
         byte[] metadataBytes = concat(utf16BeBom, getSimpleSamlPhpMetadata("http://simplesamlphp.somewhere.com").getBytes(StandardCharsets.UTF_16BE));
-        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean())).thenReturn(metadataBytes);
+        when(fixedHttpMetaDataProvider.fetchMetadata(any(), anyBoolean(), any(), any())).thenReturn(metadataBytes);
 
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation("http://simplesamlphp.somewhere.com/metadata")
@@ -317,7 +318,7 @@ public class SamlIdentityProviderConfiguratorTests {
     FixedHttpMetaDataProvider createNonMockFixedHttpMetaDataProvider(SamlConfiguration samlConfiguration) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         UrlContentCache urlContentCache = samlConfiguration.urlContentCache(samlConfiguration.timeService());
 
-        return samlConfiguration.fixedHttpMetaDataProvider(RestTemplateConfig.createDefaults(), urlContentCache);
+        return samlConfiguration.fixedHttpMetaDataProvider(RestTemplateConfig.createDefaults(), urlContentCache, new IdpOutboundTrustCache());
     }
 
     @Test

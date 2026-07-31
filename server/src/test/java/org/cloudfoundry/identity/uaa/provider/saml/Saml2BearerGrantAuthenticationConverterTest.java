@@ -4,6 +4,7 @@ import net.shibboleth.shared.xml.SerializeSupport;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeAll;
@@ -87,7 +88,8 @@ class Saml2BearerGrantAuthenticationConverterTest {
         JdbcIdentityProviderProvisioning providerProvisioning = mock(JdbcIdentityProviderProvisioning.class);
 
         SamlIdentityProviderConfigurator identityProviderConfigurator = new SamlIdentityProviderConfigurator(
-                providerProvisioning, identityZoneManager, samlConfiguration.fixedHttpMetaDataProvider(RestTemplateConfig.createDefaults(), null)
+                providerProvisioning, identityZoneManager,
+                samlConfiguration.fixedHttpMetaDataProvider(RestTemplateConfig.createDefaults(), null, new IdpOutboundTrustCache())
         );
         SamlRelyingPartyRegistrationRepositoryConfig samlRelyingPartyRegistrationRepositoryConfig =
                 new SamlRelyingPartyRegistrationRepositoryConfig(

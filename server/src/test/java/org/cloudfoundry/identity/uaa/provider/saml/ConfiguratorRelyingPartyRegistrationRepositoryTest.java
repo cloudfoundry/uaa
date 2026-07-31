@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -405,7 +406,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
             // would be for the admin validate path (SamlIdentityProviderConfigurator.configureURLMetadata).
             SamlConfiguration samlConfiguration = new SamlConfiguration();
             FixedHttpMetaDataProvider realFixedHttpMetaDataProvider = samlConfiguration.fixedHttpMetaDataProvider(
-                    RestTemplateConfig.createDefaults(), samlConfiguration.urlContentCache(samlConfiguration.timeService()));
+                    RestTemplateConfig.createDefaults(), samlConfiguration.urlContentCache(samlConfiguration.timeService()), new IdpOutboundTrustCache());
             IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
             SamlIdentityProviderConfigurator realConfigurator =
                     new SamlIdentityProviderConfigurator(provisioning, new IdentityZoneManagerImpl(), realFixedHttpMetaDataProvider);
@@ -435,6 +436,72 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
             httpsServer.stop(0);
             Files.deleteIfExists(keystore.toPath());
         }
+    }
+
+    @Test
+    void findByRegistrationIdHonorsCaCertificatesForUrlMetadata() throws Exception {
+        SamlConfiguration.setupOpenSaml();
+
+        File keystore = NetworkTestUtils.getKeystore(new Date(), 10);
+        String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        NetworkTestUtils.SimpleHttpResponseHandler handler = new NetworkTestUtils.SimpleHttpResponseHandler(headers, metadataXml);
+        HttpsServer httpsServer = NetworkTestUtils.startHttpsServer(keystore, NetworkTestUtils.keyPass, handler);
+        try {
+            String metadataUrl = "https://localhost:" + httpsServer.getAddress().getPort() + "/metadata";
+
+            SamlConfiguration samlConfiguration = new SamlConfiguration();
+            FixedHttpMetaDataProvider realFixedHttpMetaDataProvider = samlConfiguration.fixedHttpMetaDataProvider(
+                    RestTemplateConfig.createDefaults(), samlConfiguration.urlContentCache(samlConfiguration.timeService()), new IdpOutboundTrustCache());
+            IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
+            SamlIdentityProviderConfigurator realConfigurator =
+                    new SamlIdentityProviderConfigurator(provisioning, new IdentityZoneManagerImpl(), realFixedHttpMetaDataProvider);
+
+            SamlIdentityProviderDefinition definitionWithoutCaCertificates = new SamlIdentityProviderDefinition()
+                    .setIdpEntityAlias(REGISTRATION_ID)
+                    .setMetaDataLocation(metadataUrl);
+
+            IdentityProvider<SamlIdentityProviderDefinition> idp = mock(IdentityProvider.class);
+            when(idp.getConfig()).thenReturn(definitionWithoutCaCertificates);
+            when(provisioning.retrieveByOrigin(REGISTRATION_ID, "uaa")).thenReturn(idp);
+
+            repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, realConfigurator, List.of(), DEFAULT_NAME_ID));
+            when(repository.retrieveZone()).thenReturn(identityZone);
+            when(identityZone.getId()).thenReturn("uaa");
+            when(identityZone.isUaa()).thenReturn(true);
+            when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
+            when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
+
+            // No caCertificates, no skipSslValidation -- the self-signed cert is genuinely untrusted.
+            assertThatThrownBy(() -> repository.findByRegistrationId(REGISTRATION_ID))
+                    .isInstanceOf(Saml2Exception.class);
+
+            // Now trust the server's own cert via caCertificates -- no skipSslValidation anywhere.
+            String certPem = certificatePem(keystore, NetworkTestUtils.keyPass);
+            SamlIdentityProviderDefinition definitionWithCaCertificates = new SamlIdentityProviderDefinition()
+                    .setIdpEntityAlias(REGISTRATION_ID)
+                    .setMetaDataLocation(metadataUrl);
+            definitionWithCaCertificates.setCaCertificates(List.of(certPem));
+            when(idp.getConfig()).thenReturn(definitionWithCaCertificates);
+
+            RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
+            assertThat(registration.getRegistrationId()).isEqualTo(REGISTRATION_ID);
+        } finally {
+            httpsServer.stop(0);
+            Files.deleteIfExists(keystore.toPath());
+        }
+    }
+
+    private static String certificatePem(File keystore, String password) throws Exception {
+        java.security.KeyStore ks = java.security.KeyStore.getInstance("JKS");
+        try (var in = new java.io.FileInputStream(keystore)) {
+            ks.load(in, password.toCharArray());
+        }
+        String alias = ks.aliases().nextElement();
+        byte[] encoded = ks.getCertificate(alias).getEncoded();
+        String base64 = java.util.Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(encoded);
+        return "-----BEGIN CERTIFICATE-----\n" + base64 + "\n-----END CERTIFICATE-----\n";
     }
 
     @Test
