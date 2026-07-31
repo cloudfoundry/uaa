@@ -18,8 +18,11 @@ public final class PemCertificateParser {
     }
 
     public static X509Certificate parseCertificate(String pemEncodedCertificate) {
+        if (pemEncodedCertificate == null || pemEncodedCertificate.isBlank()) {
+            throw new IllegalArgumentException("CA certificate must not be null or blank.");
+        }
         try (PEMParser pemParser = new PEMParser(new InputStreamReader(
-                new ByteArrayInputStream(pemEncodedCertificate.getBytes(StandardCharsets.UTF_8))))) {
+                new ByteArrayInputStream(pemEncodedCertificate.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8))) {
             Object object = pemParser.readObject();
             if (object instanceof X509CertificateHolder x509CertificateHolder) {
                 return new JcaX509CertificateConverter().setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)

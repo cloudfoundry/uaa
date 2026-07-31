@@ -5,9 +5,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.security.Security;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,6 +78,15 @@ class PemCertificateParserTest {
 
     @ParameterizedTest
     @NullAndEmptySource
+    @ValueSource(strings = {"   ", "\n\t"})
+    void parseCertificate_nullOrBlank_throwsIllegalArgumentException(String input) {
+        assertThatThrownBy(() -> PemCertificateParser.parseCertificate(input))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must not be null or blank");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
     void parseCertificates_nullOrEmpty_returnsEmptyList(List<String> input) {
         assertThat(PemCertificateParser.parseCertificates(input)).isEmpty();
     }
@@ -89,6 +100,14 @@ class PemCertificateParserTest {
     @Test
     void parseCertificates_oneMalformedEntry_throwsWithIndexInMessage() {
         assertThatThrownBy(() -> PemCertificateParser.parseCertificates(List.of(VALID_CERT, MALFORMED_CERT)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("index 1");
+    }
+
+    @Test
+    void parseCertificates_containsNullEntry_throwsWithIndexInMessage() {
+        List<String> withNullEntry = Arrays.asList(VALID_CERT, null);
+        assertThatThrownBy(() -> PemCertificateParser.parseCertificates(withNullEntry))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("index 1");
     }

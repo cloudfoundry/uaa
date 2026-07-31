@@ -29,15 +29,12 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class CaCertAwareLdapSocketFactory extends SSLSocketFactory {
 
-    private static SocketFactory instance;
+    private static final SocketFactory instance = new CaCertAwareLdapSocketFactory();
 
     private static final IdpOutboundTrustCache TRUST_CACHE = new IdpOutboundTrustCache();
     private static final ConcurrentMap<String, ZoneLdapTrust> ZONE_TRUST = new ConcurrentHashMap<>();
 
     public static SocketFactory getDefault() {
-        if (instance == null) {
-            instance = new CaCertAwareLdapSocketFactory();
-        }
         return instance;
     }
 
