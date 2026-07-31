@@ -174,7 +174,9 @@ The following attributes are available for the default search and bind configura
 
 * `ldap.base.url` — A URL pointing to the LDAP server must start with `ldap://` or `ldaps://`
   In the case of SSL (ldaps), the server must hold a trusted certificate or the certificate must be
-  imported into the JVM's truststore. 
+  imported into the JVM's truststore. Alternatively, `ldap.ssl.caCertificates` can be set to a list
+  of PEM-encoded CA certificates to trust for this connection without touching the JVM truststore
+  (see [`ldap.ssl.caCertificates`](UAA-Configuration-Reference.md#ldapsslcacertificates)).
 * `ldap.base.mailAttributeName` — the name of the attribute that contains the user's email address, default value is `mail`
 * `ldap.base.userDn` — The DN for the LDAP credentials used to search the directory
 * `ldap.base.password` — Password credentials for the above DN to search the directory
@@ -203,7 +205,9 @@ The following attributes are available for the default search and bind configura
 
 * `ldap.base.url` — A URL pointing to the LDAP server must start with `ldap://` or `ldaps://`
   In the case of SSL (ldaps), the server must hold a trusted certificate or the certificate must be
-  imported into the JVM's truststore. 
+  imported into the JVM's truststore. Alternatively, `ldap.ssl.caCertificates` can be set to a list
+  of PEM-encoded CA certificates to trust for this connection without touching the JVM truststore
+  (see [`ldap.ssl.caCertificates`](UAA-Configuration-Reference.md#ldapsslcacertificates)).
 * `ldap.base.mailAttributeName` — the name of the attribute that contains the user's email address, default value is `mail`
 * `ldap.base.userDn` — The DN for the LDAP credentials used to search the directory
 * `ldap.base.password` — Password credentials for the above DN to search the directory

@@ -135,6 +135,19 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
     }
 
     @Test
+    void caCertificatesDefaultIsNull() {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertThat(providerDefinition.getCaCertificates()).isNull();
+    }
+
+    @Test
+    void caCertificatesInBody() {
+        idpDefinitionMap.put("caCertificates", List.of("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----"));
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertThat(providerDefinition.getCaCertificates()).containsExactly("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----");
+    }
+
+    @Test
     void additionalConfigurationIsMapped() {
         Map<String, Object> additionalConfiguration = map(
                 entry("origin_override", map(entry("uaa", "uaa")))

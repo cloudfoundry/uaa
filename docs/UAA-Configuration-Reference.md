@@ -289,6 +289,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#ldapbaseuserdnpattern"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.userDnPattern` | —| DN pattern for simple bind|
 | <a href="#ldapbasereferral"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.referral` | —| LDAP referral handling|
 | <a href="#ldapsslskipverification"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.ssl.skipverification` | `false`| Skip LDAP SSL verification|
+| <a href="#ldapsslcacertificates"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.ssl.caCertificates` | —| PEM-encoded CA certificates to trust for LDAPS connections|
 | <a href="#ldapgroupsfile"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.file` | —| LDAP groups configuration file|
 | <a href="#ldapgroupssearchbase"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.searchBase` | —| LDAP group search base|
 | <a href="#ldapgroupsgroupsearchfilter"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.groupSearchFilter` | —| Group membership filter|
@@ -1931,6 +1932,8 @@ External OAuth 2.0 and OIDC provider definitions. Each provider entry includes:
 - `linkText` — Text for the login link
 - `relyingPartyId` / `relyingPartySecret` — Client credentials
 - `attributeMappings` — Attribute mapping configuration
+- `skipSslValidation` — Skip TLS validation when calling the provider. Default `false`
+- `caCertificates` — List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when calling the provider. Ignored if `skipSslValidation` is `true`
 
 [Back to table](#login--branding)
 
@@ -2100,6 +2103,7 @@ Bootstrap SAML Identity Provider definitions. Each entry is keyed by a provider 
 | `externalGroupsWhitelist` | `List<String>` | External group names to map |
 | `attributeMappings` | `Map<String, Object>` | Attribute mapping configuration |
 | `skipSslValidation` | `boolean` | Skip TLS validation when fetching metadata URL. Default `false` |
+| `caCertificates` | `List<String>` | PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when fetching the metadata URL. Ignored if `skipSslValidation` is `true` |
 | `storeCustomAttributes` | `boolean` | Persist custom SAML attributes on the user. Default `true` |
 | `authnContext` | `List<String>` | Requested authentication context class references |
 | `override` | `boolean` | Overwrite an existing provider with the same alias on startup. Default `true` |
@@ -2633,6 +2637,21 @@ How LDAP referrals are handled. Common values: `follow`, `ignore`.
 
 When `true`, skips SSL certificate verification for LDAPS connections.
 Should only be used in development/testing.
+
+[Back to table](#ldap)
+
+---
+
+### `ldap.ssl.caCertificates`
+
+**Default:** — (not set)
+**Source:** [`LdapUtils`](../server/src/main/java/org/cloudfoundry/identity/uaa/util/LdapUtils.java), [`LdapIdentityProviderDefinition`](../model/src/main/java/org/cloudfoundry/identity/uaa/provider/LdapIdentityProviderDefinition.java)
+**Type:** `List<String>`
+
+List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust
+store, for LDAPS connections to this LDAP server. Useful when the LDAP server's certificate
+chain is signed by a private/internal certificate authority and importing it into the JVM
+truststore is not desired. Ignored if `ldap.ssl.skipverification` is `true`.
 
 [Back to table](#ldap)
 

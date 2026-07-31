@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_SSL_CA_CERTIFICATES;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_SSL_TLS;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_EXTERNAL;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
@@ -48,6 +49,7 @@ class LdapIdentityProviderDefinitionTest {
     @Test
     void property_types() {
         assertThat(LDAP_PROPERTY_TYPES).containsEntry(LDAP_SSL_TLS, String.class);
+        assertThat(LDAP_PROPERTY_TYPES).containsEntry(LDAP_SSL_CA_CERTIFICATES, List.class);
     }
 
     @Test

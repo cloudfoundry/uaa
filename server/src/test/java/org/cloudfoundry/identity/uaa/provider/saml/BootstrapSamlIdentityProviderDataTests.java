@@ -223,6 +223,19 @@ public class BootstrapSamlIdentityProviderDataTests {
         testGetIdentityProviderDefinitions(4);
     }
 
+    @Test
+    void caCertificatesFromYaml() {
+        sampleData.get("okta-local").put("caCertificates", List.of("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----"));
+        bootstrap.setIdentityProviders(sampleData);
+        bootstrap.afterPropertiesSet();
+
+        SamlIdentityProviderDefinition def = bootstrap.getIdentityProviderDefinitions().stream()
+                .filter(p -> "okta-local".equals(p.getIdpEntityAlias()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(def.getCaCertificates()).containsExactly("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----");
+    }
+
     private void testGetIdentityProviderDefinitions(int count) {
         testGetIdentityProviderDefinitions(count, true);
     }
