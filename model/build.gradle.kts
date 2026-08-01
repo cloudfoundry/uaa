@@ -39,9 +39,9 @@ dependencies {
     annotationProcessor(libs.lombok)
 }
 
-val testArtifacts by configurations.creating
+configurations.create("testArtifacts")
 
-val testJar by tasks.registering(Jar::class) {
+val testJar = tasks.register<Jar>("testJar") {
     dependsOn(tasks.testClasses)
     archiveClassifier.set("tests")
     from(sourceSets.test.get().output)

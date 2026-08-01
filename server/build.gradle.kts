@@ -168,7 +168,7 @@ tasks.named("check") {
     dependsOn("integrationTest")
 }
 
-val tomcatListenerJar by tasks.registering(Jar::class) {
+val tomcatListenerJar = tasks.register<Jar>("tomcatListenerJar") {
     archiveBaseName.set("tomcat-listener")
     from(sourceSets.main.get().output)
     include("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")

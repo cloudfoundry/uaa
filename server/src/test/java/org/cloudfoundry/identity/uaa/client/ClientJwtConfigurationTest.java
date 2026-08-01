@@ -31,7 +31,6 @@ class ClientJwtConfigurationTest {
     @Test
     void jwksValidity() {
         assertThat(ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri")).isNotNull();
-        assertThat(ClientJwtConfiguration.parse("http://any.localhost/openid/jwks-uri")).isNotNull();
     }
 
     @Test
@@ -39,8 +38,25 @@ class ClientJwtConfigurationTest {
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("custom://any.domain.net/openid/jwks-uri", null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("test", null)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("http://any.domain.net/openid/jwks-uri")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("http://any.localhost/openid/jwks-uri")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("ftp://any.domain.net/openid/jwks-uri")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+    }
+
+    @Test
+    void jwksUri_privateIpIsRejected() {
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://192.168.1.1/jwks"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("blocked");
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://10.0.0.1/jwks"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("blocked");
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://169.254.169.254/latest/meta-data"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("blocked");
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse("https://127.0.0.1/jwks"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("blocked");
     }
 
     @Test
@@ -63,7 +79,7 @@ class ClientJwtConfigurationTest {
 
     @Test
     void hasConfiguration() {
-        assertThat(ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri").hasConfiguration()).isTrue();
+        assertThat(ClientJwtConfiguration.parse("https://1.1.1.1/openid/jwks-uri").hasConfiguration()).isTrue();
         assertThat(ClientJwtConfiguration.parse(null).hasConfiguration()).isFalse();
         assertThat(new ClientJwtConfiguration().hasConfiguration()).isFalse();
         assertThat(ClientJwtConfiguration.parse(jsonJwkSet).hasConfiguration()).isTrue();
@@ -75,7 +91,7 @@ class ClientJwtConfigurationTest {
         ClientJwtConfiguration config = new ClientJwtConfiguration(ClientJwtCredential.parse("[{\"iss\":\"http://localhost:8080/uaa\",\"sub\":\"client_with_jwks_trust\"}]"));
         assertThat(config.getClientJwtCredentials()).hasSize(1);
         assertThat(config.hasConfiguration()).isTrue();
-        ClientJwtConfiguration mergeConfig = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri"), config, false);
+        ClientJwtConfiguration mergeConfig = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse("https://1.1.1.1/openid/jwks-uri"), config, false);
         assertThat(mergeConfig.getClientJwtCredentials()).isNotNull();
         assertThat(mergeConfig.getJwksUri()).isNotNull();
         assertThat(mergeConfig.getJwkSet()).isNull();
@@ -265,8 +281,8 @@ class ClientJwtConfigurationTest {
 
     @Test
     void testHashCode() {
-        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("http://localhost:8080/uaa");
-        ClientJwtConfiguration key2 = ClientJwtConfiguration.parse("http://localhost:8080/uaa");
+        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri");
+        ClientJwtConfiguration key2 = ClientJwtConfiguration.parse("https://any.domain.net/openid/jwks-uri");
         assertThat(key2.hashCode()).isNotEqualTo(key1.hashCode());
         assertThat(key1).hasSameHashCodeAs(key1);
         assertThat(key2).hasSameHashCodeAs(key2);
@@ -275,7 +291,7 @@ class ClientJwtConfigurationTest {
 
     @Test
     void equals() throws Exception {
-        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("http://localhost:8080/uaa");
+        ClientJwtConfiguration key1 = ClientJwtConfiguration.parse("https://1.1.1.1/openid/jwks-uri");
         ClientJwtConfiguration key2 = (ClientJwtConfiguration) key1.clone();
         assertThat(key2).isEqualTo(key1);
     }
