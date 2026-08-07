@@ -2623,7 +2623,7 @@ public class LoginMockMvcZonePathTests {
         String subdomain = "testzone1";
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^.*\\.localhost$"));
-        List<String> allowedUris = mode == ZoneResolutionMode.ZONE_PATH ? asList("^/logout.do$", "^/z/[^/]+/logout.do$") : singletonList("^/logout.do$");
+        List<String> allowedUris = mode == ZoneResolutionMode.ZONE_PATH ? asList("^/logout\\.do$", "^/z/[^/]+/logout\\.do$") : singletonList("^/logout\\.do$");
         corsFilter.getFilter().setCorsXhrAllowedUris(allowedUris);
         corsFilter.getFilter().initialize();
 
@@ -2737,8 +2737,8 @@ public class LoginMockMvcZonePathTests {
         corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^.*\\.localhost$"));
         // For ZONE_PATH mode, the request path is /z/{subdomain}/logout.do, so we need to allow that pattern
         List<String> allowedUris = mode == ZoneResolutionMode.ZONE_PATH
-                ? asList("^/logout.do$", "^/z/[^/]+/logout.do$")
-                : singletonList("^/logout.do$");
+                ? asList("^/logout\\.do$", "^/z/[^/]+/logout\\.do$")
+                : singletonList("^/logout\\.do$");
         corsFilter.getFilter().setCorsXhrAllowedUris(allowedUris);
         corsFilter.getFilter().initialize();
 

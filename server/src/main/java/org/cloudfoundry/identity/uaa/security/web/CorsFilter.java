@@ -377,6 +377,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     private void compileAllowedOriginsAndUris(CorsConfiguration configuration, String type) {
+        configuration.getAllowedUriPatterns().clear();
         if (configuration.getAllowedUris() != null) {
             for (String allowedUri : configuration.getAllowedUris()) {
                 try {
@@ -387,6 +388,7 @@ public class CorsFilter extends OncePerRequestFilter {
                 }
             }
         }
+        configuration.getAllowedOriginPatterns().clear();
         if (configuration.getAllowedOrigins() != null) {
             for (String allowedOrigin : configuration.getAllowedOrigins()) {
                 try {
