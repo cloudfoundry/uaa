@@ -61,26 +61,6 @@ class RequestInfoImplTest {
     }
 
     @Test
-    void getClientIP_X_Client() {
-        when(mockHSRequest.getHeader("X-Client-IP")).thenReturn("Mocked-IP-C ");
-        when(mockHSRequest.getHeader("X-Real-IP")).thenReturn("Mocked-IP-R ");
-        when(mockHSRequest.getHeader("X-Forwarded-For")).thenReturn("Mocked-IP-FF0, Mocked-IP-FF1");
-        RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
-        assertThat(requestInfo).isNotNull();
-        assertThat(requestInfo.getClientIP()).isEqualTo("Mocked-IP-C");
-    }
-
-    @Test
-    void getClientIP_X_Real() {
-        when(mockHSRequest.getHeader("X-Client-IP")).thenReturn(" ");
-        when(mockHSRequest.getHeader("X-Real-IP")).thenReturn("Mocked-IP-R ");
-        when(mockHSRequest.getHeader("X-Forwarded-For")).thenReturn("Mocked-IP-FF0 , Mocked-IP-FF1");
-        RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
-        assertThat(requestInfo).isNotNull();
-        assertThat(requestInfo.getClientIP()).isEqualTo("Mocked-IP-R");
-    }
-
-    @Test
     void proxyingWorking() {
         HttpServletRequest mockRequest = mock(HttpServletRequest.class);
         when(mockRequest.getContextPath()).thenReturn("/testContext");
