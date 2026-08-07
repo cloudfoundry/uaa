@@ -125,4 +125,45 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerZonePathTests {
 
         assertThat(response.getRedirectedUrl()).isEqualTo(savedRedirectUrl);
     }
+
+    @ParameterizedTest
+    @EnumSource(ZoneRequestPathMode.class)
+    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl_notWhitelisted(ZoneRequestPathMode mode) throws Exception {
+        mode.setZone();
+        mode.applyRequestPath(request, "/login.do");
+        String redirectUri = "https://test.com/test2";
+        request.setParameter(org.springframework.security.saml2.core.Saml2ParameterNames.RELAY_STATE, redirectUri);
+        
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        Authentication authentication = mock(Authentication.class);
+        
+        handler.onAuthenticationSuccess(request, response, authentication);
+        
+        String expected = mode.redirectPrefix().isEmpty() ? "/" : mode.redirectPrefix() + "/";
+        assertThat(response.getRedirectedUrl()).isEqualTo(expected);
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneRequestPathMode.class)
+    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl_whitelisted(ZoneRequestPathMode mode) throws Exception {
+        mode.setZone();
+        mode.applyRequestPath(request, "/login.do");
+        String redirectUri = "https://test.com/test2";
+        request.setParameter(org.springframework.security.saml2.core.Saml2ParameterNames.RELAY_STATE, redirectUri);
+        
+        org.cloudfoundry.identity.uaa.zone.IdentityZone zone = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
+        java.util.List<String> originalWhitelist = zone.getConfig().getLinks().getLogout().getWhitelist();
+        zone.getConfig().getLinks().getLogout().setWhitelist(java.util.List.of(redirectUri));
+        
+        try {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            Authentication authentication = mock(Authentication.class);
+            
+            handler.onAuthenticationSuccess(request, response, authentication);
+            
+            assertThat(response.getRedirectedUrl()).isEqualTo(redirectUri);
+        } finally {
+            zone.getConfig().getLinks().getLogout().setWhitelist(originalWhitelist);
+        }
+    }
 }
