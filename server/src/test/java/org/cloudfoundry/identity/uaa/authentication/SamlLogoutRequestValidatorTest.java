@@ -78,8 +78,12 @@ class SamlLogoutRequestValidatorTest {
         verify(delegate, never()).validate(any());
 
         assertThat(result.hasErrors()).isTrue();
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().iterator().next().getDescription()).isEqualTo("Missing signature");
+        assertThat(result.getErrors())
+                .singleElement()
+                .satisfies(e -> {
+                    assertThat(e.getErrorCode()).isEqualTo(Saml2ErrorCodes.INVALID_SIGNATURE);
+                    assertThat(e.getDescription()).isEqualTo("Missing signature");
+                });
     }
 
     @Test
@@ -97,9 +101,14 @@ class SamlLogoutRequestValidatorTest {
         when(logoutRequest.getParameters()).thenReturn(Map.of(Saml2ParameterNames.SIGNATURE, "somesig")); // Signature but no SigAlg
 
         Saml2LogoutValidatorResult result = validator.validate(parameters);
+        verify(delegate, never()).validate(any());
 
         assertThat(result.hasErrors()).isTrue();
-        assertThat(result.getErrors()).anyMatch(e -> e.getErrorCode().equals(Saml2ErrorCodes.INVALID_SIGNATURE));
-        verify(delegate, never()).validate(any());
+        assertThat(result.getErrors())
+                .singleElement()
+                .satisfies(e -> {
+                    assertThat(e.getErrorCode()).isEqualTo(Saml2ErrorCodes.INVALID_SIGNATURE);
+                    assertThat(e.getDescription()).isEqualTo("Missing signature algorithm");
+                });
     }
 }

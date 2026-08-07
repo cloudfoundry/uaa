@@ -35,8 +35,10 @@ public class SamlLogoutRequestValidator implements Saml2LogoutRequestValidator {
         if (parameters != null
                 && parameters.getLogoutRequest().getBinding() == Saml2MessageBinding.REDIRECT
                 && parameters.getLogoutRequest().getParameters().get(Saml2ParameterNames.SIG_ALG) == null) {
+            boolean hasSignature = parameters.getLogoutRequest().getParameters().get(Saml2ParameterNames.SIGNATURE) != null;
+            String description = hasSignature ? "Missing signature algorithm" : "Missing signature";
             return Saml2LogoutValidatorResult.withErrors(new Saml2Error(
-                    Saml2ErrorCodes.INVALID_SIGNATURE, "Missing signature")).build();
+                    Saml2ErrorCodes.INVALID_SIGNATURE, description)).build();
         }
 
         return delegate.validate(parameters);
