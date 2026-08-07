@@ -25,11 +25,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
@@ -117,6 +119,19 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertThat(providerDefinition.getAttributeMappings()).containsExactlyInAnyOrderEntriesOf(externalGroupMapping);
         assertThat(providerDefinition.getGroupMappingMode()).isNull();
+    }
+
+    @Test
+    void external_groups_whitelist_default_is_empty() {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertThat(providerDefinition.getExternalGroupsWhitelist()).isEmpty();
+    }
+
+    @Test
+    void external_groups_whitelist_in_body() {
+        idpDefinitionMap.put(EXTERNAL_GROUPS_WHITELIST, List.of("*"));
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertThat(providerDefinition.getExternalGroupsWhitelist()).containsExactly("*");
     }
 
     @Test

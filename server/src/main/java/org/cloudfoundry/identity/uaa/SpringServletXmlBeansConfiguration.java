@@ -244,9 +244,10 @@ public class SpringServletXmlBeansConfiguration {
     OidcMetadataFetcher oidcMetadataFetcher(
             UrlContentCache contentCache,
             @Qualifier("trustingRestTemplate") RestTemplate trustingRestTemplate,
-            @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate
+            @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate,
+            @Qualifier("safeRestTemplate") RestTemplate safeRestTemplate
     ) {
-        return new OidcMetadataFetcher(contentCache, trustingRestTemplate, nonTrustingRestTemplate);
+        return new OidcMetadataFetcher(contentCache, trustingRestTemplate, nonTrustingRestTemplate, safeRestTemplate);
     }
 
     @Bean

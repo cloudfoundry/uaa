@@ -36,6 +36,7 @@ import java.util.Optional;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -148,6 +149,7 @@ public class OauthIDPWrapperFactoryBean {
         idpDefinition.setTokenKey((String) idpDefinitionMap.get("tokenKey"));
         idpDefinition.setIssuer((String) idpDefinitionMap.get("issuer"));
         idpDefinition.setAttributeMappings((Map<String, Object>) idpDefinitionMap.get(ATTRIBUTE_MAPPINGS));
+        idpDefinition.setExternalGroupsWhitelist((List<String>) idpDefinitionMap.get(EXTERNAL_GROUPS_WHITELIST));
         idpDefinition.setAdditionalConfiguration((Map<String, Object>) idpDefinitionMap.get("additionalConfiguration"));
         idpDefinition.setScopes((List<String>) idpDefinitionMap.get("scopes"));
         idpDefinition.setUserPropagationParameter((String) idpDefinitionMap.get("userPropagationParameter"));

@@ -23,6 +23,7 @@ import org.apache.hc.client5.http.impl.NoopUserTokenHandler;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
 import org.apache.hc.client5.http.socket.PlainConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
@@ -87,6 +88,45 @@ public abstract class UaaHttpRequestUtils {
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
         HttpClientConfig config = HttpClientConfig.defaults(timeout, timeout);
         return createRequestFactory(getClientBuilder(skipSslValidation, config), config.connectionRequestTimeoutInMs());
+    }
+
+    /**
+     * Creates a request factory whose DNS resolver blocks private/loopback/link-local
+     * addresses at connection time. Redirects are disabled to prevent SSRF via a
+     * redirect to a private IP literal that would bypass DNS-based blocking.
+     * Use this for outbound fetches to operator-supplied URLs (e.g. jwks_uri).
+     */
+    public static ClientHttpRequestFactory createSafeRequestFactory(RestTemplateConfig restTemplateConfig) {
+        HttpClientConfig config = new HttpClientConfig(restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute,
+                restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity,
+                restTemplateConfig.retryCount, restTemplateConfig.timeout, restTemplateConfig.timeout,
+                restTemplateConfig.timeout);
+        HttpClientBuilder builder = HttpClients.custom()
+                .useSystemProperties()
+                .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
+                .disableRedirectHandling();
+        PoolingHttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+                .setDnsResolver(PrivateNetworkBlockingDnsResolver.INSTANCE)
+                .build();
+        cm.setMaxTotal(config.poolSize());
+        cm.setDefaultMaxPerRoute(config.defaultMaxPerRoute());
+        cm.setValidateAfterInactivity(TimeValue.of(config.validateAfterInactivity(), TimeUnit.MILLISECONDS));
+        cm.setDefaultConnectionConfig(ConnectionConfig.custom()
+                .setConnectTimeout(toTimeout(config.connectTimeoutInMs()))
+                .build());
+        cm.setDefaultSocketConfig(SocketConfig.custom()
+                .setSoTimeout(toTimeout(config.readTimeoutInMs()))
+                .build());
+        builder.setConnectionManager(cm);
+        if (config.maxKeepAlive() <= 0) {
+            builder.setConnectionReuseStrategy((_, _, _) -> false);
+        } else {
+            builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(config.maxKeepAlive()));
+        }
+        if (config.retryCount() > 0) {
+            builder.setRetryStrategy(new UaaHttpRequestRetryHandler(config.retryCount()));
+        }
+        return createRequestFactory(builder, config.connectionRequestTimeoutInMs());
     }
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int connectTimeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
