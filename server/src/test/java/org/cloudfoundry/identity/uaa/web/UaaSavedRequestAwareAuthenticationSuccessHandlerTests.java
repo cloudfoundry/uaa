@@ -93,18 +93,20 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
         request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
 
         org.cloudfoundry.identity.uaa.zone.IdentityZone zone = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
-        zone.getConfig().getLinks().getLogout().setWhitelist(java.util.List.of("https://test.com/test2"));
+        java.util.List<String> originalWhitelist = zone.getConfig().getLinks().getLogout().getWhitelist();
+        zone.getConfig().getLinks().getLogout().setWhitelist(java.util.List.of(redirectUri));
         org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
 
-        var response = new MockHttpServletResponse();
-        var authentication = mock(Authentication.class);
-        handler.onAuthenticationSuccess(request, response, authentication);
+        try {
+            var response = new MockHttpServletResponse();
+            var authentication = mock(Authentication.class);
+            handler.onAuthenticationSuccess(request, response, authentication);
 
-        assertThat(response.getRedirectedUrl()).isEqualTo(redirectUri);
-        
-        // clean up
-        zone.getConfig().getLinks().getLogout().setWhitelist(null);
-        org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.clear();
+            assertThat(response.getRedirectedUrl()).isEqualTo(redirectUri);
+        } finally {
+            zone.getConfig().getLinks().getLogout().setWhitelist(originalWhitelist);
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
+        }
     }
 
     @Test
