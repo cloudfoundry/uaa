@@ -39,6 +39,9 @@ class RequestInfoImplTest {
 
     @Test
     void getClientIP_remoteAddr() {
+        when(mockHSRequest.getHeader("X-Client-IP")).thenReturn("Spoofed-IP-1");
+        when(mockHSRequest.getHeader("X-Real-IP")).thenReturn("Spoofed-IP-2");
+        when(mockHSRequest.getHeader("X-Forwarded-For")).thenReturn("Spoofed-IP-3");
         when(mockHSRequest.getRemoteAddr()).thenReturn("Mocked-IP-R ");
         RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
         assertThat(requestInfo).isNotNull();
