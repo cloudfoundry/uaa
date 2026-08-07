@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -417,6 +418,10 @@ class ExternalOAuthProviderConfiguratorTests {
         Map<String, String> queryParams =
                 UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
         assertThat(queryParams).containsKey("nonce");
+        
+        String nonce = queryParams.get("nonce");
+        String sessionNonce = (String) mockHttpServletRequest.getSession().getAttribute(SessionUtils.nonceParameterAttributeKeyForIdp("alias"));
+        assertThat(sessionNonce).isEqualTo(nonce);
     }
 
     @Test
@@ -529,6 +534,10 @@ class ExternalOAuthProviderConfiguratorTests {
                 .containsEntry("state", "01234567890123456789012345678901234567890123456789")
                 .containsKey("nonce");
         assertThat(queryParams.get("redirect_uri")).contains("login%2Fcallback%2Falias");
+        
+        String nonce = queryParams.get("nonce");
+        String sessionNonce = (String) mockHttpServletRequest.getSession().getAttribute(SessionUtils.nonceParameterAttributeKeyForIdp("alias"));
+        assertThat(sessionNonce).isEqualTo(nonce);
     }
 
     @Test
@@ -608,5 +617,9 @@ class ExternalOAuthProviderConfiguratorTests {
                 .as("Nonce parameter should be at least 22 characters")
                 .isNotNull()
                 .hasSizeGreaterThanOrEqualTo(22);
+                
+        String nonce = queryParams.get("nonce");
+        String sessionNonce = (String) mockHttpServletRequest.getSession().getAttribute(SessionUtils.nonceParameterAttributeKeyForIdp("alias"));
+        assertThat(sessionNonce).isEqualTo(nonce);
     }
 }

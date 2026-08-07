@@ -717,13 +717,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             });
             
             if (config instanceof OIDCIdentityProviderDefinition) {
-                String expectedNonce = getSessionValue(SessionUtils.nonceParameterAttributeKeyForIdp(identityProvider.getOriginKey()));
+                String nonceKey = SessionUtils.nonceParameterAttributeKeyForIdp(identityProvider.getOriginKey());
+                String expectedNonce = getSessionValue(nonceKey);
                 if (StringUtils.hasText(expectedNonce)) {
-                    String tokenNonce = (String) claims.get("nonce");
+                    Object tokenNonceObj = claims.get("nonce");
+                    String tokenNonce = tokenNonceObj instanceof String ? (String) tokenNonceObj : null;
                     if (!expectedNonce.equals(tokenNonce)) {
                         throw new InvalidTokenException("ID token nonce does not match session nonce");
                     }
-                    clearSessionValue(SessionUtils.nonceParameterAttributeKeyForIdp(identityProvider.getOriginKey()));
+                    clearSessionValue(nonceKey);
                 }
             }
             
