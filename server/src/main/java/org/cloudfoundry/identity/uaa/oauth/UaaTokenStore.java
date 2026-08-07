@@ -144,7 +144,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             TokenCode tokenCode = (TokenCode) template.queryForObject(SQL_SELECT_STATEMENT, rowMapper, code);
             if (tokenCode != null) {
                 int deletedRows = template.update(SQL_DELETE_STATEMENT, code);
-                if (deletedRows == 0) {
+                if (deletedRows != 1) {
                     throw new InvalidGrantException("Invalid authorization code: " + code);
                 }
                 
