@@ -171,12 +171,16 @@ class CookieBasedCsrfTokenRepositoryTests {
         String expectedCookieName = expectSecure ? "__Host-X-Uaa-Csrf" : "X-Uaa-Csrf";
         
         String setCookie = response.getHeader("Set-Cookie");
-        if (setCookie != null && setCookie.contains(expectedCookieName + "=")) {
-            Cookie cookie = new Cookie(expectedCookieName, "");
-            cookie.setSecure(setCookie.contains("Secure"));
-            cookie.setHttpOnly(setCookie.contains("HttpOnly"));
-            return cookie;
+        if (setCookie == null || !setCookie.contains(expectedCookieName + "=")) {
+            throw new IllegalStateException("Expected Set-Cookie header for " + expectedCookieName + " but was: " + setCookie);
         }
-        return response.getCookie(expectedCookieName);
+
+        int valueStart = setCookie.indexOf(expectedCookieName + "=") + (expectedCookieName + "=").length();
+        int valueEnd = setCookie.indexOf(';', valueStart);
+        String value = valueEnd >= 0 ? setCookie.substring(valueStart, valueEnd) : setCookie.substring(valueStart);
+        Cookie cookie = new Cookie(expectedCookieName, value);
+        cookie.setSecure(setCookie.contains("Secure"));
+        cookie.setHttpOnly(setCookie.contains("HttpOnly"));
+        return cookie;
     }
 }

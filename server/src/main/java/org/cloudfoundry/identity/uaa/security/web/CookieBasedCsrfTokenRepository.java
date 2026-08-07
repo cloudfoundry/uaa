@@ -115,7 +115,8 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
         }
         
         boolean isSecure = secure || "https".equals(request.getScheme());
-        String cookieName = isSecure ? "__Host-" + token.getParameterName() : token.getParameterName();
+        String baseName = token.getParameterName().startsWith("__Host-") ? token.getParameterName().substring("__Host-".length()) : token.getParameterName();
+        String cookieName = isSecure ? "__Host-" + baseName : baseName;
 
         Cookie csrfCookie = new Cookie(cookieName, token.getToken());
         csrfCookie.setHttpOnly(true);
@@ -142,7 +143,8 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
             Cookie[] cookies = request.getCookies();
             if (cookies != null) {
                 boolean isSecure = secure || "https".equals(request.getScheme());
-                String expectedCookieName = isSecure ? "__Host-" + getParameterName() : getParameterName();
+                String baseName = getParameterName().startsWith("__Host-") ? getParameterName().substring("__Host-".length()) : getParameterName();
+                String expectedCookieName = isSecure ? "__Host-" + baseName : baseName;
                 for (Cookie cookie : cookies) {
                     if (expectedCookieName.equals(cookie.getName())) {
                         return new DefaultCsrfToken(getHeaderName(), getParameterName(), cookie.getValue());
