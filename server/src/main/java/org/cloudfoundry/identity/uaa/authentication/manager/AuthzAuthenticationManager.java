@@ -40,6 +40,7 @@ import java.util.Date;
 import java.util.Locale;
 
 public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
+    // BCrypt hash of a constant dummy password (cost=10) used to equalize authentication latency when the user is not found.
     private static final String DUMMY_BCRYPT_HASH = "{bcrypt}$2a$10$xn3igMIdgceZX.mK6/0.n.MvJk1.L/0R15Tz3gGZ/7eM/T.xI.1wO";
 
     private final HttpSession httpSession;
