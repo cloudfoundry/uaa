@@ -143,7 +143,8 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, code, zoneId);
             if (expiringCode != null) {
                 int deleted = jdbcTemplate.update(delete, code, zoneId);
-                if (deleted == 0) {
+                if (deleted != 1) {
+                    logger.warn("Expected to delete 1 expiring code row for code={}, zoneId={} but deleted {}", code, zoneId, deleted);
                     return null;
                 }
             }
