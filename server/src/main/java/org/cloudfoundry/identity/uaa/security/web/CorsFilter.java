@@ -29,6 +29,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -112,8 +113,7 @@ public class CorsFilter extends OncePerRequestFilter {
     public void initialize() {
         // initialize the configs for default zone
         for (CorsConfiguration configuration : Arrays.asList(xhrConfiguration, defaultConfiguration)) {
-            configuration.getAllowedUriPatterns().clear();
-            configuration.getAllowedOriginPatterns().clear();
+            configuration.setPatternsCompiled(false);
             compileAllowedOriginsAndUris(configuration,
                     configuration == xhrConfiguration ? "xhr" : "default");
         }
@@ -377,27 +377,42 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     private void compileAllowedOriginsAndUris(CorsConfiguration configuration, String type) {
-        configuration.getAllowedUriPatterns().clear();
-        if (configuration.getAllowedUris() != null) {
-            for (String allowedUri : configuration.getAllowedUris()) {
-                try {
-                    configuration.getAllowedUriPatterns().add(Pattern.compile(allowedUri));
-                    log.debug("URI '%s' is allowed for a %s CORS requests.".formatted(allowedUri, type));
-                } catch (PatternSyntaxException patternSyntaxException) {
-                    log.error("Invalid regular expression pattern in cors.{}.allowed.uris: {}", type, allowedUri, patternSyntaxException);
-                }
-            }
+        if (configuration.isPatternsCompiled()) {
+            return;
         }
-        configuration.getAllowedOriginPatterns().clear();
-        if (configuration.getAllowedOrigins() != null) {
-            for (String allowedOrigin : configuration.getAllowedOrigins()) {
-                try {
-                    configuration.getAllowedOriginPatterns().add(Pattern.compile(anchorPattern(allowedOrigin)));
-                    log.debug("Origin '%s' is allowed for a %s CORS requests.".formatted(allowedOrigin, type));
-                } catch (PatternSyntaxException patternSyntaxException) {
-                    log.error("Invalid regular expression pattern in cors.{}.allowed.origins: {}", type, allowedOrigin, patternSyntaxException);
+
+        synchronized (configuration) {
+            if (configuration.isPatternsCompiled()) {
+                return;
+            }
+
+            List<Pattern> uriPatterns = new ArrayList<>();
+            if (configuration.getAllowedUris() != null) {
+                for (String allowedUri : configuration.getAllowedUris()) {
+                    try {
+                        uriPatterns.add(Pattern.compile(allowedUri));
+                        log.debug("URI '%s' is allowed for a %s CORS requests.".formatted(allowedUri, type));
+                    } catch (PatternSyntaxException patternSyntaxException) {
+                        log.error("Invalid regular expression pattern in cors.{}.allowed.uris: {}", type, allowedUri, patternSyntaxException);
+                    }
                 }
             }
+            configuration.setAllowedUriPatterns(uriPatterns);
+
+            List<Pattern> originPatterns = new ArrayList<>();
+            if (configuration.getAllowedOrigins() != null) {
+                for (String allowedOrigin : configuration.getAllowedOrigins()) {
+                    try {
+                        originPatterns.add(Pattern.compile(anchorPattern(allowedOrigin)));
+                        log.debug("Origin '%s' is allowed for a %s CORS requests.".formatted(allowedOrigin, type));
+                    } catch (PatternSyntaxException patternSyntaxException) {
+                        log.error("Invalid regular expression pattern in cors.{}.allowed.origins: {}", type, allowedOrigin, patternSyntaxException);
+                    }
+                }
+            }
+            configuration.setAllowedOriginPatterns(originPatterns);
+
+            configuration.setPatternsCompiled(true);
         }
     }
 
