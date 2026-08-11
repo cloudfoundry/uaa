@@ -773,6 +773,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (tokenEndpointBuilder.getTokenEndpoint(identityZoneManager.getCurrentIdentityZone()).equals(config.getIssuer())) {
             List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
             jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
+            if (hasLength(config.getRelyingPartyId())) {
+                // an explicitly registered self-referencing OIDC IdP must still bind the id_token
+                // to its own relying party, otherwise any token signed by this UAA instance
+                // (issued to any client, for any purpose) would be accepted as this IdP's id_token
+                jwtToken.checkAudience(config.getRelyingPartyId());
+            }
         } else {
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
             jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)

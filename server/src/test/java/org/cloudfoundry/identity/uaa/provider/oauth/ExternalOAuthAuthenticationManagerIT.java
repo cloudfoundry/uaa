@@ -525,6 +525,49 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
+    void self_referencing_oidc_idp_rejects_a_uaa_token_issued_to_a_different_client() {
+        IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
+        idpProvider.setType(OriginKeys.OIDC10);
+        idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
+
+        // a token signed by this same UAA, but issued to a different client ("cf"), not the
+        // self-referencing IdP's own relying party ("identity")
+        claims.put("sub", RandomStringUtils.random(50));
+        claims.put("iss", UAA_ISSUER_URL);
+        claims.put("origin", OriginKeys.UAA);
+        claims.put(ClaimConstants.AUD, Collections.singletonList("cf"));
+
+        CompositeToken token = getCompositeAccessToken();
+        xCodeToken.setIdToken(token.getIdTokenValue());
+        xCodeToken.setOrigin(null);
+
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("audience");
+    }
+
+    @Test
+    void self_referencing_oidc_idp_rejects_a_uaa_token_with_no_audience_claim() {
+        IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
+        idpProvider.setType(OriginKeys.OIDC10);
+        idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
+
+        // e.g. a plain access token response with no id_token/aud at all, as opposed to a real id_token
+        claims.put("sub", RandomStringUtils.random(50));
+        claims.put("iss", UAA_ISSUER_URL);
+        claims.put("origin", OriginKeys.UAA);
+
+        CompositeToken token = getCompositeAccessToken(Collections.singletonList(ClaimConstants.AUD));
+        xCodeToken.setIdToken(token.getIdTokenValue());
+        xCodeToken.setOrigin(null);
+
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
+                .isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
     void when_exchanging_an_id_token_retrieved_by_an_external_oidc_idp_for_an_access_token_then_auth_data_should_contain_oidc_sub_claim() {
         IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
