@@ -14,6 +14,30 @@ issuer:
 #The secret that an external login server will use to authenticate to the uaa using the id `login`
 LOGIN_SECRET: loginsecret
 
+# Points at the local OpenLDAP test server started by scripts/lib_ldap_helper.sh /
+# scripts/ldap/ldap-start-and-populate.sh (see scripts/docker-compose.yml). Only takes
+# effect when the `ldap` Spring profile is active, which is how LdapIntegrationTests
+# and LdapLoginIT run this dev/integration-test server.
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:389/'
+    userDn: 'cn=admin,dc=test,dc=com'
+    password: 'password'
+    searchBase: 'dc=test,dc=com'
+    searchFilter: 'cn={0}'
+  groups:
+    file: ldap/ldap-groups-as-scopes.xml
+    searchBase: 'dc=test,dc=com'
+    groupRoleAttribute: 'cn'
+    groupSearchFilter: 'member={0}'
+    searchSubtree: true
+    maxSearchDepth: 10
+    autoAdd: true
+  externalGroupsWhitelist:
+    - '*'
+
 jwt:
   token:
     policy:
