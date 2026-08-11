@@ -594,25 +594,29 @@ uaa:
 #    maxPerRoute: 2
 #    maxKeepAlive: 0
 
-ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
-  base:
-    url: 'ldap://localhost:389/'
-    userDn: 'cn=admin,dc=test,dc=com'
-    password: 'password'
-    searchBase: 'dc=test,dc=com'
-    searchFilter: 'cn={0}'
-  groups:
-    file: ldap/ldap-groups-as-scopes.xml
-    searchBase: 'dc=test,dc=com'
-    groupRoleAttribute: 'cn'
-    groupSearchFilter: 'member={0}'
-    searchSubtree: true
-    maxSearchDepth: 10
-    autoAdd: true
-  externalGroupsWhitelist:
-    - '*'
+# LDAP is not configured by default. Uncomment and adjust the block below (or provide
+# the equivalent `ldap.*` properties via your own config) together with the `ldap`
+# profile to enable LDAP authentication. The values below are only an example; do not
+# use them in production, they describe a local test LDAP server.
+#ldap:
+#  profile:
+#    file: ldap/ldap-search-and-bind.xml
+#  base:
+#    url: 'ldap://localhost:389/'
+#    userDn: 'cn=admin,dc=test,dc=com'
+#    password: 'password'
+#    searchBase: 'dc=test,dc=com'
+#    searchFilter: 'cn={0}'
+#  groups:
+#    file: ldap/ldap-groups-as-scopes.xml
+#    searchBase: 'dc=test,dc=com'
+#    groupRoleAttribute: 'cn'
+#    groupSearchFilter: 'member={0}'
+#    searchSubtree: true
+#    maxSearchDepth: 10
+#    autoAdd: true
+#  externalGroupsWhitelist:
+#    - '*'
 
 springdoc:
   api-docs:
