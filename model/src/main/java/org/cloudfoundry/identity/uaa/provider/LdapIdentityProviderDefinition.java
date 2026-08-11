@@ -49,6 +49,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public static final String LDAP_EMAIL_DOMAIN = LDAP_PREFIX + EMAIL_DOMAIN_ATTR;
     public static final String LDAP_STORE_CUSTOM_ATTRIBUTES = LDAP_PREFIX + STORE_CUSTOM_ATTRIBUTES_NAME;
     public static final String LDAP_EXTERNAL_GROUPS_WHITELIST = LDAP_PREFIX + "externalGroupsWhitelist";
+    public static final String LDAP_INCLUDE_EXTERNAL_GROUP_DN = LDAP_PREFIX + "includeExternalGroupDn";
     public static final String LDAP_GROUP_FILE_GROUPS_AS_SCOPES = "ldap/ldap-groups-as-scopes.xml";
     public static final String LDAP_GROUP_FILE_GROUPS_MAP_TO_SCOPES = "ldap/ldap-groups-map-to-scopes.xml";
     public static final String LDAP_GROUP_FILE_GROUPS_NULL_XML = "ldap/ldap-groups-null.xml";
@@ -75,7 +76,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             List.of("ldap/ldap-groups-as-scopes.xml", "ldap/ldap-groups-map-to-scopes.xml", "ldap/ldap-groups-null.xml", "ldap/ldap-groups-populator.xml");
 
 
-    public static final List<String> LDAP_PROPERTY_NAMES = List.of(LDAP_ATTRIBUTE_MAPPINGS, LDAP_BASE_LOCAL_PASSWORD_COMPARE, LDAP_BASE_MAIL_ATTRIBUTE_NAME, LDAP_BASE_MAIL_SUBSTITUTE, LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP, LDAP_BASE_PASSWORD, LDAP_BASE_PASSWORD_ATTRIBUTE_NAME, LDAP_BASE_PASSWORD_ENCODER, LDAP_BASE_REFERRAL, LDAP_BASE_SEARCH_BASE, LDAP_BASE_SEARCH_FILTER, LDAP_BASE_URL, LDAP_BASE_USER_DN, LDAP_BASE_USER_DN_PATTERN, LDAP_BASE_USER_DN_PATTERN_DELIMITER, LDAP_EMAIL_DOMAIN, LDAP_EXTERNAL_GROUPS_WHITELIST, LDAP_GROUPS_AUTO_ADD, LDAP_GROUPS_FILE, LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, LDAP_GROUPS_GROUP_SEARCH_FILTER, LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION, LDAP_GROUPS_MAX_SEARCH_DEPTH, LDAP_GROUPS_SEARCH_BASE, LDAP_GROUPS_SEARCH_SUBTREE, LDAP_PROFILE_FILE, LDAP_SSL_SKIPVERIFICATION, LDAP_SSL_TLS);
+    public static final List<String> LDAP_PROPERTY_NAMES = List.of(LDAP_ATTRIBUTE_MAPPINGS, LDAP_BASE_LOCAL_PASSWORD_COMPARE, LDAP_BASE_MAIL_ATTRIBUTE_NAME, LDAP_BASE_MAIL_SUBSTITUTE, LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP, LDAP_BASE_PASSWORD, LDAP_BASE_PASSWORD_ATTRIBUTE_NAME, LDAP_BASE_PASSWORD_ENCODER, LDAP_BASE_REFERRAL, LDAP_BASE_SEARCH_BASE, LDAP_BASE_SEARCH_FILTER, LDAP_BASE_URL, LDAP_BASE_USER_DN, LDAP_BASE_USER_DN_PATTERN, LDAP_BASE_USER_DN_PATTERN_DELIMITER, LDAP_EMAIL_DOMAIN, LDAP_EXTERNAL_GROUPS_WHITELIST, LDAP_INCLUDE_EXTERNAL_GROUP_DN, LDAP_GROUPS_AUTO_ADD, LDAP_GROUPS_FILE, LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, LDAP_GROUPS_GROUP_SEARCH_FILTER, LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION, LDAP_GROUPS_MAX_SEARCH_DEPTH, LDAP_GROUPS_SEARCH_BASE, LDAP_GROUPS_SEARCH_SUBTREE, LDAP_PROFILE_FILE, LDAP_SSL_SKIPVERIFICATION, LDAP_SSL_TLS);
 
     public static final Map<String, Class<?>> LDAP_PROPERTY_TYPES = new HashMap<>();
 
@@ -97,6 +98,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         LDAP_PROPERTY_TYPES.put(LDAP_BASE_USER_DN_PATTERN_DELIMITER, String.class);
         LDAP_PROPERTY_TYPES.put(LDAP_EMAIL_DOMAIN, List.class);
         LDAP_PROPERTY_TYPES.put(LDAP_EXTERNAL_GROUPS_WHITELIST, List.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_INCLUDE_EXTERNAL_GROUP_DN, Boolean.class);
         LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_AUTO_ADD, Boolean.class);
         LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_FILE, String.class);
         LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, String.class);
@@ -138,6 +140,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private Boolean groupSearchSubTree = true;
     private int maxGroupSearchDepth = 10;
     private String groupRoleAttribute;
+    private Boolean includeExternalGroupDn = false;
 
     private String tlsConfiguration = LDAP_TLS_NONE;
 
@@ -356,6 +359,14 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.groupRoleAttribute = groupRoleAttribute;
     }
 
+    public Boolean isIncludeExternalGroupDn() {
+        return includeExternalGroupDn;
+    }
+
+    public void setIncludeExternalGroupDn(Boolean includeExternalGroupDn) {
+        this.includeExternalGroupDn = includeExternalGroupDn;
+    }
+
     @JsonIgnore
     public Boolean isConfigured() {
         return StringUtils.hasText(getBaseUrl());
@@ -483,6 +494,9 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             return false;
         }
         if (!Objects.equals(groupSearchSubTree, that.groupSearchSubTree)) {
+            return false;
+        }
+        if (!Objects.equals(includeExternalGroupDn, that.includeExternalGroupDn)) {
             return false;
         }
         return Objects.equals(groupRoleAttribute, that.groupRoleAttribute);

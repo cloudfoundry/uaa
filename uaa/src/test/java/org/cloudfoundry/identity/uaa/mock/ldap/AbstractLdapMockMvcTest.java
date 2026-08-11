@@ -404,6 +404,40 @@ public abstract class AbstractLdapMockMvcTest {
     }
 
     @Test
+    void external_groups_whitelist_by_dn() throws Exception {
+        assumeTrue("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml".contains(ldapGroup));
+        AuthenticationManager manager = getWebApplicationContext().getBean(DynamicZoneAwareAuthenticationManager.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3", "ldap3");
+
+        LdapIdentityProviderDefinition def = provider.getConfig();
+        def.addWhiteListedGroup("cn=admins,ou=scopes,dc=test,dc=com");
+        provider.setConfig(def);
+        updateLdapProvider();
+
+        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
+        Authentication auth = manager.authenticate(token);
+        assertThat(auth).isInstanceOf(UaaAuthentication.class);
+        UaaAuthentication uaaAuth = (UaaAuthentication) auth;
+        Set<String> externalGroups = uaaAuth.getExternalGroups();
+        //by default, only the bare cn is reported, so a DN-based whitelist entry never matches
+        assertThat(externalGroups).isEmpty();
+
+        //enabling includeExternalGroupDn adds the DN as an additional matchable value
+        def = provider.getConfig();
+        def.setIncludeExternalGroupDn(true);
+        provider.setConfig(def);
+        updateLdapProvider();
+        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
+        auth = manager.authenticate(token);
+        assertThat(auth).isInstanceOf(UaaAuthentication.class);
+        uaaAuth = (UaaAuthentication) auth;
+        externalGroups = uaaAuth.getExternalGroups();
+        assertThat(externalGroups).containsExactlyInAnyOrder("cn=admins,ou=scopes,dc=test,dc=com");
+
+        IdentityZoneHolder.clear();
+    }
+
+    @Test
     void customUserAttributes() throws Exception {
         assumeTrue("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml".contains(ldapGroup));
 

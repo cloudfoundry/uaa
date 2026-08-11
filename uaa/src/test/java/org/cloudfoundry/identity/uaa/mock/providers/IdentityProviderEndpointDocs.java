@@ -274,6 +274,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private final FieldDescriptor ldapUserCompareEncoder = fieldWithPath("config.passwordEncoder").optional("org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator").type(STRING).description("Used with `search-and-compare` only. A fully-qualified Java classname to the password encoder. This encoder is used to properly encode user password to match the one in the LDAP directory.");
     private final FieldDescriptor ldapUserCompareLocal = fieldWithPath("config.localPasswordCompare").optional(null).type(BOOLEAN).description("Set to true if the comparison should be done locally. Setting this value to false implies that rather than retrieving the password, the UAA will run a query to match the password. In order for this query to work, you must know what type of hash/encoding/salt is used for the LDAP password.");
     private final FieldDescriptor ldapGroupRoleAttribute = fieldWithPath("config.groupRoleAttribute").optional("description").type(STRING).description("Used with `groups-as-scopes`, defines the attribute that holds the scope name(s).");
+    private final FieldDescriptor ldapIncludeExternalGroupDn = fieldWithPath("config.includeExternalGroupDn").optional(false).type(BOOLEAN).description("Defaults to false. When true, the full `DN` of each LDAP group is added as an additional candidate value (alongside the existing `cn` value) for `externalGroupsWhitelist` matching and the `/userinfo` `roles` field.");
     private final FieldDescriptor ldapAttributeMappingFirstname = fieldWithPath("config.attributeMappings.first_name").optional("givenname").type(STRING).description(GIVEN_NAME_DESC);
     private final FieldDescriptor ldapAttributeMappingLastname = fieldWithPath("config.attributeMappings.family_name").optional("sn").type(STRING).description(FAMILY_NAME_DESC);
     private final FieldDescriptor ldapAttributeMappingPhone = fieldWithPath("config.attributeMappings.phone_number").optional("telephonenumber").type(STRING).description(PHONE_NUMBER_DESC);
@@ -309,6 +310,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             ldapUserCompareEncoder,
             ldapUserCompareLocal,
             ldapGroupRoleAttribute,
+            ldapIncludeExternalGroupDn,
             ATTRIBUTE_MAPPING,
             ldapAttributeMappingUserName,
             ldapAttributeMappingFirstname,
@@ -348,6 +350,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                             ldapUserCompareEncoder,
                             ldapUserCompareLocal,
                             ldapGroupRoleAttribute,
+                            ldapIncludeExternalGroupDn,
                             ATTRIBUTE_MAPPING,
                             ldapAttributeMappingUserName,
                             ldapAttributeMappingFirstname,
@@ -396,7 +399,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                             ldapUserCompareEncoder.ignored(),
                             ldapUserCompareLocal.ignored(),
                             ldapGroupRoleAttribute.ignored(),
-                            EXTERNAL_GROUPS_WHITELIST.ignored()
+                            EXTERNAL_GROUPS_WHITELIST.ignored(),
+                            ldapIncludeExternalGroupDn.ignored()
                     },
                     ALIAS_FIELDS_LDAP_CREATE
             )
@@ -433,6 +437,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                             ldapUserCompareEncoder.ignored(),
                             ldapUserCompareLocal.ignored(),
                             ldapGroupRoleAttribute.ignored(),
+                            ldapIncludeExternalGroupDn,
                             ATTRIBUTE_MAPPING,
                             ldapAttributeMappingUserName,
                             ldapAttributeMappingFirstname,

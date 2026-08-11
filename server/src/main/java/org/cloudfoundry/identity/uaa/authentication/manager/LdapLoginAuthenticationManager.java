@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
+import org.cloudfoundry.identity.uaa.provider.ldap.extension.SpringSecurityLdapTemplate;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -97,12 +98,13 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
             IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(authenticationData.getOrigin(), IdentityZoneHolder.get().getId());
             LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);
             List<String> externalWhiteList = ldapIdentityProviderDefinition.getExternalGroupsWhitelist();
-            result = new ArrayList<>(retainAllMatches(getAuthoritiesAsNames(request.getAuthorities()), externalWhiteList));
+            boolean includeDn = Boolean.TRUE.equals(ldapIdentityProviderDefinition.isIncludeExternalGroupDn());
+            result = new ArrayList<>(retainAllMatches(getAuthoritiesAsNames(request.getAuthorities(), includeDn), externalWhiteList));
         }
         return result;
     }
 
-    protected Set<String> getAuthoritiesAsNames(Collection<? extends GrantedAuthority> authorities) {
+    protected Set<String> getAuthoritiesAsNames(Collection<? extends GrantedAuthority> authorities, boolean includeDn) {
         Set<String> result = new HashSet<>();
         authorities = new LinkedList<>(authorities != null ? authorities : emptyList());
         for (GrantedAuthority a : authorities) {
@@ -110,6 +112,12 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                 String[] groupNames = la.getAttributeValues("cn");
                 if (groupNames != null) {
                     result.addAll(Arrays.asList(groupNames));
+                }
+                if (includeDn) {
+                    String[] dnValues = la.getAttributeValues(SpringSecurityLdapTemplate.DN_KEY);
+                    if (dnValues != null) {
+                        result.addAll(Arrays.asList(dnValues));
+                    }
                 }
             }
         }

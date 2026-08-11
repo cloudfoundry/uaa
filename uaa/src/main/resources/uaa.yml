@@ -99,6 +99,7 @@ zones:
 #  externalGroupsWhitelist:
 #    - admin
 #    - user
+#  includeExternalGroupDn: false
 #  emailDomain:
 #    - example.com
 #  attributeMappings:
@@ -613,6 +614,7 @@ ldap:
     autoAdd: true
   externalGroupsWhitelist:
     - '*'
+  includeExternalGroupDn: false
 
 springdoc:
   api-docs:
