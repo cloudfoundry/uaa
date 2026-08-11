@@ -2977,6 +2977,25 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    void clientCredentials_rejectsUserAccessTokenPresentedAsClientBearerAuthentication() throws Exception {
+        // a client that both logs users in AND has its own client_credentials capability
+        String clientId = "testclient" + generator.generate();
+        setUpClients(clientId, "clients.write", "uaa.user", "password,client_credentials", true);
+
+        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
+        String userAccessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, clientId, SECRET, username, SECRET, "uaa.user");
+
+        // the plain uaa.user token must not be accepted as proof of the client's own secret
+        // for a client_credentials request against the same client_id
+        mockMvc.perform(post("/oauth/token")
+                        .accept(APPLICATION_JSON_VALUE)
+                        .header("Authorization", "Bearer " + userAccessToken)
+                        .param("grant_type", "client_credentials")
+                        .param("client_id", clientId))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void clientCredentials_byDefault_willNotLockoutClientsUsingFormData() throws Exception {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
