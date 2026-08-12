@@ -24,7 +24,12 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.saml2.core.Saml2ParameterNames;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -113,8 +118,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerZonePathTests {
         String savedRedirectUrl = mode.redirectPrefix().isEmpty()
                 ? "http://localhost/oauth/authorize?client_id=admin"
                 : "http://localhost" + mode.redirectPrefix() + "/oauth/authorize?client_id=admin";
-        org.springframework.security.web.savedrequest.SavedRequest savedRequest =
-                mock(org.springframework.security.web.savedrequest.SavedRequest.class);
+        SavedRequest savedRequest = mock(SavedRequest.class);
         when(savedRequest.getRedirectUrl()).thenReturn(savedRedirectUrl);
         request.getSession(true).setAttribute(SPRING_SECURITY_SAVED_REQUEST, savedRequest);
 
@@ -132,7 +136,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerZonePathTests {
         mode.setZone();
         mode.applyRequestPath(request, "/login.do");
         String redirectUri = "https://test.com/test2";
-        request.setParameter(org.springframework.security.saml2.core.Saml2ParameterNames.RELAY_STATE, redirectUri);
+        request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
         
         MockHttpServletResponse response = new MockHttpServletResponse();
         Authentication authentication = mock(Authentication.class);
@@ -149,11 +153,11 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerZonePathTests {
         mode.setZone();
         mode.applyRequestPath(request, "/login.do");
         String redirectUri = "https://test.com/test2";
-        request.setParameter(org.springframework.security.saml2.core.Saml2ParameterNames.RELAY_STATE, redirectUri);
+        request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
         
-        org.cloudfoundry.identity.uaa.zone.IdentityZone zone = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
-        java.util.List<String> originalWhitelist = zone.getConfig().getLinks().getLogout().getWhitelist();
-        zone.getConfig().getLinks().getLogout().setWhitelist(java.util.List.of(redirectUri));
+        IdentityZone zone = IdentityZoneHolder.get();
+        List<String> originalWhitelist = zone.getConfig().getLinks().getLogout().getWhitelist();
+        zone.getConfig().getLinks().getLogout().setWhitelist(List.of(redirectUri));
         
         try {
             MockHttpServletResponse response = new MockHttpServletResponse();

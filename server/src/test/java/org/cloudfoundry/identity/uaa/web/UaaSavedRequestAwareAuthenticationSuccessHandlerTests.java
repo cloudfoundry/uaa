@@ -22,8 +22,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml2.core.Saml2ParameterNames;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import jakarta.servlet.http.HttpSession;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
@@ -92,10 +96,10 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
         String redirectUri = "https://test.com/test2";
         request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
 
-        org.cloudfoundry.identity.uaa.zone.IdentityZone zone = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
-        java.util.List<String> originalWhitelist = zone.getConfig().getLinks().getLogout().getWhitelist();
-        zone.getConfig().getLinks().getLogout().setWhitelist(java.util.List.of(redirectUri));
-        org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
+        IdentityZone zone = IdentityZoneHolder.get();
+        List<String> originalWhitelist = zone.getConfig().getLinks().getLogout().getWhitelist();
+        zone.getConfig().getLinks().getLogout().setWhitelist(List.of(redirectUri));
+        IdentityZoneHolder.set(zone);
 
         try {
             var response = new MockHttpServletResponse();
@@ -105,7 +109,7 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
             assertThat(response.getRedirectedUrl()).isEqualTo(redirectUri);
         } finally {
             zone.getConfig().getLinks().getLogout().setWhitelist(originalWhitelist);
-            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
+            IdentityZoneHolder.set(zone);
         }
     }
 

@@ -26,8 +26,12 @@ import org.springframework.security.saml2.core.Saml2ParameterNames;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
@@ -46,9 +50,9 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
         if (savedRequest == null) {
             String relayState = UaaStringUtils.getCleanedUserControlString(request.getParameter(Saml2ParameterNames.RELAY_STATE), UaaStringUtils.EMPTY_STRING);
             if (UaaStringUtils.hasText(relayState) && UaaUrlUtils.isUrl(relayState)) {
-                java.util.List<String> samlRelayStateWhitelist = java.util.Optional.ofNullable(
-                        org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get().getConfig().getLinks().getLogout().getWhitelist()
-                ).orElse(java.util.Collections.emptyList());
+                List<String> samlRelayStateWhitelist = Optional.ofNullable(
+                        IdentityZoneHolder.get().getConfig().getLinks().getLogout().getWhitelist()
+                ).orElse(Collections.emptyList());
                 String fallbackUrl = this.getDefaultTargetUrl();
                 String redirectUri = UaaUrlUtils.findMatchingRedirectUri(samlRelayStateWhitelist, relayState, fallbackUrl);
                 log.debug("Redirecting after SAML login. requestedRelayState='{}' redirectUri='{}'", relayState, redirectUri);
