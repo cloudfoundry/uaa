@@ -889,7 +889,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
             return (String) SessionUtils.getStateParam(attr.getRequest().getSession(false), value);
         } catch (Exception e) {
-            log.warn("Exception", e);
+            log.warn("Failed to get session value for {}", value, e);
             return "";
         }
     }
@@ -902,7 +902,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 session.removeAttribute(value);
             }
         } catch (Exception e) {
-            log.warn("Exception", e);
+            log.warn("Failed to clear session value for {}", value, e);
         }
     }
 
