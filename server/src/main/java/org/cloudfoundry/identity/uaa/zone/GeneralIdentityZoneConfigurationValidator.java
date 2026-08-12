@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -50,7 +51,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             TokenPolicy tokenPolicy = config.getTokenPolicy();
             if (tokenPolicy != null) {
                 if (tokenPolicy.isRefreshTokenRotate() &&
-                        org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT.getStringValue().equalsIgnoreCase(tokenPolicy.getRefreshTokenFormat()) &&
+                        TokenConstants.TokenFormat.JWT.getStringValue().equalsIgnoreCase(tokenPolicy.getRefreshTokenFormat()) &&
                         !tokenPolicy.isJwtRevocable()) {
                     throw new InvalidIdentityZoneConfigurationException("A token policy cannot have JWT-format refresh tokens with rotation enabled unless they are also revocable.");
                 }

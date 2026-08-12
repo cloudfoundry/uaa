@@ -55,6 +55,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTok
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationFilter;
@@ -699,7 +700,7 @@ public class OauthEndpointBeanConfiguration {
         bean.setRefreshTokenRotate(refreshTokenRotate);
 
         if (refreshTokenRotate &&
-                org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT.getStringValue().equalsIgnoreCase(refreshTokenFormat) &&
+                TokenConstants.TokenFormat.JWT.getStringValue().equalsIgnoreCase(refreshTokenFormat) &&
                 !jwtRevocable) {
             throw new IllegalArgumentException("A token policy cannot have JWT-format refresh tokens with rotation enabled unless they are also revocable.");
         }
