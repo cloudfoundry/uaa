@@ -356,4 +356,28 @@ public class IdentityZoneConfigurationBootstrapTests {
         assertThat(defaultZone.getConfig().getIssuer()).isEqualTo(testIssuer);
         assertThat(defaultZone.getConfig().getTokenPolicy().getActiveKeyId()).isEqualTo("defaultkey");
     }
+
+    @Test
+    void samlEntityIdConfiguration() throws Exception {
+        bootstrap.setSamlEntityID("test-entity-id");
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getSamlConfig().getEntityID()).isEqualTo("test-entity-id");
+    }
+
+    @Test
+    void samlEntityIdConfiguration_nullValue() throws Exception {
+        bootstrap.setSamlEntityID(null);
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getSamlConfig().getEntityID()).isNull();
+    }
+
+    @Test
+    void samlEntityIdConfiguration_emptyValue() throws Exception {
+        bootstrap.setSamlEntityID("");
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
+        assertThat(config.getSamlConfig().getEntityID()).isNull();
+    }
 }

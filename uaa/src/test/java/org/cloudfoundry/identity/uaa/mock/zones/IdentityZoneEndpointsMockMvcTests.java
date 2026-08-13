@@ -2146,6 +2146,41 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     @Test
+    void createZoneWithSamlConfig_entityIdAndSigningFlagsArePersisted() throws Exception {
+        String id = generator.generate().toLowerCase();
+        String entityId = "test-entity-id-" + id;
+
+        IdentityZoneConfiguration zoneConfiguration = new IdentityZoneConfiguration();
+        SamlConfig samlConfig = new SamlConfig();
+        samlConfig.setEntityID(entityId);
+        samlConfig.setRequestSigned(false);
+        samlConfig.setWantAssertionSigned(false);
+        zoneConfiguration.setSamlConfig(samlConfig);
+
+        IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken, zoneConfiguration);
+        assertThat(created.getConfig().getSamlConfig())
+                .returns(entityId, SamlConfig::getEntityID)
+                .returns(false, SamlConfig::isRequestSigned)
+                .returns(false, SamlConfig::isWantAssertionSigned);
+
+        IdentityZone fetched = getIdentityZone(id, HttpStatus.OK, identityClientToken);
+        assertThat(fetched.getConfig().getSamlConfig())
+                .returns(entityId, SamlConfig::getEntityID)
+                .returns(false, SamlConfig::isRequestSigned)
+                .returns(false, SamlConfig::isWantAssertionSigned);
+    }
+
+    @Test
+    void defaultZoneSamlConfig_isPopulatedFromBootstrapYaml() throws Exception {
+        // mockmvc_unittest_properties.yml sets login.entityID, login.saml.signRequest, login.saml.wantAssertionSigned
+        IdentityZone uaaZone = getIdentityZone(IdentityZone.getUaaZoneId(), HttpStatus.OK, identityClientToken);
+        assertThat(uaaZone.getConfig().getSamlConfig())
+                .returns("integration-saml-entity-id", SamlConfig::getEntityID)
+                .returns(true, SamlConfig::isRequestSigned)
+                .returns(true, SamlConfig::isWantAssertionSigned);
+    }
+
+    @Test
     void updateZoneWithDifferentIdInBodyAndPath_fails() throws Exception {
         IdentityZone identityZone = createZone(new AlphanumericRandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
         String id = identityZone.getId();

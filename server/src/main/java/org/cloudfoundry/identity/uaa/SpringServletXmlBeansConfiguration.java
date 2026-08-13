@@ -402,7 +402,8 @@ public class SpringServletXmlBeansConfiguration {
             @Qualifier("links") HashMap<String, Object> links,
             @Qualifier("prompts") List<Prompt> prompts,
             @Qualifier("defaultUserConfig") UserConfig defaultUserConfig,
-            @Value("${issuer.uri}") String issuerUri
+            @Value("${issuer.uri}") String issuerUri,
+            @Value("${login.entityID:}") String samlEntityID
     ) {
         IdentityZoneConfigurationBootstrap bean = new IdentityZoneConfigurationBootstrap(provisioning);
         bean.setValidator(identityZoneValidator);
@@ -431,6 +432,7 @@ public class SpringServletXmlBeansConfiguration {
         bean.setDisableSamlInResponseToCheck(loginProps.saml().disableInResponseToCheck());
         bean.setSamlWantAssertionSigned(loginProps.saml().wantAssertionSigned());
         bean.setSamlRequestSigned(loginProps.saml().signRequest());
+        bean.setSamlEntityID(samlEntityID);
         bean.setDefaultUserConfig(defaultUserConfig);
         bean.setDefaultIdentityProvider(loginProps.defaultIdentityProvider());
         bean.setIssuer(issuerUri);
