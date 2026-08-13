@@ -191,6 +191,42 @@ class UaaTokenStoreTests {
     }
 
     @Test
+    void consumeAuthorizationCodeConcurrently() throws Exception {
+        String code = store.createAuthorizationCode(clientAuthentication);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", Integer.class, new Object[]{code})).isOne();
+
+        int numThreads = 5;
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(numThreads);
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicInteger successCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicInteger exceptionCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        java.util.List<java.util.concurrent.Future<Void>> futures = new java.util.ArrayList<>();
+        for (int i = 0; i < numThreads; i++) {
+            futures.add(executor.submit(() -> {
+                latch.await();
+                try {
+                    store.consumeAuthorizationCode(code);
+                    successCount.incrementAndGet();
+                } catch (InvalidGrantException e) {
+                    exceptionCount.incrementAndGet();
+                }
+                return null;
+            }));
+        }
+
+        latch.countDown();
+        for (java.util.concurrent.Future<Void> future : futures) {
+            future.get();
+        }
+        executor.shutdown();
+
+        assertThat(successCount.get()).isEqualTo(1);
+        assertThat(exceptionCount.get()).isEqualTo(numThreads - 1);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", Integer.class, new Object[]{code})).isZero();
+    }
+
+    @Test
     void retrieveExpiredToken() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", Integer.class, new Object[]{code})).isOne();
