@@ -113,10 +113,19 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
             token = generateToken(request);
             expire = true;
         }
-        Cookie csrfCookie = new Cookie(token.getParameterName(), token.getToken());
+        
+        boolean isSecure = secure || "https".equals(request.getScheme());
+        String baseName = token.getParameterName().startsWith("__Host-") ? token.getParameterName().substring("__Host-".length()) : token.getParameterName();
+        String cookieName = isSecure ? "__Host-" + baseName : baseName;
+
+        Cookie csrfCookie = new Cookie(cookieName, token.getToken());
         csrfCookie.setHttpOnly(true);
-        csrfCookie.setSecure(secure || "https".equals(request.getScheme()));
-        csrfCookie.setPath(ofNullable(request.getContextPath()).orElse("") + "/");
+        csrfCookie.setSecure(isSecure);
+        if (cookieName.startsWith("__Host-")) {
+            csrfCookie.setPath("/");
+        } else {
+            csrfCookie.setPath(ofNullable(request.getContextPath()).orElse("") + "/");
+        }
         if (expire) {
             csrfCookie.setMaxAge(0);
         } else {
@@ -133,8 +142,11 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
         if (requiresCsrfProtection) {
             Cookie[] cookies = request.getCookies();
             if (cookies != null) {
-                for (Cookie cookie : request.getCookies()) {
-                    if (getParameterName().equals(cookie.getName())) {
+                boolean isSecure = secure || "https".equals(request.getScheme());
+                String baseName = getParameterName().startsWith("__Host-") ? getParameterName().substring("__Host-".length()) : getParameterName();
+                String expectedCookieName = isSecure ? "__Host-" + baseName : baseName;
+                for (Cookie cookie : cookies) {
+                    if (expectedCookieName.equals(cookie.getName())) {
                         return new DefaultCsrfToken(getHeaderName(), getParameterName(), cookie.getValue());
                     }
                 }
