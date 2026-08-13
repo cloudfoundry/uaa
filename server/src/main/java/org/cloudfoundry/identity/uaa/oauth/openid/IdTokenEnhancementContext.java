@@ -2,17 +2,34 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
 
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * Mutable, per-request context handed to each {@link IdTokenEnhancer}.
  *
- * <p>Skeleton implementation: every method throws until the behaviour is implemented.
- * The accompanying tests therefore fail on this commit and pass once the implementation
- * commit lands.</p>
+ * <p>Carries the id_token claims assembled so far together with read-only access to the
+ * inputs an enhancer may reason about: the {@link OAuth2Authentication} (possibly
+ * {@code null} on the refresh flow), the claims of the access token issued in the same
+ * response, the additional root claims associated with the refresh token, and the
+ * configuration properties exposed to enhancers.</p>
+ *
+ * <p>Not thread-safe; a new instance is created for every token request.</p>
  */
 public class IdTokenEnhancementContext {
+
+    private final Map<String, Object> claims;
+    private final OAuth2Authentication authentication;
+    private final Map<String, Object> accessTokenClaims;
+    private final Map<String, Object> refreshTokenClaims;
+    private final Map<String, Object> properties;
+    private final boolean allowClaimModification;
+    private final Set<String> modifiedClaims = new LinkedHashSet<>();
+    private final Set<String> rejectedClaimModifications = new LinkedHashSet<>();
 
     public IdTokenEnhancementContext(
             Map<String, Object> idTokenClaims,
@@ -21,62 +38,98 @@ public class IdTokenEnhancementContext {
             Map<String, Object> refreshTokenClaims,
             Map<String, Object> properties,
             boolean allowClaimModification) {
-        throw new UnsupportedOperationException("IdTokenEnhancementContext is not implemented yet");
+        this.claims = new LinkedHashMap<>(idTokenClaims == null ? Collections.emptyMap() : idTokenClaims);
+        this.authentication = authentication;
+        this.accessTokenClaims = unmodifiableCopy(accessTokenClaims);
+        this.refreshTokenClaims = unmodifiableCopy(refreshTokenClaims);
+        this.properties = unmodifiableCopy(properties);
+        this.allowClaimModification = allowClaimModification;
     }
 
+    private static Map<String, Object> unmodifiableCopy(Map<String, Object> source) {
+        return source == null
+                ? Collections.emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(source));
+    }
+
+    /**
+     * Add or, when permitted, modify an id_token claim.
+     *
+     * <p>Adding a claim that is not yet present always succeeds. Replacing the value of a
+     * claim that already exists (whether set by {@link IdTokenCreator} or by an earlier
+     * enhancer) is only applied when claim modification has been explicitly enabled;
+     * otherwise the original value is preserved and the attempt is recorded in
+     * {@link #getRejectedClaimModifications()}.</p>
+     *
+     * @return {@code true} when the value was applied, {@code false} when it was refused
+     */
     public boolean setClaim(String name, Object value) {
-        throw new UnsupportedOperationException("not implemented");
+        Objects.requireNonNull(name, "claim name must not be null");
+        if (!claims.containsKey(name)) {
+            claims.put(name, value);
+            return true;
+        }
+        if (allowClaimModification) {
+            claims.put(name, value);
+            modifiedClaims.add(name);
+            return true;
+        }
+        rejectedClaimModifications.add(name);
+        return false;
     }
 
     public Object getClaim(String name) {
-        throw new UnsupportedOperationException("not implemented");
+        return claims.get(name);
     }
 
     public boolean hasClaim(String name) {
-        throw new UnsupportedOperationException("not implemented");
+        return claims.containsKey(name);
     }
 
     public OAuth2Authentication getAuthentication() {
-        throw new UnsupportedOperationException("not implemented");
+        return authentication;
     }
 
     public Map<String, Object> getAccessTokenClaims() {
-        throw new UnsupportedOperationException("not implemented");
+        return accessTokenClaims;
     }
 
     public Object getAccessTokenClaim(String name) {
-        throw new UnsupportedOperationException("not implemented");
+        return accessTokenClaims.get(name);
     }
 
     public Map<String, Object> getRefreshTokenClaims() {
-        throw new UnsupportedOperationException("not implemented");
+        return refreshTokenClaims;
     }
 
     public Object getRefreshTokenClaim(String name) {
-        throw new UnsupportedOperationException("not implemented");
+        return refreshTokenClaims.get(name);
     }
 
     public Map<String, Object> getProperties() {
-        throw new UnsupportedOperationException("not implemented");
+        return properties;
     }
 
     public Object getProperty(String name) {
-        throw new UnsupportedOperationException("not implemented");
+        return properties.get(name);
     }
 
     public boolean isClaimModificationAllowed() {
-        throw new UnsupportedOperationException("not implemented");
+        return allowClaimModification;
     }
 
+    /**
+     * @return a snapshot copy of the id_token claims accumulated so far; safe to hand out
+     */
     public Map<String, Object> getClaims() {
-        throw new UnsupportedOperationException("not implemented");
+        return new LinkedHashMap<>(claims);
     }
 
     public Set<String> getModifiedClaims() {
-        throw new UnsupportedOperationException("not implemented");
+        return Collections.unmodifiableSet(new LinkedHashSet<>(modifiedClaims));
     }
 
     public Set<String> getRejectedClaimModifications() {
-        throw new UnsupportedOperationException("not implemented");
+        return Collections.unmodifiableSet(new LinkedHashSet<>(rejectedClaimModifications));
     }
 }

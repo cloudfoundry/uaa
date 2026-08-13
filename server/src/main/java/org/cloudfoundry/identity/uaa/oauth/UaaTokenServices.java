@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenExcepti
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdToken;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreationException;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenClaimEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
@@ -150,6 +151,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private final RevocableTokenProvisioning tokenProvisioning;
     private Set<String> excludedClaims;
     private List<UaaTokenEnhancer> uaaTokenEnhancers = new ArrayList<>();
+    private IdTokenClaimEnhancer idTokenClaimEnhancer = IdTokenClaimEnhancer.noOp();
     private final IdTokenCreator idTokenCreator;
     private final RefreshTokenCreator refreshTokenCreator;
     private TokenEndpointBuilder tokenEndpointBuilder;
@@ -211,6 +213,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Deprecated
     public void setUaaTokenEnhancer(UaaTokenEnhancer uaaTokenEnhancer) {
         this.setUaaTokenEnhancers(uaaTokenEnhancer == null ? emptyList() : singletonList(uaaTokenEnhancer));
+    }
+
+    public void setIdTokenClaimEnhancer(IdTokenClaimEnhancer idTokenClaimEnhancer) {
+        this.idTokenClaimEnhancer = idTokenClaimEnhancer == null ? IdTokenClaimEnhancer.noOp() : idTokenClaimEnhancer;
     }
 
     @Override
@@ -306,7 +312,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         additionalRootClaims,
                         claims.getRevSig(),
                         isRevocable,
-                        authenticationData
+                        authenticationData,
+                        null
                 );
 
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(
@@ -439,7 +446,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             Map<String, Object> additionalRootClaims,
             String revocableHashSignature,
             boolean isRevocable,
-            UserAuthenticationData userAuthenticationData) throws AuthenticationException {
+            UserAuthenticationData userAuthenticationData,
+            OAuth2Authentication authentication) throws AuthenticationException {
         CompositeToken compositeToken = new CompositeToken(tokenId);
         compositeToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
         compositeToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
@@ -498,7 +506,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             } catch (RuntimeException | IdTokenCreationException _) {
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
-            String encodedIdTokenContent = JwtHelper.encode(idTokenContent.getClaimMap(), keyInfoService.getActiveKey()).getEncoded();
+            Map<String, Object> idTokenClaims = idTokenClaimEnhancer.enhance(
+                    idTokenContent.getClaimMap(), authentication, jwtAccessToken, additionalRootClaims);
+            String encodedIdTokenContent = JwtHelper.encode(idTokenClaims, keyInfoService.getActiveKey()).getEncoded();
             compositeToken.setIdTokenValue(encodedIdTokenContent);
         }
 
@@ -722,7 +732,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         additionalRootClaims,
                         revocableHashSignature,
                         isAccessTokenRevocable,
-                        authenticationData);
+                        authenticationData,
+                        authentication);
 
         return persistRevocableToken(tokenId, accessToken, refreshToken, client, clientId, userId, isOpaque, isAccessTokenRevocable, null);
     }
