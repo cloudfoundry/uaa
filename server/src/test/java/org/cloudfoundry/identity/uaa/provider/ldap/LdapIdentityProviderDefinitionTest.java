@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_SSL_CA_CERTIFICATES;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_SSL_TLS;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_EXTERNAL;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
@@ -48,6 +49,7 @@ class LdapIdentityProviderDefinitionTest {
     @Test
     void property_types() {
         assertThat(LDAP_PROPERTY_TYPES).containsEntry(LDAP_SSL_TLS, String.class);
+        assertThat(LDAP_PROPERTY_TYPES).containsEntry(LDAP_SSL_CA_CERTIFICATES, List.class);
     }
 
     @Test
@@ -65,6 +67,40 @@ class LdapIdentityProviderDefinitionTest {
 
         ldapIdentityProviderDefinition2.setAddShadowUserOnLogin(true);
         assertThat(ldapIdentityProviderDefinition2).isEqualTo(ldapIdentityProviderDefinition1);
+    }
+
+    @Test
+    void caCertificates_areIncludedInEquals() {
+        LdapIdentityProviderDefinition original = new LdapIdentityProviderDefinition();
+        original.setCaCertificates(List.of("cert-a"));
+
+        LdapIdentityProviderDefinition same = new LdapIdentityProviderDefinition();
+        same.setCaCertificates(List.of("cert-a"));
+        assertThat(original).isEqualTo(same).hasSameHashCodeAs(same);
+
+        LdapIdentityProviderDefinition different = new LdapIdentityProviderDefinition();
+        different.setCaCertificates(List.of("cert-b"));
+        assertThat(original).isNotEqualTo(different);
+
+        LdapIdentityProviderDefinition absent = new LdapIdentityProviderDefinition();
+        assertThat(original).isNotEqualTo(absent);
+    }
+
+    @Test
+    void caCertificates_setsHasCaCertificatesEnvironmentProperty() {
+        LdapIdentityProviderDefinition withCerts = new LdapIdentityProviderDefinition();
+        withCerts.setCaCertificates(List.of("cert-a"));
+        assertThat(LdapUtils.getLdapConfigurationEnvironment(withCerts).getProperty("ldap.ssl.hasCaCertificates"))
+                .isEqualTo("true");
+
+        LdapIdentityProviderDefinition withoutCerts = new LdapIdentityProviderDefinition();
+        assertThat(LdapUtils.getLdapConfigurationEnvironment(withoutCerts).getProperty("ldap.ssl.hasCaCertificates"))
+                .isEqualTo("false");
+
+        LdapIdentityProviderDefinition emptyCerts = new LdapIdentityProviderDefinition();
+        emptyCerts.setCaCertificates(List.of());
+        assertThat(LdapUtils.getLdapConfigurationEnvironment(emptyCerts).getProperty("ldap.ssl.hasCaCertificates"))
+                .isEqualTo("false");
     }
 
     @Test

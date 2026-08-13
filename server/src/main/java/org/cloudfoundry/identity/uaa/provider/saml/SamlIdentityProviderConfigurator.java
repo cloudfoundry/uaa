@@ -168,7 +168,8 @@ public class SamlIdentityProviderConfigurator {
         }
         try {
             String adjustedMetadataURIForPort = adjustURIForPort(metadataLocation);
-            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetadataURIForPort, def.isSkipSslValidation());
+            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetadataURIForPort, def.isSkipSslValidation(),
+                    def.getCaCertificates(), def.getUniqueAlias());
             return new String(metadata, detectCharset(metadata));
         } catch (URISyntaxException e) {
             throw new IllegalStateException("Invalid socket factory(invalid URI):" + metadataLocation, e);

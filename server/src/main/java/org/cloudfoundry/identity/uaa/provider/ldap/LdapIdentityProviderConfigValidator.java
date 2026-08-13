@@ -18,6 +18,8 @@ package org.cloudfoundry.identity.uaa.provider.ldap;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.PemCertificateParser;
 import org.springframework.stereotype.Component;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -35,6 +37,12 @@ public class LdapIdentityProviderConfigValidator extends BaseIdentityProviderVal
 
     @Override
     public void validate(AbstractIdentityProviderDefinition definition) {
-        //not yet implemented
+        if (definition instanceof LdapIdentityProviderDefinition ldapDefinition && ldapDefinition.getCaCertificates() != null) {
+            try {
+                PemCertificateParser.parseCertificates(ldapDefinition.getCaCertificates());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid config for Identity Provider " + e.getMessage());
+            }
+        }
     }
 }

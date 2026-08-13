@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
@@ -158,10 +159,12 @@ public class SamlConfiguration {
     @Bean
     public FixedHttpMetaDataProvider fixedHttpMetaDataProvider(
             @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
-            UrlContentCache urlContentCache) {
+            UrlContentCache urlContentCache,
+            IdpOutboundTrustCache idpOutboundTrustCache) {
         // create SAML custom configuration, because of own timeout settings
         ClientHttpRequestFactory trustingRequestFactory = UaaHttpRequestUtils.createRequestFactory(true, socketConnectionTimeout, socketReadTimeout, restTemplateConfig);
         ClientHttpRequestFactory nonTrustingRequestFactory = UaaHttpRequestUtils.createRequestFactory(false, socketConnectionTimeout, socketReadTimeout, restTemplateConfig);
-        return new FixedHttpMetaDataProvider(new RestTemplate(trustingRequestFactory), new RestTemplate(nonTrustingRequestFactory), urlContentCache);
+        return new FixedHttpMetaDataProvider(new RestTemplate(trustingRequestFactory), new RestTemplate(nonTrustingRequestFactory), urlContentCache,
+                idpOutboundTrustCache, restTemplateConfig, socketConnectionTimeout, socketReadTimeout);
     }
 }

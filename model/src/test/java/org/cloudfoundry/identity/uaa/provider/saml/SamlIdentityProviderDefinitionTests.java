@@ -10,6 +10,7 @@ import org.springframework.util.ReflectionUtils;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.DATA;
@@ -104,6 +105,28 @@ public class SamlIdentityProviderDefinitionTests {
                         assertThat(actualValue).as(f.getName()).isEqualTo(expectedValue);
                     }
                 });
+    }
+
+    @Test
+    void setCaCertificates() {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        assertThat(def.getCaCertificates()).isNull();
+        def.setCaCertificates(List.of("cert-a"));
+        assertThat(def.getCaCertificates()).containsExactly("cert-a");
+    }
+
+    @Test
+    void caCertificates_areCopiedByClone() {
+        definition.setCaCertificates(List.of("cert-a"));
+        SamlIdentityProviderDefinition cloned = definition.clone();
+        assertThat(cloned.getCaCertificates()).containsExactly("cert-a");
+    }
+
+    @Test
+    void serialize_caCertificates() {
+        definition.setCaCertificates(List.of("-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----"));
+        SamlIdentityProviderDefinition def = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), SamlIdentityProviderDefinition.class);
+        assertThat(def.getCaCertificates()).containsExactlyElementsOf(definition.getCaCertificates());
     }
 
     @Test

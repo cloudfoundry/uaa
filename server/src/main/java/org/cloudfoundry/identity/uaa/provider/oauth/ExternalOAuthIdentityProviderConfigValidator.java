@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProvi
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.PemCertificateParser;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -81,6 +82,13 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
             errors.add("Link Text must be specified because showLinkText is true");
         }
 
+        if (def.getCaCertificates() != null) {
+            try {
+                PemCertificateParser.parseCertificates(def.getCaCertificates());
+            } catch (IllegalArgumentException e) {
+                errors.add(e.getMessage());
+            }
+        }
 
         if (!errors.isEmpty()) {
             String errorMessages = String.join(",", errors);

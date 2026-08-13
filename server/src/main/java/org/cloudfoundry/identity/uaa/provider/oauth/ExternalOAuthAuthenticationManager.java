@@ -58,6 +58,8 @@ import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProvi
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -150,6 +152,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private final KeyInfoService keyInfoService;
     private final IdentityZoneManager identityZoneManager;
     private final boolean externalGroupsFromMappedAuthorities;
+    private final IdpOutboundTrustCache trustCache;
+    private final RestTemplateConfig restTemplateConfig;
 
     public ExternalOAuthAuthenticationManager(
             IdentityProviderProvisioning providerProvisioning,
@@ -161,6 +165,23 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             OidcMetadataFetcher oidcMetadataFetcher,
             boolean externalGroupsFromMappedAuthorities
     ) {
+        this(providerProvisioning, identityZoneManager, trustingRestTemplate, nonTrustingRestTemplate,
+                tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher, externalGroupsFromMappedAuthorities,
+                new IdpOutboundTrustCache(), RestTemplateConfig.createDefaults());
+    }
+
+    public ExternalOAuthAuthenticationManager(
+            IdentityProviderProvisioning providerProvisioning,
+            IdentityZoneManager identityZoneManager,
+            RestTemplate trustingRestTemplate,
+            RestTemplate nonTrustingRestTemplate,
+            TokenEndpointBuilder tokenEndpointBuilder,
+            KeyInfoService keyInfoService,
+            OidcMetadataFetcher oidcMetadataFetcher,
+            boolean externalGroupsFromMappedAuthorities,
+            IdpOutboundTrustCache trustCache,
+            RestTemplateConfig restTemplateConfig
+    ) {
         super(providerProvisioning);
         this.identityZoneManager = identityZoneManager;
         this.trustingRestTemplate = trustingRestTemplate;
@@ -169,6 +190,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         this.keyInfoService = keyInfoService;
         this.oidcMetadataFetcher = oidcMetadataFetcher;
         this.externalGroupsFromMappedAuthorities = externalGroupsFromMappedAuthorities;
+        this.trustCache = trustCache;
+        this.restTemplateConfig = restTemplateConfig;
     }
 
     /**
@@ -590,12 +613,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return false;
     }
 
-    public RestTemplate getRestTemplate(AbstractExternalOAuthIdentityProviderDefinition config) {
-        if (config.isSkipSslValidation()) {
-            return trustingRestTemplate;
-        } else {
-            return nonTrustingRestTemplate;
-        }
+    public RestTemplate getRestTemplate(IdentityProvider<?> identityProvider) {
+        AbstractExternalOAuthIdentityProviderDefinition<?> config =
+                (AbstractExternalOAuthIdentityProviderDefinition<?>) identityProvider.getConfig();
+        return trustCache.resolveRestTemplate(identityProvider.getId(), config.getCaCertificates(), config.isSkipSslValidation(),
+                restTemplateConfig.timeout, restTemplateConfig.timeout, restTemplateConfig, trustingRestTemplate, nonTrustingRestTemplate);
     }
 
     protected String getResponseType(AbstractExternalOAuthIdentityProviderDefinition config) {
@@ -700,7 +722,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
             log.debug("Performing token check with url:{}", requestUri);
             ResponseEntity<Map<String, Object>> responseEntity =
-                    getRestTemplate(config)
+                    getRestTemplate(identityProvider)
                             .exchange(requestUri, GET, requestEntity,
                                     new ParameterizedTypeReference<>() {
                                     }
@@ -841,7 +863,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         // A configuration that skips SSL/TLS validation requires clobbering the rest template request factory
         // setup by the bean initializer.
         ResponseEntity<Map<String, String>> responseEntity =
-                getRestTemplate(config)
+                getRestTemplate(provider)
                         .exchange(requestUri,
                                 HttpMethod.POST,
                                 requestEntity,
@@ -971,7 +993,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             tokenUrl = Optional.ofNullable(config.getTokenUrl()).orElseThrow(() -> new ProviderConfigurationException("External OpenID Connect metadata is missing after discovery update."));
         }
         String calcAuthMethod = ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), clientSecret != null, config.getJwtClientAuthentication() != null);
-        RestTemplate rt = config.isSkipSslValidation() ? trustingRestTemplate : nonTrustingRestTemplate;
+        RestTemplate rt = getRestTemplate(identityProvider);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(singletonList(APPLICATION_JSON));

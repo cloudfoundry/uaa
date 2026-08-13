@@ -52,6 +52,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private ExternalGroupMappingMode groupMappingMode = ExternalGroupMappingMode.EXPLICITLY_MAPPED;
     private boolean skipSslValidation;
     private List<String> authnContext;
+    private List<String> caCertificates;
 
     @JsonIgnore
     private String idpEntityId;
@@ -60,6 +61,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         List<String> emailDomain = getEmailDomain() != null ? new ArrayList<>(getEmailDomain()) : null;
         List<String> externalGroupsWhitelist = getExternalGroupsWhitelist() != null ? new ArrayList<>(getExternalGroupsWhitelist()) : null;
         List<String> authnContext = getAuthnContext() != null ? new ArrayList<>(getAuthnContext()) : null;
+        List<String> caCertificates = getCaCertificates() != null ? new ArrayList<>(getCaCertificates()) : null;
         Map<String, Object> attributeMappings = getAttributeMappings() != null ? new HashMap<>(getAttributeMappings()) : null;
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation(metaDataLocation);
@@ -83,6 +85,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         def.setSkipSslValidation(isSkipSslValidation());
         def.setStoreCustomAttributes(isStoreCustomAttributes());
         def.setAuthnContext(authnContext);
+        def.setCaCertificates(caCertificates);
         return def;
     }
 

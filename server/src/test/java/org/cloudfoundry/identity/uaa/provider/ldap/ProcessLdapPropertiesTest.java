@@ -71,6 +71,24 @@ class ProcessLdapPropertiesTest {
     }
 
     @Test
+    void process_withCaCertificates_selectsCaCertAwareSocketFactory() throws Exception {
+        Map<String, String> properties = new HashMap<>();
+        ProcessLdapProperties process = new ProcessLdapProperties("ldaps://localhost:636", false, LDAP_TLS_NONE, true);
+        assertThat(process.process(properties))
+                .containsEntry(LDAP_SSL_SOCKET_FACTORY, ProcessLdapProperties.CA_CERT_AWARE_SOCKET_FACTORY)
+                .containsEntry(LDAP_SOCKET_FACTORY, ProcessLdapProperties.CA_CERT_AWARE_SOCKET_FACTORY);
+        assertThat(process.getSSLSocketFactory().getClass().getName()).isEqualTo(ProcessLdapProperties.CA_CERT_AWARE_SOCKET_FACTORY);
+    }
+
+    @Test
+    void process_withCaCertificatesAndSkipSslValidation_skipStillWins() {
+        Map<String, String> properties = new HashMap<>();
+        ProcessLdapProperties process = new ProcessLdapProperties("ldaps://localhost:636", true, LDAP_TLS_NONE, true);
+        assertThat(process.process(properties))
+                .containsEntry(LDAP_SSL_SOCKET_FACTORY, ProcessLdapProperties.SKIP_SSL_VERIFICATION_SOCKET_FACTORY);
+    }
+
+    @Test
     void authenticationStrategy() throws Exception {
         ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false, null);
         assertThat(process.getAuthenticationStrategy()).isExactlyInstanceOf(SimpleDirContextAuthenticationStrategy.class);

@@ -3,9 +3,11 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,13 +22,17 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -276,4 +282,72 @@ class OidcMetadataFetcherTest {
         }
     }
 
+    @Nested
+    class WithCaCertificates {
+        private IdpOutboundTrustCache trustCache;
+
+        @BeforeEach
+        void setup() throws MalformedURLException {
+            trustCache = mock(IdpOutboundTrustCache.class);
+            when(trustCache.resolveRestTemplate(any(), any(), anyBoolean(), anyInt(), anyInt(), any(), any(), any()))
+                    .thenReturn(restTemplate);
+            metadataDiscoverer = new OidcMetadataFetcher(urlContentCache, restTemplate, restTemplate, restTemplate, trustCache, RestTemplateConfig.createDefaults());
+            definition.setDiscoveryUrl(URI.create("http://discovery.url").toURL());
+            definition.setCaCertificates(List.of("-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----"));
+        }
+
+        @Test
+        void discoveryFetch_bypassesSharedUrlCache_whenCaCertificatesSet() throws Exception {
+            when(restTemplate.getForObject(anyString(), eq(byte[].class)))
+                    .thenReturn(JsonUtils.writeValueAsBytes(new OidcMetadata()));
+
+            metadataDiscoverer.fetchMetadataAndUpdateDefinition(definition);
+
+            verify(restTemplate).getForObject(eq(definition.getDiscoveryUrl().toString()), eq(byte[].class));
+            verifyNoInteractions(urlContentCache);
+        }
+
+        @Test
+        void discoveryFetch_passesCaCertificatesAndIdentityKeyToTrustCache() throws Exception {
+            when(restTemplate.getForObject(anyString(), eq(byte[].class)))
+                    .thenReturn(JsonUtils.writeValueAsBytes(new OidcMetadata()));
+
+            metadataDiscoverer.fetchMetadataAndUpdateDefinition(definition);
+
+            verify(trustCache).resolveRestTemplate(
+                    eq(definition.getDiscoveryUrl().toString()),
+                    eq(definition.getCaCertificates()),
+                    eq(false),
+                    anyInt(), anyInt(), any(), eq(restTemplate), eq(restTemplate));
+        }
+
+        @Test
+        void tokenKeyFetch_bypassesSharedUrlCache_whenCaCertificatesSet() throws Exception {
+            definition.setTokenKeyUrl(URI.create("http://token_keys").toURL());
+            definition.setRelyingPartyId("id");
+            definition.setRelyingPartySecret("secret");
+            ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
+            when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
+            when(responseEntity.getBody()).thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
+            when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
+                    .thenReturn(responseEntity);
+
+            metadataDiscoverer.fetchWebKeySet(definition);
+
+            verify(restTemplate).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class));
+            verifyNoInteractions(urlContentCache);
+        }
+
+        @Test
+        void skipSslValidationTrue_doesNotBypassSharedUrlCache_evenWithCaCertificatesSet() throws Exception {
+            definition.setSkipSslValidation(true);
+            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class)))
+                    .thenReturn(JsonUtils.writeValueAsBytes(new OidcMetadata()));
+
+            metadataDiscoverer.fetchMetadataAndUpdateDefinition(definition);
+
+            verify(urlContentCache).getUrlContent(eq(definition.getDiscoveryUrl().toString()), eq(restTemplate));
+            verify(restTemplate, never()).getForObject(anyString(), eq(byte[].class));
+        }
+    }
 }

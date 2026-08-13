@@ -66,6 +66,8 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public static final String LDAP_PROFILE_FILE_SIMPLE_BIND = "ldap/ldap-simple-bind.xml";
     public static final String LDAP_SSL_SKIPVERIFICATION = LDAP_PREFIX + "ssl.skipverification";
     public static final String LDAP_SSL_TLS = LDAP_PREFIX + "ssl.tls";
+    public static final String LDAP_SSL_HAS_CA_CERTIFICATES = LDAP_PREFIX + "ssl.hasCaCertificates";
+    public static final String LDAP_SSL_CA_CERTIFICATES = LDAP_PREFIX + "ssl.caCertificates";
     public static final String MAIL = "mail";
 
     public static final List<String> VALID_PROFILE_FILES =
@@ -75,7 +77,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             List.of("ldap/ldap-groups-as-scopes.xml", "ldap/ldap-groups-map-to-scopes.xml", "ldap/ldap-groups-null.xml", "ldap/ldap-groups-populator.xml");
 
 
-    public static final List<String> LDAP_PROPERTY_NAMES = List.of(LDAP_ATTRIBUTE_MAPPINGS, LDAP_BASE_LOCAL_PASSWORD_COMPARE, LDAP_BASE_MAIL_ATTRIBUTE_NAME, LDAP_BASE_MAIL_SUBSTITUTE, LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP, LDAP_BASE_PASSWORD, LDAP_BASE_PASSWORD_ATTRIBUTE_NAME, LDAP_BASE_PASSWORD_ENCODER, LDAP_BASE_REFERRAL, LDAP_BASE_SEARCH_BASE, LDAP_BASE_SEARCH_FILTER, LDAP_BASE_URL, LDAP_BASE_USER_DN, LDAP_BASE_USER_DN_PATTERN, LDAP_BASE_USER_DN_PATTERN_DELIMITER, LDAP_EMAIL_DOMAIN, LDAP_EXTERNAL_GROUPS_WHITELIST, LDAP_GROUPS_AUTO_ADD, LDAP_GROUPS_FILE, LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, LDAP_GROUPS_GROUP_SEARCH_FILTER, LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION, LDAP_GROUPS_MAX_SEARCH_DEPTH, LDAP_GROUPS_SEARCH_BASE, LDAP_GROUPS_SEARCH_SUBTREE, LDAP_PROFILE_FILE, LDAP_SSL_SKIPVERIFICATION, LDAP_SSL_TLS);
+    public static final List<String> LDAP_PROPERTY_NAMES = List.of(LDAP_ATTRIBUTE_MAPPINGS, LDAP_BASE_LOCAL_PASSWORD_COMPARE, LDAP_BASE_MAIL_ATTRIBUTE_NAME, LDAP_BASE_MAIL_SUBSTITUTE, LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP, LDAP_BASE_PASSWORD, LDAP_BASE_PASSWORD_ATTRIBUTE_NAME, LDAP_BASE_PASSWORD_ENCODER, LDAP_BASE_REFERRAL, LDAP_BASE_SEARCH_BASE, LDAP_BASE_SEARCH_FILTER, LDAP_BASE_URL, LDAP_BASE_USER_DN, LDAP_BASE_USER_DN_PATTERN, LDAP_BASE_USER_DN_PATTERN_DELIMITER, LDAP_EMAIL_DOMAIN, LDAP_EXTERNAL_GROUPS_WHITELIST, LDAP_GROUPS_AUTO_ADD, LDAP_GROUPS_FILE, LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, LDAP_GROUPS_GROUP_SEARCH_FILTER, LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION, LDAP_GROUPS_MAX_SEARCH_DEPTH, LDAP_GROUPS_SEARCH_BASE, LDAP_GROUPS_SEARCH_SUBTREE, LDAP_PROFILE_FILE, LDAP_SSL_SKIPVERIFICATION, LDAP_SSL_TLS, LDAP_SSL_CA_CERTIFICATES);
 
     public static final Map<String, Class<?>> LDAP_PROPERTY_TYPES = new HashMap<>();
 
@@ -108,6 +110,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         LDAP_PROPERTY_TYPES.put(LDAP_PROFILE_FILE, String.class);
         LDAP_PROPERTY_TYPES.put(LDAP_SSL_SKIPVERIFICATION, Boolean.class);
         LDAP_PROPERTY_TYPES.put(LDAP_SSL_TLS, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_SSL_CA_CERTIFICATES, List.class);
     }
 
     private String ldapProfileFile;
@@ -140,6 +143,8 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String groupRoleAttribute;
 
     private String tlsConfiguration = LDAP_TLS_NONE;
+
+    private List<String> caCertificates;
 
     public static LdapIdentityProviderDefinition searchAndBindMapGroupToScopes(
             String baseUrl,
@@ -405,6 +410,14 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     }
 
+    public List<String> getCaCertificates() {
+        return caCertificates;
+    }
+
+    public void setCaCertificates(List<String> caCertificates) {
+        this.caCertificates = caCertificates;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -485,7 +498,10 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         if (!Objects.equals(groupSearchSubTree, that.groupSearchSubTree)) {
             return false;
         }
-        return Objects.equals(groupRoleAttribute, that.groupRoleAttribute);
+        if (!Objects.equals(groupRoleAttribute, that.groupRoleAttribute)) {
+            return false;
+        }
+        return Objects.equals(caCertificates, that.caCertificates);
 
     }
 
@@ -493,6 +509,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (baseUrl != null ? baseUrl.hashCode() : 0);
+        result = 31 * result + (caCertificates != null ? caCertificates.hashCode() : 0);
         return result;
     }
 

@@ -37,6 +37,7 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -220,6 +221,19 @@ public class BootstrapSamlIdentityProviderDataTests {
     @Test
     void getIdentityProviderDefinitions() {
         testGetIdentityProviderDefinitions(4);
+    }
+
+    @Test
+    void caCertificatesFromYaml() {
+        sampleData.get("okta-local").put("caCertificates", List.of("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----"));
+        bootstrap.setIdentityProviders(sampleData);
+        bootstrap.afterPropertiesSet();
+
+        SamlIdentityProviderDefinition def = bootstrap.getIdentityProviderDefinitions().stream()
+                .filter(p -> "okta-local".equals(p.getIdpEntityAlias()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(def.getCaCertificates()).containsExactly("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----");
     }
 
     private void testGetIdentityProviderDefinitions(int count) {
@@ -455,7 +469,7 @@ public class BootstrapSamlIdentityProviderDataTests {
         @Test
         void urlIdp_resolvesEntityIdFromMetadataAtBootstrap() throws Exception {
             FixedHttpMetaDataProvider httpProvider = mock(FixedHttpMetaDataProvider.class);
-            when(httpProvider.fetchMetadata(anyString(), anyBoolean()))
+            when(httpProvider.fetchMetadata(anyString(), anyBoolean(), any(), any()))
                     .thenReturn(URL_IDP_METADATA_XML.getBytes(StandardCharsets.UTF_8));
 
             BootstrapSamlIdentityProviderData subject = urlBootstrap(httpProvider);
@@ -476,7 +490,7 @@ public class BootstrapSamlIdentityProviderDataTests {
         @Test
         void urlIdp_logsErrorAndContinuesWhenMetadataFetchFails() {
             FixedHttpMetaDataProvider httpProvider = mock(FixedHttpMetaDataProvider.class);
-            when(httpProvider.fetchMetadata(anyString(), anyBoolean()))
+            when(httpProvider.fetchMetadata(anyString(), anyBoolean(), any(), any()))
                     .thenThrow(new RuntimeException("connection refused: idp.example.org:443"));
 
             BootstrapSamlIdentityProviderData subject = urlBootstrap(httpProvider);

@@ -139,6 +139,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             Boolean storeCustomAttributes = (Boolean) ((Map) entry.getValue()).get(STORE_CUSTOM_ATTRIBUTES_NAME);
             Boolean override = (Boolean) ((Map) entry.getValue()).get("override");
             List<String> authnContext = (List<String>) saml.get("authnContext");
+            List<String> caCertificates = (List<String>) saml.get("caCertificates");
 
             if (storeCustomAttributes == null) {
                 storeCustomAttributes = true; //default value
@@ -181,6 +182,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setAddShadowUserOnLogin(addShadowUserOnLogin == null || addShadowUserOnLogin);
             def.setSkipSslValidation(skipSslValidation);
             def.setAuthnContext(authnContext);
+            def.setCaCertificates(caCertificates);
 
             IdentityProvider<SamlIdentityProviderDefinition> provider = parseSamlProvider(def);
             if (def.getType() == SamlIdentityProviderDefinition.MetadataLocation.DATA) {

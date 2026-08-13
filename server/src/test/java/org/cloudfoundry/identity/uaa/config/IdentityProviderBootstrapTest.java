@@ -159,6 +159,7 @@ class IdentityProviderBootstrapTest {
         assertThat(ldapProvider.getConfig().getAttributeMappings()).containsEntry("given_name", "first_name");
         assertThat(ldapProvider.getConfig().getProviderDescription()).isEqualTo("Test LDAP Provider Description");
         assertThat(ldapProvider.getConfig().isStoreCustomAttributes()).isFalse();
+        assertThat(ldapProvider.getConfig().getCaCertificates()).containsExactly("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----");
     }
 
     private static HashMap<String, Object> getGenericLdapConfig() {
@@ -170,6 +171,7 @@ class IdentityProviderBootstrapTest {
         List<String> attrMap = new ArrayList<>();
         attrMap.add("value");
         ldapConfig.put(EXTERNAL_GROUPS_WHITELIST, attrMap);
+        ldapConfig.put("ssl", Collections.singletonMap("caCertificates", Collections.singletonList("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----")));
 
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("given_name", "first_name");

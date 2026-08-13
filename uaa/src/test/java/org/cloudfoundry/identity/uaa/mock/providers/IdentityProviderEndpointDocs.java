@@ -130,6 +130,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             "Alias identity providers can only be created from or to the \"uaa\" identity zone, i.e., one of `" + FIELD_IDENTITY_ZONE_ID + "` or `" + FIELD_ALIAS_ZID + "` must be set to \"uaa\".";
     private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
+    private static final FieldDescriptor CA_CERTIFICATES = fieldWithPath("config.caCertificates").optional(null).type(ARRAY).description("<small><mark>UAA 79.6.0</mark></small> List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when UAA makes outbound TLS connections to this identity provider (e.g. to fetch metadata or authenticate). Useful when the provider's certificate chain is signed by a private/internal certificate authority. Ignored if skipping SSL validation for this provider.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(OBJECT).description("Map external attribute to UAA recognized mappings.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING_EMAIL = fieldWithPath("config.attributeMappings.email").optional(null).type(STRING).description("Map `email` to the attribute for email in the provider assertion or token.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING_GIVEN_NAME = fieldWithPath("config.attributeMappings.given_name").optional(null).type(STRING).description(GIVEN_NAME_DESC);
@@ -300,6 +301,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             ldapUserMailSubstitute,
             ldapUserMailSubstituteOverridesLdap,
             ldapSslSkipVerification,
+            CA_CERTIFICATES,
             ldapSslTls,
             ldapReferral,
             ldapGroupsIgnorePartial,
@@ -339,6 +341,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                             ldapUserMailSubstitute,
                             ldapUserMailSubstituteOverridesLdap,
                             ldapSslSkipVerification,
+                            CA_CERTIFICATES,
                             ldapSslTls,
                             ldapReferral,
                             ldapGroupsIgnorePartial,
@@ -373,6 +376,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                             ldapUserMailSubstitute,
                             ldapUserMailSubstituteOverridesLdap,
                             ldapSslSkipVerification,
+                            CA_CERTIFICATES,
                             ldapSslTls,
                             ldapReferral,
                             ldapUserDnPattern,
@@ -424,6 +428,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                             ldapUserMailSubstitute,
                             ldapUserMailSubstituteOverridesLdap,
                             ldapSslSkipVerification,
+                            CA_CERTIFICATES,
                             ldapSslTls,
                             ldapReferral,
                             ldapGroupsIgnorePartial,
@@ -469,6 +474,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("type").required().description("`saml`"),
                 fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
                 SKIP_SSL_VALIDATION,
+                CA_CERTIFICATES,
                 STORE_CUSTOM_ATTRIBUTES,
                 fieldWithPath("config.metaDataLocation").required().type(STRING).description("SAML Metadata - either an XML string or a URL that will deliver XML content"),
                 fieldWithPath("config.nameID").optional(null).type(STRING).description("The name ID to use for the username, default is \"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\"."),
@@ -589,6 +595,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
                 fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
+                CA_CERTIFICATES,
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
                 fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
                 fieldWithPath("config.logoutUrl").optional(null).type(OBJECT).description("OAuth 2.0 logout endpoint."),
@@ -698,6 +705,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
                 fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
+                CA_CERTIFICATES,
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
                         "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
                 fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth/OIDC use."),
