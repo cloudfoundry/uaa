@@ -56,6 +56,9 @@ class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("active eq true", null, false, zoneId), "active = :__value_0", null, 1, Boolean.class);
         validate(filterProcessor.convert("Version eq 1000000.45", null, false, zoneId), "Version = :__value_0", null, 1, Double.class);
         validate(filterProcessor.convert("meta.VerSion eq 1000000", null, false, zoneId), "VerSion = :__value_0", null, 1, Double.class);
+        validate(filterProcessor.convert("username ne \"joe\"", null, false, zoneId), "LOWER(username) <> LOWER(:__value_0)", null, 1);
+        validate(filterProcessor.convert("not (username eq \"joe\")", null, false, zoneId), "NOT (LOWER(username) = LOWER(:__value_0))", null, 1);
+        validate(filterProcessor.convert("username eq \"joe\" and not (active eq true)", null, false, zoneId), "(LOWER(username) = LOWER(:__value_0) AND NOT (active = :__value_1))", null, 2);
     }
 
     @Test
@@ -83,6 +86,8 @@ class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("active eq true", null, false, zoneId), "active = :__value_0", null, 1, Boolean.class);
         validate(filterProcessor.convert("Version eq 1000000.45", null, false, zoneId), "Version = :__value_0", null, 1, Double.class);
         validate(filterProcessor.convert("meta.VerSion eq 1000000", null, false, zoneId), "VerSion = :__value_0", null, 1, Double.class);
+        validate(filterProcessor.convert("username ne \"joe\"", null, false, zoneId), "username <> :__value_0", null, 1);
+        validate(filterProcessor.convert("not (username eq \"joe\")", null, false, zoneId), "NOT (username = :__value_0)", null, 1);
     }
 
     @Test
