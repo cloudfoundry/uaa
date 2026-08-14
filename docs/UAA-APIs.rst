@@ -78,6 +78,7 @@ Filtering supports
 Attribute operators
 
 * eq - equalsIgnoreCase
+* ne - not equal - in SQL becomes ``<>``
 * co - contains - in SQL becomes 'like %value%', case insensitive
 * sw - starts with - in SQL becomes 'like value%', case insensitive
 * pr - present - in SQL becomes 'IS NOT NULL'
@@ -90,6 +91,7 @@ Logical operators
 
 * and - logical and
 * or - logical or
+* not - logical negation of a grouped expression, e.g. ``not (username eq "joe")``
 
 Grouping operators
 
