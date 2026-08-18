@@ -12,11 +12,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.security.auth.x500.X500Principal;
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,14 +102,14 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         if (config.getClaimMappings() != null) {
             X500Principal subject = cert.getSubjectX500Principal();
             String dn = subject.getName(X500Principal.RFC2253);
-            String cn  = extractRdnValue(dn, "CN=");
+            String cn  = extractRdnValue(dn, "CN");
             List<String> ous = extractOus(dn);
 
             for (TlsClientAuthConfiguration.ClaimMapping mapping : config.getClaimMappings()) {
                 String value = switch (mapping.getField()) {
                     case "subject_cn" -> cn;
                     case "subject_ou" -> matchFirstOu(ous, mapping.getPattern());
-                    case "subject_o"  -> extractRdnValue(dn, "O=");
+                    case "subject_o"  -> extractRdnValue(dn, "O");
                     default -> null;
                 };
                 if (value != null && !value.isBlank()) {
@@ -167,18 +173,56 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
     }
 
     /**
-     * Extracts the value of a single-valued RDN (e.g. {@code "CN="}) from a RFC 2253 DN string.
-     * Handles multi-valued RDNs (attributes joined by {@code +}).
+     * Parses an RFC 2253 DN string into its RDNs, ordered most-specific-first
+     * (i.e. matching the left-to-right order of the original DN string).
+     *
+     * <p>{@link LdapName#getRdns()} returns RDNs least-specific-first (root/rightmost
+     * component at index 0), so the list is reversed here. Using {@link LdapName} instead
+     * of a naive {@code dn.split(",")} correctly handles backslash-escaped commas/quotes
+     * within attribute values (RFC 2253 §2.4), which a plain string split would mis-parse.
+     * Returns an empty list if {@code dn} cannot be parsed as a valid DN.
+     */
+    private static List<Rdn> parseRdnsMostSpecificFirst(String dn) {
+        try {
+            List<Rdn> rdns = new ArrayList<>(new LdapName(dn).getRdns());
+            Collections.reverse(rdns);
+            return rdns;
+        } catch (NamingException e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Returns the value of the given attribute {@code type} (e.g. {@code "CN"}) from an RDN,
+     * including multi-valued RDNs (attributes joined by {@code +}). Attribute type matching
+     * is case-insensitive, per LDAP semantics. Returns {@code null} if not present.
+     */
+    private static String rdnAttributeValue(Rdn rdn, String type) {
+        try {
+            NamingEnumeration<? extends Attribute> attrs = rdn.toAttributes().getAll();
+            while (attrs.hasMore()) {
+                Attribute attr = attrs.next();
+                if (attr.getID().equalsIgnoreCase(type)) {
+                    Object value = attr.get();
+                    return value == null ? null : value.toString();
+                }
+            }
+        } catch (NamingException e) {
+            // fall through to null
+        }
+        return null;
+    }
+
+    /**
+     * Extracts the value of a single-valued RDN attribute (e.g. {@code "CN"}) from a RFC 2253
+     * DN string. Handles multi-valued RDNs (attributes joined by {@code +}).
      * Returns {@code null} if no matching RDN is found.
      */
-    private String extractRdnValue(String dn, String prefix) {
-        for (String rdn : dn.split(",")) {
-            // Multi-valued RDNs use '+' to separate attribute-value pairs within one RDN
-            for (String attrVal : rdn.split("\\+")) {
-                String trimmed = attrVal.trim();
-                if (trimmed.startsWith(prefix)) {
-                    return trimmed.substring(prefix.length());
-                }
+    private String extractRdnValue(String dn, String type) {
+        for (Rdn rdn : parseRdnsMostSpecificFirst(dn)) {
+            String value = rdnAttributeValue(rdn, type);
+            if (value != null) {
+                return value;
             }
         }
         return null;
@@ -190,13 +234,10 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
      */
     private List<String> extractOus(String dn) {
         List<String> ous = new ArrayList<>();
-        for (String rdn : dn.split(",")) {
-            // Multi-valued RDNs use '+' to separate attribute-value pairs within one RDN
-            for (String attrVal : rdn.split("\\+")) {
-                String trimmed = attrVal.trim();
-                if (trimmed.startsWith("OU=")) {
-                    ous.add(trimmed.substring(3));
-                }
+        for (Rdn rdn : parseRdnsMostSpecificFirst(dn)) {
+            String value = rdnAttributeValue(rdn, "OU");
+            if (value != null) {
+                ous.add(value);
             }
         }
         return ous;

@@ -350,6 +350,61 @@ class MtlsClaimsEnhancerTest {
         assertThat(aud).containsExactly("app/app-guid");
     }
 
+    @Test
+    void extractsCnValueContainingEscapedComma() throws Exception {
+        // RFC 2253 escapes literal commas inside an attribute value with a backslash.
+        // A naive dn.split(",") breaks on the escaped comma and mangles the CN value.
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
+            "CN=Smith\\, John,OU=app:app-guid-123,O=Cloud Foundry"));
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "cf_instance_guid"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "app_guid")
+            )
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).containsEntry("cf_instance_guid", "Smith, John");
+        assertThat(result).containsEntry("app_guid", "app-guid-123");
+    }
+
+    @Test
+    void extractsOuValueContainingEscapedComma() throws Exception {
+        // Same RFC 2253 escaping issue, but for a multi-valued OU list: an escaped comma
+        // inside one OU must not be treated as an RDN separator, and subsequent OUs must
+        // still be collected correctly.
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
+            "CN=inst-guid,OU=team\\, ops,OU=app:app-guid-123,O=Cloud Foundry"));
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^(team, ops)$", "team"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "app_guid")
+            )
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result).containsEntry("team", "team, ops");
+        assertThat(result).containsEntry("app_guid", "app-guid-123");
+    }
+
     private X509Certificate mockCfCert() throws Exception {
         X509Certificate cert = mock(X509Certificate.class);
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
