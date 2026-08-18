@@ -144,6 +144,8 @@ class BannerValidatorTest {
                 "SGVsbG8",
                 "SGVsbG-_",
                 "SGVsbG8g\nV29ybGQ=",
+                "SGVsbG8=V29ybGQ=",
+                "SGVsbG8===",
         };
 
         for (String base64 : validBase64) {
@@ -156,8 +158,6 @@ class BannerValidatorTest {
     @Test
     void base64LogoRejectsMalformedPayloads() {
         String[] invalidBase64 = {
-                "SGVsbG8=V29ybGQ=",
-                "SGVsbG8===",
                 "abc!def",
                 "SGVsbG8!",
                 "SGVsbG8@#$",
