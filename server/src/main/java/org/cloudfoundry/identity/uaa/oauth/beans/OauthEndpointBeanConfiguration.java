@@ -56,6 +56,8 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationFilter;
@@ -115,6 +117,8 @@ import static java.util.Map.entry;
 
 @Configuration
 public class OauthEndpointBeanConfiguration {
+
+    private static final Logger logger = LoggerFactory.getLogger(OauthEndpointBeanConfiguration.class);
 
     @Autowired
     @Qualifier("jdbcClientDetailsService")
@@ -702,7 +706,8 @@ public class OauthEndpointBeanConfiguration {
         if (refreshTokenRotate &&
                 TokenConstants.TokenFormat.JWT.getStringValue().equalsIgnoreCase(refreshTokenFormat) &&
                 !jwtRevocable) {
-            throw new IllegalArgumentException("A token policy cannot have JWT-format refresh tokens with rotation enabled unless they are also revocable.");
+            logger.warn("Invalid token policy configuration: JWT-format refresh tokens with rotation enabled must be revocable. Auto-correcting to set jwtRevocable=true.");
+            bean.setJwtRevocable(true);
         }
 
         return bean;

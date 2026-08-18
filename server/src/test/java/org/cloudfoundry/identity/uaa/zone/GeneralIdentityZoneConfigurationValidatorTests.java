@@ -299,7 +299,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @ParameterizedTest
     @MethodSource("parameters")
-    void validate_refreshTokenRotate_with_jwt_and_not_revocable(IdentityZoneValidator.Mode mode) {
+    void validate_refreshTokenRotate_with_jwt_and_not_revocable(IdentityZoneValidator.Mode mode) throws Exception {
         IdentityZone testZone = new IdentityZone();
         testZone.setId(IdentityZone.getUaaZoneId());
         TokenPolicy tokenPolicy = new TokenPolicy();
@@ -308,9 +308,9 @@ class GeneralIdentityZoneConfigurationValidatorTests {
         tokenPolicy.setJwtRevocable(false);
         testZone.getConfig().setTokenPolicy(tokenPolicy);
 
-        assertThatThrownBy(() -> validator.validate(testZone, mode))
-                .isInstanceOf(InvalidIdentityZoneConfigurationException.class)
-                .hasMessage("A token policy cannot have JWT-format refresh tokens with rotation enabled unless they are also revocable.");
+        IdentityZoneConfiguration validatedZone = validator.validate(testZone, mode);
+        
+        assertThat(validatedZone.getTokenPolicy().isJwtRevocable()).isTrue();
     }
 
     @ParameterizedTest

@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,8 @@ import java.util.regex.PatternSyntaxException;
 
 @Component
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
+
+    private static final Logger logger = LoggerFactory.getLogger(GeneralIdentityZoneConfigurationValidator.class);
 
     public GeneralIdentityZoneConfigurationValidator() {
     }
@@ -53,7 +57,8 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                 if (tokenPolicy.isRefreshTokenRotate() &&
                         TokenConstants.TokenFormat.JWT.getStringValue().equalsIgnoreCase(tokenPolicy.getRefreshTokenFormat()) &&
                         !tokenPolicy.isJwtRevocable()) {
-                    throw new InvalidIdentityZoneConfigurationException("A token policy cannot have JWT-format refresh tokens with rotation enabled unless they are also revocable.");
+                    logger.warn("Invalid identity zone configuration: JWT-format refresh tokens with rotation enabled must be revocable. Auto-correcting to set jwtRevocable=true.");
+                    tokenPolicy.setJwtRevocable(true);
                 }
                 String activeKeyId = tokenPolicy.getActiveKeyId();
                 if (StringUtils.hasText(activeKeyId)) {
