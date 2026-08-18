@@ -297,6 +297,36 @@ class GeneralIdentityZoneConfigurationValidatorTests {
                 .hasMessageContaining("Invalid SAML active key ID: 'null'. Couldn't find any matching keys.");
     }
 
+    @ParameterizedTest
+    @MethodSource("parameters")
+    void validate_refreshTokenRotate_with_jwt_and_not_revocable(IdentityZoneValidator.Mode mode) throws Exception {
+        IdentityZone testZone = new IdentityZone();
+        testZone.setId(IdentityZone.getUaaZoneId());
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setRefreshTokenRotate(true);
+        tokenPolicy.setRefreshTokenFormat("jwt");
+        tokenPolicy.setJwtRevocable(false);
+        testZone.getConfig().setTokenPolicy(tokenPolicy);
+
+        IdentityZoneConfiguration validatedZone = validator.validate(testZone, mode);
+        
+        assertThat(validatedZone.getTokenPolicy().isJwtRevocable()).isTrue();
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    void validate_refreshTokenRotate_with_jwt_and_revocable(IdentityZoneValidator.Mode mode) throws Exception {
+        IdentityZone testZone = new IdentityZone();
+        testZone.setId(IdentityZone.getUaaZoneId());
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setRefreshTokenRotate(true);
+        tokenPolicy.setRefreshTokenFormat("jwt");
+        tokenPolicy.setJwtRevocable(true);
+        testZone.getConfig().setTokenPolicy(tokenPolicy);
+
+        validator.validate(testZone, mode);
+    }
+
     @MethodSource("parameters")
     @ParameterizedTest
     void validate_no_keys(IdentityZoneValidator.Mode mode) throws Exception {
