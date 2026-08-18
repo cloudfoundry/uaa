@@ -247,7 +247,13 @@ public class SpringServletXmlFiltersConfiguration {
             FilterRegistrationBean<jakarta.servlet.Filter> bean =
                     new FilterRegistrationBean<>((jakarta.servlet.Filter) ctor.newInstance());
             bean.addUrlPatterns("/oauth/mtls/*");
-            bean.setOrder(10);
+            // Spring Boot registers its Security filter in the servlet container at order -100
+            // (org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterProperties
+            // .DEFAULT_FILTER_ORDER). This filter must run strictly before that so the
+            // jakarta.servlet.request.X509Certificate request attribute it derives from the
+            // XFCC header is already populated when ClientDetailsAuthenticationProvider /
+            // TlsClientAuthentication authenticate the /oauth/mtls/token request.
+            bean.setOrder(-200);
             return bean;
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("Failed to instantiate ClientCertificateMapper", e);
