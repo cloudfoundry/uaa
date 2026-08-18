@@ -2,10 +2,12 @@ package org.cloudfoundry.identity.uaa.oauth.tls;
 
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,12 +71,22 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
     /**
      * Returns a map of additional top-level JWT claims derived from the client certificate.
-     * Returns an empty map when no certificate is present on the request.
+     * Returns an empty map when no certificate is present on the request, or when the client
+     * did not actually authenticate via {@code tls_client_auth} (e.g. a client with both a
+     * secret and TLS config configured that authenticated via {@code client_secret_basic} on
+     * the mTLS alias) — the certificate mapped onto the request in that case was never
+     * validated by {@link TlsClientAuthentication#validateClientCert}, so it must not be
+     * trusted as a source of identity claims.
      */
     @Override
     public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
         X509Certificate cert = tlsClientAuthentication.getCertificateFromRequest();
         if (cert == null) {
+            return new HashMap<>();
+        }
+
+        if (!ClientAuthentication.TLS_CLIENT_AUTH.equals(
+                UaaSecurityContextUtils.getClientAuthenticationMethod(authentication))) {
             return new HashMap<>();
         }
 

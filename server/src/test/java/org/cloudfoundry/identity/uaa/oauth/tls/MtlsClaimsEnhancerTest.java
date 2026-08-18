@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.tls;
 
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
@@ -9,12 +10,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.security.auth.x500.X500Principal;
+import java.io.Serializable;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -405,6 +408,59 @@ class MtlsClaimsEnhancerTest {
         assertThat(result).containsEntry("app_guid", "app-guid-123");
     }
 
+    @Test
+    void enhanceReturnsEmptyWhenClientAuthenticatedViaClientSecretInsteadOfTlsClientAuth() throws Exception {
+        // Reproduces PR review concern (MtlsClaimsEnhancer.java:76): a client with both a
+        // client_secret AND tls-client-auth-ca configured could hit /oauth/mtls/token, present a
+        // harvested/unvalidated certificate (via the mapped X509Certificate attribute), but
+        // authenticate with the secret instead -- bypassing validateTlsClientAuth entirely.
+        // The enhancer must not derive identity/cnf claims from a certificate that was never
+        // actually validated as the proof of authentication.
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
+            "CN=instance-guid, OU=app:app-guid-123, O=Cloud Foundry"));
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "cf_instance_guid"))
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        OAuth2Authentication auth = mockAuthenticationWithMethod("instance-identity", "client_secret_basic");
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), auth);
+
+        assertThat(result).doesNotContainKey("cf_instance_guid");
+        assertThat(result).doesNotContainKey("cnf");
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void enhanceReturnsEmptyWhenClientAuthMethodExtensionIsMissing() throws Exception {
+        // Fail closed: if the client_auth_method extension isn't present at all (e.g. an older
+        // token-granting path that never set it), claims must not be derived either.
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=instance-guid"));
+        when(tlsClientAuthentication.getCertificateFromRequest()).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "cf_instance_guid"))
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        OAuth2Authentication auth = mockAuthenticationWithMethod("instance-identity", null);
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), auth);
+
+        assertThat(result).isEmpty();
+    }
+
     private X509Certificate mockCfCert() throws Exception {
         X509Certificate cert = mock(X509Certificate.class);
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
@@ -426,8 +482,19 @@ class MtlsClaimsEnhancerTest {
     }
 
     private OAuth2Authentication mockAuthentication(String clientId) {
+        // Default: represents a client that actually authenticated via tls_client_auth,
+        // matching what the mTLS token endpoint's ClientDetailsAuthenticationProvider sets
+        // after validateTlsClientAuth succeeds.
+        return mockAuthenticationWithMethod(clientId, ClientAuthentication.TLS_CLIENT_AUTH);
+    }
+
+    private OAuth2Authentication mockAuthenticationWithMethod(String clientId, String clientAuthMethod) {
         OAuth2Request request = mock(OAuth2Request.class);
         when(request.getClientId()).thenReturn(clientId);
+        Map<String, Serializable> extensions = clientAuthMethod == null
+                ? Map.of()
+                : Map.of(CLIENT_AUTH_METHOD, clientAuthMethod);
+        when(request.getExtensions()).thenReturn(extensions);
         OAuth2Authentication auth = mock(OAuth2Authentication.class);
         when(auth.getOAuth2Request()).thenReturn(request);
         return auth;
