@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,7 +33,7 @@ class IdTokenClaimEnhancerTest {
 
     @Test
     void enhance_withNoEnhancers_returnsClaimsUnchanged() {
-        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(emptyList(), false, emptyMap());
+        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(emptyList(), false);
         Map<String, Object> base = mapOf("sub", "marissa");
 
         assertThat(enhance(enhancer, base)).isSameAs(base);
@@ -51,7 +50,7 @@ class IdTokenClaimEnhancerTest {
     @Test
     void enhance_addsNewRootClaim() {
         IdTokenEnhancer adder = context -> context.setClaim("tenant", "blue");
-        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(adder), false, emptyMap());
+        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(adder), false);
 
         assertThat(enhance(enhancer, mapOf("sub", "marissa")))
                 .containsEntry("sub", "marissa")
@@ -64,34 +63,31 @@ class IdTokenClaimEnhancerTest {
         IdTokenEnhancer second =
                 context -> context.setClaim("chain", String.valueOf(context.getClaim("chain")) + "b");
         // 'second' modifies a claim that 'first' added, which requires modification to be enabled
-        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(first, second), true, emptyMap());
+        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(first, second), true);
 
         assertThat(enhance(enhancer, mapOf("sub", "marissa"))).containsEntry("chain", "ab");
     }
 
     @Test
-    void enhance_enhancerReadsAccessRefreshPropertyAndAuthentication() {
+    void enhance_enhancerReadsAccessRefreshClaimsAndAuthentication() {
         when(authentication.getName()).thenReturn("marissa");
         IdTokenEnhancer reader = context -> {
             context.setClaim("copied_client", context.getAccessTokenClaim("client_id"));
             context.setClaim("refresh_jti", context.getRefreshTokenClaim("jti"));
-            context.setClaim("tenant", context.getProperty("acme.tenant"));
             context.setClaim("who", context.getAuthentication().getName());
         };
-        IdTokenClaimEnhancer enhancer =
-                new IdTokenClaimEnhancer(List.of(reader), false, mapOf("acme.tenant", "blue"));
+        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(reader), false);
 
         assertThat(enhance(enhancer, mapOf("sub", "marissa")))
                 .containsEntry("copied_client", "login")
                 .containsEntry("refresh_jti", "refresh-jti")
-                .containsEntry("tenant", "blue")
                 .containsEntry("who", "marissa");
     }
 
     @Test
     void enhance_existingClaimNotModifiedByDefault() {
         IdTokenEnhancer overwriter = context -> context.setClaim("sub", "somebody-else");
-        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(overwriter), false, emptyMap());
+        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(overwriter), false);
 
         assertThat(enhance(enhancer, mapOf("sub", "marissa"))).containsEntry("sub", "marissa");
     }
@@ -99,7 +95,7 @@ class IdTokenClaimEnhancerTest {
     @Test
     void enhance_existingClaimModifiedWhenAllowed() {
         IdTokenEnhancer overwriter = context -> context.setClaim("sub", "somebody-else");
-        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(overwriter), true, emptyMap());
+        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(overwriter), true);
 
         assertThat(enhance(enhancer, mapOf("sub", "marissa"))).containsEntry("sub", "somebody-else");
     }
@@ -107,7 +103,7 @@ class IdTokenClaimEnhancerTest {
     @Test
     void enhance_doesNotMutateTheProvidedBaseMap() {
         IdTokenEnhancer adder = context -> context.setClaim("tenant", "blue");
-        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(adder), false, emptyMap());
+        IdTokenClaimEnhancer enhancer = new IdTokenClaimEnhancer(List.of(adder), false);
         Map<String, Object> base = mapOf("sub", "marissa");
 
         enhance(enhancer, base);

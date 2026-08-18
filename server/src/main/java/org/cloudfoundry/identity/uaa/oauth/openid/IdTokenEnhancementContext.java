@@ -15,8 +15,7 @@ import java.util.Set;
  * <p>Carries the id_token claims assembled so far together with read-only access to the
  * inputs an enhancer may reason about: the {@link OAuth2Authentication} (possibly
  * {@code null} on the refresh flow), the claims of the access token issued in the same
- * response, the additional root claims associated with the refresh token, and the
- * configuration properties exposed to enhancers.</p>
+ * response, and the claims of the refresh token issued in the same response.</p>
  *
  * <p>Not thread-safe; a new instance is created for every token request.</p>
  */
@@ -26,7 +25,6 @@ public class IdTokenEnhancementContext {
     private final OAuth2Authentication authentication;
     private final Map<String, Object> accessTokenClaims;
     private final Map<String, Object> refreshTokenClaims;
-    private final Map<String, Object> properties;
     private final boolean allowClaimModification;
     private final Set<String> modifiedClaims = new LinkedHashSet<>();
     private final Set<String> rejectedClaimModifications = new LinkedHashSet<>();
@@ -36,13 +34,11 @@ public class IdTokenEnhancementContext {
             OAuth2Authentication authentication,
             Map<String, Object> accessTokenClaims,
             Map<String, Object> refreshTokenClaims,
-            Map<String, Object> properties,
             boolean allowClaimModification) {
         this.claims = new LinkedHashMap<>(idTokenClaims == null ? Collections.emptyMap() : idTokenClaims);
         this.authentication = authentication;
         this.accessTokenClaims = unmodifiableCopy(accessTokenClaims);
         this.refreshTokenClaims = unmodifiableCopy(refreshTokenClaims);
-        this.properties = unmodifiableCopy(properties);
         this.allowClaimModification = allowClaimModification;
     }
 
@@ -104,14 +100,6 @@ public class IdTokenEnhancementContext {
 
     public Object getRefreshTokenClaim(String name) {
         return refreshTokenClaims.get(name);
-    }
-
-    public Map<String, Object> getProperties() {
-        return properties;
-    }
-
-    public Object getProperty(String name) {
-        return properties.get(name);
     }
 
     public boolean isClaimModificationAllowed() {

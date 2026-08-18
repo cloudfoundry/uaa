@@ -12,10 +12,9 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
  *
  * <p>Through the supplied {@link IdTokenEnhancementContext} an implementation may:</p>
  * <ul>
- *   <li>read UAA configuration properties exposed to enhancers,</li>
  *   <li>read the current {@link org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication},</li>
  *   <li>read the claims of the access token issued in the same response,</li>
- *   <li>read the additional root claims associated with the refresh token, and</li>
+ *   <li>read the claims of the refresh token issued in the same response, and</li>
  *   <li>add new claims to the id_token.</li>
  * </ul>
  *

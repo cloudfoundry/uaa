@@ -26,7 +26,6 @@ class IdTokenEnhancementContextTest {
                 mock(OAuth2Authentication.class),
                 mapOf("scope", "openid"),
                 mapOf("jti", "refresh-jti"),
-                mapOf("acme.tenant", "blue"),
                 allowModification);
     }
 
@@ -53,20 +52,18 @@ class IdTokenEnhancementContextTest {
     }
 
     @Test
-    void exposesAuthenticationAccessRefreshAndProperties() {
+    void exposesAuthenticationAccessAndRefreshClaims() {
         OAuth2Authentication authentication = mock(OAuth2Authentication.class);
         IdTokenEnhancementContext context = new IdTokenEnhancementContext(
                 mapOf("sub", "marissa"),
                 authentication,
                 mapOf("scope", "openid", "client_id", "login"),
                 mapOf("jti", "refresh-jti"),
-                mapOf("acme.tenant", "blue"),
                 false);
 
         assertThat(context.getAuthentication()).isSameAs(authentication);
         assertThat(context.getAccessTokenClaim("scope")).isEqualTo("openid");
         assertThat(context.getRefreshTokenClaim("jti")).isEqualTo("refresh-jti");
-        assertThat(context.getProperty("acme.tenant")).isEqualTo("blue");
         assertThat(context.isClaimModificationAllowed()).isFalse();
     }
 

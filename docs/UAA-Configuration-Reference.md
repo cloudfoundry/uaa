@@ -1137,9 +1137,8 @@ ignored and the original value is preserved. Set to `true` to let enhancers repl
 value of existing claims. Adding brand-new claims never requires this flag.
 
 Enhancer implementations register as `IdTokenEnhancer` beans and read the
-`OAuth2Authentication`, the access-token claims, the refresh-token root claims, and any
-values under `jwt.token.idToken.enhancer.properties` through the supplied
-`IdTokenEnhancementContext`.
+`OAuth2Authentication`, the access-token claims, and the refresh-token claims through the
+supplied `IdTokenEnhancementContext`.
 
 [Back to table](#jwt-token-policy)
 

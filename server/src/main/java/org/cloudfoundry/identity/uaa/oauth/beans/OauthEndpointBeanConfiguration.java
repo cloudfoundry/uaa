@@ -793,8 +793,7 @@ public class OauthEndpointBeanConfiguration {
     ) {
         return new IdTokenClaimEnhancer(
                 idTokenEnhancers.orderedStream().toList(),
-                allowClaimModification,
-                Map.of());
+                allowClaimModification);
     }
 
     @Bean("refreshTokenCreator")

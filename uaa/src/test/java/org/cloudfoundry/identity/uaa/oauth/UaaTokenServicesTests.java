@@ -850,7 +850,7 @@ class UaaTokenServicesTests {
                 authInfo.put("refresh_token_expiration", enhancementContext.getRefreshTokenClaim("exp"));
                 enhancementContext.setClaim("auth_info", authInfo);
             };
-            tokenServices.setIdTokenClaimEnhancer(new IdTokenClaimEnhancer(List.of(authInfoEnhancer), false, Map.of()));
+            tokenServices.setIdTokenClaimEnhancer(new IdTokenClaimEnhancer(List.of(authInfoEnhancer), false));
 
             try {
                 AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, grantType, "openid");

@@ -507,7 +507,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
             Map<String, Object> idTokenClaims = idTokenClaimEnhancer.enhance(
-                    idTokenContent.getClaimMap(), authentication, jwtAccessToken, additionalRootClaims);
+                    idTokenContent.getClaimMap(), authentication, jwtAccessToken,
+                    decodeRefreshTokenClaims(refreshToken, additionalRootClaims));
             String encodedIdTokenContent = JwtHelper.encode(idTokenClaims, keyInfoService.getActiveKey()).getEncoded();
             compositeToken.setIdTokenValue(encodedIdTokenContent);
         }
@@ -515,6 +516,27 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
 
         return compositeToken;
+    }
+
+    /**
+     * Resolve the claims of the refresh token issued in the same response, for use as the
+     * {@code refreshTokenClaims} argument to {@link IdTokenClaimEnhancer#enhance}.
+     *
+     * <p>The refresh token value handed to {@link #createCompositeToken} is always the
+     * internally-issued JWT (opaque refresh tokens are only substituted in the response
+     * returned to the caller), so this decodes it directly. Falls back to
+     * {@code additionalRootClaims} when no refresh token was issued or it cannot be decoded
+     * as a JWT.</p>
+     */
+    private static Map<String, Object> decodeRefreshTokenClaims(String refreshToken, Map<String, Object> additionalRootClaims) {
+        if (refreshToken != null) {
+            try {
+                return JsonUtils.readValueAsMap(JwtHelper.decode(refreshToken).getClaims());
+            } catch (RuntimeException e) {
+                // not a JWT (e.g. an opaque refresh token); fall through to the default below
+            }
+        }
+        return additionalRootClaims == null ? Collections.emptyMap() : additionalRootClaims;
     }
 
     private static Map<String, Object> addRootClaimEntry(Map<String, Object> additionalRootClaims, String entry, String value) {
