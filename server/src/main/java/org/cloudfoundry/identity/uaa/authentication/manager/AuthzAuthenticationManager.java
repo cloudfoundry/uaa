@@ -77,6 +77,8 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         UaaUser user = getUaaUser(req);
 
         if (user == null) {
+            // To prevent timing attacks, we perform a dummy BCrypt hash check for non-empty passwords
+            // when the user is not found, ensuring the response time is similar to a valid user login.
             if (((CharSequence) req.getCredentials()).length() != 0) {
                 encoder.matches((CharSequence) req.getCredentials(), DUMMY_BCRYPT_HASH);
             }
