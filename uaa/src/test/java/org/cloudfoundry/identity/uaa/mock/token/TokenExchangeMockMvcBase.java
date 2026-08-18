@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -29,10 +28,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -359,7 +355,7 @@ public class TokenExchangeMockMvcBase extends AbstractTokenMockMvcTests {
                 ;
         switch (clientAuthType) {
             case BASIC -> {
-                String authHeader = new String(Base64.encodeBase64((client.getClientId()+":"+client.getClientSecret()).getBytes()));
+                String authHeader = new String(Base64.getEncoder().encode((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
                 tokenExchange = tokenExchange
                         .header("Authorization", "Basic " + authHeader)
                         .param("client_id", client.getClientId());

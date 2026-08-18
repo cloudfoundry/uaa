@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.oauth.pkce.verifiers;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,7 @@ public class S256PkceVerifier implements PkceVerifier {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(bytes, 0, bytes.length);
             byte[] digest = md.digest();
-            return Base64.encodeBase64URLSafeString(digest);
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
         } catch (UnsupportedEncodingException e) {
             logger.debug(e.getMessage(), e);
         } catch (NoSuchAlgorithmException e) {

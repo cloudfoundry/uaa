@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import tools.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -19,6 +18,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -77,7 +77,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
             ps.setString(pos++, appLaunchUrl == null ? null : appLaunchUrl.toString());
             String appIcon = resource.getAppIcon();
             if (appIcon != null) {
-                byte[] decodedAppIcon = Base64.decodeBase64(appIcon.getBytes());
+                byte[] decodedAppIcon = Base64.getMimeDecoder().decode(appIcon.getBytes());
                 ps.setBinaryStream(pos++, new ByteArrayInputStream(decodedAppIcon), decodedAppIcon.length);
             } else {
                 ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[]{}), 0);
@@ -119,7 +119,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
             }
             byte[] iconBytes = rs.getBytes("app_icon");
             if (iconBytes != null) {
-                clientMetadata.setAppIcon(Base64.encodeBase64String(iconBytes));
+                clientMetadata.setAppIcon(Base64.getEncoder().encodeToString(iconBytes));
             }
             clientMetadata.setCreatedBy(rs.getString("created_by"));
             String json = rs.getString("additional_information");

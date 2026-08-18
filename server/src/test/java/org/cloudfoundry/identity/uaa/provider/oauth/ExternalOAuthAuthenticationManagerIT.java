@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import tools.jackson.core.type.TypeReference;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.nimbusds.jose.JWSSigner;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -87,6 +86,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -323,7 +323,7 @@ class ExternalOAuthAuthenticationManagerIT {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(secretKey);
         byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        assertThat(new String(Base64.encodeBase64URLSafe(hmacData))).isEqualTo(externalOAuthAuthenticationManager.hmacSignAndEncode(data, key));
+        assertThat(new String(Base64.getUrlEncoder().withoutPadding().encode(hmacData))).isEqualTo(externalOAuthAuthenticationManager.hmacSignAndEncode(data, key));
     }
 
     @Test
@@ -546,7 +546,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         //UAA exchanges the code for a token
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andExpect(bodyContains(
                         "grant_type=authorization_code",
@@ -945,7 +945,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         mockToken();
         mockUaaServer.expect(requestTo("http://localhost/token_key"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json,application/jwk-set+json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
 
@@ -1276,7 +1276,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setTokenKeyUrl(new URL(keyUrl));
         mockToken();
         mockUaaServer.expect(requestTo(keyUrl))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json,application/jwk-set+json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
@@ -1320,7 +1320,7 @@ class ExternalOAuthAuthenticationManagerIT {
     private void mockToken() {
         String response = getIdTokenResponse();
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andExpect(bodyContains(
                         "grant_type=authorization_code",

@@ -15,7 +15,6 @@
 package org.cloudfoundry.identity.uaa.mock.util;
 
 import tools.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -106,6 +105,7 @@ import java.io.Serial;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -980,7 +980,7 @@ public final class MockMvcUtils {
             IdentityZone zone,
             boolean opaque) throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+                + new String(Base64.getEncoder().encode((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost =
                 post("/oauth/token")
                         .header("Authorization", basicDigestHeaderValue)
@@ -1025,7 +1025,7 @@ public final class MockMvcUtils {
 
     public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, TokenFormat tokenFormat) throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + clientSecret)
+                + new String(Base64.getEncoder().encode((clientId + ":" + clientSecret)
                 .getBytes()));
         UaaPrincipal p = new UaaPrincipal(userId, username, "test@test.org", OriginKeys.UAA, "", IdentityZone.getUaaZoneId());
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, null);

@@ -13,7 +13,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hc.client5.http.cookie.BasicCookieStore;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
@@ -48,6 +47,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -176,7 +176,7 @@ class OpenIdTokenGrantsIT {
     @Test
     void passwordGrant() {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64("cf:".getBytes()));
+                + new String(Base64.getEncoder().encode("cf:".getBytes()));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -319,7 +319,7 @@ class OpenIdTokenGrantsIT {
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+                + new String(Base64.getEncoder().encode((clientId + ":" + clientSecret).getBytes()));
         tokenHeaders.set("Authorization", basicDigestHeaderValue);
 
         @SuppressWarnings("rawtypes")

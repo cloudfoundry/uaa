@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -56,7 +55,7 @@ class LimitSqlAdapterFactoryTest {
         if (profiles == null) {
             System.clearProperty("spring.profiles.active");
         } else {
-            System.setProperty("spring.profiles.active", StringUtils.join(profiles, ","));
+            System.setProperty("spring.profiles.active", String.join(",", profiles));
         }
 
         assertThat(LimitSqlAdapterFactory.getLimitSqlAdapter().getClass()).isSameAs(expectedClazz);
@@ -65,7 +64,7 @@ class LimitSqlAdapterFactoryTest {
     @ParameterizedTest
     @ArgumentsSource(LimitSqlAdapterArgumentsProvider.class)
     void getLimitSqlAdapter_withStringProfiles(List<String> profiles, Class<?> expectedClazz) {
-        assertThat(LimitSqlAdapterFactory.getLimitSqlAdapter(StringUtils.join(profiles, ",")).getClass()).isSameAs(expectedClazz);
+        assertThat(LimitSqlAdapterFactory.getLimitSqlAdapter(String.join(",", profiles)).getClass()).isSameAs(expectedClazz);
     }
 
     @ParameterizedTest

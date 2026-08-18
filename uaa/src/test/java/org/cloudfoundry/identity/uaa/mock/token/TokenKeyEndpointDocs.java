@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -11,6 +10,7 @@ import org.springframework.restdocs.headers.HeaderDocumentation;
 import org.springframework.restdocs.headers.RequestHeadersSnippet;
 import org.springframework.restdocs.snippet.Snippet;
 
+import java.util.Base64;
 import java.util.Collections;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -112,7 +112,7 @@ class TokenKeyEndpointDocs extends EndpointDocs {
         setUp("key");
         try {
             String basicDigestHeaderValue = "Basic "
-                    + new String(Base64.encodeBase64("app:appclientsecret".getBytes()));
+                    + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes()));
 
             Snippet responseFields = responseFields(
                     fieldWithPath("kid").type(STRING).description("Key ID of key to be used for verification of the token."),
@@ -140,7 +140,7 @@ class TokenKeyEndpointDocs extends EndpointDocs {
     @Test
     void checkTokenKeysValues() throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64("app:appclientsecret".getBytes()));
+                + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes()));
 
         Snippet responseFields = responseFields(
                 fieldWithPath("keys.[].kid").type(STRING).description("Key ID of key to be used for verification of the token."),

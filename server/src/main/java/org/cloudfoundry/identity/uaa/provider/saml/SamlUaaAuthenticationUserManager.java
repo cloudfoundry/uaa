@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.UaaSamlPrincipal;
@@ -39,11 +38,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
@@ -187,11 +182,11 @@ public class SamlUaaAuthenticationUserManager implements ApplicationEventPublish
 
     protected static boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
         return existingUser.isVerified() != user.isVerified() ||
-                !StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) ||
-                !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
-                !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) ||
-                !StringUtils.equals(existingUser.getEmail(), user.getEmail()) ||
-                !StringUtils.equals(existingUser.getExternalId(), user.getExternalId());
+                !Objects.equals(existingUser.getGivenName(), user.getGivenName()) ||
+                !Objects.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
+                !Objects.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) ||
+                !Objects.equals(existingUser.getEmail(), user.getEmail()) ||
+                !Objects.equals(existingUser.getExternalId(), user.getExternalId());
     }
 
     protected UaaAuthentication getUaaAuthentication(String subjectName, Saml2AuthenticationToken authenticationToken, String alias, List<Assertion> assertions, List<String> sessionIndexess) {

@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.resources.jdbc;
 import java.util.Collection;
 
 import static org.apache.commons.lang3.StringUtils.contains;
-import static org.apache.commons.lang3.StringUtils.join;
 
 public class LimitSqlAdapterFactory {
 
@@ -28,7 +27,7 @@ public class LimitSqlAdapterFactory {
             return new HsqlDbLimitSqlAdapter();
         }
 
-        return getLimitSqlAdapter(join(profiles, ","));
+        return getLimitSqlAdapter(String.join(",", profiles));
     }
 
 }
