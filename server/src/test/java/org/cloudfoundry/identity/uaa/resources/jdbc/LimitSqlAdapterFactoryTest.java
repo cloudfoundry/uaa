@@ -64,7 +64,8 @@ class LimitSqlAdapterFactoryTest {
     @ParameterizedTest
     @ArgumentsSource(LimitSqlAdapterArgumentsProvider.class)
     void getLimitSqlAdapter_withStringProfiles(List<String> profiles, Class<?> expectedClazz) {
-        assertThat(LimitSqlAdapterFactory.getLimitSqlAdapter(String.join(",", profiles)).getClass()).isSameAs(expectedClazz);
+        String profileString = profiles == null ? null : String.join(",", profiles);
+        assertThat(LimitSqlAdapterFactory.getLimitSqlAdapter(profileString).getClass()).isSameAs(expectedClazz);
     }
 
     @ParameterizedTest
