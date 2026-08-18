@@ -786,28 +786,15 @@ public class OauthEndpointBeanConfiguration {
         );
     }
 
-    @Bean("idTokenEnhancerProperties")
-    Map<String, Object> idTokenEnhancerProperties(
-            @Value("#{@config['jwt']==null ? T(java.util.Collections).EMPTY_MAP : " +
-                    "@config['jwt.token']==null ? T(java.util.Collections).EMPTY_MAP :" +
-                    "@config['jwt.token.idToken']==null ? T(java.util.Collections).EMPTY_MAP :" +
-                    "@config['jwt.token.idToken.enhancer']==null ? T(java.util.Collections).EMPTY_MAP :" +
-                    "@config['jwt.token.idToken.enhancer.properties']==null ? T(java.util.Collections).EMPTY_MAP : @config['jwt.token.idToken.enhancer.properties']}")
-            Map<String, Object> properties
-    ) {
-        return properties;
-    }
-
     @Bean("idTokenClaimEnhancer")
     IdTokenClaimEnhancer idTokenClaimEnhancer(
             org.springframework.beans.factory.ObjectProvider<IdTokenEnhancer> idTokenEnhancers,
-            @Qualifier("idTokenEnhancerProperties") Map<String, Object> idTokenEnhancerProperties,
             @Value("${jwt.token.idToken.enhancer.allowClaimModification:false}") boolean allowClaimModification
     ) {
         return new IdTokenClaimEnhancer(
                 idTokenEnhancers.orderedStream().toList(),
                 allowClaimModification,
-                idTokenEnhancerProperties);
+                Map.of());
     }
 
     @Bean("refreshTokenCreator")
