@@ -31,6 +31,8 @@ public final class SessionUtils {
     private static final String EXTERNAL_OAUTH_REDIRECT_URI_ATTRIBUTE_PREFIX = "external-oauth-redirect-uri-";
     private static final String EXTERNAL_OAUTH_SUPERSEDED_STATE_ATTRIBUTE_PREFIX = "external-oauth-superseded-state-";
 
+    private static final String EXTERNAL_OAUTH_NONCE_ATTRIBUTE_PREFIX = "external-oauth-nonce-";
+
     /**
      * Upper bound on how many recently-superseded state values we remember per IDP origin.
      * Keeps the session footprint bounded while still tolerating a handful of concurrent tabs.
@@ -155,5 +157,9 @@ public final class SessionUtils {
 
     public static String supersededStateParameterAttributeKeyForIdp(String idpOriginKey) {
         return EXTERNAL_OAUTH_SUPERSEDED_STATE_ATTRIBUTE_PREFIX + idpOriginKey;
+    }
+
+    public static String nonceParameterAttributeKeyForIdp(String idpOriginKey) {
+        return EXTERNAL_OAUTH_NONCE_ATTRIBUTE_PREFIX + idpOriginKey;
     }
 }

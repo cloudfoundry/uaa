@@ -19,6 +19,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -735,8 +736,23 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             Jwt decodeIdToken = jwtToken.getJwt();
             log.debug("Deserializing id_token claims");
 
-            return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<>() {
+            Map<String, Object> claims = JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<>() {
             });
+            
+            if (config instanceof OIDCIdentityProviderDefinition) {
+                String nonceKey = SessionUtils.nonceParameterAttributeKeyForIdp(identityProvider.getOriginKey());
+                String expectedNonce = getSessionValue(nonceKey);
+                if (StringUtils.hasText(expectedNonce)) {
+                    Object tokenNonceObj = claims.get("nonce");
+                    String tokenNonce = tokenNonceObj instanceof String ? (String) tokenNonceObj : null;
+                    if (!expectedNonce.equals(tokenNonce)) {
+                        throw new InvalidTokenException("ID token nonce does not match session nonce");
+                    }
+                    clearSessionValue(nonceKey);
+                }
+            }
+            
+            return claims;
         }
     }
 
@@ -896,8 +912,20 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
             return (String) SessionUtils.getStateParam(attr.getRequest().getSession(false), value);
         } catch (Exception e) {
-            log.warn("Exception", e);
+            log.warn("Failed to get session value for {}", value, e);
             return "";
+        }
+    }
+
+    private void clearSessionValue(String value) {
+        try {
+            ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            HttpSession session = attr.getRequest().getSession(false);
+            if (session != null) {
+                session.removeAttribute(value);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to clear session value for {}", value, e);
         }
     }
 
