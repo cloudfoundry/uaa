@@ -741,8 +741,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     private static byte[] decodeBase64Lenient(String value) {
-        // Normalize url-safe alphabet to standard and add padding — mirrors Commons Codec Base64.decodeBase64() leniency
-        String normalized = value.replace('-', '+').replace('_', '/');
+        // Normalize url-safe alphabet to standard, strip whitespace, and add padding — mirrors Commons Codec Base64.decodeBase64() leniency
+        String normalized = value.replace('-', '+').replace('_', '/').replaceAll("\\s", "");
         int pad = (4 - normalized.length() % 4) % 4;
         normalized = normalized + "=".repeat(pad);
         return Base64.getDecoder().decode(normalized);
