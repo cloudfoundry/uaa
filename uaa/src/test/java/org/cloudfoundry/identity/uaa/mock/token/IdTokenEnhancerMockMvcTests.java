@@ -49,16 +49,7 @@ class IdTokenEnhancerMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     @DisplayName("an enhancer's nested claim on the id_token is derived from the real access- and refresh-token claims")
     void enhancerAddsNestedClaimDerivedFromRealAccessAndRefreshTokenClaims() throws Exception {
-        String clientId = "id-token-enhancer-client" + generator.generate();
-        setUpClients(clientId, "", "openid", "password,refresh_token", true);
-        ScimUser developer = setUpUser(
-                jdbcScimUserProvisioning,
-                jdbcScimGroupMembershipManager,
-                jdbcScimGroupProvisioning,
-                "testuser" + generator.generate(),
-                "openid",
-                OriginKeys.UAA,
-                IdentityZoneHolder.get().getId());
+        ClientAndUser clientAndUser = setUpClientAndUser();
 
         IdTokenEnhancer authInfoEnhancer = enhancementContext -> {
             Map<String, Object> authInfo = new HashMap<>();
@@ -69,21 +60,7 @@ class IdTokenEnhancerMockMvcTests extends AbstractTokenMockMvcTests {
         };
         tokenServices.setIdTokenClaimEnhancer(new IdTokenClaimEnhancer(List.of(authInfoEnhancer), false));
 
-        MvcResult result = mockMvc.perform(post("/oauth/token")
-                        .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED)
-                        .header(ACCEPT, "application/json")
-                        .param(GRANT_TYPE, "password")
-                        .param(CLIENT_ID, clientId)
-                        .param("client_secret", SECRET)
-                        .param("username", developer.getUserName())
-                        .param("password", SECRET)
-                        .param(SCOPE, "openid"))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        Map<String, Object> tokenResponse = JsonUtils.readValue(
-                result.getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {
-                });
+        Map<String, Object> tokenResponse = requestToken(clientAndUser);
         assertThat(tokenResponse).containsKey(ACCESS_TOKEN).containsKey(REFRESH_TOKEN);
 
         Map<String, Object> idTokenClaims = getClaimsForToken((String) tokenResponse.get("id_token"));
@@ -99,8 +76,71 @@ class IdTokenEnhancerMockMvcTests extends AbstractTokenMockMvcTests {
         assertThat(authInfo.get("refresh_token_expiration")).isEqualTo(refreshTokenClaims.get("exp"));
     }
 
+    @Test
+    @DisplayName("an enhancer cannot overwrite a core id_token claim when claim modification is not allowed")
+    void enhancerCannotOverwriteCoreClaimWithoutPermission() throws Exception {
+        ClientAndUser clientAndUser = setUpClientAndUser();
+
+        IdTokenEnhancer subOverwriter = enhancementContext -> enhancementContext.setClaim("sub", "attacker-controlled-subject");
+        tokenServices.setIdTokenClaimEnhancer(new IdTokenClaimEnhancer(List.of(subOverwriter), false));
+
+        Map<String, Object> tokenResponse = requestToken(clientAndUser);
+
+        Map<String, Object> idTokenClaims = getClaimsForToken((String) tokenResponse.get("id_token"));
+        assertThat(idTokenClaims.get("sub")).isEqualTo(clientAndUser.user().getId());
+    }
+
+    @Test
+    @DisplayName("an enhancer can overwrite a core id_token claim once claim modification is allowed")
+    void enhancerOverwritesCoreClaimWhenPermissionIsConfigured() throws Exception {
+        ClientAndUser clientAndUser = setUpClientAndUser();
+
+        IdTokenEnhancer subOverwriter = enhancementContext -> enhancementContext.setClaim("sub", "attacker-controlled-subject");
+        tokenServices.setIdTokenClaimEnhancer(new IdTokenClaimEnhancer(List.of(subOverwriter), true));
+
+        Map<String, Object> tokenResponse = requestToken(clientAndUser);
+
+        Map<String, Object> idTokenClaims = getClaimsForToken((String) tokenResponse.get("id_token"));
+        assertThat(idTokenClaims.get("sub")).isEqualTo("attacker-controlled-subject");
+    }
+
+    private ClientAndUser setUpClientAndUser() {
+        String clientId = "id-token-enhancer-client" + generator.generate();
+        setUpClients(clientId, "", "openid", "password,refresh_token", true);
+        ScimUser developer = setUpUser(
+                jdbcScimUserProvisioning,
+                jdbcScimGroupMembershipManager,
+                jdbcScimGroupProvisioning,
+                "testuser" + generator.generate(),
+                "openid",
+                OriginKeys.UAA,
+                IdentityZoneHolder.get().getId());
+        return new ClientAndUser(clientId, developer);
+    }
+
+    private Map<String, Object> requestToken(ClientAndUser clientAndUser) throws Exception {
+        MvcResult result = mockMvc.perform(post("/oauth/token")
+                        .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED)
+                        .header(ACCEPT, "application/json")
+                        .param(GRANT_TYPE, "password")
+                        .param(CLIENT_ID, clientAndUser.clientId())
+                        .param("client_secret", SECRET)
+                        .param("username", clientAndUser.user().getUserName())
+                        .param("password", SECRET)
+                        .param(SCOPE, "openid"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return JsonUtils.readValue(
+                result.getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {
+                });
+    }
+
     private static Map<String, Object> decodeClaims(String jwt) {
         return JsonUtils.readValue(JwtHelper.decode(jwt).getClaims(), new TypeReference<Map<String, Object>>() {
         });
+    }
+
+    private record ClientAndUser(String clientId, ScimUser user) {
     }
 }
