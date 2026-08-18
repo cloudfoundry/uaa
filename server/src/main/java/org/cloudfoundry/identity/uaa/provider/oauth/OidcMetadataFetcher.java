@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
@@ -164,7 +164,7 @@ public class OidcMetadataFetcher {
         if (config.getRelyingPartySecret() == null) {
             return null;
         }
-        String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
+        String clientAuth = Base64.getEncoder().encodeToString((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes(StandardCharsets.UTF_8));
         return "Basic " + clientAuth;
     }
 

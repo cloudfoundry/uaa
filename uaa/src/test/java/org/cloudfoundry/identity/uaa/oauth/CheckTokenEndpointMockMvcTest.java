@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import tools.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -63,7 +63,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
         });
         token = (String) tokenMap.get("access_token");
         idToken = (String) tokenMap.get("id_token");
-        basic = new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+        basic = new String(Base64.getEncoder().encode((clientId + ":" + clientSecret).getBytes()));
         allowQueryString = checkTokenEndpoint.isAllowQueryString();
         checkTokenEndpoint.setAllowQueryString(false);
     }

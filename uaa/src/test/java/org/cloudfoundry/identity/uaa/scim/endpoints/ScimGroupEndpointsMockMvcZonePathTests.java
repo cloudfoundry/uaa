@@ -4,7 +4,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Sets;
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -479,7 +479,7 @@ class ScimGroupEndpointsMockMvcZonePathTests {
 
             ScimUser zoneUser = createUserAndAddToGroups(result.getIdentityZone(), Sets.newHashSet(Collections.singletonList("scim.read")));
 
-            String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64((zonedClientId + ":" + zonedClientSecret).getBytes()));
+            String basicDigestHeaderValue = "Basic " + new String(Base64.getEncoder().encode((zonedClientId + ":" + zonedClientSecret).getBytes()));
             MockHttpServletRequestBuilder oauthTokenPost = mode.createRequestBuilder(result.getIdentityZone().getSubdomain(), HttpMethod.POST, "/oauth/token")
                     .header("Authorization", basicDigestHeaderValue)
                     .param("grant_type", "password")

@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -297,7 +297,7 @@ class TokenKeyEndpointMockMvcTests {
 
     private String getBasicAuth(UaaClientDetails client) {
         return "Basic "
-                + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
+                + new String(Base64.getEncoder().encode((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
     }
 
     private void validateKey(Map<String, Object> key) {

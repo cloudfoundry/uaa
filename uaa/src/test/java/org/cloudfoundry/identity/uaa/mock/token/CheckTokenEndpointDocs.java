@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -28,7 +28,7 @@ class CheckTokenEndpointDocs extends EndpointDocs {
 
     @Test
     void checkToken() throws Exception {
-        String identityClientAuthorizationWithUaaResource = new String(Base64.encodeBase64("app:appclientsecret".getBytes()));
+        String identityClientAuthorizationWithUaaResource = new String(Base64.getEncoder().encode("app:appclientsecret".getBytes()));
 
         String identityAccessToken = MockMvcUtils.getUserOAuthAccessToken(
                 mockMvc,

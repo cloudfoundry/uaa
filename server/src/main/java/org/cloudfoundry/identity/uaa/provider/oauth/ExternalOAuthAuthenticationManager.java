@@ -23,7 +23,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.apache.commons.lang3.ObjectUtils;
 import org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
@@ -675,7 +675,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             String data = signedRequests[1];
             Map<String, Object> jsonData;
             try {
-                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), StandardCharsets.UTF_8), new TypeReference<>() {
+                jsonData = JsonUtils.readValue(new String(decodeBase64Lenient(data), StandardCharsets.UTF_8), new TypeReference<>() {
                 });
                 //check signature algorithm
                 final var algorithm = Optional.ofNullable(jsonData)
@@ -687,8 +687,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 }
                 // check if data is signed correctly using constant-time comparison
                 try {
-                    byte[] expectedMac = Base64.decodeBase64(hmacSignAndEncode(signedRequests[1], secret));
-                    byte[] suppliedMac = Base64.decodeBase64(signature);
+                    byte[] expectedMac = decodeBase64Lenient(hmacSignAndEncode(signedRequests[1], secret));
+                    byte[] suppliedMac = decodeBase64Lenient(signature);
                     if (!MessageDigest.isEqual(expectedMac, suppliedMac)) {
                         log.debug("Signature is not correct, possibly the data was tampered with! No claims returned.");
                         return null;
@@ -738,6 +738,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<>() {
             });
         }
+    }
+
+    private static byte[] decodeBase64Lenient(String value) {
+        // Normalize url-safe alphabet to standard and add padding — mirrors Commons Codec Base64.decodeBase64() leniency
+        String normalized = value.replace('-', '+').replace('_', '/');
+        int pad = (4 - normalized.length() % 4) % 4;
+        normalized = normalized + "=".repeat(pad);
+        return Base64.getDecoder().decode(normalized);
     }
 
     protected String hmacSignAndEncode(String data, String key) {
@@ -902,7 +910,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition config) {
-        String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
+        String clientAuth = Base64.getEncoder().encodeToString((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes(StandardCharsets.UTF_8));
         return "Basic " + clientAuth;
     }
 
@@ -1008,7 +1016,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                     .getClientAuthenticationParameters(params, config, allowDynamicValueLookupInCustomZone);
         } else if (ClientAuthentication.secretNeeded(calcAuthMethod)) {
             String auth = clientId + ":" + clientSecret;
-            headers.add("Authorization", "Basic " + Base64.encodeBase64String(auth.getBytes(StandardCharsets.UTF_8)));
+            headers.add("Authorization", "Basic " + Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8)));
         } else {
             params.add(AbstractClientParametersAuthenticationFilter.CLIENT_ID, clientId);
         }

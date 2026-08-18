@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import tools.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
@@ -74,7 +74,7 @@ class CheckTokenEndpointMockMvcZonePathTest extends AbstractTokenMockMvcTests {
         });
         token = (String) tokenMap.get("access_token");
         idToken = (String) tokenMap.get("id_token");
-        basic = new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+        basic = new String(Base64.getEncoder().encode((clientId + ":" + clientSecret).getBytes()));
         allowQueryString = checkTokenEndpoint.isAllowQueryString();
         checkTokenEndpoint.setAllowQueryString(false);
     }
@@ -189,7 +189,7 @@ class CheckTokenEndpointMockMvcZonePathTest extends AbstractTokenMockMvcTests {
                 .andReturn().getResponse().getContentAsString();
         String zoneToken = JsonUtils.readValue(tokenResponse, new TypeReference<Map<String, Object>>() {}).get("access_token").toString();
 
-        String zoneBasic = new String(Base64.encodeBase64(("check-token-client:secret").getBytes()));
+        String zoneBasic = new String(Base64.getEncoder().encode(("check-token-client:secret").getBytes()));
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/check_token")
                         .header("Authorization", "Basic " + zoneBasic)
                         .header(ACCEPT, APPLICATION_JSON_VALUE)

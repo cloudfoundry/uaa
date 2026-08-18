@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.test;
 
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -28,7 +28,7 @@ public class TestClient {
     public String getClientCredentialsOAuthAccessToken(String clientId, String clientSecret, String scope, String subdomain)
             throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+                + Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")

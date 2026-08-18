@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -39,7 +39,7 @@ public class MockMvcTestClient {
     public String getOAuthAccessToken(String username, String password, String grantType, String scope)
             throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
+                + Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", grantType)

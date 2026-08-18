@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.integration;
 
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2ErrorHandler;
@@ -128,7 +128,7 @@ class RemoteAuthenticationEndpointTests {
     private String getScimReadBearerToken() {
         HttpHeaders accessTokenHeaders = new HttpHeaders();
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64((testAccounts.getAdminClientId() + ":" + testAccounts.getAdminClientSecret()).getBytes()));
+                + new String(Base64.getEncoder().encode((testAccounts.getAdminClientId() + ":" + testAccounts.getAdminClientSecret()).getBytes()));
         accessTokenHeaders.add("Authorization", basicDigestHeaderValue);
 
         LinkedMultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -142,7 +142,7 @@ class RemoteAuthenticationEndpointTests {
     private String getLoginReadBearerToken() {
         HttpHeaders accessTokenHeaders = new HttpHeaders();
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64("login:loginsecret".getBytes()));
+                + new String(Base64.getEncoder().encode("login:loginsecret".getBytes()));
         accessTokenHeaders.add("Authorization", basicDigestHeaderValue);
 
         LinkedMultiValueMap<String, String> params = new LinkedMultiValueMap<>();

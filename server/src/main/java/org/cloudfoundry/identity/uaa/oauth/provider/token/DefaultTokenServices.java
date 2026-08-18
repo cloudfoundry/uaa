@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.token;
 
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2RefreshToken;
@@ -261,7 +261,7 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
             return null;
         }
         int validitySeconds = getRefreshTokenValiditySeconds(authentication.getOAuth2Request());
-        String tokenValue = new String(Base64.encodeBase64URLSafe(DEFAULT_TOKEN_GENERATOR.generateKey()), US_ASCII);
+        String tokenValue = new String(Base64.getUrlEncoder().withoutPadding().encode(DEFAULT_TOKEN_GENERATOR.generateKey()), US_ASCII);
         if (validitySeconds > 0) {
             return new DefaultExpiringOAuth2RefreshToken(tokenValue, new Date(System.currentTimeMillis()
                     + (validitySeconds * 1000L)));
@@ -270,7 +270,7 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
     }
 
     private OAuth2AccessToken createAccessToken(OAuth2Authentication authentication, OAuth2RefreshToken refreshToken) {
-        String tokenValue = new String(Base64.encodeBase64URLSafe(DEFAULT_TOKEN_GENERATOR.generateKey()), US_ASCII);
+        String tokenValue = new String(Base64.getUrlEncoder().withoutPadding().encode(DEFAULT_TOKEN_GENERATOR.generateKey()), US_ASCII);
         DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(tokenValue);
         int validitySeconds = getAccessTokenValiditySeconds(authentication.getOAuth2Request());
         if (validitySeconds > 0) {

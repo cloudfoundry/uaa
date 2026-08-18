@@ -13,7 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
@@ -220,7 +220,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 
     private String getAuthorizationHeader(String clientId, String clientSecret) {
         String creds = "%s:%s".formatted(clientId, clientSecret);
-        return "Basic " + Base64.encodeBase64String((creds.getBytes(StandardCharsets.UTF_8)));
+        return "Basic " + Base64.getEncoder().encodeToString(creds.getBytes(StandardCharsets.UTF_8));
     }
 
     private Map<String, Object> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {

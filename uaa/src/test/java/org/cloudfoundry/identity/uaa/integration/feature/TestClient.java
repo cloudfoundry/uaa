@@ -13,7 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
@@ -51,7 +51,7 @@ public class TestClient {
     }
 
     String getBasicAuthHeaderValue(String username, String password) {
-        return "Basic " + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
+        return "Basic " + new String(Base64.getEncoder().encode((username + ":" + password).getBytes()));
     }
 
     public String getOAuthAccessToken(String username, String password, String grantType, String scope) {
