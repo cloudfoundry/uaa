@@ -35,10 +35,10 @@ public class BannerValidator {
     }
 
     private static final Pattern VALID_BASE64 =
-            Pattern.compile("^[A-Za-z0-9+/\\-_\\s]*={0,2}$");
+            Pattern.compile("^[A-Za-z0-9+/\\-_=\\s]*$");
 
     private static boolean isValidBase64(String value) {
-        // Accept standard and url-safe base64, with optional whitespace — matches Commons Codec Base64.isBase64()
+        // Accept standard and url-safe base64, including = anywhere — matches Commons Codec Base64.isBase64()
         return VALID_BASE64.matcher(value).matches();
     }
 }
