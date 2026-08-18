@@ -119,4 +119,21 @@ class ClientAuthenticationTest {
         assertThat(ClientAuthentication.isValidMethod(
                 ClientAuthentication.TLS_CLIENT_AUTH, false, true, true)).isFalse();
     }
+
+    @Test
+    void tlsClientAuthIsValidMethodWhenHasCaConfigAndMethodUnset() {
+        // method left null (unset), matching how getCalculatedMethod derives tls_client_auth
+        // from CA config alone -- see tlsClientAuthIsCalculatedWhenHasCaConfig above.
+        assertThat(ClientAuthentication.isValidMethod(null, false, false, true)).isTrue();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWhenMethodUnsetAndHasSecretAndCaConfig() {
+        assertThat(ClientAuthentication.isValidMethod(null, true, false, true)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWhenMethodUnsetAndHasKeyConfigAndCaConfig() {
+        assertThat(ClientAuthentication.isValidMethod(null, false, true, true)).isFalse();
+    }
 }

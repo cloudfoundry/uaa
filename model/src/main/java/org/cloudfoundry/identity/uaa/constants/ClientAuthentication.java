@@ -36,7 +36,7 @@ public final class ClientAuthentication {
             boolean hasKeyConfiguration, boolean hasCaConfig) {
         return isMethodSupported(method) && secretNeeded(method) && hasSecret && !hasKeyConfiguration && !hasCaConfig
                 || isMethodSupported(method) && PRIVATE_KEY_JWT.equals(method) && !hasSecret && hasKeyConfiguration && !hasCaConfig
-                || isMethodSupported(method) && TLS_CLIENT_AUTH.equals(method) && !hasSecret && !hasKeyConfiguration && hasCaConfig
+                || isMethodSupported(method) && (TLS_CLIENT_AUTH.equals(method) || method == null) && !hasSecret && !hasKeyConfiguration && hasCaConfig
                 || isMethodSupported(method) && (NONE.equals(method) || method == null) && !hasSecret && !hasKeyConfiguration && !hasCaConfig
                 || (method == null && (!hasSecret || !hasKeyConfiguration) && !hasCaConfig);
     }
