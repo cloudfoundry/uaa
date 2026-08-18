@@ -364,8 +364,8 @@ class TokenKeyEndpointMockMvcZonePathTests {
     }
 
     private void isUrlSafeBase64(String base64) {
-        java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
-        java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
+        Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+        Base64.Decoder decoder = Base64.getUrlDecoder();
         assertThat(encoder.encodeToString(decoder.decode(base64))).isEqualTo(base64);
     }
 }
