@@ -19,6 +19,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -897,7 +898,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private void clearSessionValue(String value) {
         try {
             ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
-            jakarta.servlet.http.HttpSession session = attr.getRequest().getSession(false);
+            HttpSession session = attr.getRequest().getSession(false);
             if (session != null) {
                 session.removeAttribute(value);
             }
