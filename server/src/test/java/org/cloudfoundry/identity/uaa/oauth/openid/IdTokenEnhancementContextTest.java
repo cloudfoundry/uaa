@@ -100,6 +100,34 @@ class IdTokenEnhancementContextTest {
             assertThat(context.setClaim("tenant", "blue")).isTrue();
             assertThat(context.getClaim("tenant")).isEqualTo("blue");
         }
+
+        @Test
+        void getClaim_returnsDeepCopyToPreventInPlaceMutation() {
+            IdTokenEnhancementContext context =
+                    context(mapOf("aud", new java.util.ArrayList<>(java.util.List.of("client1"))), false);
+
+            @SuppressWarnings("unchecked")
+            java.util.List<String> aud = (java.util.List<String>) context.getClaim("aud");
+            aud.add("attacker_client");
+
+            @SuppressWarnings("unchecked")
+            java.util.List<String> safeAud = (java.util.List<String>) context.getClaim("aud");
+            assertThat(safeAud).containsExactly("client1");
+        }
+
+        @Test
+        void getClaims_returnsDeepCopyToPreventInPlaceMutation() {
+            IdTokenEnhancementContext context =
+                    context(mapOf("aud", new java.util.ArrayList<>(java.util.List.of("client1"))), false);
+
+            @SuppressWarnings("unchecked")
+            java.util.List<String> aud = (java.util.List<String>) context.getClaims().get("aud");
+            aud.add("attacker_client");
+
+            @SuppressWarnings("unchecked")
+            java.util.List<String> safeAud = (java.util.List<String>) context.getClaim("aud");
+            assertThat(safeAud).containsExactly("client1");
+        }
     }
 
     @Nested

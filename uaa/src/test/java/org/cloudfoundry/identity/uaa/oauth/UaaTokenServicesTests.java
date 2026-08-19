@@ -885,6 +885,27 @@ class UaaTokenServicesTests {
             }
         }
 
+        @DisplayName("the enhancer receives empty refresh token claims when no refresh token is issued")
+        @Test
+        void enhancerReceivesEmptyRefreshTokenClaimsWhenNoneIssued() {
+            IdTokenEnhancer authInfoEnhancer = enhancementContext -> {
+                enhancementContext.setClaim("refresh_token_claims_size", enhancementContext.getRefreshTokenClaims().size());
+            };
+            tokenServices.setIdTokenClaimEnhancer(new IdTokenClaimEnhancer(List.of(authInfoEnhancer), false));
+
+            try {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, GRANT_TYPE_IMPLICIT, "openid");
+                OAuth2Authentication authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+
+                CompositeToken token = (CompositeToken) tokenServices.createAccessToken(authentication);
+
+                Map<String, Object> idClaims = decodeClaims(token.getIdTokenValue());
+                assertThat(idClaims.get("refresh_token_claims_size")).isEqualTo(0);
+            } finally {
+                tokenServices.setIdTokenClaimEnhancer(IdTokenClaimEnhancer.noOp());
+            }
+        }
+
         private Map<String, Object> decodeClaims(String jwt) {
             return JsonUtils.readValue(JwtHelper.decode(jwt).getClaims(), new TypeReference<Map<String, Object>>() {});
         }
