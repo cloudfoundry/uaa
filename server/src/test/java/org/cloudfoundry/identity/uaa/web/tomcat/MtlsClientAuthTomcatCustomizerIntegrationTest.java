@@ -107,7 +107,7 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
     private int startServer(boolean mtlsEnabled) throws Exception {
         KeyPair serverKeyPair = generateKeyPair();
         X500Name serverName = new X500Name("CN=localhost");
-        X509Certificate serverCert = signCert(serverName, serverName, serverKeyPair.getPublic(), serverKeyPair.getPrivate(), BigInteger.ONE);
+        X509Certificate serverCert = signCert(serverName, serverName, serverKeyPair.getPublic(), serverKeyPair.getPrivate(), false, BigInteger.ONE);
 
         Path keystorePath = tempDir.resolve("server.p12");
         KeyStore serverKeyStore = KeyStore.getInstance("PKCS12");
@@ -139,7 +139,7 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
     private SSLSocket clientSocketPresentingArbitraryCert(int port, AtomicBoolean clientCertRequested) throws Exception {
         KeyPair clientKeyPair = generateKeyPair();
         X500Name clientName = new X500Name("CN=arbitrary-untrusted-client");
-        X509Certificate clientCert = signCert(clientName, clientName, clientKeyPair.getPublic(), clientKeyPair.getPrivate(), BigInteger.TWO);
+        X509Certificate clientCert = signCert(clientName, clientName, clientKeyPair.getPublic(), clientKeyPair.getPrivate(), false, BigInteger.TWO);
 
         KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
         clientKeyStore.load(null, null);
@@ -238,12 +238,12 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
     }
 
     private static X509Certificate signCert(X500Name subject, X500Name issuer, PublicKey subjectKey,
-            PrivateKey signerKey, BigInteger serial) throws Exception {
+            PrivateKey signerKey, boolean isCa, BigInteger serial) throws Exception {
         Date notBefore = new Date(System.currentTimeMillis() - 60_000);
         Date notAfter = new Date(System.currentTimeMillis() + 3_600_000);
         JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
                 issuer, serial, notBefore, notAfter, subject, subjectKey);
-        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(true));
+        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(isCa));
         ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA")
                 .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
                 .build(signerKey);
