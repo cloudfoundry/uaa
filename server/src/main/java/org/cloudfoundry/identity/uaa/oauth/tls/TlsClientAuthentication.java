@@ -37,38 +37,6 @@ public class TlsClientAuthentication {
     private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthentication.class);
 
     /**
-     * Returns the first X.509 certificate from the current request's
-     * {@code jakarta.servlet.request.X509Certificate} attribute
-     * (populated by the ClientCertificateMapper filter).
-     *
-     * @return the client certificate, or {@code null} if none is present
-     */
-    public X509Certificate getCertificateFromRequest() {
-        X509Certificate[] chain = getCertificateChainFromRequest();
-        return (chain != null && chain.length > 0) ? chain[0] : null;
-    }
-
-    /**
-     * Returns the full X.509 certificate chain from the current request's
-     * {@code jakarta.servlet.request.X509Certificate} attribute
-     * (populated by the ClientCertificateMapper filter).
-     * Index 0 is the end-entity (leaf) certificate.
-     *
-     * @return the client certificate chain, or {@code null} if none is present
-     */
-    public X509Certificate[] getCertificateChainFromRequest() {
-        ServletRequestAttributes attrs =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attrs == null) {
-            return null;
-        }
-        HttpServletRequest request = attrs.getRequest();
-        X509Certificate[] certs = (X509Certificate[])
-                request.getAttribute("jakarta.servlet.request.X509Certificate");
-        return (certs != null && certs.length > 0) ? certs : null;
-    }
-
-    /**
      * Returns {@code true} when any certificate derived from the {@code X-Forwarded-Client-Cert}
      * header is present on the current request, regardless of whether it is trustworthy. This is a
      * cheap, non-trust-deciding presence check intended as an early exit before resolving a client's

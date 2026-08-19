@@ -80,8 +80,9 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
      */
     @Override
     public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
-        X509Certificate cert = tlsClientAuthentication.getCertificateFromRequest();
-        if (cert == null) {
+        // Cheap presence-only check (no trust decision, no database lookup) -- avoids resolving the
+        // client's TlsClientAuthConfiguration at all when there is clearly nothing to process.
+        if (!tlsClientAuthentication.hasCertificateFromRequest()) {
             return new HashMap<>();
         }
 
@@ -106,6 +107,13 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             config = loadTlsConfig(clientDetails.getAdditionalInformation());
         }
         if (!TlsClientAuthConfiguration.isConfigured(config)) {
+            return new HashMap<>();
+        }
+
+        // Now do the real, per-client trust decision: only a certificate validated against *this
+        // client's* tls-client-auth-trusted-proxy-ca is used from here on.
+        X509Certificate cert = tlsClientAuthentication.getCertificateFromRequest(config);
+        if (cert == null) {
             return new HashMap<>();
         }
 
