@@ -327,7 +327,7 @@ class ClientAdminEndpointsValidatorTests {
 
         assertThatThrownBy(() -> mtlsDisabledValidator.validate(client, false, false))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls_enabled");
+                .hasMessageContaining("uaa.mtls-enabled");
     }
 
     @Test
@@ -342,7 +342,7 @@ class ClientAdminEndpointsValidatorTests {
 
         assertThatThrownBy(() -> mtlsDisabledValidator.validate(client, false, false))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls_enabled");
+                .hasMessageContaining("uaa.mtls-enabled");
     }
 
     @Test

@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -13,11 +14,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,8 +38,12 @@ class ZoneEndpointsClientDetailsValidatorTests {
     @Mock
     private ClientSecretValidator mockClientSecretValidator;
 
-    @InjectMocks
     private ZoneEndpointsClientDetailsValidator zoneEndpointsClientDetailsValidator;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, false);
+    }
 
     @Test
     void createLimitedClient() {
@@ -105,5 +111,53 @@ class ZoneEndpointsClientDetailsValidatorTests {
     void createAdminAuthorityClientIsInvalid() {
         ClientDetails clientDetails = new UaaClientDetails("admin-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.admin");
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+    }
+
+    @Test
+    void rejectsTlsClientAuthCaWhenMtlsDisabled() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, false);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.setClientSecret("secret");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls-enabled");
+    }
+
+    @Test
+    void allowsTlsClientAuthCaWhenMtlsEnabled() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.setClientSecret("secret");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem");
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        ClientDetails validated = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
+
+        assertThat(validated.getAdditionalInformation())
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem")
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem");
+    }
+
+    @Test
+    void allowsClientWithoutMtlsFieldsWhenMtlsDisabled() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, false);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+
+        ClientDetails validated = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
+
+        assertThat(validated.getClientId()).isEqualTo(clientDetails.getClientId());
     }
 }

@@ -128,15 +128,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
 
-        if (!mtlsEnabled) {
-            Map<String, Object> additionalInfo = client.getAdditionalInformation();
-            if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
-                    || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
-                throw new InvalidClientDetailsException(
-                        "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls_enabled "
-                                + "to be true on this UAA deployment");
-            }
-        }
+        checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled);
 
         String clientId = client.getClientId();
         if (create) {
@@ -364,6 +356,16 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
                         + VALID_GRANTS.toString());
             }
+        }
+    }
+
+    public static void checkMtlsClientConfigAllowed(Map<String, Object> additionalInfo, boolean mtlsEnabled) {
+        if (!mtlsEnabled
+                && (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                        || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA))) {
+            throw new InvalidClientDetailsException(
+                    "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls-enabled "
+                            + "to be true on this UAA deployment");
         }
     }
 

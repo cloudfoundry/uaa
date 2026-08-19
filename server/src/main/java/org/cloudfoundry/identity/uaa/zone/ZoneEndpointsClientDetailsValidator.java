@@ -6,12 +6,14 @@ import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 
+import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed;
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkRequestedGrantTypes;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
@@ -27,10 +29,13 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
 
     private static final String REQUIRED_SCOPE = "zones.write";
     private final ClientSecretValidator clientSecretValidator;
+    private final boolean mtlsEnabled;
 
     public ZoneEndpointsClientDetailsValidator(
-            final ClientSecretValidator clientSecretValidator) {
+            final ClientSecretValidator clientSecretValidator,
+            @Value("${uaa.mtls-enabled:false}") final boolean mtlsEnabled) {
         this.clientSecretValidator = clientSecretValidator;
+        this.mtlsEnabled = mtlsEnabled;
     }
 
     @Override
@@ -47,6 +52,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                 throw new InvalidClientDetailsException("client_id cannot be blank");
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
+            checkMtlsClientConfigAllowed(clientDetails.getAdditionalInformation(), mtlsEnabled);
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
