@@ -47,4 +47,33 @@ class ClientDetailsAuthenticationProviderTests {
         assertThat(config.getTrustedCaPem())
             .isEqualTo("-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n");
     }
+
+    @Test
+    void getTlsClientAuthConfigurationReadsTrustedProxyCaFromFlatStringPath() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        when(uaaClient.getAdditionalInformation()).thenReturn(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem"
+        ));
+
+        TlsClientAuthConfiguration config =
+                ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(uaaClient);
+
+        assertThat(config).isNotNull();
+        assertThat(config.getTrustedProxyCaPem()).isEqualTo("proxy-ca-pem");
+    }
+
+    @Test
+    void getTlsClientAuthConfigurationTrustedProxyCaNullWhenAbsent() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        when(uaaClient.getAdditionalInformation()).thenReturn(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem"
+        ));
+
+        TlsClientAuthConfiguration config =
+                ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(uaaClient);
+
+        assertThat(config).isNotNull();
+        assertThat(config.getTrustedProxyCaPem()).isNull();
+    }
 }
