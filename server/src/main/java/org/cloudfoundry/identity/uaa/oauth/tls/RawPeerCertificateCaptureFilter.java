@@ -22,11 +22,16 @@ import java.io.IOException;
  *
  * <p>This filter must be registered to run <em>before</em> {@code ClientCertificateMapper} so that the
  * genuine peer certificate is preserved in a dedicated attribute
- * ({@link #RAW_PEER_CERTIFICATE_ATTRIBUTE}). Later code can then compare "what the immediate TLS peer
- * actually presented" against "what the {@code X-Forwarded-Client-Cert} header claims" to confirm the
- * header was genuinely set by a trusted proxy (e.g. the Gorouter) rather than a direct caller spoofing it.
- * That comparison is expected to be implemented by a future
- * {@code TlsClientAuthentication.isCertificateFromTrustedProxy(TlsClientAuthConfiguration)} method.
+ * ({@link #RAW_PEER_CERTIFICATE_ATTRIBUTE}). This is what allows
+ * {@link TlsClientAuthentication#isCertificateFromTrustedProxy(org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration)}
+ * to validate "what the immediate TLS peer actually presented" (this attribute) against a specific
+ * client's configured {@code tls-client-auth-trusted-proxy-ca}, confirming the
+ * {@code X-Forwarded-Client-Cert} header was genuinely set by a trusted proxy (e.g. the Gorouter)
+ * rather than a direct caller spoofing it -- the actual value returned to callers (e.g. via
+ * {@link TlsClientAuthentication#getCertificateFromRequest(org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration)})
+ * still comes from the standard, XFCC-derived {@code jakarta.servlet.request.X509Certificate}
+ * attribute -- this filter's captured value is used only for the trust check, never as the
+ * authenticated client certificate itself.
  */
 public class RawPeerCertificateCaptureFilter implements Filter {
 
