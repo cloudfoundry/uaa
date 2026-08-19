@@ -304,10 +304,18 @@ class UaaHttpRequestUtilsTest {
             chainedUrl = "https://localhost:" + chainedServer.getAddress().getPort() + "/";
         }
 
+        /**
+         * Null-guarded so that a failure part-way through {@link #startChainedServer()} surfaces its
+         * own cause rather than being masked by a NullPointerException here.
+         */
         @AfterEach
         void stopChainedServer() throws Exception {
-            chainedServer.stop(0);
-            Files.deleteIfExists(chained.file().toPath());
+            if (chainedServer != null) {
+                chainedServer.stop(0);
+            }
+            if (chained != null) {
+                Files.deleteIfExists(chained.file().toPath());
+            }
         }
 
         /**

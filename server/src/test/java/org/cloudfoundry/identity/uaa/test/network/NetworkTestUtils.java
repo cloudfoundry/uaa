@@ -228,8 +228,11 @@ public class NetworkTestUtils {
 
         char[] password = keypass.toCharArray();
         KeyStore ks = KeyStore.getInstance("JKS");
-        FileInputStream fis = new FileInputStream(keystore);
-        ks.load(fis, password);
+        // Must be closed: callers that delete the keystore afterwards cannot do so on Windows
+        // while a handle to it is still open.
+        try (FileInputStream fis = new FileInputStream(keystore)) {
+            ks.load(fis, password);
+        }
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
         kmf.init(ks, password);
