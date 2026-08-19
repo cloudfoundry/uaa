@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.Serializable;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MtlsClaimsEnhancerTest {
@@ -364,6 +366,33 @@ class MtlsClaimsEnhancerTest {
         @SuppressWarnings("unchecked")
         List<String> aud = (List<String>) result.get("aud");
         assertThat(aud).containsExactly("app/app-guid");
+    }
+
+    @Test
+    void stringPathInAdditionalInformationLoadsTrustedProxyCa() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        // Do NOT call setTlsClientAuthConfiguration — use String values directly, mirroring how
+        // additionalInformation looks once round-tripped through the DB/JDBC.
+        clientDetails.setAdditionalInformation(Map.of(
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBproxy\n-----END CERTIFICATE-----\n"
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        ArgumentCaptor<TlsClientAuthConfiguration> configCaptor =
+                ArgumentCaptor.forClass(TlsClientAuthConfiguration.class);
+        verify(tlsClientAuthentication).getCertificateFromRequest(configCaptor.capture());
+        assertThat(configCaptor.getValue().getTrustedProxyCaPem())
+                .isEqualTo("-----BEGIN CERTIFICATE-----\nMIIBproxy\n-----END CERTIFICATE-----\n");
     }
 
     @Test
