@@ -38,7 +38,12 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
