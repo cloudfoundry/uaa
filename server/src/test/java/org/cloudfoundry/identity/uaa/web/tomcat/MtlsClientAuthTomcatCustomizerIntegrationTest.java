@@ -90,6 +90,37 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
                 .isTrue();
     }
 
+    /**
+     * Regression test for a real-deployment finding (Task 14 end-to-end verification): Tomcat's own
+     * startup log emits "The JSSE TLS 1.3 implementation does not support post handshake
+     * authentication (PHA) and is therefore incompatible with optional certificate authentication" --
+     * and on at least one JDK build used in a real BOSH-deployed environment, a TLS 1.3 handshake
+     * against this connector never sends a {@code CertificateRequest} at all (confirmed empirically
+     * via {@code openssl s_client -tls1_3} against a live instance, compared against
+     * {@code -tls1_2} which does send one). Tomcat's own documented workaround for this exact
+     * incompatibility is to exclude TLSv1.3 from the connector's enabled protocols
+     * ({@code protocols="all,-TLSv1.3"}) whenever {@code certificateVerification=optionalNoCA} is in
+     * use. This test asserts the customizer actually negotiates TLSv1.2 (not TLSv1.3) even when the
+     * client is willing to speak both -- which is what actually prevents the silent-no-CertificateRequest
+     * failure mode in production, independent of whether any particular local JDK happens to dodge the
+     * underlying JSSE limitation.
+     */
+    @Test
+    void negotiatesTlsV12NotTlsV13WhenMtlsEnabled() throws Exception {
+        int port = startServer(true);
+
+        try (SSLSocket socket = clientSocketOfferingBothTls12And13(port)) {
+            socket.startHandshake();
+
+            assertThat(socket.getSession().getProtocol())
+                    .as("connector must not negotiate TLSv1.3 when optionalNoCA client-auth is in "
+                            + "effect, since JSSE's TLS 1.3 implementation cannot request a client "
+                            + "certificate without post-handshake authentication (PHA), which it does "
+                            + "not support -- see MtlsClientAuthTomcatCustomizer's Javadoc")
+                    .isEqualTo("TLSv1.2");
+        }
+    }
+
     @Test
     void doesNotRequestAClientCertificateWhenMtlsDisabled() throws Exception {
         int port = startServer(false);
@@ -154,6 +185,32 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
         sslContext.init(trackingKeyManagers, new TrustManager[]{trustAnyServerCertificate()}, null);
 
         return (SSLSocket) sslContext.getSocketFactory().createSocket("localhost", port);
+    }
+
+    /**
+     * A client socket configured to offer both TLSv1.2 and TLSv1.3, presenting an arbitrary
+     * untrusted certificate if asked. Used to verify which protocol the connector actually
+     * negotiates when both are available to the client (see
+     * {@link #negotiatesTlsV12NotTlsV13WhenMtlsEnabled()}).
+     */
+    private SSLSocket clientSocketOfferingBothTls12And13(int port) throws Exception {
+        KeyPair clientKeyPair = generateKeyPair();
+        X500Name clientName = new X500Name("CN=arbitrary-untrusted-client");
+        X509Certificate clientCert = signCert(clientName, clientName, clientKeyPair.getPublic(), clientKeyPair.getPrivate(), false, BigInteger.valueOf(3));
+
+        KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
+        clientKeyStore.load(null, null);
+        clientKeyStore.setKeyEntry("client", clientKeyPair.getPrivate(), KEYSTORE_PASSWORD, new X509Certificate[]{clientCert});
+
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(clientKeyStore, KEYSTORE_PASSWORD);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), new TrustManager[]{trustAnyServerCertificate()}, null);
+
+        SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket("localhost", port);
+        socket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.3"});
+        return socket;
     }
 
     /**

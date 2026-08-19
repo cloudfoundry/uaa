@@ -19,6 +19,20 @@ import org.springframework.stereotype.Component;
  * need to be kept in sync with whatever CA(s) are configured per-client at runtime via the client-admin
  * API, which is an operational hazard.
  *
+ * <p>Also disables TLSv1.3 on this connector ({@code protocols="all,-TLSv1.3"}). This works around a
+ * real, confirmed limitation of JSSE's TLS 1.3 implementation: requesting a client certificate
+ * without also requiring/validating it against a CA (i.e. {@code optionalNoCA}, or Tomcat's other
+ * {@code optional} mode) relies on the server being able to request the certificate again later via
+ * post-handshake authentication (PHA) if it wasn't sent upfront -- and JSSE's TLS 1.3 implementation
+ * does not support PHA (Tomcat itself logs this exact incompatibility at startup:
+ * "The JSSE TLS 1.3 implementation does not support post handshake authentication (PHA) and is
+ * therefore incompatible with optional certificate authentication"). In practice, on at least one real
+ * JDK build this means the server silently never sends a {@code CertificateRequest} at all under TLS
+ * 1.3, so no client certificate -- trusted or not -- is ever captured, silently defeating this entire
+ * feature. Confirmed empirically against a live deployment via {@code openssl s_client}: {@code -tls1_2}
+ * receives a {@code CertificateRequest}; {@code -tls1_3} does not. Restricting this connector to
+ * TLSv1.2 is Tomcat's own documented workaround for this exact incompatibility.
+ *
  * <p>Runs after Spring Boot's own SSL connector configuration so it can override the already-configured
  * {@link SSLHostConfig}(s) on the connector.
  */
@@ -39,6 +53,7 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
         factory.addConnectorCustomizers(connector -> {
             for (SSLHostConfig sslHostConfig : connector.findSslHostConfigs()) {
                 sslHostConfig.setCertificateVerification("optionalNoCA");
+                sslHostConfig.setProtocols("all,-TLSv1.3");
             }
         });
     }
