@@ -16,15 +16,32 @@
 package org.cloudfoundry.identity.uaa.test.network;
 
 import com.sun.net.httpserver.*;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.springframework.http.HttpHeaders;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import javax.net.ssl.*;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.List;
@@ -32,6 +49,7 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.cloudfoundry.identity.uaa.util.SocketUtils.getSelfCertificate;
 
@@ -46,6 +64,7 @@ public class NetworkTestUtils {
     public static final String keyPass = "password";
 
     static RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private static final AtomicLong serialNumbers = new AtomicLong();
 
     public static File getKeystore(Date issueDate,
             long validityDays) throws Exception {
@@ -96,6 +115,97 @@ public class NetworkTestUtils {
         }
         keyStore.store(new FileOutputStream(keystore, false), keyPass.toCharArray());
         return keystore;
+    }
+
+    /**
+     * A keystore whose single key entry holds a full leaf -&gt; intermediate -&gt; root certificate
+     * chain. The individual certificates are exposed so tests can assert on the chain or feed the
+     * root to a trust store.
+     */
+    public record ChainedKeystore(File file,
+            X509Certificate rootCertificate,
+            X509Certificate intermediateCertificate,
+            X509Certificate leafCertificate) {
+    }
+
+    /**
+     * Builds a keystore containing a three-certificate chain (leaf -&gt; intermediate -&gt; root) for
+     * {@code localhost}, in contrast to {@link #getKeystore(Date, long)}, which produces a single
+     * self-signed certificate. A server started with this presents all three certificates during
+     * the TLS handshake, the way a real identity provider behind a CA hierarchy does.
+     * <p>
+     * This distinction matters: a trust strategy that keys off {@code chain.length == 1} behaves
+     * completely differently against this keystore than against the single-certificate one.
+     */
+    public static ChainedKeystore getChainedKeystore(Date issueDate, long validityDays) throws Exception {
+        Security.addProvider(new BouncyCastleFipsProvider());
+
+        long validForSeconds = validityDays * 24 * 60 * 60;
+
+        KeyPair rootKeyPair = generateKeyPair();
+        KeyPair intermediateKeyPair = generateKeyPair();
+        KeyPair leafKeyPair = generateKeyPair();
+
+        X500Name rootName = distinguishedName("UAA Test Root CA");
+        X500Name intermediateName = distinguishedName("UAA Test Intermediate CA");
+        X500Name leafName = distinguishedName(commonName);
+
+        X509Certificate root = issueCertificate(rootName, rootKeyPair.getPublic(),
+                rootName, rootKeyPair.getPrivate(), issueDate, validForSeconds, true, null);
+        X509Certificate intermediate = issueCertificate(intermediateName, intermediateKeyPair.getPublic(),
+                rootName, rootKeyPair.getPrivate(), issueDate, validForSeconds, true, null);
+        X509Certificate leaf = issueCertificate(leafName, leafKeyPair.getPublic(),
+                intermediateName, intermediateKeyPair.getPrivate(), issueDate, validForSeconds, false, commonName);
+
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(null, null);
+        keyStore.setKeyEntry(alias, leafKeyPair.getPrivate(), keyPass.toCharArray(),
+                new X509Certificate[]{leaf, intermediate, root});
+
+        File keystoreFile = new File(System.getProperty("java.io.tmpdir"), generator.generate() + ".jks");
+        if (!keystoreFile.createNewFile()) {
+            throw new FileNotFoundException("Unable to create file:" + keystoreFile);
+        }
+        keyStore.store(new FileOutputStream(keystoreFile, false), keyPass.toCharArray());
+
+        return new ChainedKeystore(keystoreFile, root, intermediate, leaf);
+    }
+
+    private static KeyPair generateKeyPair() throws Exception {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        return keyPairGenerator.generateKeyPair();
+    }
+
+    private static X500Name distinguishedName(String cn) {
+        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
+        builder.addRDN(BCStyle.OU, organizationalUnit);
+        builder.addRDN(BCStyle.O, organization);
+        builder.addRDN(BCStyle.CN, cn);
+        return builder.build();
+    }
+
+    private static X509Certificate issueCertificate(X500Name subject, PublicKey subjectPublicKey,
+            X500Name issuer, PrivateKey issuerPrivateKey,
+            Date issueDate, long validForSeconds,
+            boolean certificateAuthority, String dnsSubjectAltName) throws Exception {
+        Date notAfter = Date.from(issueDate.toInstant().plusSeconds(validForSeconds));
+        JcaX509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(issuer,
+                BigInteger.valueOf(serialNumbers.incrementAndGet()), issueDate, notAfter, subject, subjectPublicKey);
+
+        certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(certificateAuthority));
+        certGen.addExtension(Extension.keyUsage, true, certificateAuthority
+                ? new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign)
+                : new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment));
+        if (dnsSubjectAltName != null) {
+            certGen.addExtension(Extension.subjectAlternativeName, false,
+                    new GeneralNames(new GeneralName(GeneralName.dNSName, dnsSubjectAltName)));
+        }
+
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA")
+                .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME).build(issuerPrivateKey);
+        return new JcaX509CertificateConverter()
+                .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME).getCertificate(certGen.build(signer));
     }
 
     public static HttpServer startHttpServer(HttpHandler handler) throws Exception {
