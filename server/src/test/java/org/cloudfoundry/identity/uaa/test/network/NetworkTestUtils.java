@@ -166,7 +166,9 @@ public class NetworkTestUtils {
         if (!keystoreFile.createNewFile()) {
             throw new FileNotFoundException("Unable to create file:" + keystoreFile);
         }
-        keyStore.store(new FileOutputStream(keystoreFile, false), keyPass.toCharArray());
+        try (FileOutputStream out = new FileOutputStream(keystoreFile, false)) {
+            keyStore.store(out, keyPass.toCharArray());
+        }
 
         return new ChainedKeystore(keystoreFile, root, intermediate, leaf);
     }
