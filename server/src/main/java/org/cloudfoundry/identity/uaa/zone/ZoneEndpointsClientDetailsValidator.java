@@ -52,7 +52,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                 throw new InvalidClientDetailsException("client_id cannot be blank");
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
-            checkMtlsClientConfigAllowed(clientDetails.getAdditionalInformation(), mtlsEnabled);
+            checkMtlsClientConfigAllowed(clientDetails.getAdditionalInformation(), mtlsEnabled, clientDetails.getClientId());
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||

@@ -220,7 +220,7 @@ public class ClientAdminBootstrap implements
             }
 
             client.setAdditionalInformation(info);
-            ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled);
+            ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, clientId);
 
             ClientJwtConfiguration keyConfig = null;
             if (map.get(JWKS_URI) instanceof String || map.get(JWKS) instanceof String) {

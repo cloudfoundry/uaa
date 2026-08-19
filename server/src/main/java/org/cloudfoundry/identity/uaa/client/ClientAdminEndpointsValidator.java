@@ -128,7 +128,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
 
-        checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled);
+        checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, client.getClientId());
 
         String clientId = client.getClientId();
         if (create) {
@@ -359,13 +359,13 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
     }
 
-    public static void checkMtlsClientConfigAllowed(Map<String, Object> additionalInfo, boolean mtlsEnabled) {
+    public static void checkMtlsClientConfigAllowed(Map<String, Object> additionalInfo, boolean mtlsEnabled, String clientId) {
         if (!mtlsEnabled
                 && (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
                         || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA))) {
             throw new InvalidClientDetailsException(
                     "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls-enabled "
-                            + "to be true on this UAA deployment");
+                            + "to be true on this UAA deployment. ClientID: " + clientId);
         }
     }
 
