@@ -39,6 +39,7 @@ import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -88,6 +89,44 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
         assertThat(clientCertRequested)
                 .as("server should have requested a client certificate (certificateVerification=optionalNoCA)")
                 .isTrue();
+    }
+
+    /**
+     * Regression test for a real-deployment finding (Task 14 end-to-end verification): even with
+     * {@code certificateVerification=optionalNoCA}, Tomcat/JSSE still populates the
+     * {@code CertificateRequest}'s "certificate_authorities" field from the connector's trust store --
+     * which, absent any explicit trust store configuration, falls back to the JVM's default
+     * {@code cacerts} (a large list of public root CAs). Confirmed empirically against a live
+     * deployment via {@code openssl s_client -tls1_2}, whose "Acceptable client certificate CA names"
+     * output listed only unrelated public root CAs (Certainly, Cybertrust, QuoVadis, etc.), never
+     * {@code service_cf_internal_ca} (the CA that signs the Gorouter's own backend mTLS certificate).
+     * Go's {@code crypto/tls} client (used by the real Gorouter) correctly implements TLS's client
+     * certificate selection rules: when none of its available certificates' issuers appear in that
+     * list, it sends an <em>empty</em> Certificate message rather than presenting a cert the server
+     * didn't ask for -- confirmed via packet capture showing a zero-length certificate_list. The
+     * existing {@link #requestsAndAcceptsAnUntrustedClientCertificateWhenMtlsEnabled()} test only
+     * verifies the client's {@code chooseClientAlias} callback fires (proving a
+     * {@code CertificateRequest} was sent) -- not that an alias was actually chosen and a certificate
+     * actually transmitted, so it did not catch this. This test checks the KeyManager's actual return
+     * value (the alias it chose, or {@code null} if none matched), which is what real TLS clients like
+     * Go's use to decide whether to present a certificate at all.
+     */
+    @Test
+    void chosenClientAliasIsNotNullEvenWhenCertIssuerIsNotInDefaultCaCerts() throws Exception {
+        int port = startServer(true);
+        AtomicReference<String> chosenAlias = new AtomicReference<>("not-yet-invoked");
+
+        try (SSLSocket socket = clientSocketTrackingChosenAlias(port, chosenAlias)) {
+            socket.startHandshake();
+        }
+
+        assertThat(chosenAlias)
+                .as("the KeyManager must actually choose an alias (not null) for a certificate whose "
+                        + "issuer is not in the JVM's default cacerts -- otherwise real TLS clients "
+                        + "(e.g. Go's crypto/tls, used by the Gorouter) will send an empty certificate "
+                        + "message instead of the client cert, silently defeating this entire feature "
+                        + "for any backend TLS connection whose CA isn't a public root CA")
+                .doesNotHaveValue(null);
     }
 
     /**
@@ -185,6 +224,93 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
         sslContext.init(trackingKeyManagers, new TrustManager[]{trustAnyServerCertificate()}, null);
 
         return (SSLSocket) sslContext.getSocketFactory().createSocket("localhost", port);
+    }
+
+    /**
+     * A client socket whose only certificate is signed by a throwaway, arbitrary self-signed CA (i.e.
+     * NOT one of the JVM's default {@code cacerts} public root CAs). Tracks the actual alias the
+     * KeyManager chooses for {@code chooseClientAlias}/{@code chooseEngineClientAlias} -- {@code null}
+     * means no matching certificate was found for the server's advertised acceptable-issuer list, so no
+     * certificate will actually be transmitted (see {@link #chosenClientAliasIsNotNullEvenWhenCertIssuerIsNotInDefaultCaCerts()}).
+     */
+    private SSLSocket clientSocketTrackingChosenAlias(int port, AtomicReference<String> chosenAlias) throws Exception {
+        KeyPair clientKeyPair = generateKeyPair();
+        X500Name clientName = new X500Name("CN=arbitrary-untrusted-client");
+        X509Certificate clientCert = signCert(clientName, clientName, clientKeyPair.getPublic(), clientKeyPair.getPrivate(), false, BigInteger.valueOf(4));
+
+        KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
+        clientKeyStore.load(null, null);
+        clientKeyStore.setKeyEntry("client", clientKeyPair.getPrivate(), KEYSTORE_PASSWORD, new X509Certificate[]{clientCert});
+
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(clientKeyStore, KEYSTORE_PASSWORD);
+
+        KeyManager[] trackingKeyManagers = trackChosenClientAlias(keyManagerFactory.getKeyManagers(), chosenAlias);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(trackingKeyManagers, new TrustManager[]{trustAnyServerCertificate()}, null);
+
+        SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket("localhost", port);
+        socket.setEnabledProtocols(new String[]{"TLSv1.2"});
+        return socket;
+    }
+
+    /**
+     * Wraps each {@link X509ExtendedKeyManager} so we can observe the actual alias returned by
+     * {@code chooseClientAlias}/{@code chooseEngineClientAlias} -- {@code null} means the delegate
+     * KeyManager found no certificate whose issuer matched the server's advertised acceptable-issuer
+     * list, so nothing will be sent (unlike {@link #trackClientAliasRequests}, which only tracks
+     * whether the callback was invoked at all).
+     */
+    private KeyManager[] trackChosenClientAlias(KeyManager[] keyManagers, AtomicReference<String> chosenAlias) {
+        KeyManager[] wrapped = new KeyManager[keyManagers.length];
+        for (int i = 0; i < keyManagers.length; i++) {
+            if (keyManagers[i] instanceof X509ExtendedKeyManager delegate) {
+                wrapped[i] = new X509ExtendedKeyManager() {
+                    @Override
+                    public String chooseClientAlias(String[] keyType, Principal[] issuers, Socket socket) {
+                        String alias = delegate.chooseClientAlias(keyType, issuers, socket);
+                        chosenAlias.set(alias);
+                        return alias;
+                    }
+
+                    @Override
+                    public String chooseEngineClientAlias(String[] keyType, Principal[] issuers, SSLEngine engine) {
+                        String alias = delegate.chooseEngineClientAlias(keyType, issuers, engine);
+                        chosenAlias.set(alias);
+                        return alias;
+                    }
+
+                    @Override
+                    public String[] getClientAliases(String keyType, Principal[] issuers) {
+                        return delegate.getClientAliases(keyType, issuers);
+                    }
+
+                    @Override
+                    public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
+                        return delegate.chooseServerAlias(keyType, issuers, socket);
+                    }
+
+                    @Override
+                    public String[] getServerAliases(String keyType, Principal[] issuers) {
+                        return delegate.getServerAliases(keyType, issuers);
+                    }
+
+                    @Override
+                    public X509Certificate[] getCertificateChain(String alias) {
+                        return delegate.getCertificateChain(alias);
+                    }
+
+                    @Override
+                    public PrivateKey getPrivateKey(String alias) {
+                        return delegate.getPrivateKey(alias);
+                    }
+                };
+            } else {
+                wrapped[i] = keyManagers[i];
+            }
+        }
+        return wrapped;
     }
 
     /**
