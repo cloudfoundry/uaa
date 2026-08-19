@@ -37,12 +37,14 @@ public class TlsClientAuthentication {
     private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthentication.class);
 
     /**
-     * Returns {@code true} when any certificate derived from the {@code X-Forwarded-Client-Cert}
-     * header is present on the current request, regardless of whether it is trustworthy. This is a
-     * cheap, non-trust-deciding presence check intended as an early exit before resolving a client's
-     * {@link TlsClientAuthConfiguration} (which may require a database lookup) -- it does not grant or
-     * imply any authorization by itself, since any caller (trusted or not) that sets the header will
-     * cause the servlet container to populate this attribute.
+     * Returns {@code true} when any certificate is present on the current request under the
+     * standard {@code jakarta.servlet.request.X509Certificate} attribute -- whether that attribute
+     * holds a certificate derived from the {@code X-Forwarded-Client-Cert} header, or (when no XFCC
+     * header was sent) the raw TLS-handshake peer certificate -- regardless of whether it is
+     * trustworthy. This is a cheap, non-trust-deciding presence check intended as an early exit before
+     * resolving a client's {@link TlsClientAuthConfiguration} (which may require a database lookup) --
+     * it does not grant or imply any authorization by itself, since any caller (trusted or not) that
+     * sets the header will cause the servlet container to populate this attribute.
      */
     public boolean hasCertificateFromRequest() {
         ServletRequestAttributes attrs =
