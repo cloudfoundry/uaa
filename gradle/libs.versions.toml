@@ -168,6 +168,7 @@ springBootStarterMail = { module = "org.springframework.boot:spring-boot-starter
 springBootStarterTest = { module = "org.springframework.boot:spring-boot-starter-test" }
 springBootStarterTomcatRuntime = { module = "org.springframework.boot:spring-boot-starter-tomcat-runtime" }
 springBootStarterWeb = { module = "org.springframework.boot:spring-boot-starter-web" }
+springBootTomcat = { module = "org.springframework.boot:spring-boot-tomcat" }
 springBootTransaction = { module = "org.springframework.boot:spring-boot-transaction" }
 
 # Spring Data

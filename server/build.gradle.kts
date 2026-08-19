@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.springBootStarterMail)
     implementation(libs.springBootSql)
     implementation(libs.springBootJdbc)
+    implementation(libs.springBootTomcat)
     implementation(libs.springBootTransaction)
     implementation(libs.openSamlApi)
     implementation(libs.springSecuritySamlServiceProvider)
