@@ -2,13 +2,19 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ClientDetailsAuthenticationProviderTests {
@@ -46,6 +52,26 @@ class ClientDetailsAuthenticationProviderTests {
         assertThat(config).isNotNull();
         assertThat(config.getTrustedCaPem())
             .isEqualTo("-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n");
+    }
+
+    @Test
+    void validateTlsClientAuthPassesClientConfigToCertificateChainLookup() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        when(uaaClient.getAdditionalInformation()).thenReturn(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem"
+        ));
+        TlsClientAuthentication tlsClientAuthentication = mock(TlsClientAuthentication.class);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), mock(PasswordEncoder.class),
+                mock(JwtClientAuthentication.class), tlsClientAuthentication);
+
+        provider.validateTlsClientAuth(uaaClient);
+
+        ArgumentCaptor<TlsClientAuthConfiguration> configCaptor =
+                ArgumentCaptor.forClass(TlsClientAuthConfiguration.class);
+        verify(tlsClientAuthentication).getCertificateChainFromRequest(configCaptor.capture());
+        assertThat(configCaptor.getValue().getTrustedProxyCaPem()).isEqualTo("proxy-ca-pem");
     }
 
     @Test

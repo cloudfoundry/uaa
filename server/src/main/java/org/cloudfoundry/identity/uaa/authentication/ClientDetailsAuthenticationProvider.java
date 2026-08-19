@@ -189,12 +189,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         return path != null && path.startsWith("/oauth/mtls");
     }
 
-    private boolean validateTlsClientAuth(UaaClient uaaClient) {
-        X509Certificate[] chain = tlsClientAuthentication.getCertificateChainFromRequest();
+    boolean validateTlsClientAuth(UaaClient uaaClient) {
+        TlsClientAuthConfiguration config = getTlsClientAuthConfiguration(uaaClient);
+        X509Certificate[] chain = tlsClientAuthentication.getCertificateChainFromRequest(config);
         if (chain == null || chain.length == 0) {
             return false;
         }
-        TlsClientAuthConfiguration config = getTlsClientAuthConfiguration(uaaClient);
         return tlsClientAuthentication.validateClientCert(chain, config).isPresent();
     }
 
