@@ -74,7 +74,7 @@ class ClientAdminEndpointsValidatorTests {
         client.setClientSecret("secret");
         caller = new UaaClientDetails("caller", "", "", "client_credentials", "clients.write");
         SecurityContextAccessor mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
-        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor, new IdentityZoneManagerImpl());
+        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor, new IdentityZoneManagerImpl(), false);
         secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         validator.setClientSecretValidator(secretValidator);
 
@@ -313,5 +313,65 @@ class ClientAdminEndpointsValidatorTests {
 
         assertThatThrownBy(() -> validator.validate(client, true, true))
                 .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void rejectsTlsClientAuthCaWhenMtlsDisabled() {
+        ClientAdminEndpointsValidator mtlsDisabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), false);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsDisabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls_enabled");
+    }
+
+    @Test
+    void rejectsTlsClientAuthTrustedProxyCaWhenMtlsDisabled() {
+        ClientAdminEndpointsValidator mtlsDisabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), false);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem");
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsDisabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls_enabled");
+    }
+
+    @Test
+    void allowsTlsClientAuthCaWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem");
+        client.setAdditionalInformation(additionalInfo);
+
+        ClientDetails validated = mtlsEnabledValidator.validate(client, false, false);
+
+        assertThat(validated.getAdditionalInformation())
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+    }
+
+    @Test
+    void allowsClientWithoutMtlsFieldsWhenMtlsDisabled() {
+        ClientAdminEndpointsValidator mtlsDisabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), false);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        client.setClientSecret("secret");
+
+        ClientDetails validated = mtlsDisabledValidator.validate(client, false, false);
+
+        assertThat(validated.getClientId()).isEqualTo(client.getClientId());
     }
 }

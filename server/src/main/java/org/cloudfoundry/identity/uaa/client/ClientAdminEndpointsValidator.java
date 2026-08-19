@@ -82,14 +82,18 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final IdentityZoneManager identityZoneManager;
 
+    private final boolean mtlsEnabled;
+
     private final Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
 
     public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor,
-                                         final IdentityZoneManager identityZoneManager) {
+                                         final IdentityZoneManager identityZoneManager,
+                                         final boolean mtlsEnabled) {
         this.securityContextAccessor = securityContextAccessor;
         this.identityZoneManager = identityZoneManager;
+        this.mtlsEnabled = mtlsEnabled;
     }
 
     /**
@@ -123,6 +127,17 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
+
+        if (!mtlsEnabled) {
+            Map<String, Object> additionalInfo = client.getAdditionalInformation();
+            if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                    || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
+                throw new InvalidClientDetailsException(
+                        "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls_enabled "
+                                + "to be true on this UAA deployment");
+            }
+        }
+
         String clientId = client.getClientId();
         if (create) {
             if (reservedClientIds.contains(clientId)) {
