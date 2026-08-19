@@ -1932,7 +1932,10 @@ External OAuth 2.0 and OIDC provider definitions. Each provider entry includes:
 - `linkText` — Text for the login link
 - `relyingPartyId` / `relyingPartySecret` — Client credentials
 - `attributeMappings` — Attribute mapping configuration
-- `skipSslValidation` — Skip TLS validation when calling the provider. Default `false`
+- `skipSslValidation` — Skip TLS validation when calling the provider. This disables both
+  certificate chain validation and hostname verification, offering no protection against
+  man-in-the-middle attacks; it is intended for development and diagnostics. To trust a private
+  CA in production, use `caCertificates` instead, which keeps validation enabled. Default `false`
 - `caCertificates` — List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when calling the provider. Ignored if `skipSslValidation` is `true`
 
 [Back to table](#login--branding)
@@ -2102,7 +2105,7 @@ Bootstrap SAML Identity Provider definitions. Each entry is keyed by a provider 
 | `emailDomain` | `List<String>` | Email domains used for IDP discovery |
 | `externalGroupsWhitelist` | `List<String>` | External group names to map |
 | `attributeMappings` | `Map<String, Object>` | Attribute mapping configuration |
-| `skipSslValidation` | `boolean` | Skip TLS validation when fetching metadata URL. Default `false` |
+| `skipSslValidation` | `boolean` | Skip TLS validation when fetching metadata URL. Disables both certificate chain validation and hostname verification, offering no protection against man-in-the-middle attacks; intended for development and diagnostics. Use `caCertificates` to trust a private CA in production. Default `false` |
 | `caCertificates` | `List<String>` | PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when fetching the metadata URL. Ignored if `skipSslValidation` is `true` |
 | `storeCustomAttributes` | `boolean` | Persist custom SAML attributes on the user. Default `true` |
 | `authnContext` | `List<String>` | Requested authentication context class references |
