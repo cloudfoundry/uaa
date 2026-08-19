@@ -7,6 +7,8 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.bouncycastle.openssl.PEMParser;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -31,6 +33,8 @@ import java.util.Set;
  */
 @Component
 public class TlsClientAuthentication {
+
+    private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthentication.class);
 
     /**
      * Returns the first X.509 certificate from the current request's
@@ -157,6 +161,8 @@ public class TlsClientAuthentication {
             X509Certificate caCert = parsePemCertificate(trustedProxyCaPem);
             return validateCertPath(peerChain, caCert).isPresent();
         } catch (Exception e) {
+            logger.warn("isCertificateFromTrustedProxy: peer certificate did not validate against "
+                    + "tls-client-auth-trusted-proxy-ca: {}", e.getMessage());
             return false;
         }
     }
