@@ -15,6 +15,7 @@ public class TlsClientAuthConfiguration {
     public static final String TLS_CLIENT_AUTH_CLAIM_MAPPINGS = "tls-client-auth-claim-mappings";
     public static final String TLS_CLIENT_AUTH_SUB_TEMPLATE = "tls-client-auth-sub-template";
     public static final String TLS_CLIENT_AUTH_AUD_TEMPLATES = "tls-client-auth-aud-templates";
+    public static final String TLS_CLIENT_AUTH_TRUSTED_PROXY_CA = "tls-client-auth-trusted-proxy-ca";
 
     @JsonProperty(TLS_CLIENT_AUTH_CA)
     private String trustedCaPem;
@@ -27,6 +28,9 @@ public class TlsClientAuthConfiguration {
 
     @JsonProperty(TLS_CLIENT_AUTH_AUD_TEMPLATES)
     private List<String> audTemplates;
+
+    @JsonProperty(TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
+    private String trustedProxyCaPem;
 
     public TlsClientAuthConfiguration() {}
 
@@ -47,6 +51,9 @@ public class TlsClientAuthConfiguration {
     public List<String> getAudTemplates() { return audTemplates; }
     public void setAudTemplates(List<String> audTemplates) { this.audTemplates = audTemplates; }
 
+    public String getTrustedProxyCaPem() { return trustedProxyCaPem; }
+    public void setTrustedProxyCaPem(String trustedProxyCaPem) { this.trustedProxyCaPem = trustedProxyCaPem; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -54,12 +61,13 @@ public class TlsClientAuthConfiguration {
         return Objects.equals(trustedCaPem, that.trustedCaPem) &&
                Objects.equals(claimMappings, that.claimMappings) &&
                Objects.equals(subTemplate, that.subTemplate) &&
-               Objects.equals(audTemplates, that.audTemplates);
+               Objects.equals(audTemplates, that.audTemplates) &&
+               Objects.equals(trustedProxyCaPem, that.trustedProxyCaPem);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates);
+        return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates, trustedProxyCaPem);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {

@@ -137,4 +137,28 @@ class TlsClientAuthConfigurationTest {
         assertThat(a).isNotEqualTo(c);
         assertThat(a).isNotEqualTo(d);
     }
+
+    @Test
+    void trustedProxyCaPemRoundTripsViaJson() throws Exception {
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        config.setTrustedProxyCaPem("-----BEGIN CERTIFICATE-----\nPROXY\n-----END CERTIFICATE-----\n");
+
+        JsonMapper mapper = new JsonMapper();
+        String json = mapper.writeValueAsString(config);
+        TlsClientAuthConfiguration deserialized = mapper.readValue(json, TlsClientAuthConfiguration.class);
+
+        assertThat(deserialized.getTrustedProxyCaPem())
+                .isEqualTo("-----BEGIN CERTIFICATE-----\nPROXY\n-----END CERTIFICATE-----\n");
+        assertThat(json).contains("tls-client-auth-trusted-proxy-ca");
+    }
+
+    @Test
+    void unequalWhenTrustedProxyCaPemDiffers() {
+        TlsClientAuthConfiguration config1 = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        config1.setTrustedProxyCaPem("proxy-ca-1");
+        TlsClientAuthConfiguration config2 = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        config2.setTrustedProxyCaPem("proxy-ca-2");
+
+        assertThat(config1).isNotEqualTo(config2);
+    }
 }
