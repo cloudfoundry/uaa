@@ -190,6 +190,11 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     }
 
     boolean validateTlsClientAuth(UaaClient uaaClient) {
+        // Cheap presence-only check (no config resolution, no JSON/claim-mapping parsing) before
+        // doing any work to resolve this client's TlsClientAuthConfiguration.
+        if (!tlsClientAuthentication.hasCertificateFromRequest()) {
+            return false;
+        }
         TlsClientAuthConfiguration config = getTlsClientAuthConfiguration(uaaClient);
         X509Certificate[] chain = tlsClientAuthentication.getCertificateChainFromRequest(config);
         if (chain == null || chain.length == 0) {

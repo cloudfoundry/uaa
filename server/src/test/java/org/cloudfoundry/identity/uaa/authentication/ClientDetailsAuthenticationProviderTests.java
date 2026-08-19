@@ -13,7 +13,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +64,7 @@ class ClientDetailsAuthenticationProviderTests {
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem"
         ));
         TlsClientAuthentication tlsClientAuthentication = mock(TlsClientAuthentication.class);
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
         ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
                 mock(UserDetailsService.class), mock(PasswordEncoder.class),
                 mock(JwtClientAuthentication.class), tlsClientAuthentication);
@@ -72,6 +75,22 @@ class ClientDetailsAuthenticationProviderTests {
                 ArgumentCaptor.forClass(TlsClientAuthConfiguration.class);
         verify(tlsClientAuthentication).getCertificateChainFromRequest(configCaptor.capture());
         assertThat(configCaptor.getValue().getTrustedProxyCaPem()).isEqualTo("proxy-ca-pem");
+    }
+
+    @Test
+    void validateTlsClientAuthShortCircuitsWithoutResolvingConfigWhenNoCertificatePresent() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        TlsClientAuthentication tlsClientAuthentication = mock(TlsClientAuthentication.class);
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(false);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), mock(PasswordEncoder.class),
+                mock(JwtClientAuthentication.class), tlsClientAuthentication);
+
+        boolean result = provider.validateTlsClientAuth(uaaClient);
+
+        assertThat(result).isFalse();
+        verify(uaaClient, never()).getAdditionalInformation();
+        verify(tlsClientAuthentication, never()).getCertificateChainFromRequest(any());
     }
 
     @Test
