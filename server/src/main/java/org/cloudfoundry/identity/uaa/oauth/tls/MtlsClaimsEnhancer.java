@@ -348,9 +348,16 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                             new TypeReference<List<String>>() {});
                 }
 
+                String trustedProxyCaPem = null;
+                Object rawTrustedProxyCa = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
+                if (rawTrustedProxyCa instanceof String tpc && !tpc.isBlank()) {
+                    trustedProxyCaPem = tpc;
+                }
+
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
+                cfg.setTrustedProxyCaPem(trustedProxyCaPem);
                 return cfg;
             } catch (Exception e) {
                 return null;
