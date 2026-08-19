@@ -65,6 +65,103 @@ public class TlsClientAuthentication {
     }
 
     /**
+     * Returns {@code true} when any certificate derived from the {@code X-Forwarded-Client-Cert}
+     * header is present on the current request, regardless of whether it is trustworthy. This is a
+     * cheap, non-trust-deciding presence check intended as an early exit before resolving a client's
+     * {@link TlsClientAuthConfiguration} (which may require a database lookup) -- it does not grant or
+     * imply any authorization by itself, since any caller (trusted or not) that sets the header will
+     * cause the servlet container to populate this attribute.
+     */
+    public boolean hasCertificateFromRequest() {
+        ServletRequestAttributes attrs =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null) {
+            return false;
+        }
+        Object certs = attrs.getRequest().getAttribute("jakarta.servlet.request.X509Certificate");
+        return certs instanceof X509Certificate[] arr && arr.length > 0;
+    }
+
+    /**
+     * Returns the first X.509 certificate from the current request that is trustworthy for
+     * {@code clientConfig} -- i.e. only when {@link #isCertificateFromTrustedProxy(TlsClientAuthConfiguration)}
+     * is {@code true} for this client's configuration.
+     *
+     * @return the client certificate, or {@code null} if none is present or not from a trusted proxy
+     */
+    public X509Certificate getCertificateFromRequest(TlsClientAuthConfiguration clientConfig) {
+        X509Certificate[] chain = getCertificateChainFromRequest(clientConfig);
+        return (chain != null && chain.length > 0) ? chain[0] : null;
+    }
+
+    /**
+     * Returns the full X.509 certificate chain from the current request's
+     * {@code jakarta.servlet.request.X509Certificate} attribute (populated by the
+     * {@code ClientCertificateMapper} filter), but only when
+     * {@link #isCertificateFromTrustedProxy(TlsClientAuthConfiguration)} is {@code true} for
+     * {@code clientConfig} -- i.e. only when the genuine TLS-handshake peer presented a certificate
+     * signed by this specific client's {@code tls-client-auth-trusted-proxy-ca}. This prevents a direct
+     * caller (bypassing the Gorouter) from having a self-supplied {@code X-Forwarded-Client-Cert}
+     * header trusted. Index 0 is the end-entity (leaf) certificate.
+     *
+     * @return the client certificate chain, or {@code null} if none is present or not from a trusted proxy
+     */
+    public X509Certificate[] getCertificateChainFromRequest(TlsClientAuthConfiguration clientConfig) {
+        if (!isCertificateFromTrustedProxy(clientConfig)) {
+            return null;
+        }
+        ServletRequestAttributes attrs =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null) {
+            return null;
+        }
+        HttpServletRequest request = attrs.getRequest();
+        X509Certificate[] certs = (X509Certificate[])
+                request.getAttribute("jakarta.servlet.request.X509Certificate");
+        return (certs != null && certs.length > 0) ? certs : null;
+    }
+
+    /**
+     * Returns {@code true} only when the genuine TLS-handshake peer certificate captured by
+     * {@link RawPeerCertificateCaptureFilter} (the certificate the immediate TCP peer actually
+     * presented during the TLS handshake -- distinct from any certificate derived from the
+     * {@code X-Forwarded-Client-Cert} header) validates against {@code clientConfig}'s
+     * {@code tls-client-auth-trusted-proxy-ca}.
+     *
+     * <p>Scoped per-client (like {@code tls-client-auth-ca}) rather than a single global CA: the value
+     * is stored in {@code additionalInformation} and is therefore API-mutable at runtime. The Tomcat
+     * connector (see {@code MtlsClientAuthTomcatCustomizer}) performs no CA validation at the TLS layer
+     * at all ({@code certificateVerification=optionalNoCA}), so there is no static allowlist that could
+     * drift out of sync with this per-client value.
+     *
+     * @return {@code false} if {@code clientConfig} is {@code null}, has no
+     *         {@code tls-client-auth-trusted-proxy-ca} configured, or there is no current request or no
+     *         captured peer certificate
+     */
+    public boolean isCertificateFromTrustedProxy(TlsClientAuthConfiguration clientConfig) {
+        String trustedProxyCaPem = clientConfig != null ? clientConfig.getTrustedProxyCaPem() : null;
+        if (trustedProxyCaPem == null || trustedProxyCaPem.isBlank()) {
+            return false;
+        }
+        ServletRequestAttributes attrs =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null) {
+            return false;
+        }
+        Object raw = attrs.getRequest()
+                .getAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE);
+        if (!(raw instanceof X509Certificate[] peerChain) || peerChain.length == 0) {
+            return false;
+        }
+        try {
+            X509Certificate caCert = parsePemCertificate(trustedProxyCaPem);
+            return validateCertPath(peerChain, caCert).isPresent();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
      * Validates {@code clientCert} against the trusted CA PEM configured in {@code config}
      * using PKIX path validation.
      * For chains with intermediates, prefer
@@ -101,19 +198,7 @@ public class TlsClientAuthentication {
 
         try {
             X509Certificate caCert = parsePemCertificate(config.getTrustedCaPem());
-
-            TrustAnchor anchor = new TrustAnchor(caCert, null);
-            PKIXParameters params = new PKIXParameters(Set.of(anchor));
-            params.setRevocationEnabled(false);
-
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            var certPath = cf.generateCertPath(Arrays.asList(chain));
-
-            CertPathValidator validator = CertPathValidator.getInstance("PKIX");
-            validator.validate(certPath, params);
-
-            return Optional.of(chain[0]);
-
+            return validateCertPath(chain, caCert);
         } catch (CertPathValidatorException e) {
             throw new InvalidClientDetailsException(
                     "tls_client_auth: certificate chain validation failed: " + e.getMessage());
@@ -121,6 +206,30 @@ public class TlsClientAuthentication {
             throw new InvalidClientDetailsException(
                     "tls_client_auth: CA configuration error: " + e.getMessage());
         }
+    }
+
+    /**
+     * Validates {@code chain} against {@code caCert} using PKIX path validation, without requiring any
+     * per-client {@link TlsClientAuthConfiguration}. Shared by {@link #validateClientCert} and
+     * {@link #isCertificateFromTrustedProxy}.
+     *
+     * @return {@code Optional.of(chain[0])} when validation succeeds
+     * @throws CertPathValidatorException if the chain does not validate against {@code caCert}
+     * @throws Exception if {@code caCert} or the PKIX machinery is misconfigured
+     */
+    private static Optional<X509Certificate> validateCertPath(X509Certificate[] chain, X509Certificate caCert)
+            throws Exception {
+        TrustAnchor anchor = new TrustAnchor(caCert, null);
+        PKIXParameters params = new PKIXParameters(Set.of(anchor));
+        params.setRevocationEnabled(false);
+
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        var certPath = cf.generateCertPath(Arrays.asList(chain));
+
+        CertPathValidator validator = CertPathValidator.getInstance("PKIX");
+        validator.validate(certPath, params);
+
+        return Optional.of(chain[0]);
     }
 
     private static X509Certificate parsePemCertificate(String pem) throws Exception {

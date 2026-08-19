@@ -14,6 +14,9 @@ import org.bouncycastle.util.io.pem.PemWriter;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.StringWriter;
 import java.math.BigInteger;
@@ -124,6 +127,172 @@ class TlsClientAuthenticationTest {
                 new X509Certificate[]{leafCert, interCert, rootCert}, config);
 
         assertThat(result).contains(leafCert);
+    }
+
+    @Test
+    void isCertificateFromTrustedProxyTrueWhenPeerCertSignedByClientsTrustedProxyCa() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair peerKp = generateKeyPair();
+        X509Certificate peerCert = signCert(
+                new X500Name("CN=gorouter.service.cf.internal"), rootName, peerKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{peerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(config)).isTrue();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void isCertificateFromTrustedProxyFalseWhenPeerCertNotSignedByClientsTrustedProxyCa() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        // An unrelated, self-signed certificate -- e.g. a harvested cert an attacker presents directly.
+        KeyPair attackerKp = generateKeyPair();
+        X500Name attackerName = new X500Name("CN=attacker");
+        X509Certificate attackerCert = signCert(attackerName, attackerName, attackerKp.getPublic(), attackerKp.getPrivate(), false, BigInteger.ONE);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{attackerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(config)).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void isCertificateFromTrustedProxyFalseWhenNoPeerCertificatePresent() {
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem("some-ca-pem");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(config)).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void isCertificateFromTrustedProxyFalseWhenClientHasNoTrustedProxyCaConfigured() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Some CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+        KeyPair peerKp = generateKeyPair();
+        X509Certificate peerCert = signCert(
+                new X500Name("CN=gorouter"), rootName, peerKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+
+        // Client has tls-client-auth-ca configured but no tls-client-auth-trusted-proxy-ca.
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{peerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(config)).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void isCertificateFromTrustedProxyFalseWhenConfigIsNull() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(null)).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void hasCertificateFromRequestTrueWhenXfccDerivedCertPresent() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute("jakarta.servlet.request.X509Certificate",
+                new X509Certificate[]{mock(X509Certificate.class)});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.hasCertificateFromRequest()).isTrue();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void hasCertificateFromRequestFalseWhenNoCertPresent() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.hasCertificateFromRequest()).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void getCertificateChainFromRequestReturnsNullWhenNotFromClientsTrustedProxy() {
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        // no trusted-proxy CA configured for this client -> never trusted
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute("jakarta.servlet.request.X509Certificate",
+                new X509Certificate[]{mock(X509Certificate.class)});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.getCertificateChainFromRequest(config)).isNull();
+            assertThat(service.getCertificateFromRequest(config)).isNull();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void getCertificateChainFromRequestReturnsChainWhenFromClientsTrustedProxy() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+        KeyPair peerKp = generateKeyPair();
+        X509Certificate peerCert = signCert(
+                new X500Name("CN=gorouter"), rootName, peerKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        X509Certificate[] xfccDerivedChain = new X509Certificate[]{mock(X509Certificate.class)};
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        // The genuine TLS peer cert (captured separately) validates against this client's trusted-proxy CA...
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{peerCert});
+        // ...so the XFCC-header-derived certificate (a completely different value) is trusted too.
+        request.setAttribute("jakarta.servlet.request.X509Certificate", xfccDerivedChain);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.getCertificateChainFromRequest(config)).isEqualTo(xfccDerivedChain);
+            assertThat(service.getCertificateFromRequest(config)).isEqualTo(xfccDerivedChain[0]);
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
     }
 
     private static KeyPair generateKeyPair() throws Exception {
