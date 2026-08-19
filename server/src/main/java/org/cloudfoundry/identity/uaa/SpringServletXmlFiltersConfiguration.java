@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsManagedBean;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
+import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter;
 import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
@@ -229,6 +230,18 @@ public class SpringServletXmlFiltersConfiguration {
         filter.setBlockContentTypeSniffingEnabled(true);
         FilterRegistrationBean<HttpHeaderSecurityFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
+        return bean;
+    }
+
+    @Bean
+    public FilterRegistrationBean<RawPeerCertificateCaptureFilter> rawPeerCertificateCaptureFilter() {
+        FilterRegistrationBean<RawPeerCertificateCaptureFilter> bean =
+                new FilterRegistrationBean<>(new RawPeerCertificateCaptureFilter());
+        bean.addUrlPatterns("/oauth/mtls/*");
+        // Must run before clientCertificateMapperFilter() (order -200) so it captures the genuine
+        // TLS-handshake peer certificate before that filter overwrites the same standard
+        // jakarta.servlet.request.X509Certificate attribute with the XFCC-header-derived certificate.
+        bean.setOrder(-300);
         return bean;
     }
 
