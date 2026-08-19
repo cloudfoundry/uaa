@@ -105,7 +105,8 @@ class ClientAdminBootstrapTests {
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
                 null,
-                Collections.singleton(allowPublicId));
+                Collections.singleton(allowPublicId),
+                false);
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -125,7 +126,8 @@ class ClientAdminBootstrapTests {
                     Collections.emptySet(),
                     Collections.emptySet(),
                     null,
-                    Collections.emptySet());
+                    Collections.emptySet(),
+                    false);
         }
 
         @Test
@@ -161,7 +163,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(clientIdToDelete),
                     Collections.singleton(clientIdToDelete),
-                    null, Collections.singleton(clientIdToDelete));
+                    null, Collections.singleton(clientIdToDelete), false);
             clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
         }
 
@@ -372,7 +374,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(autoApproveId),
                     Collections.emptySet(),
-                    null, Collections.singleton(allowPublicId));
+                    null, Collections.singleton(allowPublicId), false);
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
@@ -461,7 +463,7 @@ class ClientAdminBootstrapTests {
                         clients,
                         Collections.singleton(autoApproveId),
                         Collections.emptySet(),
-                        null, Collections.singleton(allowPublicId));
+                        null, Collections.singleton(allowPublicId), false);
             }
 
             @Test
@@ -644,6 +646,60 @@ class ClientAdminBootstrapTests {
         assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining("Client must have at least one authorized-grant-type");
+    }
+
+    @Test
+    void mtlsClientConfigRejectedWhenMtlsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "some-ca-cert");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls-enabled");
+    }
+
+    @Test
+    void mtlsClientTrustedProxyConfigRejectedWhenMtlsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "some-trusted-proxy-ca");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("uaa.mtls-enabled");
+    }
+
+    @Test
+    void mtlsClientConfigAllowedWhenMtlsEnabled() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId),
+                true);
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "some-ca-cert");
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap.afterPropertiesSet();
+
+        ClientDetails created = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(created.getAdditionalInformation()).containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "some-ca-cert");
+    }
+
+    @Test
+    void ordinaryClientBootstrapsSuccessfullyWhenMtlsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        assertThat(created.getAdditionalInformation()).doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        assertThat(created.getAdditionalInformation()).doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
     }
 
     static ClientDetails doSimpleTest(
