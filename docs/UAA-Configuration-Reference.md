@@ -1127,7 +1127,8 @@ the `authorities` claim: `exclude: [authorities]`.
 ### `jwt.token.idToken.enhancer.allowClaimModification`
 
 **Default:** `false`
-**Source:** `@Value("${jwt.token.idToken.enhancer.allowClaimModification:false}")` in [`OauthEndpointBeanConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java)
+**Source:** `@Value("${jwt.token.idToken.enhancer.allowClaimModification:false}")` in
+[`OauthEndpointBeanConfiguration`][oauth-endpoint-bean-config]
 **Type:** `boolean`
 
 Controls whether registered `IdTokenEnhancer` beans may overwrite claims that already
@@ -1135,6 +1136,8 @@ exist on the `id_token`. When `false` (the default), enhancers may only add new 
 any attempt to change a claim already set by `IdTokenCreator` or by another enhancer is
 ignored and the original value is preserved. Set to `true` to let enhancers replace the
 value of existing claims. Adding brand-new claims never requires this flag.
+
+[oauth-endpoint-bean-config]: ../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java
 
 Enhancer implementations register as `IdTokenEnhancer` beans and read the
 `OAuth2Authentication`, the access-token claims, and the refresh-token claims through the

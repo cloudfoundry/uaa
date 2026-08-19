@@ -536,7 +536,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 // not a JWT (e.g. an opaque refresh token); fall through to the default below
             }
         }
-        return additionalRootClaims == null ? Collections.emptyMap() : additionalRootClaims;
+        return Collections.emptyMap();
     }
 
     private static Map<String, Object> addRootClaimEntry(Map<String, Object> additionalRootClaims, String entry, String value) {

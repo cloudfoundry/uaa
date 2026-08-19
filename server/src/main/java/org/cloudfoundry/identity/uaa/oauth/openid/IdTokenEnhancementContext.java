@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -75,7 +76,15 @@ public class IdTokenEnhancementContext {
     }
 
     public Object getClaim(String name) {
-        return claims.get(name);
+        Object value = claims.get(name);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return JsonUtils.readValue(JsonUtils.writeValueAsString(value), Object.class);
+        } catch (Exception e) {
+            return value;
+        }
     }
 
     public boolean hasClaim(String name) {
@@ -110,7 +119,11 @@ public class IdTokenEnhancementContext {
      * @return a snapshot copy of the id_token claims accumulated so far; safe to hand out
      */
     public Map<String, Object> getClaims() {
-        return new LinkedHashMap<>(claims);
+        try {
+            return JsonUtils.readValueAsMap(JsonUtils.writeValueAsString(claims));
+        } catch (Exception e) {
+            return new LinkedHashMap<>(claims);
+        }
     }
 
     public Set<String> getModifiedClaims() {
