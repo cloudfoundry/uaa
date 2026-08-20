@@ -7,6 +7,7 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.AfterEach;
@@ -129,35 +130,50 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
                 .doesNotHaveValue(null);
     }
 
-    /**
-     * Regression test for a real-deployment finding (Task 14 end-to-end verification): Tomcat's own
-     * startup log emits "The JSSE TLS 1.3 implementation does not support post handshake
-     * authentication (PHA) and is therefore incompatible with optional certificate authentication" --
-     * and on at least one JDK build used in a real BOSH-deployed environment, a TLS 1.3 handshake
-     * against this connector never sends a {@code CertificateRequest} at all (confirmed empirically
-     * via {@code openssl s_client -tls1_3} against a live instance, compared against
-     * {@code -tls1_2} which does send one). Tomcat's own documented workaround for this exact
-     * incompatibility is to exclude TLSv1.3 from the connector's enabled protocols
-     * ({@code protocols="all,-TLSv1.3"}) whenever {@code certificateVerification=optionalNoCA} is in
-     * use. This test asserts the customizer actually negotiates TLSv1.2 (not TLSv1.3) even when the
-     * client is willing to speak both -- which is what actually prevents the silent-no-CertificateRequest
-     * failure mode in production, independent of whether any particular local JDK happens to dodge the
-     * underlying JSSE limitation.
-     */
     @Test
-    void negotiatesTlsV12NotTlsV13WhenMtlsEnabled() throws Exception {
+    void negotiatesTlsV13AndRequestsClientCertificateWhenMtlsEnabled() throws Exception {
         int port = startServer(true);
+        AtomicBoolean clientCertRequested = new AtomicBoolean(false);
 
-        try (SSLSocket socket = clientSocketOfferingBothTls12And13(port)) {
+        try (SSLSocket socket = clientSocketOfferingBothTls12And13TrackingCertRequest(port, clientCertRequested)) {
             socket.startHandshake();
 
             assertThat(socket.getSession().getProtocol())
-                    .as("connector must not negotiate TLSv1.3 when optionalNoCA client-auth is in "
-                            + "effect, since JSSE's TLS 1.3 implementation cannot request a client "
-                            + "certificate without post-handshake authentication (PHA), which it does "
-                            + "not support -- see MtlsClientAuthTomcatCustomizer's Javadoc")
+                    .as("BCJSSE supports TLS 1.3 client-auth in-handshake, so the connector re-enables "
+                            + "TLS 1.3 (JSSE could not, because it cannot send a CertificateRequest "
+                            + "under TLS 1.3 -- JDK-8206923)")
+                    .isEqualTo("TLSv1.3");
+        }
+
+        assertThat(clientCertRequested)
+                .as("the connector must send a CertificateRequest under TLS 1.3 (BCJSSE does this "
+                        + "in-handshake), so an optional client certificate is captured")
+                .isTrue();
+    }
+
+    @Test
+    void negotiatesTlsV12AndRequestsClientCertificateWhenMtlsEnabled() throws Exception {
+        int port = startServer(true);
+        AtomicBoolean clientCertRequested = new AtomicBoolean(false);
+
+        try (SSLSocket socket = clientSocketTrackingCertRequestOnTls12(port, clientCertRequested)) {
+            socket.startHandshake();
+
+            assertThat(socket.getSession().getProtocol())
+                    .as("TLS 1.2 client-auth continues to work under BCJSSE")
                     .isEqualTo("TLSv1.2");
         }
+
+        assertThat(clientCertRequested).isTrue();
+    }
+
+    @Test
+    void connectorServesFromTheFipsBouncyCastleJsseProvider() throws Exception {
+        startServer(true);
+
+        assertThat(Security.getProvider(BouncyCastleJsseProvider.PROVIDER_NAME)).isNotNull();
+        assertThat(((BouncyCastleJsseProvider) Security.getProvider(BouncyCastleJsseProvider.PROVIDER_NAME)).isFipsMode())
+                .isTrue();
     }
 
     @Test
@@ -336,6 +352,48 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
 
         SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket("localhost", port);
         socket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.3"});
+        return socket;
+    }
+
+    private SSLSocket clientSocketOfferingBothTls12And13TrackingCertRequest(int port, AtomicBoolean clientCertRequested) throws Exception {
+        KeyPair clientKeyPair = generateKeyPair();
+        X500Name clientName = new X500Name("CN=arbitrary-untrusted-client");
+        X509Certificate clientCert = signCert(clientName, clientName, clientKeyPair.getPublic(), clientKeyPair.getPrivate(), false, BigInteger.valueOf(5));
+
+        KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
+        clientKeyStore.load(null, null);
+        clientKeyStore.setKeyEntry("client", clientKeyPair.getPrivate(), KEYSTORE_PASSWORD, new X509Certificate[]{clientCert});
+
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(clientKeyStore, KEYSTORE_PASSWORD);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(trackClientAliasRequests(keyManagerFactory.getKeyManagers(), clientCertRequested),
+                new TrustManager[]{trustAnyServerCertificate()}, null);
+
+        SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket("localhost", port);
+        socket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.3"});
+        return socket;
+    }
+
+    private SSLSocket clientSocketTrackingCertRequestOnTls12(int port, AtomicBoolean clientCertRequested) throws Exception {
+        KeyPair clientKeyPair = generateKeyPair();
+        X500Name clientName = new X500Name("CN=arbitrary-untrusted-client");
+        X509Certificate clientCert = signCert(clientName, clientName, clientKeyPair.getPublic(), clientKeyPair.getPrivate(), false, BigInteger.valueOf(6));
+
+        KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
+        clientKeyStore.load(null, null);
+        clientKeyStore.setKeyEntry("client", clientKeyPair.getPrivate(), KEYSTORE_PASSWORD, new X509Certificate[]{clientCert});
+
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(clientKeyStore, KEYSTORE_PASSWORD);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(trackClientAliasRequests(keyManagerFactory.getKeyManagers(), clientCertRequested),
+                new TrustManager[]{trustAnyServerCertificate()}, null);
+
+        SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket("localhost", port);
+        socket.setEnabledProtocols(new String[]{"TLSv1.2"});
         return socket;
     }
 
