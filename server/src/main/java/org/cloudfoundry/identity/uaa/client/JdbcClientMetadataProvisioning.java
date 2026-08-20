@@ -77,7 +77,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
             ps.setString(pos++, appLaunchUrl == null ? null : appLaunchUrl.toString());
             String appIcon = resource.getAppIcon();
             if (appIcon != null) {
-                byte[] decodedAppIcon = Base64.getMimeDecoder().decode(appIcon.getBytes());
+                byte[] decodedAppIcon = Base64.getMimeDecoder().decode(appIcon);
                 ps.setBinaryStream(pos++, new ByteArrayInputStream(decodedAppIcon), decodedAppIcon.length);
             } else {
                 ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[]{}), 0);
