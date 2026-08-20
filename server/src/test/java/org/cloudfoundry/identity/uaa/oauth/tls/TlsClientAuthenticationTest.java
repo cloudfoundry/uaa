@@ -383,6 +383,36 @@ class TlsClientAuthenticationTest {
         }
     }
 
+    @Test
+    void getCertificateChainFromRequestReturnsNullWhenTrustedProxyCaConfiguredButXfccHeaderBlank() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+        KeyPair peerKp = generateKeyPair();
+        X509Certificate peerCert = signCert(
+                new X500Name("CN=gorouter"), rootName, peerKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{peerCert});
+        // X-Forwarded-Client-Cert header is present but blank -- e.g. a proxy or intermediate
+        // that clears the header without removing it. Per the design doc, this must be treated
+        // the same as the header being entirely absent: reject the request, even though the
+        // genuine peer certificate would otherwise validate against tls-client-auth-trusted-proxy-ca.
+        request.addHeader("X-Forwarded-Client-Cert", "");
+        request.setAttribute("jakarta.servlet.request.X509Certificate", new X509Certificate[]{peerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.getCertificateChainFromRequest(config)).isNull();
+            assertThat(service.getCertificateFromRequest(config)).isNull();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
     private static KeyPair generateKeyPair() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleFipsProvider.PROVIDER_NAME);
         kpg.initialize(2048);

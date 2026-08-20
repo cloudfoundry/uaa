@@ -135,6 +135,54 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
     }
 
     @Test
+    void standardAttributeAndRawAttributeBothHoldTheGenuinePeerCertForADirectConnection() throws Exception {
+        // Regression test for a PR review concern: TlsClientAuthentication.hasCertificateFromRequest()
+        // (used as a cheap early exit by ClientDetailsAuthenticationProvider and MtlsClaimsEnhancer
+        // before calling getCertificateChainFromRequest(config)) only inspects the standard
+        // jakarta.servlet.request.X509Certificate attribute, never RAW_PEER_CERTIFICATE_ATTRIBUTE.
+        // The concern: could a direct-only client (no tls-client-auth-trusted-proxy-ca configured)
+        // hit a case where the standard attribute is empty/null while the genuine raw peer cert is
+        // still present, causing hasCertificateFromRequest() to incorrectly short-circuit before the
+        // (correct) direct-connection logic in getCertificateChainFromRequest ever runs?
+        //
+        // Per the decompiled ClientCertificateMapper bytecode: when the X-Forwarded-Client-Cert
+        // header is absent, blank, or fails to parse, the filter's certificate list is empty and it
+        // never calls setAttribute at all -- it neither clears nor nulls the standard attribute, it
+        // simply leaves whatever was already there (i.e. Tomcat's TLS-handshake-populated value, the
+        // same value RawPeerCertificateCaptureFilter had already copied to
+        // RAW_PEER_CERTIFICATE_ATTRIBUTE moments earlier). So for a direct connection with no XFCC
+        // header, both attributes end up holding the same genuine peer cert: hasCertificateFromRequest()
+        // (checking only the standard attribute) correctly returns true, and there is no gap.
+        SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
+        FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+
+        X509Certificate genuinePeerCert = generateSelfSignedCert("CN=app-instance");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/oauth/mtls/token");
+        // Simulates what Tomcat's TLS handshake would have already set before any filter runs.
+        request.setAttribute("jakarta.servlet.request.X509Certificate", new X509Certificate[]{genuinePeerCert});
+        // No X-Forwarded-Client-Cert header at all -- a direct connection.
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        runContainerFilterChain(List.of(captureBean, mapperBean), request, response);
+
+        X509Certificate[] capturedRawPeerCert =
+                (X509Certificate[]) request.getAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE);
+        X509Certificate[] finalStandardAttribute =
+                (X509Certificate[]) request.getAttribute("jakarta.servlet.request.X509Certificate");
+
+        assertThat(capturedRawPeerCert)
+                .as("RAW_PEER_CERTIFICATE_ATTRIBUTE must hold the genuine TLS peer cert")
+                .containsExactly(genuinePeerCert);
+        assertThat(finalStandardAttribute)
+                .as("ClientCertificateMapper must leave the standard attribute untouched when no XFCC "
+                        + "header is present, so hasCertificateFromRequest() sees the genuine peer cert too")
+                .containsExactly(genuinePeerCert);
+    }
+
+    @Test
     void capturesTheGenuinePeerCertificateForAZonePathMtlsRequest() throws Exception {
         // Regression test for PR review comment on SpringServletXmlFiltersConfiguration.java:262:
         // simulates a request that arrived as /z/myzone/oauth/mtls/token and was already rewritten by
