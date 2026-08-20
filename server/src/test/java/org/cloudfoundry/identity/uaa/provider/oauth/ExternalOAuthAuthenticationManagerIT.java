@@ -327,6 +327,56 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
+    void signed_request_claims_are_extracted_when_parts_are_url_safe_base64_encoded() {
+        // signed_request parts use URL-safe, unpadded Base64 ('-'/'_' alphabet; hmacSignAndEncode emits
+        // Nimbus Base64URL). A standard/MIME decoder silently drops '-'/'_', corrupting the bytes.
+        config.setResponseType("signed_request");
+        String secret = config.getRelyingPartySecret();
+
+        // Payload chosen so its Base64URL encoding contains both '-' and '_'.
+        Map<String, Object> payload = Map.of(
+                "algorithm", "HMAC-SHA256",
+                "user_id", "abc>?>?123",
+                "email", "user+tag@example.com");
+        String data = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(JsonUtils.writeValueAsBytes(payload));
+        String signature = externalOAuthAuthenticationManager.hmacSignAndEncode(data, secret);
+
+        // Guard: the test is only meaningful if the encoded parts actually exercise the URL-safe alphabet.
+        assertThat(data + signature).as("encoded signed_request parts should contain URL-safe characters")
+                .containsAnyOf("-", "_");
+
+        String signedRequest = signature + "." + data;
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
+
+        Map<String, Object> resolvedClaims = externalOAuthAuthenticationManager.getClaimsFromToken(signedRequest, identityProvider);
+
+        assertThat(resolvedClaims)
+                .isNotNull()
+                .containsEntry("algorithm", "HMAC-SHA256")
+                .containsEntry("user_id", "abc>?>?123")
+                .containsEntry("email", "user+tag@example.com");
+    }
+
+    @Test
+    void signed_request_with_tampered_signature_returns_null() {
+        config.setResponseType("signed_request");
+        String secret = config.getRelyingPartySecret();
+
+        Map<String, Object> payload = Map.of("algorithm", "HMAC-SHA256", "user_id", "abc>?>?123");
+        String data = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(JsonUtils.writeValueAsBytes(payload));
+        String signature = externalOAuthAuthenticationManager.hmacSignAndEncode(data + "tampered", secret);
+
+        String signedRequest = signature + "." + data;
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
+
+        Map<String, Object> resolvedClaims = externalOAuthAuthenticationManager.getClaimsFromToken(signedRequest, identityProvider);
+
+        assertThat(resolvedClaims).isNull();
+    }
+
+    @Test
     void when_a_null_id_token_is_provided_resolveOriginProvider_should_throw_a_jwt_validation_exception() {
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.resolveOriginProvider(null))
                 .isInstanceOf(InsufficientAuthenticationException.class)

@@ -675,7 +675,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             String data = signedRequests[1];
             Map<String, Object> jsonData;
             try {
-                jsonData = JsonUtils.readValue(new String(Base64.getMimeDecoder().decode(data), StandardCharsets.UTF_8), new TypeReference<>() {
+                jsonData = JsonUtils.readValue(new String(Base64.getUrlDecoder().decode(data), StandardCharsets.UTF_8), new TypeReference<>() {
                 });
                 //check signature algorithm
                 final var algorithm = Optional.ofNullable(jsonData)
@@ -687,8 +687,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 }
                 // check if data is signed correctly using constant-time comparison
                 try {
-                    byte[] expectedMac = Base64.getMimeDecoder().decode(hmacSignAndEncode(signedRequests[1], secret));
-                    byte[] suppliedMac = Base64.getMimeDecoder().decode(signature);
+                    byte[] expectedMac = Base64.getUrlDecoder().decode(hmacSignAndEncode(signedRequests[1], secret));
+                    byte[] suppliedMac = Base64.getUrlDecoder().decode(signature);
                     if (!MessageDigest.isEqual(expectedMac, suppliedMac)) {
                         log.debug("Signature is not correct, possibly the data was tampered with! No claims returned.");
                         return null;
