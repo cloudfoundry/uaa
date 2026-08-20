@@ -1,10 +1,14 @@
 package org.cloudfoundry.identity.uaa.web.tomcat;
 
 import org.apache.tomcat.util.net.SSLHostConfig;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.stereotype.Component;
+
+import java.security.Security;
 
 /**
  * When {@code uaa.mtls-enabled} is true, configures the embedded Tomcat connector to request a client
@@ -80,5 +84,22 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
                 sslHostConfig.setTrustManagerClassName(NoAcceptedIssuersTrustManager.class.getName());
             }
         });
+    }
+
+    /**
+     * Registers the FIPS Bouncy Castle provider ({@code BCFIPS}) and the FIPS Bouncy Castle JSSE
+     * provider ({@code BCJSSE}) idempotently, if not already present. Registering the low-level
+     * crypto provider first is required: {@code BouncyCastleJsseProvider} built in FIPS mode binds
+     * to it, which is what makes {@code SSLContext.getInstance("TLS", "BCJSSE")} usable (and is what
+     * supplies FIPS-compliant {@code SecureRandom}s for the TLS handshake).
+     */
+    static void ensureJsseProviderRegistered() {
+        if (Security.getProvider(BouncyCastleFipsProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleFipsProvider());
+        }
+        if (Security.getProvider(BouncyCastleJsseProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleJsseProvider(true,
+                    Security.getProvider(BouncyCastleFipsProvider.PROVIDER_NAME)));
+        }
     }
 }
