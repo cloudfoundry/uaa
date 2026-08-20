@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.web.tomcat;
 
+import org.apache.coyote.http11.AbstractHttp11Protocol;
 import org.apache.tomcat.util.net.SSLHostConfig;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
@@ -23,19 +24,17 @@ import java.security.Security;
  * need to be kept in sync with whatever CA(s) are configured per-client at runtime via the client-admin
  * API, which is an operational hazard.
  *
- * <p>Also disables TLSv1.3 on this connector ({@code protocols="all,-TLSv1.3"}). This works around a
- * real, confirmed limitation of JSSE's TLS 1.3 implementation: requesting a client certificate
- * without also requiring/validating it against a CA (i.e. {@code optionalNoCA}, or Tomcat's other
- * {@code optional} mode) relies on the server being able to request the certificate again later via
- * post-handshake authentication (PHA) if it wasn't sent upfront -- and JSSE's TLS 1.3 implementation
- * does not support PHA (Tomcat itself logs this exact incompatibility at startup:
- * "The JSSE TLS 1.3 implementation does not support post handshake authentication (PHA) and is
- * therefore incompatible with optional certificate authentication"). In practice, on at least one real
- * JDK build this means the server silently never sends a {@code CertificateRequest} at all under TLS
- * 1.3, so no client certificate -- trusted or not -- is ever captured, silently defeating this entire
- * feature. Confirmed empirically against a live deployment via {@code openssl s_client}: {@code -tls1_2}
- * receives a {@code CertificateRequest}; {@code -tls1_3} does not. Restricting this connector to
- * TLSv1.2 is Tomcat's own documented workaround for this exact incompatibility.
+ * <p>Uses the FIPS Bouncy Castle JSSE provider (BCJSSE) for this connector. OpenJDK's JSSE never
+ * implemented server-side TLS 1.3 client authentication (JDK-8206923): requesting a client certificate
+ * without requiring/validating it against a CA ({@code certificateVerification=optionalNoCA}, or Tomcat's
+ * {@code optional} mode) relies on requesting the certificate again via post-handshake authentication
+ * (PHA), which JSSE's TLS 1.3 implementation does not support -- and on at least one JDK build the server
+ * silently never sends a {@code CertificateRequest} at all under TLS 1.3, silently defeating this feature.
+ * BCJSSE implements TLS 1.3 client authentication in-handshake, so the connector can offer TLS 1.3 again
+ * (reverting this PR's earlier {@code all,-TLSv1.3} pin and restoring the pre-PR {@code TLSv1.2,TLSv1.3}
+ * protocol set). The BCJSSE provider is registered idempotently, and the connector's protocol handler is
+ * pointed at {@link BCJSSESslImplementation} via {@code sslImplementationName} so that only this connector
+ * uses BCJSSE; all other JVM TLS stays on the default provider.
  *
  * <p>Also installs a custom {@link NoAcceptedIssuersTrustManager} on the connector, via
  * {@code SSLHostConfig#setTrustManagerClassName(String)}. Even with {@code optionalNoCA} (which
@@ -77,10 +76,13 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
         if (!mtlsEnabled) {
             return;
         }
+        ensureJsseProviderRegistered();
         factory.addConnectorCustomizers(connector -> {
+            if (connector.getProtocolHandler() instanceof AbstractHttp11Protocol<?> protocol) {
+                protocol.setSslImplementationName(BCJSSESslImplementation.class.getName());
+            }
             for (SSLHostConfig sslHostConfig : connector.findSslHostConfigs()) {
                 sslHostConfig.setCertificateVerification("optionalNoCA");
-                sslHostConfig.setProtocols("all,-TLSv1.3");
                 sslHostConfig.setTrustManagerClassName(NoAcceptedIssuersTrustManager.class.getName());
             }
         });
