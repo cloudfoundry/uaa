@@ -78,9 +78,13 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
         }
         ensureJsseProviderRegistered();
         factory.addConnectorCustomizers(connector -> {
-            if (connector.getProtocolHandler() instanceof AbstractHttp11Protocol<?> protocol) {
-                protocol.setSslImplementationName(BCJSSESslImplementation.class.getName());
+            if (!(connector.getProtocolHandler() instanceof AbstractHttp11Protocol<?> protocol)) {
+                throw new IllegalStateException(
+                        "uaa.mtls-enabled requires an HTTP/1.1 Tomcat connector (got "
+                                + connector.getProtocolHandler().getClass().getName()
+                                + "); cannot install BCJSSESslImplementation for TLS 1.3 client-cert support");
             }
+            protocol.setSslImplementationName(BCJSSESslImplementation.class.getName());
             for (SSLHostConfig sslHostConfig : connector.findSslHostConfigs()) {
                 sslHostConfig.setCertificateVerification("optionalNoCA");
                 sslHostConfig.setTrustManagerClassName(NoAcceptedIssuersTrustManager.class.getName());

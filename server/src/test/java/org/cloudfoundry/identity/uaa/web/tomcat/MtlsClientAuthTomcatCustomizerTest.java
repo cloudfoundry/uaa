@@ -10,6 +10,7 @@ import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import java.security.Security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MtlsClientAuthTomcatCustomizerTest {
 
@@ -57,6 +58,19 @@ class MtlsClientAuthTomcatCustomizerTest {
         assertThat(sslHostConfig.getProtocols())
                 .as("TLS 1.3 must not be excluded once the connector is served by BCJSSE")
                 .doesNotContain("all,-TLSv1.3");
+    }
+
+    @Test
+    void failsFastWhenTheConnectorIsNotHttp11Based() {
+        MtlsClientAuthTomcatCustomizer customizer = new MtlsClientAuthTomcatCustomizer(true);
+        TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory(0);
+        customizer.customize(factory);
+
+        Connector connector = new Connector("AJP/1.3");
+
+        assertThatThrownBy(() -> factory.getConnectorCustomizers().forEach(c -> c.customize(connector)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("HTTP/1.1");
     }
 
     @Test
