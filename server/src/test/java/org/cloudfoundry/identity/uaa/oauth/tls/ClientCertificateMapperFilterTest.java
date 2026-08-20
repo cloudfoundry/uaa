@@ -44,9 +44,31 @@ class ClientCertificateMapperFilterTest {
     void clientCertificateMapperFilter_registersClientCertificateMapperForMtlsEndpoint() {
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
         FilterRegistrationBean<?> bean = config.clientCertificateMapperFilter();
-        assertThat(bean.getFilter().getClass().getName())
+        assertThat(bean.getFilter()).isInstanceOf(MtlsPathGuardedFilter.class);
+        assertThat(((MtlsPathGuardedFilter) bean.getFilter()).getDelegate().getClass().getName())
                 .isEqualTo("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
-        assertThat(bean.getUrlPatterns()).contains("/oauth/mtls/*");
+        // No addUrlPatterns(...): registered on the default (all-requests) pattern, guarded internally
+        // by MtlsPathGuardedFilter -- see RawPeerCertificateCaptureFilterRegistrationTest for why a
+        // container URL-pattern registration cannot correctly scope this filter to zone-path requests.
+        assertThat(bean.getUrlPatterns()).isEmpty();
+    }
+
+    @Test
+    void doesNotInvokeTheDelegateForUnrelatedPaths() throws Exception {
+        SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/login");
+        request.addHeader("X-Forwarded-Client-Cert",
+                Base64.getEncoder().encodeToString(generateSelfSignedCert().getEncoded()));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        mapperBean.getFilter().doFilter(request, response, (req, res) -> { });
+
+        assertThat(request.getAttribute("jakarta.servlet.request.X509Certificate"))
+                .as("ClientCertificateMapper must not run for a path other than /oauth/mtls/*")
+                .isNull();
     }
 
     @Test
@@ -143,6 +165,7 @@ class ClientCertificateMapperFilterTest {
 
     private static MockHttpServletRequest requestWithClientCertHeader() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/oauth/mtls/token");
         request.addHeader("X-Forwarded-Client-Cert",
                 Base64.getEncoder().encodeToString(generateSelfSignedCert().getEncoded()));
         return request;

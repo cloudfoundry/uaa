@@ -46,8 +46,52 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
 
         assertThat(captureBean.getFilter()).isInstanceOf(RawPeerCertificateCaptureFilter.class);
-        assertThat(captureBean.getUrlPatterns()).contains("/oauth/mtls/*");
+        // No addUrlPatterns(...): registered on the default (all-requests) pattern -- see
+        // isMtlsTokenPathAcceptsTheEffectivePostZoneRewriteServletPath() below for why a container
+        // URL-pattern registration cannot correctly scope this filter to zone-path requests.
+        assertThat(captureBean.getUrlPatterns()).isEmpty();
         assertThat(captureBean.getOrder()).isLessThan(mapperBean.getOrder());
+    }
+
+    @Test
+    void isMtlsTokenPathAcceptsTheEffectivePostZoneRewriteServletPath() {
+        // ZonePathContextRewritingFilter (which runs first in the filter chain) wraps the request so
+        // that request.getServletPath() reflects the effective path *after* the /z/{subdomain} prefix
+        // is stripped -- e.g. a request whose original URI is /z/myzone/oauth/mtls/token presents
+        // getServletPath() == "/oauth/mtls/token" to filters running after it, same as a direct
+        // (non-zone-path) request. A container URL-pattern registration for "/oauth/mtls/*" is matched
+        // against the *original* request URI before any filter runs, so it would never include this
+        // filter in the chain for a zone-path request -- checking the effective servlet path instead,
+        // from inside the filter, works uniformly for both cases.
+        MockHttpServletRequest direct = new MockHttpServletRequest();
+        direct.setServletPath("/oauth/mtls/token");
+        assertThat(RawPeerCertificateCaptureFilter.isMtlsTokenPath(direct)).isTrue();
+
+        MockHttpServletRequest zonePathRewritten = new MockHttpServletRequest();
+        zonePathRewritten.setContextPath("/uaa/z/myzone");
+        zonePathRewritten.setRequestURI("/uaa/z/myzone/oauth/mtls/token");
+        zonePathRewritten.setServletPath("/oauth/mtls/token");
+        assertThat(RawPeerCertificateCaptureFilter.isMtlsTokenPath(zonePathRewritten))
+                .as("must match the effective (post zone-path-rewrite) servlet path")
+                .isTrue();
+
+        MockHttpServletRequest unrelated = new MockHttpServletRequest();
+        unrelated.setServletPath("/login");
+        assertThat(RawPeerCertificateCaptureFilter.isMtlsTokenPath(unrelated)).isFalse();
+    }
+
+    @Test
+    void doesNotCaptureAnAttributeForUnrelatedPaths() throws Exception {
+        RawPeerCertificateCaptureFilter filter = new RawPeerCertificateCaptureFilter();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/login");
+        request.setAttribute("jakarta.servlet.request.X509Certificate",
+                new X509Certificate[]{generateSelfSignedCert("CN=some-peer")});
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (req, res) -> { });
+
+        assertThat(request.getAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE)).isNull();
     }
 
     @Test
@@ -68,6 +112,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         X509Certificate xfccDerivedCert = generateSelfSignedCert("CN=app-instance");
 
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/oauth/mtls/token");
         // Simulates what Tomcat's TLS handshake would have already set before any filter runs.
         request.setAttribute("jakarta.servlet.request.X509Certificate", new X509Certificate[]{genuinePeerCert});
         request.addHeader("X-Forwarded-Client-Cert",
@@ -86,6 +131,40 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
                 .containsExactly(genuinePeerCert);
         assertThat(finalStandardAttribute)
                 .as("ClientCertificateMapper should still overwrite the standard attribute with the XFCC-derived cert")
+                .containsExactly(xfccDerivedCert);
+    }
+
+    @Test
+    void capturesTheGenuinePeerCertificateForAZonePathMtlsRequest() throws Exception {
+        // Regression test for PR review comment on SpringServletXmlFiltersConfiguration.java:262:
+        // simulates a request that arrived as /z/myzone/oauth/mtls/token and was already rewritten by
+        // ZonePathContextRewritingFilter (which runs first) before reaching this filter -- same
+        // servlet path as a direct request, but a zone-prefixed context path/request URI. Both
+        // filters must still run: a container URL-pattern registration for "/oauth/mtls/*" would not
+        // have included them in the chain at all for the original /z/myzone/... request URI.
+        SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
+        FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+
+        X509Certificate genuinePeerCert = generateSelfSignedCert("CN=gorouter");
+        X509Certificate xfccDerivedCert = generateSelfSignedCert("CN=app-instance");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setContextPath("/uaa/z/myzone");
+        request.setRequestURI("/uaa/z/myzone/oauth/mtls/token");
+        request.setServletPath("/oauth/mtls/token");
+        request.setAttribute("jakarta.servlet.request.X509Certificate", new X509Certificate[]{genuinePeerCert});
+        request.addHeader("X-Forwarded-Client-Cert",
+                Base64.getEncoder().encodeToString(xfccDerivedCert.getEncoded()));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        runContainerFilterChain(List.of(captureBean, mapperBean), request, response);
+
+        assertThat((X509Certificate[]) request.getAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE))
+                .as("must still capture the genuine peer cert for a zone-path mtls request")
+                .containsExactly(genuinePeerCert);
+        assertThat((X509Certificate[]) request.getAttribute("jakarta.servlet.request.X509Certificate"))
+                .as("ClientCertificateMapper must still run for a zone-path mtls request")
                 .containsExactly(xfccDerivedCert);
     }
 

@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 
@@ -32,6 +33,15 @@ import java.io.IOException;
  * still comes from the standard, XFCC-derived {@code jakarta.servlet.request.X509Certificate}
  * attribute -- this filter's captured value is used only for the trust check, never as the
  * authenticated client certificate itself.
+ *
+ * <p>Registered in {@code SpringServletXmlFiltersConfiguration} on the default (all-requests) URL
+ * pattern, not a literal {@code /oauth/mtls/*} one: {@link #isMtlsTokenPath(HttpServletRequest)} guards
+ * this filter's work internally instead, checking the request's <em>effective</em> servlet path (i.e.
+ * after {@code ZonePathContextRewritingFilter}, which runs first, has rewritten it). A container
+ * URL-pattern registration is matched against the request's original, pre-rewrite URI, so it would
+ * never include this filter in the chain for a zone-path-prefixed mTLS request (e.g.
+ * {@code /z/{subdomain}/oauth/mtls/token}), even though downstream code sees the same effective path as
+ * a direct request.
  */
 public class RawPeerCertificateCaptureFilter implements Filter {
 
@@ -39,11 +49,27 @@ public class RawPeerCertificateCaptureFilter implements Filter {
             "org.cloudfoundry.identity.uaa.oauth.tls.rawPeerCertificate";
 
     private static final String X509_CERTIFICATE_ATTRIBUTE = "jakarta.servlet.request.X509Certificate";
+    private static final String MTLS_SERVLET_PATH = "/oauth/mtls";
+    private static final String MTLS_SERVLET_PATH_PREFIX = MTLS_SERVLET_PATH + "/";
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        request.setAttribute(RAW_PEER_CERTIFICATE_ATTRIBUTE, request.getAttribute(X509_CERTIFICATE_ATTRIBUTE));
+        if (isMtlsTokenPath((HttpServletRequest) request)) {
+            request.setAttribute(RAW_PEER_CERTIFICATE_ATTRIBUTE, request.getAttribute(X509_CERTIFICATE_ATTRIBUTE));
+        }
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Matches the request's effective servlet path -- i.e. after {@code ZonePathContextRewritingFilter}
+     * (which runs first in the filter chain) has stripped any {@code /z/{subdomain}} prefix -- against
+     * {@code /oauth/mtls/*}. Also used by {@link MtlsPathGuardedFilter} to scope the (externally
+     * supplied, package-private) {@code ClientCertificateMapper} filter to the same effective path.
+     */
+    static boolean isMtlsTokenPath(HttpServletRequest request) {
+        String servletPath = request.getServletPath();
+        return servletPath != null
+                && (servletPath.equals(MTLS_SERVLET_PATH) || servletPath.startsWith(MTLS_SERVLET_PATH_PREFIX));
     }
 }

@@ -17,6 +17,7 @@ class RawPeerCertificateCaptureFilterTest {
     void copiesGenuinePeerCertificateIntoDedicatedAttributeBeforeChainContinues() throws Exception {
         X509Certificate[] genuinePeerCert = new X509Certificate[]{mock(X509Certificate.class)};
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/oauth/mtls/token");
         request.setAttribute("jakarta.servlet.request.X509Certificate", genuinePeerCert);
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = mock(FilterChain.class);
@@ -31,6 +32,7 @@ class RawPeerCertificateCaptureFilterTest {
     @Test
     void setsNullAttributeWhenNoPeerCertificatePresent() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/oauth/mtls/token");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = mock(FilterChain.class);
 
