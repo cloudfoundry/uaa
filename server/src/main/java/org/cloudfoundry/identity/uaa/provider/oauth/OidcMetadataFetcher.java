@@ -164,7 +164,7 @@ public class OidcMetadataFetcher {
         if (config.getRelyingPartySecret() == null) {
             return null;
         }
-        String clientAuth = new String(Base64.getEncoder().encode((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
+        String clientAuth = Base64.getEncoder().encodeToString((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes(StandardCharsets.UTF_8));
         return "Basic " + clientAuth;
     }
 
