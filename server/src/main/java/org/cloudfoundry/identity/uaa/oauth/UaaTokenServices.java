@@ -536,6 +536,23 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.put(JTI, token.getAdditionalInformation().get(JTI));
         claims.putAll(token.getAdditionalInformation());
 
+        // Apply enhancer-supplied claims that are NOT one of UAA's own protected/reserved claim
+        // names (NON_ADDITIONAL_ROOT_CLAIMS) now, before any UAA-owned default below is set -- so
+        // the corresponding claims.put(...) calls below always win over an enhancer's value for
+        // the same reserved claim name (e.g. scope, client_id, authorities, iss, grant_type). This
+        // closes a gap where a client-configurable enhancer (e.g. certificate-derived mTLS claim
+        // mappings) could otherwise overwrite any UAA-owned/protected claim. sub and aud are the
+        // two explicitly-supported late overrides (e.g. mTLS cert-identity templates rendering
+        // their own sub/aud) and are re-applied after all defaults below, once it is safe for them
+        // to win.
+        if (additionalRootClaims != null) {
+            additionalRootClaims.forEach((key, value) -> {
+                if (!NON_ADDITIONAL_ROOT_CLAIMS.contains(key)) {
+                    claims.put(key, value);
+                }
+            });
+        }
+
         claims.put(SUB, clientId);
         if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
             claims.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
@@ -566,11 +583,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         claims.put(AUD, UaaStringUtils.getValuesOrDefaultValue(resourceIds, clientId));
 
-        // Apply token enhancer overrides after all UAA-default claims are set.
-        // This allows enhancers to override sub/aud (e.g. mTLS cert-identity templates).
-        // Excluded claims are removed after so operator exclusions always win.
+        // Re-apply only the two explicitly-supported late overrides (e.g. mTLS cert-identity
+        // templates rendering their own sub/aud). Every other claim name in additionalRootClaims
+        // was already rejected above (see NON_ADDITIONAL_ROOT_CLAIMS) and must not win here either.
         if (additionalRootClaims != null) {
-            claims.putAll(additionalRootClaims);
+            if (additionalRootClaims.containsKey(SUB)) {
+                claims.put(SUB, additionalRootClaims.get(SUB));
+            }
+            if (additionalRootClaims.containsKey(AUD)) {
+                claims.put(AUD, additionalRootClaims.get(AUD));
+            }
         }
 
         for (String excludedClaim : getExcludedClaims()) {
