@@ -329,32 +329,6 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
         return wrapped;
     }
 
-    /**
-     * A client socket configured to offer both TLSv1.2 and TLSv1.3, presenting an arbitrary
-     * untrusted certificate if asked. Used to verify which protocol the connector actually
-     * negotiates when both are available to the client (see
-     * {@link #negotiatesTlsV12NotTlsV13WhenMtlsEnabled()}).
-     */
-    private SSLSocket clientSocketOfferingBothTls12And13(int port) throws Exception {
-        KeyPair clientKeyPair = generateKeyPair();
-        X500Name clientName = new X500Name("CN=arbitrary-untrusted-client");
-        X509Certificate clientCert = signCert(clientName, clientName, clientKeyPair.getPublic(), clientKeyPair.getPrivate(), false, BigInteger.valueOf(3));
-
-        KeyStore clientKeyStore = KeyStore.getInstance("PKCS12");
-        clientKeyStore.load(null, null);
-        clientKeyStore.setKeyEntry("client", clientKeyPair.getPrivate(), KEYSTORE_PASSWORD, new X509Certificate[]{clientCert});
-
-        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(clientKeyStore, KEYSTORE_PASSWORD);
-
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(keyManagerFactory.getKeyManagers(), new TrustManager[]{trustAnyServerCertificate()}, null);
-
-        SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket("localhost", port);
-        socket.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.3"});
-        return socket;
-    }
-
     private SSLSocket clientSocketOfferingBothTls12And13TrackingCertRequest(int port, AtomicBoolean clientCertRequested) throws Exception {
         KeyPair clientKeyPair = generateKeyPair();
         X500Name clientName = new X500Name("CN=arbitrary-untrusted-client");
