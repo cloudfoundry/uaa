@@ -6,7 +6,7 @@ In [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-2.3.1) the password
 or better the process of checking its possession means the authentication process.
 
 The secrets can be passed to a server in different ways. It can happen through the HTTP header and/or the body. In the case that an Authorization header is used,
-the encoding of the secret needs to be done according to the RFC 6749. UAA fixed this behavior with https://github.com/cloudfoundry/uaa/issues/778.
+the encoding of the secret needs to be done according to the RFC 6749. UAA fixed this behavior with <https://github.com/cloudfoundry/uaa/issues/778>.
 The OIDC standard defines additional authentication mechanisms, see [section 9](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication).
 The usage of secrets via client_secret_basic and client_secret_post is straightforward to set up and to use, however, if system-to-system communication is
 in use, this can be a security problem because it will be hard to change secrets in running systems. The use of many secrets is not
@@ -17,10 +17,12 @@ standards define token-based authentication mechanisms for OAuth2 clients. They 
 * tls_client_auth [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705)
 
 ## New methods
+
 The new methods are based on asymmetric trust relation, so that the keys are divided into a private and a public one. The private key should never leave
 the original system, but only the public key should be exchanged.
 
 ### private_key_jwt (Partly finished)
+
 The standard private_key_jwt is similar to the existing JWT bearer flow, but JWT bearer is for user principle propagation, whereas private_key_jwt
 is used for client authentication only. The used technics are similar and therefore the trust model is similar. Both usages are specified in the same
 [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523.txt). The JWT bearer trust is based on parameters tokenKey and/or tokenKeyUrl parameter, part of the
@@ -29,7 +31,7 @@ of public keys, and this set can contain many keys because each key has its own 
 a dynamic token key URI. OIDC has defined the parameter jwks_uri for this already. The structure of the keys is defined with [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517).
 UAA provides its own jwks_uri with endpoint /token_keys. The content of this endpoint is [JWKS](https://datatracker.ietf.org/doc/html/rfc7517#section-5).
 
-The content of the JWT (parameter client_assertion) can be different. The standards define the difference. The [OIDC core standard](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication) 
+The content of the JWT (parameter client_assertion) can be different. The standards define the difference. The [OIDC core standard](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
  simplifies the structure so that issuer and subject are the client_id of the authenticated OAuth2 client. The key rotation is supported with
 jwks_uri, which retrieves the JWK. You can only have one JWKS_URI by the client. For the [RFC 7523 from OAuth2 standard](https://www.rfc-editor.org/info/rfc7523) the
 structure is more complex, but with seperated issuer and subject there can be more than one entry of federated credential.
@@ -45,11 +47,87 @@ The new parameter for federated Credentials in UAA clients is (Work in progress 
 
 * jwt_creds
 
-### tls_client_auth (Planned Feature)
-Not yet defined a release date.
+### tls_client_auth ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705))
+
+Mutual-TLS client authentication: a client presents an X.509 certificate at the TLS layer
+instead of a `client_secret` or a signed JWT assertion. UAA validates the certificate against
+a per-client trusted CA and, optionally, derives JWT claims from the certificate's subject
+fields (e.g. mapping a Cloud Foundry app instance identity certificate to `app_guid`/
+`space_guid`/`org_guid` claims).
+
+The client is authenticated on a dedicated endpoint, `/oauth/mtls/token`, rather than the
+regular `/oauth/token`. This lets the endpoint be given a servlet-container TLS configuration
+that requests a client certificate ("mutual TLS"), without changing behavior for every other
+client on `/oauth/token`.
+
+#### Deployment topology
+
+UAA itself only ever sees the certificate presented by its *immediate* TLS peer -- whatever
+that happens to be depends on how UAA is deployed:
+
+* **Behind a Gorouter** with `forwarded_client_cert: sanitize_set` (the typical Cloud
+  Foundry deployment): the Gorouter terminates the client's TLS connection, validates it, and
+  forwards the client's certificate to UAA in the `X-Forwarded-Client-Cert` header over its own
+  backend mTLS connection. Here, UAA's immediate TLS peer is the Gorouter itself, not the
+  original client.
+* **Direct connections**, e.g. an app connecting straight to UAA over BOSH DNS
+  (`uaa.service.cf.internal`) where Application Security Groups permit it, bypassing the
+  Gorouter entirely: UAA's immediate TLS peer *is* the original client.
+
+To prevent a caller that can reach UAA directly from simply replaying a certificate it
+harvested from an `X-Forwarded-Client-Cert` header (without possessing that certificate's
+private key), UAA only trusts the `X-Forwarded-Client-Cert` header when the certificate its
+immediate TLS peer *actually presented during the TLS handshake* validates against
+`tls-client-auth-trusted-proxy-ca` (see below). This property must therefore be configured
+for the client to authenticate at all, and **which CA to configure depends on the topology**:
+
+* Gorouter-fronted: set it to the CA that signs the Gorouter's own backend mTLS certificate
+  (e.g. `service_cf_internal_ca` in a typical `cf-deployment`-based CF).
+* Direct connections: set it to the same CA as `tls-client-auth-ca` (the client's own leaf
+  certificate CA), since the client itself is the immediate TLS peer.
+
+#### Configuration
+
+Per-client properties (set via the client-admin API, `oauth.clients` bootstrap, or the client
+admin UI, alongside the client's other properties such as `authorized-grant-types`):
+
+| Property | Required | Description |
+|----------|----------|--------------|
+| `token-endpoint-auth-method: tls_client_auth` | yes | Selects mTLS client authentication for this client. |
+| `tls-client-auth-ca` | yes | PEM-encoded CA certificate. The client's own presented (leaf) certificate must chain to this CA. |
+| `tls-client-auth-trusted-proxy-ca` | yes | PEM-encoded CA certificate that the entity presenting a certificate at the TLS layer immediately in front of UAA (Gorouter or the client itself -- see "Deployment topology" above) must chain to. Without this, `/oauth/mtls/token` rejects every request for this client. |
+| `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`) to JWT claim names, optionally extracting a capture group via `pattern`. |
+| `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. |
+| `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. |
+
+Example (Gorouter-fronted; a Cloud Foundry app instance identity certificate mapped to
+`cf_instance_guid`/`app_guid`/`space_guid`/`org_guid` claims):
+
+```yaml
+token-endpoint-auth-method: tls_client_auth
+tls-client-auth-ca: <instance-identity CA certificate PEM>
+tls-client-auth-trusted-proxy-ca: <Gorouter backend mTLS CA certificate PEM, e.g. service_cf_internal_ca>
+tls-client-auth-claim-mappings:
+  - field: subject_cn
+    claim: cf_instance_guid
+  - field: subject_ou
+    pattern: "app:(.+)"
+    claim: app_guid
+  - field: subject_ou
+    pattern: "space:(.+)"
+    claim: space_guid
+  - field: subject_ou
+    pattern: "organization:(.+)"
+    claim: org_guid
+```
+
+For the direct-connection topology described above, `tls-client-auth-trusted-proxy-ca` would
+instead be set to the same value as `tls-client-auth-ca`.
 
 ## Configs
+
 Here is a brief example of the `clients` section:
+
 ```yaml
 oauth:
   clients:
@@ -78,9 +156,11 @@ oauth:
           ]
         }
 ```
+
 The example configuration above with jwks_uri enables continuous trust to a running UAA.
 
 Here is a brief example of the oauth providers section, where UAA is acting as a client.
+
 ```yaml
 login:
   oauth:
@@ -99,12 +179,13 @@ login:
 The option jwtClientAuthentication creates during the proxy flow a client assertion which is based on OIDC private_key_jwt.
 
 ### Developer implementation
+
 As a developer, you should use the [UAA documentation](https://docs.cloudfoundry.org/api/uaa/version/77.18.0/index.html#token). There is a description
-about the new parameters client_assertion and client_assertion_type. In addition, you can check in the retrieved access_token tokens for the existence 
-of claim client_auth_method with value private_key_jwt, (client_auth_method=private_key). This claim should guarantee the used method of client 
-authentication. Tokens without this claim are authenticated with secrets. There might be use-cases where a stronger authentication mechanism is 
+about the new parameters client_assertion and client_assertion_type. In addition, you can check in the retrieved access_token tokens for the existence
+of claim client_auth_method with value private_key_jwt, (client_auth_method=private_key). This claim should guarantee the used method of client
+authentication. Tokens without this claim are authenticated with secrets. There might be use-cases where a stronger authentication mechanism is
 required.
 
 ### Production use
 
-The support of private_key_jwt (according to OIDC) for a production system is given with the end of Q4/2024. 
+The support of private_key_jwt (according to OIDC) for a production system is given with the end of Q4/2024.
