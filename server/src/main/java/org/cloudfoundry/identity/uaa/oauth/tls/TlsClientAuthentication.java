@@ -36,6 +36,8 @@ public class TlsClientAuthentication {
 
     private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthentication.class);
 
+    private static final String XFCC_HEADER = "X-Forwarded-Client-Cert";
+
     /**
      * Returns {@code true} when any certificate is present on the current request under the
      * standard {@code jakarta.servlet.request.X509Certificate} attribute -- whether that attribute
@@ -69,27 +71,57 @@ public class TlsClientAuthentication {
     }
 
     /**
-     * Returns the full X.509 certificate chain from the current request's
-     * {@code jakarta.servlet.request.X509Certificate} attribute (populated by the
-     * {@code ClientCertificateMapper} filter), but only when
-     * {@link #isCertificateFromTrustedProxy(TlsClientAuthConfiguration)} is {@code true} for
-     * {@code clientConfig} -- i.e. only when the genuine TLS-handshake peer presented a certificate
-     * signed by this specific client's {@code tls-client-auth-trusted-proxy-ca}. This prevents a direct
-     * caller (bypassing the Gorouter) from having a self-supplied {@code X-Forwarded-Client-Cert}
-     * header trusted. Index 0 is the end-entity (leaf) certificate.
+     * Returns the full X.509 certificate chain the current request should be authenticated with,
+     * per {@code clientConfig}'s configured trust model:
      *
-     * @return the client certificate chain, or {@code null} if none is present or not from a trusted proxy
+     * <ul>
+     *   <li>If {@code clientConfig} has no {@code tls-client-auth-trusted-proxy-ca} configured,
+     *       this client is direct-connection-only: always returns the genuine TLS-handshake peer
+     *       certificate chain (captured by {@link RawPeerCertificateCaptureFilter}), ignoring any
+     *       {@code X-Forwarded-Client-Cert} header entirely.</li>
+     *   <li>If {@code tls-client-auth-trusted-proxy-ca} is configured, this client is
+     *       proxy-only: requires an {@code X-Forwarded-Client-Cert} header to be present and
+     *       {@link #isCertificateFromTrustedProxy(TlsClientAuthConfiguration)} to be {@code true}
+     *       (the genuine TLS peer -- e.g. the Gorouter -- must validate against the configured
+     *       proxy CA) before returning the header-derived certificate chain from the standard
+     *       {@code jakarta.servlet.request.X509Certificate} attribute.</li>
+     * </ul>
+     *
+     * <p>The two modes are mutually exclusive per client: a client cannot accept both a direct
+     * connection and a proxy-forwarded one. An operator needing both registers two separate UAA
+     * clients. Index 0 of the returned chain is the end-entity (leaf) certificate.
+     *
+     * @return the client certificate chain, or {@code null} if none is present or the request
+     *         doesn't match this client's configured trust model
      */
     public X509Certificate[] getCertificateChainFromRequest(TlsClientAuthConfiguration clientConfig) {
-        if (!isCertificateFromTrustedProxy(clientConfig)) {
-            return null;
-        }
         ServletRequestAttributes attrs =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attrs == null) {
             return null;
         }
         HttpServletRequest request = attrs.getRequest();
+        boolean trustedProxyConfigured = clientConfig != null
+                && clientConfig.getTrustedProxyCaPem() != null
+                && !clientConfig.getTrustedProxyCaPem().isBlank();
+
+        if (!trustedProxyConfigured) {
+            // Direct-connection-only client: always use the genuine TLS-handshake peer
+            // certificate, regardless of any X-Forwarded-Client-Cert header -- this client's
+            // trust model has no proxy in it at all.
+            X509Certificate[] rawPeerCerts = (X509Certificate[])
+                    request.getAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE);
+            return (rawPeerCerts != null && rawPeerCerts.length > 0) ? rawPeerCerts : null;
+        }
+
+        // Proxy-only client: require the XFCC header to actually be present -- a direct
+        // connection (no header) is always rejected, even if its own certificate would validate
+        // against tls-client-auth-trusted-proxy-ca -- plus the genuine peer (the proxy) must
+        // validate against it.
+        String xfccHeader = request.getHeader(XFCC_HEADER);
+        if (xfccHeader == null || xfccHeader.isBlank() || !isCertificateFromTrustedProxy(clientConfig)) {
+            return null;
+        }
         X509Certificate[] certs = (X509Certificate[])
                 request.getAttribute("jakarta.servlet.request.X509Certificate");
         return (certs != null && certs.length > 0) ? certs : null;

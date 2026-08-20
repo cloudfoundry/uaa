@@ -251,17 +251,72 @@ class TlsClientAuthenticationTest {
     }
 
     @Test
-    void getCertificateChainFromRequestReturnsNullWhenNotFromClientsTrustedProxy() {
+    void getCertificateChainFromRequestReturnsNullWhenNoTrustedProxyCaConfiguredAndNoPeerCertCaptured() {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
-        // no trusted-proxy CA configured for this client -> never trusted
+        // no trusted-proxy CA configured for this client -> direct-connection-only, but no raw
+        // peer certificate was ever captured (e.g. uaa.mtls-enabled=false)
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setAttribute("jakarta.servlet.request.X509Certificate",
-                new X509Certificate[]{mock(X509Certificate.class)});
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
         try {
             assertThat(service.getCertificateChainFromRequest(config)).isNull();
             assertThat(service.getCertificateFromRequest(config)).isNull();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void getCertificateChainFromRequestReturnsRawPeerCertForDirectConnectionWhenNoTrustedProxyCaConfigured() throws Exception {
+        KeyPair clientKp = generateKeyPair();
+        X500Name clientCaName = new X500Name("CN=Instance Identity CA");
+        X509Certificate clientCaCert = signCert(clientCaName, clientCaName, clientKp.getPublic(), clientKp.getPrivate(), true, BigInteger.ONE);
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate directPeerCert = signCert(
+                new X500Name("CN=app-instance"), clientCaName, leafKp.getPublic(), clientKp.getPrivate(), false, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(clientCaCert), null);
+        // no trusted-proxy CA configured for this client -> direct-connection-only
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        // No X-Forwarded-Client-Cert header, no ClientCertificateMapper rewriting: the standard
+        // attribute would ordinarily equal the raw peer cert here, but this client never reads the
+        // standard attribute at all.
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{directPeerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.getCertificateChainFromRequest(config)).containsExactly(directPeerCert);
+            assertThat(service.getCertificateFromRequest(config)).isEqualTo(directPeerCert);
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void getCertificateChainFromRequestIgnoresXfccWhenNoTrustedProxyCaConfigured() throws Exception {
+        KeyPair clientKp = generateKeyPair();
+        X500Name clientCaName = new X500Name("CN=Instance Identity CA");
+        X509Certificate clientCaCert = signCert(clientCaName, clientCaName, clientKp.getPublic(), clientKp.getPrivate(), true, BigInteger.ONE);
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate directPeerCert = signCert(
+                new X500Name("CN=app-instance"), clientCaName, leafKp.getPublic(), clientKp.getPrivate(), false, BigInteger.TWO);
+        X509Certificate xfccDerivedCert = mock(X509Certificate.class);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(clientCaCert), null);
+        // no trusted-proxy CA configured for this client -> direct-connection-only
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{directPeerCert});
+        // A different certificate somehow ended up in the standard attribute, and an XFCC header
+        // is present -- e.g. noise from an unrelated proxy somewhere in the network path. Neither
+        // should matter for a client with no trusted-proxy CA configured.
+        request.setAttribute("jakarta.servlet.request.X509Certificate", new X509Certificate[]{xfccDerivedCert});
+        request.addHeader("X-Forwarded-Client-Cert", "irrelevant-base64-value");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.getCertificateChainFromRequest(config)).containsExactly(directPeerCert);
         } finally {
             RequestContextHolder.resetRequestAttributes();
         }
@@ -284,12 +339,45 @@ class TlsClientAuthenticationTest {
         // The genuine TLS peer cert (captured separately) validates against this client's trusted-proxy CA...
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
                 new X509Certificate[]{peerCert});
-        // ...so the XFCC-header-derived certificate (a completely different value) is trusted too.
+        // ...so the XFCC-header-derived certificate (a completely different value) is trusted too,
+        // given the header that ClientCertificateMapper would have parsed it from is present.
         request.setAttribute("jakarta.servlet.request.X509Certificate", xfccDerivedChain);
+        request.addHeader("X-Forwarded-Client-Cert", "irrelevant-base64-value");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
         try {
             assertThat(service.getCertificateChainFromRequest(config)).isEqualTo(xfccDerivedChain);
             assertThat(service.getCertificateFromRequest(config)).isEqualTo(xfccDerivedChain[0]);
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void getCertificateChainFromRequestReturnsNullWhenTrustedProxyCaConfiguredButXfccHeaderAbsent() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+        // A direct peer whose own certificate happens to validate against the SAME CA configured
+        // as tls-client-auth-trusted-proxy-ca -- e.g. an operator who set them equal, or a
+        // coincidence. This must NOT be enough on its own: the client is proxy-only.
+        KeyPair peerKp = generateKeyPair();
+        X509Certificate directPeerCert = signCert(
+                new X500Name("CN=direct-caller"), rootName, peerKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{directPeerCert});
+        // No X-Forwarded-Client-Cert header at all -- ClientCertificateMapper never touched the
+        // standard attribute, so (if read) it would equal the raw peer cert above. But this client
+        // is proxy-only and must reject a request with no XFCC header, regardless.
+        request.setAttribute("jakarta.servlet.request.X509Certificate", new X509Certificate[]{directPeerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.getCertificateChainFromRequest(config)).isNull();
+            assertThat(service.getCertificateFromRequest(config)).isNull();
         } finally {
             RequestContextHolder.resetRequestAttributes();
         }
