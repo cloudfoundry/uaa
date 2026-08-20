@@ -74,17 +74,23 @@ that happens to be depends on how UAA is deployed:
   (`uaa.service.cf.internal`) where Application Security Groups permit it, bypassing the
   Gorouter entirely: UAA's immediate TLS peer *is* the original client.
 
-To prevent a caller that can reach UAA directly from simply replaying a certificate it
-harvested from an `X-Forwarded-Client-Cert` header (without possessing that certificate's
-private key), UAA only trusts the `X-Forwarded-Client-Cert` header when the certificate its
-immediate TLS peer *actually presented during the TLS handshake* validates against
-`tls-client-auth-trusted-proxy-ca` (see below). This property must therefore be configured
-for the client to authenticate at all, and **which CA to configure depends on the topology**:
+`tls-client-auth-trusted-proxy-ca` determines which of the two topologies a *given client* uses --
+the two are mutually exclusive per client, not two ways of satisfying the same requirement:
 
-* Gorouter-fronted: set it to the CA that signs the Gorouter's own backend mTLS certificate
-  (e.g. `service_cf_internal_ca` in a typical `cf-deployment`-based CF).
-* Direct connections: set it to the same CA as `tls-client-auth-ca` (the client's own leaf
-  certificate CA), since the client itself is the immediate TLS peer.
+* **Not configured:** the client is direct-connection-only. UAA always authenticates it using the
+  certificate its immediate TLS peer actually presented during the handshake, and never consults
+  the `X-Forwarded-Client-Cert` header at all (even if one happens to be present -- e.g. noise
+  from an unrelated proxy in the network path).
+* **Configured:** the client is proxy-only. UAA requires the `X-Forwarded-Client-Cert` header to
+  actually be present, and the genuine TLS peer that presented it to validate against this CA,
+  before trusting the header-derived certificate. A direct connection (no header) is always
+  rejected for this client, even if its own certificate happens to validate against the configured
+  CA.
+
+An operator who needs both a Gorouter-fronted access pattern and a direct-connection access
+pattern for what is conceptually "the same" workload registers **two separate UAA clients** -- one
+with `tls-client-auth-trusted-proxy-ca` set (proxy path) and one without it (direct path) -- rather
+than expecting one client to accept either.
 
 #### Configuration
 
@@ -95,7 +101,7 @@ admin UI, alongside the client's other properties such as `authorized-grant-type
 |----------|----------|--------------|
 | `token-endpoint-auth-method: tls_client_auth` | yes | Selects mTLS client authentication for this client. |
 | `tls-client-auth-ca` | yes | PEM-encoded CA certificate. The client's own presented (leaf) certificate must chain to this CA. |
-| `tls-client-auth-trusted-proxy-ca` | yes | PEM-encoded CA certificate that the entity presenting a certificate at the TLS layer immediately in front of UAA (Gorouter or the client itself -- see "Deployment topology" above) must chain to. Without this, `/oauth/mtls/token` rejects every request for this client. |
+| `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`) to JWT claim names, optionally extracting a capture group via `pattern`. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. |
 | `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. |
@@ -121,8 +127,8 @@ tls-client-auth-claim-mappings:
     claim: org_guid
 ```
 
-For the direct-connection topology described above, `tls-client-auth-trusted-proxy-ca` would
-instead be set to the same value as `tls-client-auth-ca`.
+For the direct-connection topology described above, omit `tls-client-auth-trusted-proxy-ca`
+entirely rather than setting it -- configuring it at all switches this client to proxy-only.
 
 ## Configs
 
