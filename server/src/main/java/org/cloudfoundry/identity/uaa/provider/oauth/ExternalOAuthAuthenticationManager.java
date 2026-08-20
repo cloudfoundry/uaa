@@ -781,9 +781,16 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
      */
     public JWTClaimsSet verifySubjectToken(String idToken) {
         IdentityProvider provider = resolveOriginProvider(idToken);
-        AbstractExternalOAuthIdentityProviderDefinition config =
-                (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
-        return validateToken(idToken, config).getJwt().getClaimSet();
+        if (!(provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition config)) {
+            throw new InsufficientAuthenticationException("Unable to map issuer to a registered OAuth/OIDC provider");
+        }
+        try {
+            return validateToken(idToken, config).getJwt().getClaimSet();
+        } catch (InvalidTokenException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new InvalidTokenException("Unable to verify subject_token", e);
+        }
     }
 
     private JwtTokenSignedByThisUAA validateToken(String idToken, AbstractExternalOAuthIdentityProviderDefinition config) {
