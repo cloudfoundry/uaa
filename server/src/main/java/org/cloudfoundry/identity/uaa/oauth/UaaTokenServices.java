@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenExcepti
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdToken;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreationException;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenClaimEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
@@ -150,6 +151,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private final RevocableTokenProvisioning tokenProvisioning;
     private Set<String> excludedClaims;
     private List<UaaTokenEnhancer> uaaTokenEnhancers = new ArrayList<>();
+    private IdTokenClaimEnhancer idTokenClaimEnhancer = IdTokenClaimEnhancer.noOp();
     private final IdTokenCreator idTokenCreator;
     private final RefreshTokenCreator refreshTokenCreator;
     private TokenEndpointBuilder tokenEndpointBuilder;
@@ -211,6 +213,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Deprecated
     public void setUaaTokenEnhancer(UaaTokenEnhancer uaaTokenEnhancer) {
         this.setUaaTokenEnhancers(uaaTokenEnhancer == null ? emptyList() : singletonList(uaaTokenEnhancer));
+    }
+
+    public void setIdTokenClaimEnhancer(IdTokenClaimEnhancer idTokenClaimEnhancer) {
+        this.idTokenClaimEnhancer = idTokenClaimEnhancer == null ? IdTokenClaimEnhancer.noOp() : idTokenClaimEnhancer;
     }
 
     @Override
@@ -306,7 +312,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         additionalRootClaims,
                         claims.getRevSig(),
                         isRevocable,
-                        authenticationData
+                        authenticationData,
+                        null
                 );
 
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(
@@ -439,7 +446,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             Map<String, Object> additionalRootClaims,
             String revocableHashSignature,
             boolean isRevocable,
-            UserAuthenticationData userAuthenticationData) throws AuthenticationException {
+            UserAuthenticationData userAuthenticationData,
+            OAuth2Authentication authentication) throws AuthenticationException {
         CompositeToken compositeToken = new CompositeToken(tokenId);
         compositeToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
         compositeToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
@@ -498,13 +506,37 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             } catch (RuntimeException | IdTokenCreationException _) {
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
-            String encodedIdTokenContent = JwtHelper.encode(idTokenContent.getClaimMap(), keyInfoService.getActiveKey()).getEncoded();
+            Map<String, Object> idTokenClaims = idTokenClaimEnhancer.enhance(
+                    idTokenContent.getClaimMap(), authentication, jwtAccessToken,
+                    decodeRefreshTokenClaims(refreshToken, additionalRootClaims));
+            String encodedIdTokenContent = JwtHelper.encode(idTokenClaims, keyInfoService.getActiveKey()).getEncoded();
             compositeToken.setIdTokenValue(encodedIdTokenContent);
         }
 
         publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
 
         return compositeToken;
+    }
+
+    /**
+     * Resolve the claims of the refresh token issued in the same response, for use as the
+     * {@code refreshTokenClaims} argument to {@link IdTokenClaimEnhancer#enhance}.
+     *
+     * <p>The refresh token value handed to {@link #createCompositeToken} is always the
+     * internally-issued JWT (opaque refresh tokens are only substituted in the response
+     * returned to the caller), so this decodes it directly. Falls back to
+     * {@code additionalRootClaims} when no refresh token was issued or it cannot be decoded
+     * as a JWT.</p>
+     */
+    private static Map<String, Object> decodeRefreshTokenClaims(String refreshToken, Map<String, Object> additionalRootClaims) {
+        if (refreshToken != null) {
+            try {
+                return JsonUtils.readValueAsMap(JwtHelper.decode(refreshToken).getClaims());
+            } catch (RuntimeException e) {
+                // not a JWT (e.g. an opaque refresh token); fall through to the default below
+            }
+        }
+        return Collections.emptyMap();
     }
 
     private static Map<String, Object> addRootClaimEntry(Map<String, Object> additionalRootClaims, String entry, String value) {
@@ -722,7 +754,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         additionalRootClaims,
                         revocableHashSignature,
                         isAccessTokenRevocable,
-                        authenticationData);
+                        authenticationData,
+                        authentication);
 
         return persistRevocableToken(tokenId, accessToken, refreshToken, client, clientId, userId, isOpaque, isAccessTokenRevocable, null);
     }

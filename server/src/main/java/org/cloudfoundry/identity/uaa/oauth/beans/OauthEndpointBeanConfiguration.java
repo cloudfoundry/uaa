@@ -45,7 +45,9 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenClaimEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
@@ -784,6 +786,16 @@ public class OauthEndpointBeanConfiguration {
         );
     }
 
+    @Bean("idTokenClaimEnhancer")
+    IdTokenClaimEnhancer idTokenClaimEnhancer(
+            org.springframework.beans.factory.ObjectProvider<IdTokenEnhancer> idTokenEnhancers,
+            @Value("${jwt.token.idToken.enhancer.allowClaimModification:false}") boolean allowClaimModification
+    ) {
+        return new IdTokenClaimEnhancer(
+                idTokenEnhancers.orderedStream().toList(),
+                allowClaimModification);
+    }
+
     @Bean("refreshTokenCreator")
     RefreshTokenCreator refreshTokenCreator(
             @Value("${jwt.token.refresh.restrict_grant:false}") boolean isRestrictRefreshGrant,
@@ -844,9 +856,10 @@ public class OauthEndpointBeanConfiguration {
             @Qualifier("excludedClaims") LinkedHashSet<String> excludedClaims,
             @Qualifier("globalTokenPolicy") TokenPolicy globalTokenPolicy,
             @Qualifier("keyInfoService") KeyInfoService keyInfoService,
-            @Qualifier("idTokenGranter") IdTokenGranter idTokenGranter
+            @Qualifier("idTokenGranter") IdTokenGranter idTokenGranter,
+            @Qualifier("idTokenClaimEnhancer") IdTokenClaimEnhancer idTokenClaimEnhancer
     ) {
-        return new UaaTokenServices(
+        UaaTokenServices tokenServices = new UaaTokenServices(
                 idTokenCreator,
                 tokenEndpointBuilder,
                 jdbcClientDetailsService,
@@ -862,6 +875,8 @@ public class OauthEndpointBeanConfiguration {
                 idTokenGranter,
                 approvalService
         );
+        tokenServices.setIdTokenClaimEnhancer(idTokenClaimEnhancer);
+        return tokenServices;
     }
 
     @Bean("uaaAuthenticationMgr")

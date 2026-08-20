@@ -115,6 +115,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#jwttokenrefreshrotate"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.rotate` | `false`| Rotate refresh tokens|
 | <a href="#jwttokenrefreshrestrict_grant"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.restrict_grant` | —| Restrict refresh token grant|
 | <a href="#jwttokenclaimsexclude"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.claims.exclude` | `[]`| Claims excluded from tokens|
+| <a href="#jwttokenidtokenenhancerallowclaimmodification"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.idToken.enhancer.allowClaimModification` | `false`| Allow id_token enhancers to modify existing claims|
 
 ### OAuth Clients & Users
 
@@ -1118,6 +1119,29 @@ in their scopes for offline access.
 
 A list of claim names to exclude from issued JWT tokens. For example, to omit
 the `authorities` claim: `exclude: [authorities]`.
+
+[Back to table](#jwt-token-policy)
+
+---
+
+### `jwt.token.idToken.enhancer.allowClaimModification`
+
+**Default:** `false`
+**Source:** `@Value("${jwt.token.idToken.enhancer.allowClaimModification:false}")` in
+[`OauthEndpointBeanConfiguration`][oauth-endpoint-bean-config]
+**Type:** `boolean`
+
+Controls whether registered `IdTokenEnhancer` beans may overwrite claims that already
+exist on the `id_token`. When `false` (the default), enhancers may only add new claims;
+any attempt to change a claim already set by `IdTokenCreator` or by another enhancer is
+ignored and the original value is preserved. Set to `true` to let enhancers replace the
+value of existing claims. Adding brand-new claims never requires this flag.
+
+[oauth-endpoint-bean-config]: ../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java
+
+Enhancer implementations register as `IdTokenEnhancer` beans and read the
+`OAuth2Authentication`, the access-token claims, and the refresh-token claims through the
+supplied `IdTokenEnhancementContext`.
 
 [Back to table](#jwt-token-policy)
 
