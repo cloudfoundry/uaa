@@ -248,10 +248,22 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                     trustedProxyCaPem = tpc;
                 }
 
+                Map<String, String> requiredClaims = null;
+                Object rawRequiredClaims = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+                if (rawRequiredClaims instanceof String requiredClaimsJson) {
+                    requiredClaims = JsonUtils.readValue(requiredClaimsJson,
+                            new TypeReference<Map<String, String>>() {});
+                } else if (rawRequiredClaims instanceof Map<?, ?> requiredClaimsMap) {
+                    requiredClaims = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(requiredClaimsMap),
+                            new TypeReference<Map<String, String>>() {});
+                }
+
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
+                cfg.setRequiredClaims(requiredClaims);
                 return cfg;
             } catch (Exception e) {
                 return null;

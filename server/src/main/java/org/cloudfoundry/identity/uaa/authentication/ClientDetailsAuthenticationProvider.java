@@ -200,7 +200,8 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         if (chain == null || chain.length == 0) {
             return false;
         }
-        return tlsClientAuthentication.validateClientCert(chain, config).isPresent();
+        return tlsClientAuthentication.validateClientCert(chain, config).isPresent()
+                && tlsClientAuthentication.certificateSatisfiesRequiredClaims(chain[0], config);
     }
 
     static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
@@ -255,10 +256,22 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                     trustedProxyCaPem = tpc;
                 }
 
+                Map<String, String> requiredClaims = null;
+                Object rawRequiredClaims = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+                if (rawRequiredClaims instanceof String requiredClaimsJson) {
+                    requiredClaims = JsonUtils.readValue(requiredClaimsJson,
+                            new TypeReference<Map<String, String>>() {});
+                } else if (rawRequiredClaims instanceof Map<?, ?> requiredClaimsMap) {
+                    requiredClaims = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(requiredClaimsMap),
+                            new TypeReference<Map<String, String>>() {});
+                }
+
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
+                cfg.setRequiredClaims(requiredClaims);
                 return cfg;
             } catch (Exception e) {
                 return null;
