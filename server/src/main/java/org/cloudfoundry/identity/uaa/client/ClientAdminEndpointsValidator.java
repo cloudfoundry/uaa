@@ -383,6 +383,20 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]++)\\}");
 
     /**
+     * Bounds the length of {@code tls-client-auth-sub-template} / {@code tls-client-auth-aud-templates}
+     * entries before they are ever passed to {@link #PLACEHOLDER}'s regex. This is the actual fix for
+     * the CodeQL "polynomial regular expression on uncontrolled data" finding: {@link Matcher#find()}
+     * retries the full match attempt at every character position in the input, giving O(n^2) worst-case
+     * cost regardless of the possessive-ness of the {@code [^}]++} quantifier. Bounding input length
+     * caps the worst case at a small, fixed constant. 256 is generous -- real templates (e.g.
+     * {@code "o/{cf.org}/s/{cf.space}/a/{cf.app}"}) are a few dozen characters at most.
+     *
+     * <p>Mirrored in {@link org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer#MAX_TEMPLATE_LENGTH}
+     * for defense-in-depth on the BOSH-flat-config bootstrap path, which bypasses this validator entirely.
+     */
+    static final int MAX_TEMPLATE_LENGTH = 256;
+
+    /**
      * Validates a client's mTLS claim-related configuration ({@code tls-client-auth-claim-mappings},
      * {@code tls-client-auth-sub-template}, {@code tls-client-auth-aud-templates}, and
      * {@code tls-client-auth-required-claims}) at client creation/update time, before it is
@@ -453,6 +467,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         Object rawSubTemplate = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
         if (rawSubTemplate instanceof String subTemplate && !subTemplate.isBlank()) {
+            checkTemplateLength(subTemplate, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
             validateTemplatePlaceholders(subTemplate, declaredClaims,
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
         }
@@ -475,6 +490,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             if (audTemplates != null) {
                 for (String template : audTemplates) {
                     if (template != null && !template.isBlank()) {
+                        checkTemplateLength(template, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
                         validateTemplatePlaceholders(template, declaredClaims,
                                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
                     }
@@ -514,6 +530,18 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Rejects templates longer than {@link #MAX_TEMPLATE_LENGTH} before they reach the
+     * {@link #PLACEHOLDER} regex -- see {@link #MAX_TEMPLATE_LENGTH}'s javadoc for why.
+     */
+    private static void checkTemplateLength(String template, String propertyName, String clientId) {
+        if (template.length() > MAX_TEMPLATE_LENGTH) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " for client_id=" + clientId + " has length " + template.length()
+                            + ", which exceeds the maximum allowed length of " + MAX_TEMPLATE_LENGTH + ".");
         }
     }
 

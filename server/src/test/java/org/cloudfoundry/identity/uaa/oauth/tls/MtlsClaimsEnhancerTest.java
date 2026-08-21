@@ -565,6 +565,33 @@ class MtlsClaimsEnhancerTest {
                 .hasCauseInstanceOf(CertificateEncodingException.class);
     }
 
+    @Test
+    void subOmittedWhenTemplateExceedsMaxLength() throws Exception {
+        // Defense-in-depth: covers BOSH-flat-config-bootstrapped clients, which bypass
+        // ClientAdminEndpointsValidator's admin-API-time length check entirely. An oversized
+        // template must be dropped (not hang or throw), consistent with renderTemplate's
+        // existing "unresolved placeholder" contract.
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        String oversizedSubTemplate = "{".repeat(MtlsClaimsEnhancer.MAX_TEMPLATE_LENGTH + 1) + "cf.org}";
+        config.setSubTemplate(oversizedSubTemplate);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        long start = System.nanoTime();
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
+
+        assertThat(result).doesNotContainKey("sub");
+        assertThat(elapsedMillis).isLessThan(100);
+    }
+
     private X509Certificate mockCfCert() throws Exception {
         X509Certificate cert = mock(X509Certificate.class);
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});

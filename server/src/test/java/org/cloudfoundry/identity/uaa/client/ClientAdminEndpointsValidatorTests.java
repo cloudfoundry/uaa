@@ -530,25 +530,57 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    void validateTlsClientAuthClaimConfig_subTemplatePlaceholderRegexIsNotPolynomial() {
-        // CodeQL: js/polynomial-redos on the PLACEHOLDER regex (\{([^}]+)\}). A pathological
-        // sub-template of many consecutive unmatched '{' characters forces Matcher.find() to
-        // retry a failed match at every position; with the greedy [^}]+ quantifier each failed
-        // attempt also backtracks character-by-character, degrading to roughly O(n^2) (measured
-        // locally: ~160ms for n=10000 with [^}]+ vs. ~25ms with the possessive [^}]++ fix). This
-        // asserts the fixed, possessive-quantifier regex comfortably completes well within a
-        // generous bound (chosen to avoid flakiness under CI/parallel-test-suite load) that the
-        // unfixed regex would meaningfully exceed.
-        String pathologicalSubTemplate = "{".repeat(10_000);
+    void validateTlsClientAuthClaimConfig_rejectsSubTemplateExceedingMaxLength() {
+        // CodeQL: js/polynomial-redos on the PLACEHOLDER regex (\{([^}]+)\}). The possessive
+        // quantifier fix ([^}]++) only reduces the constant factor -- Matcher.find() still
+        // retries the full match attempt at every character position, so the real fix is to
+        // bound the input length before it ever reaches the regex.
+        String oversizedSubTemplate = "{".repeat(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH + 1);
         Map<String, Object> info = new java.util.HashMap<>();
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                 List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
-        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, pathologicalSubTemplate);
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, oversizedSubTemplate);
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client-id")
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
+                .hasMessageContaining(String.valueOf(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsAudTemplateExceedingMaxLength() {
+        String oversizedAudTemplate = "{".repeat(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH + 1);
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, List.of(oversizedAudTemplate));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client-id")
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
+                .hasMessageContaining(String.valueOf(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_acceptsSubTemplateAtExactlyMaxLength() {
+        // A pathological all-'{' template of exactly MAX_TEMPLATE_LENGTH characters must still
+        // be processed quickly, confirming the bound (combined with the possessive quantifier)
+        // makes this genuinely fast rather than merely rejected.
+        String maxLengthSubTemplate = "{".repeat(ClientAdminEndpointsValidator.MAX_TEMPLATE_LENGTH);
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, maxLengthSubTemplate);
 
         long start = System.nanoTime();
-        ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id");
+        // The all-'{' template never closes a placeholder, so no undeclared-placeholder
+        // exception is thrown -- validateTemplatePlaceholders() simply finds no matches.
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
         long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
-        assertThat(elapsedMillis).isLessThan(3000);
+        assertThat(elapsedMillis).isLessThan(100);
     }
 }

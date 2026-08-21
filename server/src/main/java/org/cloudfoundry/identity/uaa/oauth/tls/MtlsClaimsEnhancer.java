@@ -43,6 +43,17 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]++)\\}");
 
+    /**
+     * Bounds template length before it reaches {@link #PLACEHOLDER}'s regex -- see
+     * {@link org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator}'s
+     * {@code MAX_TEMPLATE_LENGTH} javadoc for the full rationale (same value, duplicated here
+     * because the two classes are in different packages/modules; kept in sync by convention,
+     * same as {@code PLACEHOLDER} itself). This guard is defense-in-depth for clients configured
+     * via the BOSH-flat-config bootstrap path ({@link #loadTlsConfig}), which bypasses
+     * ClientAdminEndpointsValidator's admin-API-time validation entirely.
+     */
+    static final int MAX_TEMPLATE_LENGTH = 256;
+
     private final TlsClientAuthentication tlsClientAuthentication;
     private final ClientDetailsService clientDetailsService;
 
@@ -174,8 +185,17 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
      *
      * <p>Variable names may contain dots (e.g. {@code {cf.org}}); dots inside braces
      * are treated as part of the name, not as path separators.
+     *
+     * <p>Returns {@code null} without attempting to match if {@code template} exceeds
+     * {@link #MAX_TEMPLATE_LENGTH}, treating an oversized template the same as an unresolvable
+     * one (silently dropped by the caller) rather than a hard failure -- a hard failure here
+     * would break every future token request for a client with a pre-existing, already-persisted
+     * oversized template.
      */
     private String renderTemplate(String template, Map<String, String> vars) {
+        if (template.length() > MAX_TEMPLATE_LENGTH) {
+            return null;
+        }
         StringBuilder sb = new StringBuilder();
         Matcher m = PLACEHOLDER.matcher(template);
         while (m.find()) {
