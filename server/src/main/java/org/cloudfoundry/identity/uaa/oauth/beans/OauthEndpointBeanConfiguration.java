@@ -45,8 +45,10 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenClaimEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
@@ -57,6 +59,9 @@ import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTok
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationFilter;
@@ -117,6 +122,8 @@ import static java.util.Map.entry;
 
 @Configuration
 public class OauthEndpointBeanConfiguration {
+
+    private static final Logger logger = LoggerFactory.getLogger(OauthEndpointBeanConfiguration.class);
 
     @Autowired
     @Qualifier("jdbcClientDetailsService")
@@ -706,6 +713,14 @@ public class OauthEndpointBeanConfiguration {
         bean.setMaxSessionLimit(TokenPolicy.parseRefreshTokenUnique(refreshTokenUniqueStr));
 
         bean.setRefreshTokenRotate(refreshTokenRotate);
+
+        if (refreshTokenRotate &&
+                TokenConstants.TokenFormat.JWT.getStringValue().equalsIgnoreCase(refreshTokenFormat) &&
+                !jwtRevocable) {
+            logger.warn("Invalid token policy configuration: JWT-format refresh tokens with rotation enabled must be revocable. Auto-correcting to set jwtRevocable=true.");
+            bean.setJwtRevocable(true);
+        }
+
         return bean;
     }
 
@@ -774,6 +789,16 @@ public class OauthEndpointBeanConfiguration {
         );
     }
 
+    @Bean("idTokenClaimEnhancer")
+    IdTokenClaimEnhancer idTokenClaimEnhancer(
+            org.springframework.beans.factory.ObjectProvider<IdTokenEnhancer> idTokenEnhancers,
+            @Value("${jwt.token.idToken.enhancer.allowClaimModification:false}") boolean allowClaimModification
+    ) {
+        return new IdTokenClaimEnhancer(
+                idTokenEnhancers.orderedStream().toList(),
+                allowClaimModification);
+    }
+
     @Bean("refreshTokenCreator")
     RefreshTokenCreator refreshTokenCreator(
             @Value("${jwt.token.refresh.restrict_grant:false}") boolean isRestrictRefreshGrant,
@@ -834,9 +859,10 @@ public class OauthEndpointBeanConfiguration {
             @Qualifier("excludedClaims") LinkedHashSet<String> excludedClaims,
             @Qualifier("globalTokenPolicy") TokenPolicy globalTokenPolicy,
             @Qualifier("keyInfoService") KeyInfoService keyInfoService,
-            @Qualifier("idTokenGranter") IdTokenGranter idTokenGranter
+            @Qualifier("idTokenGranter") IdTokenGranter idTokenGranter,
+            @Qualifier("idTokenClaimEnhancer") IdTokenClaimEnhancer idTokenClaimEnhancer
     ) {
-        return new UaaTokenServices(
+        UaaTokenServices tokenServices = new UaaTokenServices(
                 idTokenCreator,
                 tokenEndpointBuilder,
                 jdbcClientDetailsService,
@@ -852,6 +878,8 @@ public class OauthEndpointBeanConfiguration {
                 idTokenGranter,
                 approvalService
         );
+        tokenServices.setIdTokenClaimEnhancer(idTokenClaimEnhancer);
+        return tokenServices;
     }
 
     @Bean("uaaAuthenticationMgr")

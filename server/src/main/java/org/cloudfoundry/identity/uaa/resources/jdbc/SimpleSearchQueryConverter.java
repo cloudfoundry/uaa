@@ -212,6 +212,9 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         for (Filter subfilter : ofNullable(filter.getCombinedFilters()).orElse(emptyList())) {
             validateFilterAttributes(subfilter, invalidAttribues, validAttributeNames, depth + 1);
         }
+        if (filter.getInvertedFilter() != null) {
+            validateFilterAttributes(filter.getInvertedFilter(), invalidAttribues, validAttributeNames, depth + 1);
+        }
     }
 
     private void extractValues(Filter filter, MultiValueMap<String, Object> values) throws ScimException {
@@ -230,11 +233,15 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
                 break;
             case OR:
                 throw new BadRequestException("[or] operator is not supported.");
+            case NOT:
+                throw new BadRequestException("[not] operator is not supported.");
             case EQUAL:
                 Object value = getStringOrDate(filter.getComparisonValue().asString());
                 String key = filter.getAttributePath().toString();
                 values.add(key, value);
                 break;
+            case NOT_EQUAL:
+                throw new BadRequestException("[ne] operator is not supported.");
             case CONTAINS:
                 throw new BadRequestException("[co] operator is not supported.");
             case STARTS_WITH:
@@ -276,7 +283,9 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         return switch (filter.getFilterType()) {
             case AND -> buildCombiningClause(filter, " AND ", values, mapper, paramPrefix, depth);
             case OR -> buildCombiningClause(filter, " OR ", values, mapper, paramPrefix, depth);
+            case NOT -> "NOT (" + whereClauseFromFilter(filter.getInvertedFilter(), values, mapper, paramPrefix, depth + 1) + ")";
             case EQUAL -> comparisonClause(filter, "=", values, "", "", paramPrefix);
+            case NOT_EQUAL -> comparisonClause(filter, "<>", values, "", "", paramPrefix);
             case CONTAINS -> comparisonClause(filter, "LIKE", values, "%", "%", paramPrefix);
             case STARTS_WITH -> comparisonClause(filter, "LIKE", values, "", "%", paramPrefix);
             case PRESENT -> getAttributeName(filter, mapper) + " IS NOT NULL";
@@ -298,7 +307,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         String paramName = ":" + pName;
         ValueNode compValue = filter.getComparisonValue();
         if (compValue == null || compValue.isNull()) {
-            return getAttributeName(filter, mapper) + " IS NULL";
+            return getAttributeName(filter, mapper) + ("<>".equals(comparator) ? " IS NOT NULL" : " IS NULL");
         } else if (compValue.isString()) {
             Object value = getStringOrDate(compValue.asString());
             if (value instanceof String) {

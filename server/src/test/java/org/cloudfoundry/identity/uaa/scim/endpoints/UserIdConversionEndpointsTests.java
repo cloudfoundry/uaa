@@ -167,7 +167,9 @@ class UserIdConversionEndpointsTests {
     @ValueSource(strings = {
             "id gt \"foo\"",
             "id le \"foo\"",
-            "id lt \"foo\""
+            "id lt \"foo\"",
+            "id ne \"foo\"",
+            "not (id eq \"foo\")"
     })
     void badFilterUnsupportedOperator(final String filter) {
         assertThatThrownBy(() -> endpoints.findUsers(filter, "ascending", 0, 100, false)).isInstanceOf(ScimException.class).hasMessage("Invalid operator.");

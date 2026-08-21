@@ -19,6 +19,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenClaimEnhancer;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
@@ -972,6 +974,106 @@ class UaaTokenServicesTests {
             } finally {
                 tokenServices.setUaaTokenEnhancers(new ArrayList<>());
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("when an id_token enhancer is provided")
+    @DefaultTestContext
+    @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa", "jwt.token.refresh.format=jwt"})
+    class WhenAnIdTokenEnhancerIsProvided {
+
+        @BeforeEach
+        void ensureClientIsUp() {
+            assumeTrue(waitForClient(clientId, 3), "Test client jku_test not up yet");
+        }
+
+        @DisplayName("the enhancer adds a complex auth_info claim to the id_token")
+        @ParameterizedTest
+        @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
+        void enhancerAddsAuthInfoClaim(String grantType) {
+            IdTokenEnhancer authInfoEnhancer = enhancementContext -> {
+                Map<String, Object> authInfo = new HashMap<>();
+                authInfo.put("access_token_id", enhancementContext.getAccessTokenClaim("jti"));
+                authInfo.put("access_token_expiration", enhancementContext.getAccessTokenClaim("exp"));
+                authInfo.put("refresh_token_id", enhancementContext.getRefreshTokenClaim("jti"));
+                authInfo.put("refresh_token_expiration", enhancementContext.getRefreshTokenClaim("exp"));
+                enhancementContext.setClaim("auth_info", authInfo);
+            };
+            tokenServices.setIdTokenClaimEnhancer(new IdTokenClaimEnhancer(List.of(authInfoEnhancer), false));
+
+            try {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, grantType, "openid");
+                OAuth2Authentication authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+
+                CompositeToken token = (CompositeToken) tokenServices.createAccessToken(authentication);
+
+                Map<String, Object> idClaims = decodeClaims(token.getIdTokenValue());
+                assertThat(idClaims).containsKey("auth_info");
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> authInfo = (Map<String, Object>) idClaims.get("auth_info");
+                assertThat(authInfo).containsKeys(
+                        "access_token_id", "access_token_expiration", "refresh_token_id", "refresh_token_expiration");
+
+                // access-token linkage is real: the claim equals the issued access token's jti
+                Map<String, Object> accessClaims = decodeClaims(token.getValue());
+                assertThat(authInfo.get("access_token_id")).isEqualTo(accessClaims.get("jti"));
+                assertThat(authInfo.get("access_token_expiration")).isNotNull();
+
+                // refresh-token linkage: the claim equals the issued refresh token's jti.
+                // NOTE: this drives the remaining wiring change -- createCompositeToken currently passes
+                // additionalRootClaims as the refresh-token claims, which does NOT contain the refresh
+                // token's own jti/exp. Feed the issued refresh token's real claims to the context to
+                // make these two assertions pass.
+                assertThat(token.getRefreshToken()).isNotNull();
+                Map<String, Object> refreshClaims = decodeClaims(token.getRefreshToken().getValue());
+                assertThat(authInfo.get("refresh_token_id")).isEqualTo(refreshClaims.get("jti"));
+                assertThat(authInfo.get("refresh_token_expiration")).isNotNull();
+            } finally {
+                tokenServices.setIdTokenClaimEnhancer(IdTokenClaimEnhancer.noOp());
+            }
+        }
+
+        @DisplayName("the enhancer receives empty refresh token claims when no refresh token is issued")
+        @Test
+        void enhancerReceivesEmptyRefreshTokenClaimsWhenNoneIssued() {
+            IdTokenEnhancer authInfoEnhancer = enhancementContext -> {
+                enhancementContext.setClaim("refresh_token_claims_size", enhancementContext.getRefreshTokenClaims().size());
+            };
+            tokenServices.setIdTokenClaimEnhancer(new IdTokenClaimEnhancer(List.of(authInfoEnhancer), false));
+
+            try {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(clientId, GRANT_TYPE_IMPLICIT, "openid");
+                OAuth2Authentication authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
+
+                CompositeToken token = (CompositeToken) tokenServices.createAccessToken(authentication);
+
+                Map<String, Object> idClaims = decodeClaims(token.getIdTokenValue());
+                assertThat(idClaims.get("refresh_token_claims_size")).isEqualTo(0);
+            } finally {
+                tokenServices.setIdTokenClaimEnhancer(IdTokenClaimEnhancer.noOp());
+            }
+        }
+
+        private Map<String, Object> decodeClaims(String jwt) {
+            return JsonUtils.readValue(JwtHelper.decode(jwt).getClaims(), new TypeReference<Map<String, Object>>() {});
+        }
+    }
+
+    @Nested
+    @DisplayName("when jwt.token.idToken.enhancer.allowClaimModification is configured")
+    @DefaultTestContext
+    @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa", "jwt.token.idToken.enhancer.allowClaimModification=true"})
+    class WhenAllowClaimModificationIsConfigured {
+
+        @Autowired
+        private IdTokenClaimEnhancer idTokenClaimEnhancer;
+
+        @DisplayName("the wired enhancer bean reads the boolean from configuration")
+        @Test
+        void beanReadsTheConfiguredFlag() {
+            assertThat(idTokenClaimEnhancer.isClaimModificationAllowed()).isTrue();
         }
     }
 

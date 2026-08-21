@@ -29,7 +29,7 @@ import org.apache.hc.client5.http.socket.PlainConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
-import org.apache.hc.client5.http.ssl.TrustSelfSignedStrategy;
+import org.apache.hc.client5.http.ssl.TrustAllStrategy;
 import org.apache.hc.core5.http.HeaderElement;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpRequest;
@@ -222,9 +222,27 @@ public abstract class UaaHttpRequestUtils {
         return millis <= 0 ? Timeout.DISABLED : Timeout.ofMilliseconds(millis);
     }
 
+    /**
+     * The {@code skipSslValidation=true} escape hatch: accepts <em>any</em> server certificate chain,
+     * of any length, from any issuer. Combined with the {@link NoopHostnameVerifier} applied alongside
+     * it in {@link #getClientBuilder(boolean, HttpClientConfig)}, this disables peer authentication
+     * entirely and offers no protection against man-in-the-middle attacks.
+     * <p>
+     * This must be {@link TrustAllStrategy}, not {@code TrustSelfSignedStrategy}. The latter's
+     * {@code isTrusted} is {@code chain.length == 1}, and Apache's {@code TrustManagerDelegate} falls
+     * through to normal JDK PKIX validation whenever a strategy returns false -- so it silently
+     * validated (and rejected) every chain of two or more certificates, which is what any real
+     * identity provider behind a CA hierarchy serves. That made the flag a no-op precisely where
+     * operators needed it.
+     * <p>
+     * To trust a private CA <em>without</em> giving up validation, use the per-IDP
+     * {@code caCertificates} property instead, which is served by
+     * {@link org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache} and keeps both chain
+     * validation and hostname verification switched on.
+     */
     private static SSLContext getNonValidatingSslContext() {
         try {
-            return new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
+            return new SSLContextBuilder().loadTrustMaterial(TrustAllStrategy.INSTANCE).build();
         } catch (KeyManagementException | KeyStoreException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }

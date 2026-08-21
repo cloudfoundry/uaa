@@ -115,6 +115,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#jwttokenrefreshrotate"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.rotate` | `false`| Rotate refresh tokens|
 | <a href="#jwttokenrefreshrestrict_grant"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.restrict_grant` | —| Restrict refresh token grant|
 | <a href="#jwttokenclaimsexclude"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.claims.exclude` | `[]`| Claims excluded from tokens|
+| <a href="#jwttokenidtokenenhancerallowclaimmodification"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.idToken.enhancer.allowClaimModification` | `false`| Allow id_token enhancers to modify existing claims|
 
 ### OAuth Clients & Users
 
@@ -1123,6 +1124,29 @@ the `authorities` claim: `exclude: [authorities]`.
 
 ---
 
+### `jwt.token.idToken.enhancer.allowClaimModification`
+
+**Default:** `false`
+**Source:** `@Value("${jwt.token.idToken.enhancer.allowClaimModification:false}")` in
+[`OauthEndpointBeanConfiguration`][oauth-endpoint-bean-config]
+**Type:** `boolean`
+
+Controls whether registered `IdTokenEnhancer` beans may overwrite claims that already
+exist on the `id_token`. When `false` (the default), enhancers may only add new claims;
+any attempt to change a claim already set by `IdTokenCreator` or by another enhancer is
+ignored and the original value is preserved. Set to `true` to let enhancers replace the
+value of existing claims. Adding brand-new claims never requires this flag.
+
+[oauth-endpoint-bean-config]: ../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java
+
+Enhancer implementations register as `IdTokenEnhancer` beans and read the
+`OAuth2Authentication`, the access-token claims, and the refresh-token claims through the
+supplied `IdTokenEnhancementContext`.
+
+[Back to table](#jwt-token-policy)
+
+---
+
 ### `oauth.clients`
 
 **Default:** `{}` (empty)
@@ -1932,7 +1956,10 @@ External OAuth 2.0 and OIDC provider definitions. Each provider entry includes:
 - `linkText` — Text for the login link
 - `relyingPartyId` / `relyingPartySecret` — Client credentials
 - `attributeMappings` — Attribute mapping configuration
-- `skipSslValidation` — Skip TLS validation when calling the provider. Default `false`
+- `skipSslValidation` — Skip TLS validation when calling the provider. This disables both
+  certificate chain validation and hostname verification, offering no protection against
+  man-in-the-middle attacks; it is intended for development and diagnostics. To trust a private
+  CA in production, use `caCertificates` instead, which keeps validation enabled. Default `false`
 - `caCertificates` — List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when calling the provider. Ignored if `skipSslValidation` is `true`
 
 [Back to table](#login--branding)
@@ -2102,7 +2129,7 @@ Bootstrap SAML Identity Provider definitions. Each entry is keyed by a provider 
 | `emailDomain` | `List<String>` | Email domains used for IDP discovery |
 | `externalGroupsWhitelist` | `List<String>` | External group names to map |
 | `attributeMappings` | `Map<String, Object>` | Attribute mapping configuration |
-| `skipSslValidation` | `boolean` | Skip TLS validation when fetching metadata URL. Default `false` |
+| `skipSslValidation` | `boolean` | Skip TLS validation when fetching metadata URL. Disables both certificate chain validation and hostname verification, offering no protection against man-in-the-middle attacks; intended for development and diagnostics. Use `caCertificates` to trust a private CA in production. Default `false` |
 | `caCertificates` | `List<String>` | PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when fetching the metadata URL. Ignored if `skipSslValidation` is `true` |
 | `storeCustomAttributes` | `boolean` | Persist custom SAML attributes on the user. Default `true` |
 | `authnContext` | `List<String>` | Requested authentication context class references |

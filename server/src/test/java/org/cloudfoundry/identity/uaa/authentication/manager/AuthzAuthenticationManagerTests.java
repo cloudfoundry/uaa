@@ -54,6 +54,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -66,7 +67,7 @@ class AuthzAuthenticationManagerTests {
     private ApplicationEventPublisher publisher;
     private static final String PASSWORD = "password";
     private UaaUser user;
-    private PasswordEncoder encoder = new PasswordEncoderConfig().nonCachingPasswordEncoder();
+    private PasswordEncoder encoder = spy(new PasswordEncoderConfig().nonCachingPasswordEncoder());
     private String loginServerUserName = "loginServerUser".toLowerCase();
     private IdentityProviderProvisioning providerProvisioning;
 
@@ -207,6 +208,22 @@ class AuthzAuthenticationManagerTests {
         when(db.retrieveUserByName("aguess", OriginKeys.UAA)).thenThrow(new UsernameNotFoundException("mocked"));
         assertThatThrownBy(() -> mgr.authenticate(createAuthRequest("aguess", "password"))).asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
         verify(publisher).publishEvent(isA(UserNotFoundEvent.class));
+    }
+
+    @Test
+    void missingUserWithNonEmptyPasswordInvokesDummyMatch() {
+        when(db.retrieveUserByName("aguess", OriginKeys.UAA)).thenReturn(null);
+        assertThatThrownBy(() -> mgr.authenticate(createAuthRequest("aguess", "password")))
+                .asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
+        verify(encoder).matches(eq("password"), anyString());
+    }
+
+    @Test
+    void missingUserWithEmptyPasswordDoesNotInvokeDummyMatch() {
+        when(db.retrieveUserByName("aguess", OriginKeys.UAA)).thenReturn(null);
+        assertThatThrownBy(() -> mgr.authenticate(createAuthRequest("aguess", "")))
+                .asInstanceOf(InstanceOfAssertFactories.throwable(BadCredentialsException.class));
+        verify(encoder, times(0)).matches(anyString(), anyString());
     }
 
     @Test

@@ -40,6 +40,9 @@ import java.util.Date;
 import java.util.Locale;
 
 public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
+    // BCrypt hash of a constant dummy password (cost=10) used to equalize authentication latency when the user is not found.
+    private static final String DUMMY_BCRYPT_HASH = "{bcrypt}$2a$10$xn3igMIdgceZX.mK6/0.n.MvJk1.L/0R15Tz3gGZ/7eM/T.xI.1wO";
+
     private final HttpSession httpSession;
     private final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(getClass());
     private final PasswordEncoder encoder;
@@ -74,6 +77,11 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         UaaUser user = getUaaUser(req);
 
         if (user == null) {
+            // To prevent timing attacks, we perform a dummy BCrypt hash check for non-empty passwords
+            // when the user is not found, ensuring the response time is similar to a valid user login.
+            if (((CharSequence) req.getCredentials()).length() != 0) {
+                encoder.matches((CharSequence) req.getCredentials(), DUMMY_BCRYPT_HASH);
+            }
             logger.debug("No user named '" + req.getName() + "' was found for origin:" + origin);
             publish(new UserNotFoundEvent(req, IdentityZoneHolder.getCurrentZoneId()));
         } else {

@@ -85,13 +85,22 @@ class SimpleSearchQueryConverterTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"co", "sw", "ge", "gt", "lt", "le"})
+    @ValueSource(strings = {"co", "sw", "ge", "gt", "lt", "le", "ne"})
     void invalidOperator(final String operator) {
         String query = "origin eq \"origin-value\" and externalGroup " + operator + " \"group-value\"";
         List<String> validAttributes = Arrays.asList("origin", "externalGroup".toLowerCase());
         assertThatThrownBy(() -> converter.getFilterValues(query, validAttributes))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("[" + operator + "] operator is not supported.");
+    }
+
+    @Test
+    void invalidConditionalNot() {
+        String query = "origin eq \"origin-value\" and not (externalGroup eq \"group-value\")";
+        List<String> validAttributes = Arrays.asList("origin", "externalGroup".toLowerCase());
+        assertThatThrownBy(() -> converter.getFilterValues(query, validAttributes))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("[not] operator is not supported.");
     }
 
     @Test

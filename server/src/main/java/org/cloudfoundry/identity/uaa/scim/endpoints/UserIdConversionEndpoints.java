@@ -184,7 +184,9 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 }
             case PRESENT, STARTS_WITH, CONTAINS:
                 throw new ScimException("Wildcards are not allowed in filter.", HttpStatus.BAD_REQUEST);
-            case GREATER_THAN, GREATER_OR_EQUAL, LESS_THAN, LESS_OR_EQUAL:
+            case GREATER_THAN, GREATER_OR_EQUAL, LESS_THAN, LESS_OR_EQUAL, NOT_EQUAL, NOT:
+                // "ne" and "not" would match a broad, low-selectivity set of resources (e.g. "everyone but X"),
+                // which defeats this endpoint's intent of requiring a precise id/userName identity match.
                 throw new ScimException("Invalid operator.", HttpStatus.BAD_REQUEST);
             default:
                 throw new ScimException("Unsupported filter type.", HttpStatus.BAD_REQUEST);

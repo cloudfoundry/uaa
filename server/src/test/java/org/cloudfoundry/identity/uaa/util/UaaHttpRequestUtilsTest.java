@@ -10,6 +10,7 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -32,9 +33,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
+import java.nio.file.Files;
 import java.security.KeyStore;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -42,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
@@ -271,6 +277,97 @@ class UaaHttpRequestUtilsTest {
                 fail("We should not reach this step if the above URL is using a self signed certificate");
             } catch (RestClientException e) {
                 assertThat(e.getCause().getClass()).isEqualTo(SSLHandshakeException.class);
+            }
+        }
+    }
+
+    /**
+     * The rest of this class exercises a server presenting a single self-signed certificate. These
+     * tests use a server presenting a full leaf -&gt; intermediate -&gt; root chain, which is what real
+     * identity providers behind a CA hierarchy serve, and which is the case that
+     * {@code skipSslValidation=true} must also cover.
+     */
+    @Nested
+    class CertificateChain {
+
+        private NetworkTestUtils.ChainedKeystore chained;
+        private HttpsServer chainedServer;
+        private String chainedUrl;
+
+        @BeforeEach
+        void startChainedServer() throws Exception {
+            chained = NetworkTestUtils.getChainedKeystore(new Date(), 10);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            chainedServer = NetworkTestUtils.startHttpsServer(chained.file(), NetworkTestUtils.keyPass,
+                    new NetworkTestUtils.SimpleHttpResponseHandler(headers, "OK"));
+            chainedUrl = "https://localhost:" + chainedServer.getAddress().getPort() + "/";
+        }
+
+        /**
+         * Null-guarded so that a failure part-way through {@link #startChainedServer()} surfaces its
+         * own cause rather than being masked by a NullPointerException here.
+         */
+        @AfterEach
+        void stopChainedServer() throws Exception {
+            if (chainedServer != null) {
+                chainedServer.stop(0);
+            }
+            if (chained != null) {
+                Files.deleteIfExists(chained.file().toPath());
+            }
+        }
+
+        /**
+         * Guards the fixture itself: if this chain were malformed, the tests below would pass or
+         * fail for the wrong reasons.
+         */
+        @Test
+        void fixtureBuildsAThreeCertificateChain() {
+            assertThat(chained.leafCertificate().getIssuerX500Principal())
+                    .isEqualTo(chained.intermediateCertificate().getSubjectX500Principal());
+            assertThat(chained.intermediateCertificate().getIssuerX500Principal())
+                    .isEqualTo(chained.rootCertificate().getSubjectX500Principal());
+            assertThat(chained.rootCertificate().getIssuerX500Principal())
+                    .isEqualTo(chained.rootCertificate().getSubjectX500Principal());
+        }
+
+        @Test
+        void skipSslValidationTrustsFullCertificateChain() {
+            RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 10_000));
+            assertThat(restTemplate.getForEntity(chainedUrl, String.class).getStatusCode()).isEqualTo(OK);
+        }
+
+        @Test
+        void trustedOnlyRejectsUntrustedCertificateChain() {
+            RestTemplate restTemplate = new RestTemplate(createRequestFactory(false, 10_000));
+            assertThatThrownBy(() -> restTemplate.getForEntity(chainedUrl, String.class))
+                    .isInstanceOf(RestClientException.class)
+                    .hasCauseInstanceOf(SSLHandshakeException.class);
+        }
+
+        /**
+         * The secure alternative to {@code skipSslValidation}: trusting only the chain's root via
+         * per-IDP {@code caCertificates} validates the whole chain, with hostname verification left on.
+         */
+        @Test
+        void caCertificatesWithRootOnlyValidatesFullChain() {
+            SSLContext sslContext = new IdpOutboundTrustCache()
+                    .resolveSslContext("test-idp", List.of(pem(chained.rootCertificate())), false);
+
+            RestTemplate restTemplate = new RestTemplate(
+                    createRequestFactory(sslContext, 10_000, 10_000, RestTemplateConfig.createDefaults()));
+            assertThat(restTemplate.getForEntity(chainedUrl, String.class).getStatusCode()).isEqualTo(OK);
+        }
+
+        private String pem(X509Certificate certificate) {
+            try {
+                return "-----BEGIN CERTIFICATE-----\n"
+                        + Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8))
+                                .encodeToString(certificate.getEncoded())
+                        + "\n-----END CERTIFICATE-----\n";
+            } catch (CertificateEncodingException e) {
+                throw new IllegalStateException(e);
             }
         }
     }
