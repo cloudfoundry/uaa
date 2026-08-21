@@ -2,7 +2,10 @@ package org.cloudfoundry.identity.uaa.oauth.tls;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
@@ -214,6 +217,100 @@ class TlsClientAuthenticationTest {
                 new X509Certificate[]{leafCert, interCert, rootCert}, config);
 
         assertThat(result).contains(leafCert);
+    }
+
+    @Test
+    void validateClientCertRejectsLeafThatIsItselfACaCertificate() throws Exception {
+        // A CA cert (BasicConstraints CA=true) presented as the "leaf" chain[0] genuinely PKIX-
+        // validates -- a 1-cert chain from the intermediate to the root trust anchor is
+        // structurally valid -- but must be rejected because the presented end-entity is itself
+        // a CA certificate, not a genuine client credential.
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Test Root CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair interKp = generateKeyPair();
+        X500Name interName = new X500Name("CN=Test Intermediate CA");
+        X509Certificate intermediateCaCert = signCert(
+                interName, rootName, interKp.getPublic(), rootKp.getPrivate(), true, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
+
+        assertThatThrownBy(() -> service.validateClientCert(new X509Certificate[]{intermediateCaCert}, config))
+                .hasMessageContaining("tls_client_auth");
+    }
+
+    @Test
+    void validateClientCertRejectsLeafWithExtendedKeyUsageExcludingClientAuth() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Test Root CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate leafCert = signCert(
+                new X500Name("CN=leaf-instance"), rootName, leafKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO,
+                null, List.of(KeyPurposeId.id_kp_serverAuth));
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
+
+        assertThatThrownBy(() -> service.validateClientCert(new X509Certificate[]{leafCert}, config))
+                .hasMessageContaining("tls_client_auth");
+    }
+
+    @Test
+    void validateClientCertAcceptsLeafWithExtendedKeyUsageIncludingClientAuth() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Test Root CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate leafCert = signCert(
+                new X500Name("CN=leaf-instance"), rootName, leafKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO,
+                null, List.of(KeyPurposeId.id_kp_clientAuth));
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
+
+        Optional<X509Certificate> result = service.validateClientCert(new X509Certificate[]{leafCert}, config);
+
+        assertThat(result).contains(leafCert);
+    }
+
+    @Test
+    void validateClientCertAcceptsLeafWithNoKeyUsageOrExtendedKeyUsageExtensions() throws Exception {
+        // Backward compatibility: certs that set neither extension at all (e.g. Diego's
+        // instance-identity CA, whose exact extension profile is not assumed here) must still be
+        // accepted -- an absent extension imposes no restriction per RFC 5280.
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Test Root CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate leafCert = signCert(
+                new X500Name("CN=leaf-instance"), rootName, leafKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
+
+        Optional<X509Certificate> result = service.validateClientCert(new X509Certificate[]{leafCert}, config);
+
+        assertThat(result).contains(leafCert);
+    }
+
+    @Test
+    void validateClientCertRejectsLeafWithKeyUsageExcludingDigitalSignature() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Test Root CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair leafKp = generateKeyPair();
+        // Key Usage present but only keyEncipherment -- digitalSignature explicitly excluded.
+        X509Certificate leafCert = signCert(
+                new X500Name("CN=leaf-instance"), rootName, leafKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO,
+                KeyUsage.keyEncipherment, null);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
+
+        assertThatThrownBy(() -> service.validateClientCert(new X509Certificate[]{leafCert}, config))
+                .hasMessageContaining("tls_client_auth");
     }
 
     @Test
@@ -547,11 +644,31 @@ class TlsClientAuthenticationTest {
 
     private static X509Certificate signCert(X500Name subject, X500Name issuer, PublicKey subjectKey,
             PrivateKey signerKey, boolean isCa, BigInteger serial) throws Exception {
+        return signCert(subject, issuer, subjectKey, signerKey, isCa, serial, null, null);
+    }
+
+    /**
+     * Overload allowing tests to optionally set a Key Usage extension ({@code keyUsageBits}, a
+     * bitmask built from {@link KeyUsage} constants, or {@code null} to omit the extension
+     * entirely) and/or an Extended Key Usage extension ({@code ekuPurposes}, or {@code null}/empty
+     * to omit it entirely). Existing call sites using the 6-arg overload above are unaffected,
+     * matching production certificates that typically don't set these extensions.
+     */
+    private static X509Certificate signCert(X500Name subject, X500Name issuer, PublicKey subjectKey,
+            PrivateKey signerKey, boolean isCa, BigInteger serial,
+            Integer keyUsageBits, List<KeyPurposeId> ekuPurposes) throws Exception {
         Date notBefore = new Date(System.currentTimeMillis() - 60_000);
         Date notAfter = new Date(System.currentTimeMillis() + 3_600_000);
         JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
                 issuer, serial, notBefore, notAfter, subject, subjectKey);
         builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(isCa));
+        if (keyUsageBits != null) {
+            builder.addExtension(Extension.keyUsage, true, new KeyUsage(keyUsageBits));
+        }
+        if (ekuPurposes != null && !ekuPurposes.isEmpty()) {
+            builder.addExtension(Extension.extendedKeyUsage, false,
+                    new ExtendedKeyUsage(ekuPurposes.toArray(new KeyPurposeId[0])));
+        }
         ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA")
                 .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
                 .build(signerKey);

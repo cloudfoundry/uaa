@@ -288,11 +288,28 @@ public class TlsClientAuthentication {
      * Validates a full certificate chain against the trusted CA PEM configured in {@code config}
      * using PKIX path validation. Supports chains that include intermediate CAs.
      *
+     * <p>PKIX path validation alone only proves the presented chain structurally links to the
+     * configured trust anchor -- it does not enforce that the end-entity (leaf) certificate,
+     * {@code chain[0]}, is actually meant to be used as a TLS client authentication credential.
+     * Because the connector accepts this call without any TLS-layer CA validation of its own
+     * (see {@code MtlsClientAuthTomcatCustomizer}, {@code certificateVerification=optionalNoCA}),
+     * this method additionally rejects {@code chain[0]} (after PKIX validation succeeds) when it:
+     * <ul>
+     *   <li>is itself a CA certificate (a {@code BasicConstraints} extension with {@code CA=true}),</li>
+     *   <li>has a Key Usage extension present that does not permit {@code digitalSignature}, or</li>
+     *   <li>has an Extended Key Usage extension present that does not include
+     *       {@code id-kp-clientAuth} or {@code anyExtendedKeyUsage}.</li>
+     * </ul>
+     * These checks only reject when an extension is present and explicitly excludes client
+     * authentication -- an absent extension imposes no restriction (RFC 5280), preserving
+     * backward compatibility with CAs that don't set these extensions at all.
+     *
      * @param chain  the full certificate chain (index 0 = end-entity), may be {@code null}
      * @param config the per-client TLS configuration, may be {@code null}
      * @return {@code Optional.of(chain[0])} when validation succeeds;
      *         {@code Optional.empty()} when chain or config is absent
-     * @throws InvalidClientDetailsException if the CA PEM is malformed or the cert chain is invalid
+     * @throws InvalidClientDetailsException if the CA PEM is malformed, the cert chain is invalid,
+     *         or {@code chain[0]} fails an end-entity constraint check
      */
     public Optional<X509Certificate> validateClientCert(
             X509Certificate[] chain, TlsClientAuthConfiguration config) {
@@ -303,13 +320,66 @@ public class TlsClientAuthentication {
 
         try {
             X509Certificate caCert = parsePemCertificate(config.getTrustedCaPem());
-            return validateCertPath(chain, caCert);
+            Optional<X509Certificate> validated = validateCertPath(chain, caCert);
+            if (validated.isPresent()) {
+                validateEndEntityConstraints(validated.get());
+            }
+            return validated;
         } catch (CertPathValidatorException e) {
             throw new InvalidClientDetailsException(
                     "tls_client_auth: certificate chain validation failed: " + e.getMessage());
         } catch (Exception e) {
             throw new InvalidClientDetailsException(
                     "tls_client_auth: CA configuration error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Extended Key Usage OID for TLS client authentication ({@code id-kp-clientAuth}, RFC 5280 §4.2.1.12).
+     */
+    private static final String EKU_CLIENT_AUTH = "1.3.6.1.5.5.7.3.2";
+
+    /**
+     * Extended Key Usage OID meaning "any extended key usage is acceptable" (RFC 5280 §4.2.1.12).
+     */
+    private static final String EKU_ANY = "2.5.29.37.0";
+
+    /**
+     * Rejects {@code leaf} when it carries an extension that explicitly signals it is unsuitable
+     * as a TLS client authentication credential. See {@link #validateClientCert(X509Certificate[],
+     * TlsClientAuthConfiguration)} for the full rationale. Absent extensions are never rejected.
+     *
+     * @throws CertPathValidatorException if {@code leaf} is itself a CA certificate, its Key
+     *         Usage extension (if present) does not permit {@code digitalSignature}, or its
+     *         Extended Key Usage extension (if present, or unparsable) does not include
+     *         {@code id-kp-clientAuth} or {@code anyExtendedKeyUsage}
+     */
+    private static void validateEndEntityConstraints(X509Certificate leaf) throws CertPathValidatorException {
+        if (leaf.getBasicConstraints() != -1) {
+            throw new CertPathValidatorException(
+                    "presented end-entity certificate is itself a CA certificate");
+        }
+
+        boolean[] keyUsage = leaf.getKeyUsage();
+        if (keyUsage != null && (keyUsage.length < 1 || !keyUsage[0])) {
+            throw new CertPathValidatorException(
+                    "presented end-entity certificate's Key Usage extension does not permit digitalSignature");
+        }
+
+        List<String> extendedKeyUsage;
+        try {
+            extendedKeyUsage = leaf.getExtendedKeyUsage();
+        } catch (java.security.cert.CertificateParsingException e) {
+            throw new CertPathValidatorException(
+                    "presented end-entity certificate has an unparsable Extended Key Usage extension: "
+                            + e.getMessage());
+        }
+        if (extendedKeyUsage != null
+                && !extendedKeyUsage.contains(EKU_CLIENT_AUTH)
+                && !extendedKeyUsage.contains(EKU_ANY)) {
+            throw new CertPathValidatorException(
+                    "presented end-entity certificate's Extended Key Usage extension does not include "
+                            + "clientAuth or anyExtendedKeyUsage");
         }
     }
 
