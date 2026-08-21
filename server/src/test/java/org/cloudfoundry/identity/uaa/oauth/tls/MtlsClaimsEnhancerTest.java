@@ -20,7 +20,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +34,12 @@ class MtlsClaimsEnhancerTest {
 
     @BeforeEach
     void setUp() {
-        tlsClientAuthentication = mock(TlsClientAuthentication.class);
+        // A spy (not a plain mock): extractClaimMappingValues now lives on TlsClientAuthentication,
+        // and this test suite still needs it to actually run (real RDN parsing) to exercise
+        // MtlsClaimsEnhancer's claim-shape-building logic end-to-end, exactly as before this class
+        // was relocated. hasCertificateFromRequest()/getCertificateFromRequest(...) remain stubbed
+        // per-test exactly as before.
+        tlsClientAuthentication = spy(new TlsClientAuthentication());
         clientDetailsService = mock(ClientDetailsService.class);
         enhancer = new MtlsClaimsEnhancer(tlsClientAuthentication, clientDetailsService);
     }
@@ -372,7 +379,10 @@ class MtlsClaimsEnhancerTest {
     void stringPathInAdditionalInformationLoadsTrustedProxyCa() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        // doReturn/when (not when/thenReturn) — this test verifies the exact invocation count of
+        // getCertificateFromRequest below; when/thenReturn on a spy invokes the real method once
+        // during stub setup, which would be double-counted as an extra interaction.
+        doReturn(cert).when(tlsClientAuthentication).getCertificateFromRequest(any());
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");

@@ -13,6 +13,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
+import javax.security.auth.x500.X500Principal;
 import java.io.StringReader;
 import java.security.cert.CertPathValidator;
 import java.security.cert.CertPathValidatorException;
@@ -20,9 +26,16 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Validates mTLS client certificates against a configured CA and extracts
@@ -170,6 +183,39 @@ public class TlsClientAuthentication {
     }
 
     /**
+     * Extracts claim-name -> value pairs from {@code cert}'s subject fields per {@code config}'s
+     * {@code tls-client-auth-claim-mappings}. Shared by {@link MtlsClaimsEnhancer} (to build JWT
+     * claims) and {@link #certificateSatisfiesRequiredClaims} (to enforce
+     * {@code tls-client-auth-required-claims} at authentication time, before any claim is built).
+     *
+     * @return an empty map if {@code cert} or {@code config} is {@code null}, or if
+     *         {@code config} has no {@code tls-client-auth-claim-mappings} configured
+     */
+    public Map<String, String> extractClaimMappingValues(X509Certificate cert, TlsClientAuthConfiguration config) {
+        if (cert == null || config == null || config.getClaimMappings() == null) {
+            return Map.of();
+        }
+        X500Principal subject = cert.getSubjectX500Principal();
+        String dn = subject.getName(X500Principal.RFC2253);
+        String cn = extractRdnValue(dn, "CN");
+        List<String> ous = extractOus(dn);
+
+        Map<String, String> vars = new HashMap<>();
+        for (TlsClientAuthConfiguration.ClaimMapping mapping : config.getClaimMappings()) {
+            String value = switch (mapping.getField()) {
+                case "subject_cn" -> cn;
+                case "subject_ou" -> matchFirstOu(ous, mapping.getPattern());
+                case "subject_o"  -> extractRdnValue(dn, "O");
+                default -> null;
+            };
+            if (value != null && !value.isBlank()) {
+                vars.put(mapping.getClaim(), value);
+            }
+        }
+        return vars;
+    }
+
+    /**
      * Validates {@code clientCert} against the trusted CA PEM configured in {@code config}
      * using PKIX path validation.
      * For chains with intermediates, prefer
@@ -253,5 +299,94 @@ public class TlsClientAuthentication {
                     .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
                     .getCertificate(holder);
         }
+    }
+
+    /**
+     * Parses an RFC 2253 DN string into its RDNs, ordered most-specific-first
+     * (i.e. matching the left-to-right order of the original DN string).
+     *
+     * <p>{@link LdapName#getRdns()} returns RDNs least-specific-first (root/rightmost
+     * component at index 0), so the list is reversed here. Using {@link LdapName} instead
+     * of a naive {@code dn.split(",")} correctly handles backslash-escaped commas/quotes
+     * within attribute values (RFC 2253 §2.4), which a plain string split would mis-parse.
+     * Returns an empty list if {@code dn} cannot be parsed as a valid DN.
+     */
+    private static List<Rdn> parseRdnsMostSpecificFirst(String dn) {
+        try {
+            List<Rdn> rdns = new ArrayList<>(new LdapName(dn).getRdns());
+            Collections.reverse(rdns);
+            return rdns;
+        } catch (NamingException e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Returns the value of the given attribute {@code type} (e.g. {@code "CN"}) from an RDN,
+     * including multi-valued RDNs (attributes joined by {@code +}). Attribute type matching
+     * is case-insensitive, per LDAP semantics. Returns {@code null} if not present.
+     */
+    private static String rdnAttributeValue(Rdn rdn, String type) {
+        try {
+            NamingEnumeration<? extends Attribute> attrs = rdn.toAttributes().getAll();
+            while (attrs.hasMore()) {
+                Attribute attr = attrs.next();
+                if (attr.getID().equalsIgnoreCase(type)) {
+                    Object value = attr.get();
+                    return value == null ? null : value.toString();
+                }
+            }
+        } catch (NamingException e) {
+            // fall through to null
+        }
+        return null;
+    }
+
+    /**
+     * Extracts the value of a single-valued RDN attribute (e.g. {@code "CN"}) from a RFC 2253
+     * DN string. Handles multi-valued RDNs (attributes joined by {@code +}).
+     * Returns {@code null} if no matching RDN is found.
+     */
+    private static String extractRdnValue(String dn, String type) {
+        for (Rdn rdn : parseRdnsMostSpecificFirst(dn)) {
+            String value = rdnAttributeValue(rdn, type);
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Collects all OU values from a RFC 2253 DN string, in order.
+     * Handles multi-valued RDNs (attributes joined by {@code +}).
+     */
+    private static List<String> extractOus(String dn) {
+        List<String> ous = new ArrayList<>();
+        for (Rdn rdn : parseRdnsMostSpecificFirst(dn)) {
+            String value = rdnAttributeValue(rdn, "OU");
+            if (value != null) {
+                ous.add(value);
+            }
+        }
+        return ous;
+    }
+
+    /**
+     * Returns the first captured group from the first OU that matches {@code patternStr}.
+     * When {@code patternStr} is null or blank, returns the first OU value verbatim.
+     */
+    private static String matchFirstOu(List<String> ous, String patternStr) {
+        if (patternStr == null || patternStr.isBlank()) {
+            return ous.isEmpty() ? null : ous.get(0);
+        }
+        Pattern pat = Pattern.compile(patternStr);
+        for (String ou : ous) {
+            Matcher m = pat.matcher(ou);
+            if (m.matches() && m.groupCount() >= 1) {
+                return m.group(1);
+            }
+        }
+        return null;
     }
 }

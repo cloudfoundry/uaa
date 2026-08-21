@@ -27,6 +27,8 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,6 +55,40 @@ class TlsClientAuthenticationTest {
     void nullConfigReturnsEmptyOptional() {
         X509Certificate cert = mock(X509Certificate.class);
         assertThat(service.validateClientCert(cert, null)).isEmpty();
+    }
+
+    @Test
+    void extractClaimMappingValuesExtractsSubjectCnOuAndO() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid,OU=app:app-guid-123,OU=space:space-guid-456,O=Cloud Foundry");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "cf_instance_guid"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "app_guid"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_o", null, "org_name")
+        ));
+
+        Map<String, String> vars = service.extractClaimMappingValues(cert, config);
+
+        assertThat(vars).containsEntry("cf_instance_guid", "instance-guid");
+        assertThat(vars).containsEntry("app_guid", "app-guid-123");
+        assertThat(vars).containsEntry("org_name", "Cloud Foundry");
+    }
+
+    @Test
+    void extractClaimMappingValuesReturnsEmptyMapWhenNoClaimMappingsConfigured() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+
+        assertThat(service.extractClaimMappingValues(cert, config)).isEmpty();
+    }
+
+    @Test
+    void extractClaimMappingValuesReturnsEmptyMapWhenCertOrConfigIsNull() {
+        assertThat(service.extractClaimMappingValues(null, new TlsClientAuthConfiguration("ca", null))).isEmpty();
     }
 
     @Test
