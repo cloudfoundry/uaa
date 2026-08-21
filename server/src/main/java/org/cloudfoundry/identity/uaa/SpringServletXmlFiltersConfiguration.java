@@ -169,8 +169,7 @@ public class SpringServletXmlFiltersConfiguration {
     }
 
     @Bean
-    FilterRegistrationBean<IdentityZoneResolvingFilter> identityZoneResolvingFilter(IdentityZoneProvisioning provisioning,
-                                                                                    IdentityZoneManager identityZoneManager) {
+    FilterRegistrationBean<IdentityZoneResolvingFilter> identityZoneResolvingFilter(IdentityZoneProvisioning provisioning) {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter(provisioning, identityZoneManager);
         filter.setDefaultInternalHostnames(new HashSet<>(Arrays.asList(
                 UaaUrlUtils.getHostForURI(uaaProps.url()),
