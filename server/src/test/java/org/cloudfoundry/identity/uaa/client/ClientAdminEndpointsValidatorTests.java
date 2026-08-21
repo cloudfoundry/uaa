@@ -528,4 +528,27 @@ class ClientAdminEndpointsValidatorTests {
         assertThatNoException().isThrownBy(() ->
                 ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
     }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_subTemplatePlaceholderRegexIsNotPolynomial() {
+        // CodeQL: js/polynomial-redos on the PLACEHOLDER regex (\{([^}]+)\}). A pathological
+        // sub-template of many consecutive unmatched '{' characters forces Matcher.find() to
+        // retry a failed match at every position; with the greedy [^}]+ quantifier each failed
+        // attempt also backtracks character-by-character, degrading to roughly O(n^2) (measured
+        // locally: ~160ms for n=10000 with [^}]+ vs. ~25ms with the possessive [^}]++ fix). This
+        // asserts the fixed, possessive-quantifier regex comfortably completes well within a
+        // generous bound (chosen to avoid flakiness under CI/parallel-test-suite load) that the
+        // unfixed regex would meaningfully exceed.
+        String pathologicalSubTemplate = "{".repeat(10_000);
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, pathologicalSubTemplate);
+
+        long start = System.nanoTime();
+        ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id");
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
+
+        assertThat(elapsedMillis).isLessThan(3000);
+    }
 }

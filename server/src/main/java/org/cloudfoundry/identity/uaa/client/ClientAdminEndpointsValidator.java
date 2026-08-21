@@ -380,7 +380,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
      * Mirrors {@link org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer}'s private
      * {@code PLACEHOLDER} field -- must be kept in sync with it.
      */
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]+)\\}");
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]++)\\}");
 
     /**
      * Validates a client's mTLS claim-related configuration ({@code tls-client-auth-claim-mappings},

@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
 @Component
 public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]+)\\}");
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]++)\\}");
 
     private final TlsClientAuthentication tlsClientAuthentication;
     private final ClientDetailsService clientDetailsService;
