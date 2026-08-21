@@ -92,6 +92,29 @@ pattern for what is conceptually "the same" workload registers **two separate UA
 with `tls-client-auth-trusted-proxy-ca` set (proxy path) and one without it (direct path) -- rather
 than expecting one client to accept either.
 
+#### Scoping a client to a specific org/space/app
+
+Because Cloud Foundry's Diego instance-identity CA is shared across every app instance in a
+foundation, any two clients configured with the same `tls-client-auth-ca` can otherwise
+authenticate each other's certificates -- PKIX chain validation alone only proves a certificate
+was issued by the configured CA, not that it belongs to *this* client specifically. Configure
+`tls-client-auth-required-claims` to close this gap for a client that should only be reachable by
+a specific subset of apps:
+
+```yaml
+tls-client-auth-claim-mappings:
+  - field: subject_ou
+    pattern: "space:(.+)"
+    claim: space_guid
+tls-client-auth-required-claims:
+  space_guid: <specific-space-guid>
+```
+
+An operator who needs both a broadly-scoped client (e.g. the generic `instance-identity` client,
+accepting any app in the foundation) and a narrowly-scoped one (e.g. limited to a single space)
+registers them as two separate UAA clients, only the latter configuring
+`tls-client-auth-required-claims`.
+
 #### Configuration
 
 Per-client properties (set via the client-admin API, `oauth.clients` bootstrap, or the client
@@ -102,6 +125,7 @@ admin UI, alongside the client's other properties such as `authorized-grant-type
 | `token-endpoint-auth-method: tls_client_auth` | yes | Selects mTLS client authentication for this client. |
 | `tls-client-auth-ca` | yes | PEM-encoded CA certificate. The client's own presented (leaf) certificate must chain to this CA. |
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
+| `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values already produced by `tls-client-auth-claim-mappings`. When configured, authentication fails unless every entry matches exactly -- e.g. `{space_guid: "<specific-space-guid>"}` scopes this client to a single CF space, even if other clients share the same `tls-client-auth-ca`. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`) to JWT claim names, optionally extracting a capture group via `pattern`. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. |
 | `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. |
