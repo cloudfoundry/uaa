@@ -499,12 +499,18 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                         "Invalid tls-client-auth-required-claims for client_id=" + clientId + ": " + e.getMessage(), e);
             }
             if (requiredClaims != null) {
-                for (String requiredClaim : requiredClaims.keySet()) {
-                    if (!declaredClaims.contains(requiredClaim)) {
+                for (Map.Entry<String, String> requiredClaim : requiredClaims.entrySet()) {
+                    if (!declaredClaims.contains(requiredClaim.getKey())) {
                         throw new InvalidClientDetailsException(
-                                "tls-client-auth-required-claims references undeclared claim '" + requiredClaim
+                                "tls-client-auth-required-claims references undeclared claim '" + requiredClaim.getKey()
                                         + "' for client_id=" + clientId
                                         + ". Every required claim must be produced by a tls-client-auth-claim-mappings entry.");
+                    }
+                    String requiredValue = requiredClaim.getValue();
+                    if (requiredValue == null || requiredValue.isBlank()) {
+                        throw new InvalidClientDetailsException(
+                                "tls-client-auth-required-claims has a null or blank value for required claim '"
+                                        + requiredClaim.getKey() + "' for client_id=" + clientId);
                     }
                 }
             }

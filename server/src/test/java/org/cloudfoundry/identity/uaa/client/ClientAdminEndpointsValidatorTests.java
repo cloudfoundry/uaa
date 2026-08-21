@@ -394,9 +394,13 @@ class ClientAdminEndpointsValidatorTests {
 
     @Test
     void validateTlsClientAuthClaimConfig_acceptsValidJsonStringClaimMappings() {
+        // Same logical field/claim/pattern data as
+        // validateTlsClientAuthClaimConfig_acceptsValidNativeClaimMappings, but supplied as a
+        // JSON string, to genuinely prove the two parsing shapes (native List/Map vs. JSON
+        // string) handle identical input equivalently.
         Map<String, Object> info = Map.of(
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
-                "[{\"field\":\"subject_cn\",\"claim\":\"cf_instance_guid\"}]"
+                "[{\"field\":\"subject_cn\",\"claim\":\"cf_instance_guid\",\"pattern\":\"^(.+)$\"}]"
         );
 
         assertThatNoException().isThrownBy(() ->
@@ -477,6 +481,31 @@ class ClientAdminEndpointsValidatorTests {
                 List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                 Map.of("cf_undeclared", "some-value"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsWithNullValue() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "claim", "cf_org")));
+        Map<String, String> requiredClaims = new java.util.HashMap<>();
+        requiredClaims.put("cf_org", null);
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, requiredClaims);
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsWithBlankValue() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "claim", "cf_org")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("cf_org", "   "));
 
         assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
                 .isInstanceOf(InvalidClientDetailsException.class);
