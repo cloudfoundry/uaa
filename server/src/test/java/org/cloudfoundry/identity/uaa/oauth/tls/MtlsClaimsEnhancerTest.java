@@ -13,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.Serializable;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +50,7 @@ class MtlsClaimsEnhancerTest {
     @Test
     void extractsClaimsFromCertOuFields() throws Exception {
         X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
         when(cert.getSubjectX500Principal()).thenReturn(
             new X500Principal("CN=instance-guid, OU=app:app-guid-123, OU=space:space-guid-456, OU=organization:org-guid-789, O=Cloud Foundry"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
@@ -536,6 +538,31 @@ class MtlsClaimsEnhancerTest {
         assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), auth))
                 .isInstanceOf(ClientRegistrationException.class)
                 .hasMessage("db unavailable");
+    }
+
+    @Test
+    void enhanceThrowsWhenCertEncodingFailsInsteadOfSilentlyDroppingCnfClaim() throws Exception {
+        // PR review concern (MtlsClaimsEnhancer.java:135): a failure to DER-encode the cert or
+        // compute its SHA-256 digest must fail the whole token request closed, not silently
+        // downgrade a certificate-bound (RFC 8705 sec:3.1) token into an unbound bearer token by
+        // dropping the cnf claim.
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenThrow(new CertificateEncodingException("boom"));
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=test"));
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(
+            new TlsClientAuthConfiguration("-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        OAuth2Authentication auth = mockAuthentication("instance-identity");
+
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), auth))
+                .isInstanceOf(IllegalStateException.class)
+                .hasCauseInstanceOf(CertificateEncodingException.class);
     }
 
     private X509Certificate mockCfCert() throws Exception {

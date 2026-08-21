@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -130,8 +132,15 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             byte[] sha256 = MessageDigest.getInstance("SHA-256").digest(derEncoded);
             String thumbprint = Base64.getUrlEncoder().withoutPadding().encodeToString(sha256);
             result.put("cnf", Map.of("x5t#S256", thumbprint));
-        } catch (Exception ignored) {
-            // Silently skip cnf claim if cert encoding fails
+        } catch (CertificateEncodingException | NoSuchAlgorithmException e) {
+            // Fail closed: an already-validated peer certificate should always be re-encodable,
+            // and SHA-256 is a guaranteed JCE algorithm, so this is practically impossible. If it
+            // ever happens, we must not silently issue an unbound bearer token in place of a
+            // certificate-bound (RFC 8705 §3.1) one -- fail the whole token request instead (same
+            // fail-closed philosophy as the client-details lookup failure above).
+            throw new IllegalStateException(
+                    "Failed to compute cnf.x5t#S256 confirmation claim for client_id="
+                            + clientId + ": " + e.getMessage(), e);
         }
 
         // PHASE 3 — template rendering for sub and aud
