@@ -374,4 +374,129 @@ class ClientAdminEndpointsValidatorTests {
 
         assertThat(validated.getClientId()).isEqualTo(client.getClientId());
     }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_noOpWhenNoClaimMappingsKey() {
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(Map.of(), "client-id"));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_acceptsValidNativeClaimMappings() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid", "pattern", "^(.+)$"))
+        );
+
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_acceptsValidJsonStringClaimMappings() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                "[{\"field\":\"subject_cn\",\"claim\":\"cf_instance_guid\"}]"
+        );
+
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsMissingField() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("claim", "cf_instance_guid"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsUnrecognizedField() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_email", "claim", "cf_instance_guid"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsBlankClaim() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "  "))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsInvalidRegexPattern() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "claim", "cf_org", "pattern", "["))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsSubTemplateReferencingUndeclaredClaim() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "{cf_undeclared}");
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsAudTemplateReferencingUndeclaredClaim() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                List.of("https://valid.example.com/{cf_undeclared}"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsReferencingUndeclaredClaim() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("cf_undeclared", "some-value"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_acceptsFullyValidConfig() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(
+                        Map.of("field", "subject_cn", "claim", "cf_instance_guid"),
+                        Map.of("field", "subject_ou", "claim", "cf_org", "pattern", "^org:(.+)$")
+                ));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "{cf_instance_guid}");
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                List.of("https://valid.example.com/{cf_org}"));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("cf_org", "myorg"));
+
+        assertThatNoException().isThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+    }
 }

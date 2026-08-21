@@ -16,6 +16,7 @@ import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed;
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkRequestedGrantTypes;
+import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -54,6 +55,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             checkMtlsClientConfigAllowed(clientDetails.getAdditionalInformation(), mtlsEnabled, clientDetails.getClientId());
+            validateTlsClientAuthClaimConfig(clientDetails.getAdditionalInformation(), clientDetails.getClientId());
             boolean hasTlsClientAuthCa = clientDetails.getAdditionalInformation()
                     .containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
