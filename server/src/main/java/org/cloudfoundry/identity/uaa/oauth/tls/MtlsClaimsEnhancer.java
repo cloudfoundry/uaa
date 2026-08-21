@@ -8,8 +8,6 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
@@ -41,7 +39,6 @@ import java.util.regex.Pattern;
 @Component
 public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
-    private static final Logger logger = LoggerFactory.getLogger(MtlsClaimsEnhancer.class);
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]+)\\}");
 
     private final TlsClientAuthentication tlsClientAuthentication;
@@ -85,13 +82,7 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         }
 
         String clientId = authentication.getOAuth2Request().getClientId();
-        UaaClientDetails clientDetails;
-        try {
-            clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
-        } catch (Exception e) {
-            logger.warn("MtlsClaimsEnhancer: failed to load client details for '{}': {}", clientId, e.getMessage());
-            return new HashMap<>();
-        }
+        UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         // Check the typed field first (set directly on in-memory / admin-API clients);
         // fall back to additionalInformation for JDBC-loaded clients.

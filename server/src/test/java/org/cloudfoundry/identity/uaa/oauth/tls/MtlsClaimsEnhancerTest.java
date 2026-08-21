@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -515,6 +517,25 @@ class MtlsClaimsEnhancerTest {
         Map<String, Object> result = enhancer.enhance(new HashMap<>(), auth);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void enhancePropagatesExceptionWhenClientDetailsLookupFails() throws Exception {
+        // PR review concern (MtlsClaimsEnhancer.java:94): a transient failure loading client
+        // details (e.g. a database error) must fail the whole token request closed, not be
+        // swallowed into an incomplete/degraded token missing identity + cnf claims.
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        when(clientDetailsService.loadClientByClientId("instance-identity"))
+                .thenThrow(new ClientRegistrationException("db unavailable"));
+
+        OAuth2Authentication auth = mockAuthentication("instance-identity");
+
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), auth))
+                .isInstanceOf(ClientRegistrationException.class)
+                .hasMessage("db unavailable");
     }
 
     private X509Certificate mockCfCert() throws Exception {
