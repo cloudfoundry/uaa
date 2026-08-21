@@ -216,6 +216,30 @@ public class TlsClientAuthentication {
     }
 
     /**
+     * Returns {@code true} when {@code config} has no {@code tls-client-auth-required-claims}
+     * configured (unrestricted, current behavior), or when every required claim name maps to
+     * exactly the required value once extracted from {@code cert} via
+     * {@code tls-client-auth-claim-mappings}. This is what lets a client be scoped to e.g. a
+     * specific CF space/org/app -- closing the gap where any certificate chaining to a shared CA
+     * could otherwise authenticate as any client that trusts that CA.
+     */
+    public boolean certificateSatisfiesRequiredClaims(X509Certificate cert, TlsClientAuthConfiguration config) {
+        if (config == null || config.getRequiredClaims() == null || config.getRequiredClaims().isEmpty()) {
+            return true;
+        }
+        Map<String, String> vars = extractClaimMappingValues(cert, config);
+        for (Map.Entry<String, String> required : config.getRequiredClaims().entrySet()) {
+            if (!required.getValue().equals(vars.get(required.getKey()))) {
+                logger.debug("certificateSatisfiesRequiredClaims: required claim '{}' did not match "
+                        + "(expected '{}', extracted '{}')",
+                        required.getKey(), required.getValue(), vars.get(required.getKey()));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Validates {@code clientCert} against the trusted CA PEM configured in {@code config}
      * using PKIX path validation.
      * For chains with intermediates, prefer

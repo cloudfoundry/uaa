@@ -92,6 +92,57 @@ class TlsClientAuthenticationTest {
     }
 
     @Test
+    void certificateSatisfiesRequiredClaimsTrueWhenNoConstraintConfigured() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+
+        assertThat(service.certificateSatisfiesRequiredClaims(cert, config)).isTrue();
+    }
+
+    @Test
+    void certificateSatisfiesRequiredClaimsTrueWhenExtractedValueMatchesRequiredValue() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid,OU=space:space-guid-456");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^space:(.+)$", "space_guid")
+        ));
+        config.setRequiredClaims(Map.of("space_guid", "space-guid-456"));
+
+        assertThat(service.certificateSatisfiesRequiredClaims(cert, config)).isTrue();
+    }
+
+    @Test
+    void certificateSatisfiesRequiredClaimsFalseWhenExtractedValueDiffersFromRequiredValue() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid,OU=space:some-other-space");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^space:(.+)$", "space_guid")
+        ));
+        config.setRequiredClaims(Map.of("space_guid", "space-guid-456"));
+
+        assertThat(service.certificateSatisfiesRequiredClaims(cert, config)).isFalse();
+    }
+
+    @Test
+    void certificateSatisfiesRequiredClaimsFalseWhenRequiredClaimNeverExtracted() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+
+        // No claim-mappings configured at all -> "space_guid" is never extracted
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setRequiredClaims(Map.of("space_guid", "space-guid-456"));
+
+        assertThat(service.certificateSatisfiesRequiredClaims(cert, config)).isFalse();
+    }
+
+    @Test
     void invalidCaThrowsInvalidClientDetailsException() {
         X509Certificate cert = mock(X509Certificate.class);
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("not-a-cert", null);
