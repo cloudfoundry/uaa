@@ -500,6 +500,45 @@ class TlsClientAuthenticationTest {
         }
     }
 
+    @Test
+    void getCertificateChainFromRequestReturnsNullWhenClientCertificateMapperSilentlyFailedToParseXfcc() throws Exception {
+        // Reproduces the reviewer's concern (PR #3972 discussion on TlsClientAuthentication.java:138):
+        // a trusted proxy (e.g. the Gorouter) sends a well-formed mTLS connection whose own
+        // certificate validates against tls-client-auth-trusted-proxy-ca, and a nonblank (but
+        // malformed) X-Forwarded-Client-Cert header. ClientCertificateMapper fails to parse the
+        // header and -- per its decompiled behavior -- never calls setAttribute, leaving the
+        // standard jakarta.servlet.request.X509Certificate attribute equal to the raw peer
+        // certificate captured by RawPeerCertificateCaptureFilter. This must be rejected, even
+        // though the XFCC header is present and the peer validates as a trusted proxy: reading
+        // the standard attribute here would wrongly authenticate the proxy's own certificate as
+        // the OAuth client.
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+        KeyPair peerKp = generateKeyPair();
+        X509Certificate peerCert = signCert(
+                new X500Name("CN=gorouter"), rootName, peerKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{peerCert});
+        // ClientCertificateMapper did NOT replace the standard attribute -- it still holds the
+        // same certificate as the raw peer capture, because parsing the (malformed) XFCC header
+        // failed and the mapper filter never called setAttribute.
+        request.setAttribute("jakarta.servlet.request.X509Certificate", new X509Certificate[]{peerCert});
+        request.addHeader("X-Forwarded-Client-Cert", "malformed-or-corrupted-base64-value");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.getCertificateChainFromRequest(config)).isNull();
+            assertThat(service.getCertificateFromRequest(config)).isNull();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
     private static KeyPair generateKeyPair() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleFipsProvider.PROVIDER_NAME);
         kpg.initialize(2048);

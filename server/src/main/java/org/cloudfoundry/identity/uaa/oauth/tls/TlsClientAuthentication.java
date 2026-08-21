@@ -97,7 +97,15 @@ public class TlsClientAuthentication {
      *       {@link #isCertificateFromTrustedProxy(TlsClientAuthConfiguration)} to be {@code true}
      *       (the genuine TLS peer -- e.g. the Gorouter -- must validate against the configured
      *       proxy CA) before returning the header-derived certificate chain from the standard
-     *       {@code jakarta.servlet.request.X509Certificate} attribute.</li>
+     *       {@code jakarta.servlet.request.X509Certificate} attribute. Additionally, the standard
+     *       attribute's certificate chain must differ from the raw peer certificate chain
+     *       captured by {@link RawPeerCertificateCaptureFilter}: the third-party
+     *       {@code ClientCertificateMapper} servlet filter does not clear or null the standard
+     *       attribute when it fails to parse the XFCC header -- it simply never replaces it,
+     *       leaving the genuine raw peer certificate (e.g. the proxy's own certificate) in place.
+     *       If the two attributes are identical, the mapper did not actually run successfully,
+     *       and the request is rejected rather than treating the proxy's own certificate as the
+     *       client's.</li>
      * </ul>
      *
      * <p>The two modes are mutually exclusive per client: a client cannot accept both a direct
@@ -137,7 +145,26 @@ public class TlsClientAuthentication {
         }
         X509Certificate[] certs = (X509Certificate[])
                 request.getAttribute("jakarta.servlet.request.X509Certificate");
-        return (certs != null && certs.length > 0) ? certs : null;
+        if (certs == null || certs.length == 0) {
+            return null;
+        }
+        // Guard against ClientCertificateMapper silently failing to parse the XFCC header: it
+        // does not clear/null the standard attribute on a parse failure, it simply never replaces
+        // it, leaving the genuine raw peer certificate (e.g. the proxy's own certificate) in
+        // place. If the standard attribute is unchanged from the raw peer capture, the mapper did
+        // not actually run successfully -- treating it as the client's certificate would let the
+        // proxy authenticate as the client whenever the proxy's own certificate happens to
+        // validate against this client's tls-client-auth-ca.
+        X509Certificate[] rawPeerCerts = (X509Certificate[])
+                request.getAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE);
+        if (Arrays.equals(certs, rawPeerCerts)) {
+            logger.warn("getCertificateChainFromRequest: X-Forwarded-Client-Cert header present and peer "
+                    + "validated as trusted proxy, but the standard X509Certificate attribute was unchanged "
+                    + "from the raw peer certificate -- ClientCertificateMapper likely failed to parse the "
+                    + "XFCC header; rejecting rather than treating the proxy's own certificate as the client's");
+            return null;
+        }
+        return certs;
     }
 
     /**
