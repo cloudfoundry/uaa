@@ -237,7 +237,7 @@ class TlsClientAuthenticationTest {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
 
         assertThatThrownBy(() -> service.validateClientCert(new X509Certificate[]{intermediateCaCert}, config))
-                .hasMessageContaining("tls_client_auth");
+                .hasMessageContaining("is itself a CA certificate");
     }
 
     @Test
@@ -254,7 +254,27 @@ class TlsClientAuthenticationTest {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
 
         assertThatThrownBy(() -> service.validateClientCert(new X509Certificate[]{leafCert}, config))
-                .hasMessageContaining("tls_client_auth");
+                .hasMessageContaining("does not include clientAuth or anyExtendedKeyUsage");
+    }
+
+    @Test
+    void validateClientCertAcceptsLeafWithExtendedKeyUsageIncludingClientAuthAndServerAuth() throws Exception {
+        // Locks in "contains, not equals" semantics: an EKU listing clientAuth alongside an
+        // unrelated purpose must still be accepted.
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Test Root CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate leafCert = signCert(
+                new X500Name("CN=leaf-instance"), rootName, leafKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO,
+                null, List.of(KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth));
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
+
+        Optional<X509Certificate> result = service.validateClientCert(new X509Certificate[]{leafCert}, config);
+
+        assertThat(result).contains(leafCert);
     }
 
     @Test
@@ -310,7 +330,7 @@ class TlsClientAuthenticationTest {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
 
         assertThatThrownBy(() -> service.validateClientCert(new X509Certificate[]{leafCert}, config))
-                .hasMessageContaining("tls_client_auth");
+                .hasMessageContaining("does not permit digitalSignature");
     }
 
     @Test
