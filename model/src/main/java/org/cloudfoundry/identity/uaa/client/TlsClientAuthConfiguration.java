@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -16,6 +17,7 @@ public class TlsClientAuthConfiguration {
     public static final String TLS_CLIENT_AUTH_SUB_TEMPLATE = "tls-client-auth-sub-template";
     public static final String TLS_CLIENT_AUTH_AUD_TEMPLATES = "tls-client-auth-aud-templates";
     public static final String TLS_CLIENT_AUTH_TRUSTED_PROXY_CA = "tls-client-auth-trusted-proxy-ca";
+    public static final String TLS_CLIENT_AUTH_REQUIRED_CLAIMS = "tls-client-auth-required-claims";
 
     @JsonProperty(TLS_CLIENT_AUTH_CA)
     private String trustedCaPem;
@@ -31,6 +33,9 @@ public class TlsClientAuthConfiguration {
 
     @JsonProperty(TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
     private String trustedProxyCaPem;
+
+    @JsonProperty(TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
+    private Map<String, String> requiredClaims;
 
     public TlsClientAuthConfiguration() {}
 
@@ -54,6 +59,9 @@ public class TlsClientAuthConfiguration {
     public String getTrustedProxyCaPem() { return trustedProxyCaPem; }
     public void setTrustedProxyCaPem(String trustedProxyCaPem) { this.trustedProxyCaPem = trustedProxyCaPem; }
 
+    public Map<String, String> getRequiredClaims() { return requiredClaims; }
+    public void setRequiredClaims(Map<String, String> requiredClaims) { this.requiredClaims = requiredClaims; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -62,12 +70,13 @@ public class TlsClientAuthConfiguration {
                Objects.equals(claimMappings, that.claimMappings) &&
                Objects.equals(subTemplate, that.subTemplate) &&
                Objects.equals(audTemplates, that.audTemplates) &&
-               Objects.equals(trustedProxyCaPem, that.trustedProxyCaPem);
+               Objects.equals(trustedProxyCaPem, that.trustedProxyCaPem) &&
+               Objects.equals(requiredClaims, that.requiredClaims);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates, trustedProxyCaPem);
+        return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates, trustedProxyCaPem, requiredClaims);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {

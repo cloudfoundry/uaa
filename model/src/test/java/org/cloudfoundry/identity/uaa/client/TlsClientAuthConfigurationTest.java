@@ -4,6 +4,7 @@ import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -158,6 +159,29 @@ class TlsClientAuthConfigurationTest {
         config1.setTrustedProxyCaPem("proxy-ca-1");
         TlsClientAuthConfiguration config2 = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
         config2.setTrustedProxyCaPem("proxy-ca-2");
+
+        assertThat(config1).isNotEqualTo(config2);
+    }
+
+    @Test
+    void requiredClaimsRoundTripsViaJson() throws Exception {
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        config.setRequiredClaims(Map.of("space_guid", "the-expected-space-guid"));
+
+        JsonMapper mapper = new JsonMapper();
+        String json = mapper.writeValueAsString(config);
+        TlsClientAuthConfiguration deserialized = mapper.readValue(json, TlsClientAuthConfiguration.class);
+
+        assertThat(deserialized.getRequiredClaims()).containsEntry("space_guid", "the-expected-space-guid");
+        assertThat(json).contains("tls-client-auth-required-claims");
+    }
+
+    @Test
+    void unequalWhenRequiredClaimsDiffer() {
+        TlsClientAuthConfiguration config1 = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        config1.setRequiredClaims(Map.of("space_guid", "space-a"));
+        TlsClientAuthConfiguration config2 = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        config2.setRequiredClaims(Map.of("space_guid", "space-b"));
 
         assertThat(config1).isNotEqualTo(config2);
     }
