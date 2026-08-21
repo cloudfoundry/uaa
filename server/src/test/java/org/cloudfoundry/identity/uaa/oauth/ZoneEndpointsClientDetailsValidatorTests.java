@@ -22,8 +22,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
+import static org.mockito.Mockito.verify;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
@@ -146,6 +148,35 @@ class ZoneEndpointsClientDetailsValidatorTests {
         assertThat(validated.getAdditionalInformation())
                 .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem")
                 .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem");
+    }
+
+    @Test
+    void allowsSecretlessClientCredentialsClientWhenTlsClientAuthCaConfigured() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+    }
+
+    @Test
+    void stillValidatesSuppliedSecretWhenTlsClientAuthCaConfigured() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.setClientSecret("supplied-secret");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
+
+        verify(mockClientSecretValidator).validate("supplied-secret");
     }
 
     @Test

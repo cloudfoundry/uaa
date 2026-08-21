@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -53,6 +54,8 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             checkMtlsClientConfigAllowed(clientDetails.getAdditionalInformation(), mtlsEnabled, clientDetails.getClientId());
+            boolean hasTlsClientAuthCa = clientDetails.getAdditionalInformation()
+                    .containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
@@ -61,7 +64,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_JWT_BEARER) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_TOKEN_EXCHANGE) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_PASSWORD)) {
-                if (StringUtils.isBlank(clientDetails.getClientSecret())) {
+                if (!hasTlsClientAuthCa && StringUtils.isBlank(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client_secret cannot be blank");
                 }
                 clientSecretValidator.validate(clientDetails.getClientSecret());
