@@ -555,6 +555,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     }
 
     @PatchMapping("/Users/{userId}/status")
+    @ResponseBody
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
         ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
 
