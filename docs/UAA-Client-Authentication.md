@@ -56,9 +56,20 @@ fields (e.g. mapping a Cloud Foundry app instance identity certificate to `app_g
 `space_guid`/`org_guid` claims).
 
 The client is authenticated on a dedicated endpoint, `/oauth/mtls/token`, rather than the
-regular `/oauth/token`. This lets the endpoint be given a servlet-container TLS configuration
-that requests a client certificate ("mutual TLS"), without changing behavior for every other
-client on `/oauth/token`.
+regular `/oauth/token`. This dedicated endpoint routing is what's scoped: only requests to
+`/oauth/mtls/token` (and its alias, if the mTLS endpoint alias is advertised in the OIDC
+discovery document) attempt to authenticate the caller via a presented client certificate --
+requests to `/oauth/token` are never affected by this.
+
+The underlying TLS-layer change, however, is **connector-wide, not per-endpoint**: enabling
+this feature (`uaa.mtls-enabled`) reconfigures the whole embedded Tomcat connector to request a
+client certificate on *every* TLS handshake to this UAA instance (`certificateVerification=
+optionalNoCA`; see `MtlsClientAuthTomcatCustomizer`), regardless of which path the request is
+ultimately routed to. Any TLS client connecting to any UAA endpoint will therefore be prompted
+for a certificate during the handshake -- well-behaved clients (including Go's `crypto/tls`)
+simply respond with an empty `Certificate` message if they have no certificate matching the
+connector's advertised acceptable-issuer list, so this doesn't outright break other endpoints,
+but it is a deployment-wide TLS-layer change, not one isolated to `/oauth/mtls/token`.
 
 #### Deployment topology
 
