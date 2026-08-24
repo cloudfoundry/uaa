@@ -3190,6 +3190,45 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    void refreshTokenIssuedBeforeAddClientSecretStillWorksAfterAdd() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        String scopes = "openid";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+        String userId = "testuser" + generator.generate();
+        ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, userId, scopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
+        // token is issued while the client only has a single secret
+        String body = mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .with(httpBasic(clientId, SECRET))
+                        .param("grant_type", "password")
+                        .param("client_id", clientId)
+                        .param("client_secret", SECRET)
+                        .param("username", user.getUserName())
+                        .param("password", SECRET))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<>() {
+        });
+        String refreshToken = (String) bodyMap.get("refresh_token");
+        assertThat(refreshToken).isNotNull();
+
+        // a second secret is added for zero-downtime rotation; the original secret remains valid
+        clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
+
+        // the refresh token issued before the rotation must still be redeemable with the original secret
+        mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .with(httpBasic(clientId, SECRET))
+                        .param("grant_type", "refresh_token")
+                        .param("client_id", clientId)
+                        .param("client_secret", SECRET)
+                        .param("refresh_token", refreshToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void getClientCredentialsWithAuthoritiesExcludedForDefaultIdentityZone() throws Exception {
         Set<String> originalExclude = webApplicationContext.getBean(UaaTokenServices.class).getExcludedClaims();
         try {
