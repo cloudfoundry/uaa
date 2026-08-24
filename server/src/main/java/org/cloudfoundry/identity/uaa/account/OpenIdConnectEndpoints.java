@@ -18,16 +18,19 @@ public class OpenIdConnectEndpoints {
 
     private final String issuer;
     private final IdentityZoneManager identityZoneManager;
+    private final boolean mtlsEnabled;
 
     @Value("${mtls.endpoint:/oauth/mtls/token}")
     private String mtlsEndpointPath = "/oauth/mtls/token";
 
     public OpenIdConnectEndpoints(
             final @Value("${issuer.uri}") String issuer,
-            final IdentityZoneManager identityZoneManager
+            final IdentityZoneManager identityZoneManager,
+            final @Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled
     ) {
         this.issuer = issuer;
         this.identityZoneManager = identityZoneManager;
+        this.mtlsEnabled = mtlsEnabled;
     }
 
     @GetMapping(value = {
@@ -36,8 +39,10 @@ public class OpenIdConnectEndpoints {
     })
     public ResponseEntity<OpenIdConfiguration> getOpenIdConfiguration(HttpServletRequest request) throws URISyntaxException {
         String contextPath = getServerContextPath(request);
-        OpenIdConfiguration conf = new OpenIdConfiguration(contextPath, getTokenEndpoint());
-        conf.setMtlsEndpointAliases(Map.of("token_endpoint", contextPath + mtlsEndpointPath));
+        OpenIdConfiguration conf = new OpenIdConfiguration(contextPath, getTokenEndpoint(), mtlsEnabled);
+        if (mtlsEnabled) {
+            conf.setMtlsEndpointAliases(Map.of("token_endpoint", contextPath + mtlsEndpointPath));
+        }
         return new ResponseEntity<>(conf, OK);
     }
 

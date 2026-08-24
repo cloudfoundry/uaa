@@ -20,7 +20,7 @@ class OpenIdConnectEndpointsTest {
     void setUp() {
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
-        endpoints = new OpenIdConnectEndpoints("https://uaa.example.com/oauth/token", mockIdentityZoneManager);
+        endpoints = new OpenIdConnectEndpoints("https://uaa.example.com/oauth/token", mockIdentityZoneManager, true);
     }
 
     @Test
@@ -39,5 +39,21 @@ class OpenIdConnectEndpointsTest {
                 .containsKey("token_endpoint");
         assertThat(response.getBody().getMtlsEndpointAliases().get("token_endpoint"))
                 .endsWith("/oauth/mtls/token");
+    }
+
+    @Test
+    void mtlsEndpointAliasesIsAbsentWhenMtlsDisabled() throws Exception {
+        OpenIdConnectEndpoints mtlsDisabledEndpoints =
+                new OpenIdConnectEndpoints("https://uaa.example.com/oauth/token", mockIdentityZoneManager, false);
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/.well-known/openid-configuration");
+        request.setScheme("https");
+        request.setServerName("uaa.example.com");
+        request.setServerPort(443);
+        request.setContextPath("");
+
+        ResponseEntity<OpenIdConfiguration> response = mtlsDisabledEndpoints.getOpenIdConfiguration(request);
+
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMtlsEndpointAliases()).isNull();
     }
 }
