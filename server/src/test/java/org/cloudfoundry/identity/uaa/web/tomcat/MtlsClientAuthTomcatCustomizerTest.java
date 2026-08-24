@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.web.tomcat;
 import org.apache.catalina.connector.Connector;
 import org.apache.coyote.http11.AbstractHttp11Protocol;
 import org.apache.tomcat.util.net.SSLHostConfig;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
@@ -150,5 +151,45 @@ class MtlsClientAuthTomcatCustomizerTest {
         MtlsClientAuthTomcatCustomizer.ensureJsseProviderRegistered();
 
         assertThat(Security.getProvider(BouncyCastleJsseProvider.PROVIDER_NAME)).isNotNull();
+    }
+
+    @Test
+    void failsFastWhenAnExistingNonFipsProviderIsAlreadyRegisteredUnderTheBcfipsName() {
+        // Simulates a non-FIPS provider having already claimed the "BCFIPS" name (e.g. via JVM-wide
+        // java.security configuration) before this method runs -- must not be silently trusted as
+        // the genuine BouncyCastleFipsProvider.
+        //
+        // Security.addProvider(Provider) is a no-op (returns -1) if a provider with the same name is
+        // already registered -- and since Security providers are global, JVM-wide state with no
+        // automatic teardown, another test in this class (or a prior run of this same customizer) may
+        // have already registered the genuine FIPS provider under this name. Remove any existing
+        // registration first so the impostor is guaranteed to actually take its place, regardless of
+        // test execution order.
+        Security.removeProvider(BouncyCastleFipsProvider.PROVIDER_NAME);
+        Provider impostor = new Provider(BouncyCastleFipsProvider.PROVIDER_NAME, "1.0", "not actually BCFIPS") {
+        };
+        Security.addProvider(impostor);
+        try {
+            assertThatThrownBy(MtlsClientAuthTomcatCustomizer::ensureJsseProviderRegistered)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(BouncyCastleFipsProvider.PROVIDER_NAME)
+                    .hasMessageContaining(impostor.getClass().getName());
+        } finally {
+            Security.removeProvider(BouncyCastleFipsProvider.PROVIDER_NAME);
+        }
+    }
+
+    @Test
+    void succeedsWhenTheGenuineFipsProviderIsAlreadyRegisteredUnderTheBcfipsName() {
+        Security.removeProvider(BouncyCastleFipsProvider.PROVIDER_NAME);
+        Security.addProvider(new BouncyCastleFipsProvider());
+        try {
+            // Calling it with the genuine FIPS crypto provider already registered must not throw.
+            MtlsClientAuthTomcatCustomizer.ensureJsseProviderRegistered();
+
+            assertThat(Security.getProvider(BouncyCastleFipsProvider.PROVIDER_NAME)).isNotNull();
+        } finally {
+            Security.removeProvider(BouncyCastleFipsProvider.PROVIDER_NAME);
+        }
     }
 }

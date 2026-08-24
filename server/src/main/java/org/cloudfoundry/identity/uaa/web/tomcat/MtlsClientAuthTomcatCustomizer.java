@@ -100,18 +100,31 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
      * to it, which is what makes {@code SSLContext.getInstance("TLS", "BCJSSE")} usable (and is what
      * supplies FIPS-compliant {@code SecureRandom}s for the TLS handshake).
      *
-     * <p>If a provider is already registered under the {@code BCJSSE} name -- e.g. via the JVM's
-     * {@code java.security} configuration file, or some other library -- its mere presence is not
-     * sufficient: it must genuinely be a FIPS-mode {@link BouncyCastleJsseProvider}, or this connector's
+     * <p>If a provider is already registered under the {@code BCFIPS} or {@code BCJSSE} name -- e.g. via
+     * the JVM's {@code java.security} configuration file, or some other library -- its mere presence is
+     * not sufficient: it must genuinely be the expected Bouncy Castle provider class, or this connector's
      * promised FIPS guarantee (documented on this class) would be silently defeated. Fails fast with
-     * {@link IllegalStateException} rather than silently proceeding with a wrong/non-FIPS provider.
+     * {@link IllegalStateException} rather than silently proceeding with a wrong/impostor provider.
+     * {@link BouncyCastleFipsProvider} is a {@code final} class with no FIPS/non-FIPS mode distinction --
+     * it is inherently and only a FIPS-approved crypto provider by construction -- so only an
+     * {@code instanceof} check is needed for it, unlike {@link BouncyCastleJsseProvider}, which also
+     * needs its FIPS-mode flag verified.
      *
-     * @throws IllegalStateException if a provider already registered under the {@code BCJSSE} name is
-     *         not a {@link BouncyCastleJsseProvider}, or is one but not in FIPS mode
+     * @throws IllegalStateException if a provider already registered under the {@code BCFIPS} name is
+     *         not a {@link BouncyCastleFipsProvider}, or if a provider already registered under the
+     *         {@code BCJSSE} name is not a {@link BouncyCastleJsseProvider}, or is one but not in FIPS mode
      */
     static void ensureJsseProviderRegistered() {
-        if (Security.getProvider(BouncyCastleFipsProvider.PROVIDER_NAME) == null) {
+        Provider existingFipsProvider = Security.getProvider(BouncyCastleFipsProvider.PROVIDER_NAME);
+        if (existingFipsProvider == null) {
             Security.addProvider(new BouncyCastleFipsProvider());
+        } else if (!(existingFipsProvider instanceof BouncyCastleFipsProvider)) {
+            throw new IllegalStateException(
+                    "uaa.mtls-enabled requires the FIPS BouncyCastleFipsProvider registered under the name '"
+                            + BouncyCastleFipsProvider.PROVIDER_NAME
+                            + "', but a different provider is already registered under that name: "
+                            + existingFipsProvider.getClass().getName()
+                            + " -- refusing to silently proceed without the promised FIPS guarantee");
         }
         Provider existingJsseProvider = Security.getProvider(BouncyCastleJsseProvider.PROVIDER_NAME);
         if (existingJsseProvider == null) {
