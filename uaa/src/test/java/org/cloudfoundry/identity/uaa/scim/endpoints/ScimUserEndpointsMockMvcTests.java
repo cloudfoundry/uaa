@@ -637,6 +637,26 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     @Test
+    void unlockAccountWithoutAcceptHeader() throws Exception {
+        // Regression test: without @ResponseBody on updateAccountStatus, a caller
+        // that omits Accept: application/json (e.g. uaa-cli's unlock-user, which
+        // issues a raw PATCH via its curl helper) gets routed into Thymeleaf view
+        // resolution instead of the normal HttpMessageConverter path, and 500s.
+        ScimUser userToLockout = createUser(uaaAdminToken);
+        attemptUnsuccessfulLogin(5, userToLockout.getUserName(), "");
+
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setLocked(false);
+        updateAccountStatusWithoutAcceptHeader(userToLockout, alteredAccountStatus)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
+
+        attemptLogin(userToLockout)
+                .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
     void accountStatusEmptyPatchDoesNotUnlock() throws Exception {
         ScimUser userToLockout = createUser(uaaAdminToken);
         attemptUnsuccessfulLogin(5, userToLockout.getUserName(), "");
@@ -1383,6 +1403,17 @@ class ScimUserEndpointsMockMvcTests {
                         patch("/Users/" + user.getId() + "/status")
                                 .header("Authorization", "Bearer " + uaaAdminToken)
                                 .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                                .content(jsonStatus)
+                );
+    }
+
+    private ResultActions updateAccountStatusWithoutAcceptHeader(ScimUser user, UserAccountStatus alteredAccountStatus) throws Exception {
+        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
+        return mockMvc
+                .perform(
+                        patch("/Users/" + user.getId() + "/status")
+                                .header("Authorization", "Bearer " + uaaAdminToken)
                                 .contentType(APPLICATION_JSON)
                                 .content(jsonStatus)
                 );
