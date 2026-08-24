@@ -122,6 +122,27 @@ class MtlsClientAuthTomcatCustomizerTest {
     }
 
     @Test
+    void failsFastWhenTheGenuineProviderIsRegisteredButNotInFipsMode() {
+        // Simulates the correct BouncyCastleJsseProvider class having already been registered under
+        // the "BCJSSE" name, but constructed in non-FIPS mode -- a distinct failure mode from an
+        // entirely different provider class claiming the name (see the "impostor" test above). The
+        // error message must be specific to this case, not the generic "different provider" message.
+        Security.removeProvider(BouncyCastleJsseProvider.PROVIDER_NAME);
+        BouncyCastleJsseProvider nonFipsProvider = new BouncyCastleJsseProvider(false);
+        Security.addProvider(nonFipsProvider);
+        try {
+            assertThatThrownBy(MtlsClientAuthTomcatCustomizer::ensureJsseProviderRegistered)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(BouncyCastleJsseProvider.PROVIDER_NAME)
+                    .hasMessageContaining("not")
+                    .hasMessageContaining("FIPS mode")
+                    .hasMessageNotContaining("a different provider is already registered");
+        } finally {
+            Security.removeProvider(BouncyCastleJsseProvider.PROVIDER_NAME);
+        }
+    }
+
+    @Test
     void succeedsWhenTheGenuineFipsProviderIsAlreadyRegisteredUnderTheBcjsseName() {
         MtlsClientAuthTomcatCustomizer.ensureJsseProviderRegistered();
 

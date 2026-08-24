@@ -119,13 +119,20 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
                     Security.getProvider(BouncyCastleFipsProvider.PROVIDER_NAME)));
             return;
         }
-        if (!(existingJsseProvider instanceof BouncyCastleJsseProvider bcJsseProvider)
-                || !bcJsseProvider.isFipsMode()) {
+        if (!(existingJsseProvider instanceof BouncyCastleJsseProvider bcJsseProvider)) {
             throw new IllegalStateException(
                     "uaa.mtls-enabled requires the FIPS BouncyCastleJsseProvider registered under the name '"
                             + BouncyCastleJsseProvider.PROVIDER_NAME
                             + "', but a different provider is already registered under that name: "
                             + existingJsseProvider.getClass().getName()
+                            + " -- refusing to silently proceed without the promised FIPS guarantee");
+        }
+        if (!bcJsseProvider.isFipsMode()) {
+            throw new IllegalStateException(
+                    "uaa.mtls-enabled requires the FIPS BouncyCastleJsseProvider registered under the name '"
+                            + BouncyCastleJsseProvider.PROVIDER_NAME
+                            + "', and a " + BouncyCastleJsseProvider.class.getName()
+                            + " is indeed registered under that name, but it was not constructed in FIPS mode"
                             + " -- refusing to silently proceed without the promised FIPS guarantee");
         }
     }
