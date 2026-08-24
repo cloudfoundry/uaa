@@ -87,7 +87,6 @@ import static org.springframework.util.StringUtils.hasText;
 @ExtendWith(ZoneSeederExtension.class)
 @DefaultTestContext
 class ScimUserEndpointsMockMvcTests {
-    private static final MediaType APPLICATION_JSON_UTF8 = new MediaType("application", "json", java.nio.charset.StandardCharsets.UTF_8);
     private static final String HTTP_REDIRECT_EXAMPLE_COM = "http://redirect.example.com";
     private static final String USER_PASSWORD = "pas5Word";
     private String scimReadWriteToken;
@@ -630,7 +629,7 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
@@ -644,7 +643,7 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(userToLockout, new UserAccountStatus())
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string("{}"));
 
         attemptLogin(userToLockout)
@@ -672,7 +671,7 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
@@ -716,7 +715,7 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(user, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         assertThat(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId())).isTrue();
