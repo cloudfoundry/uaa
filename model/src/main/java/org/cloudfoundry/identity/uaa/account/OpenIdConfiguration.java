@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 
+import java.util.Arrays;
 import java.util.Map;
 
 @Data
@@ -75,11 +76,20 @@ public class OpenIdConfiguration {
     private Map<String, String> mtlsEndpointAliases;
 
     public OpenIdConfiguration(final String contextPath, final String issuer) {
+        this(contextPath, issuer, true);
+    }
+
+    public OpenIdConfiguration(final String contextPath, final String issuer, final boolean mtlsEnabled) {
         this.issuer = issuer;
         this.authUrl = contextPath + "/oauth/authorize";
         this.tokenUrl = contextPath + "/oauth/token";
         this.userInfoUrl = contextPath + "/userinfo";
         this.jwksUri = contextPath + "/token_keys";
         this.logoutEndpoint = contextPath + "/logout.do";
+        if (!mtlsEnabled) {
+            this.tokenAMR = Arrays.stream(this.tokenAMR)
+                    .filter(method -> !ClientAuthentication.TLS_CLIENT_AUTH.equals(method))
+                    .toArray(String[]::new);
+        }
     }
 }
