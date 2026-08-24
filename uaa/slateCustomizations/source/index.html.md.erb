@@ -259,6 +259,28 @@ _Response Fields_
 
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithClientAssertion/response-fields.md') %>
 
+### Mutual TLS Client Authentication ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705))
+
+Authenticates using an X.509 certificate presented at the TLS layer, on the dedicated
+`/oauth/mtls/token` endpoint, instead of a `client_secret`, `client_assertion`, or Basic
+Authorization header. The client is identified by the certificate chaining to its configured
+`tls-client-auth-ca`; no additional request parameter carries the certificate itself. See
+[UAA Client Authentication](https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-Client-Authentication.md#tls_client_auth-rfc-8705)
+for deployment and configuration details, including the connector-wide `uaa.mtls-enabled`
+requirement.
+
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/http-response.md') %>
+
+_Request Parameters_
+
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/response-fields.md') %>
+
 ## Password Grant
 
 ### Form Authentication
