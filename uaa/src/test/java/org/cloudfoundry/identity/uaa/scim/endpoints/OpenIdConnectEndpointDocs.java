@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.test.context.TestPropertySource;
 
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -13,6 +14,10 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.response
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// mtls_endpoint_aliases is only present in the discovery document when uaa.mtls-enabled is true
+// (the default is false) -- enabled here so this documented field is genuinely present in the
+// response this test drives, rather than the endpoint silently omitting it.
+@TestPropertySource(properties = "uaa.mtls-enabled=true")
 class OpenIdConnectEndpointDocs extends EndpointDocs {
     @Test
     void getWellKnownOpenidConf() throws Exception {
