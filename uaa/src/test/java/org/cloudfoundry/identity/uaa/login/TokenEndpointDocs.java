@@ -1,14 +1,26 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemWriter;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -55,10 +67,19 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.StringWriter;
+import java.math.BigInteger;
 import java.net.URI;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Security;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Date;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -108,7 +129,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@TestPropertySource(properties = "login.entityBaseURL=")
+@TestPropertySource(properties = {"login.entityBaseURL=", "uaa.mtls-enabled=true"})
 @ExtendWith(JUnitRestDocumentationExtension.class)
 class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
@@ -172,6 +193,18 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     @Autowired
     FilterRegistrationBean<ZoneContextPathSessionFilter> zoneContextPathSessionFilterRegistration;
 
+    /**
+     * Registered in {@code SpringServletXmlFiltersConfiguration} but not automatically added to the
+     * servlet container by {@code MockMvcBuilders.webAppContextSetup(...)} -- must be added explicitly
+     * to the MockMvc filter chain (like the other filters below) so that
+     * {@link org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication#getCertificateChainFromRequest}
+     * can read {@link RawPeerCertificateCaptureFilter#RAW_PEER_CERTIFICATE_ATTRIBUTE} for
+     * {@code /oauth/mtls/token} requests.
+     */
+    @Qualifier("rawPeerCertificateCaptureFilter")
+    @Autowired
+    FilterRegistrationBean<RawPeerCertificateCaptureFilter> rawPeerCertificateCaptureFilterRegistration;
+
     @BeforeAll
     static void beforeAll() {
         Security.addProvider(new BouncyCastleFipsProvider());
@@ -189,6 +222,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(zonePathFilterRegistration.getFilter())
                 .addFilter(zoneContextPathSessionFilterRegistration.getFilter())
+                .addFilter(rawPeerCertificateCaptureFilterRegistration.getFilter())
                 .addFilter(securityFilterChain)
                 .apply(documentationConfiguration(manualRestDocumentation)
                         .uris().withPort(80)
@@ -468,6 +502,99 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         mockMvc.perform(postForToken)
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), formParameters, requestHeaders, responseFields));
+    }
+
+    /**
+     * Documents {@code /oauth/mtls/token} (RFC 8705 mutual-TLS client authentication, {@code tls_client_auth}).
+     * Unlike {@code client_secret}/{@code client_assertion}, this method has no request parameter at all --
+     * the client authenticates by presenting an X.509 certificate at the TLS layer itself (or, behind a
+     * trusted proxy, via the {@code X-Forwarded-Client-Cert} header), which the Gorouter/servlet container
+     * populates on the request before this endpoint's client authentication runs. This test simulates that by
+     * setting the standard {@code jakarta.servlet.request.X509Certificate} request attribute directly, which
+     * {@link RawPeerCertificateCaptureFilter} (added to the MockMvc filter chain in {@link #setUpContext}, as
+     * it would run in the real filter chain) copies into the attribute
+     * {@link org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication#getCertificateChainFromRequest}
+     * reads for {@code /oauth/mtls/*} requests -- exercising the same
+     * {@code ClientDetailsAuthenticationProvider.validateTlsClientAuth} path a genuine mTLS handshake would.
+     */
+    @Test
+    void getTokenUsingClientCredentialGrantWithTlsClientAuth() throws Exception {
+        KeyPair caKeyPair = generateKeyPair();
+        X500Name caSubject = new X500Name("CN=Test mTLS CA");
+        X509Certificate caCert = signCert(caSubject, caSubject, caKeyPair.getPublic(), caKeyPair.getPrivate(), true, BigInteger.valueOf(1));
+
+        KeyPair leafKeyPair = generateKeyPair();
+        X500Name leafSubject = new X500Name("CN=mtls-doc-client");
+        X509Certificate leafCert = signCert(leafSubject, caSubject, leafKeyPair.getPublic(), caKeyPair.getPrivate(), false, BigInteger.valueOf(2));
+
+        String clientId = "mtlsdocclient" + generator.generate();
+        setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
+                false, null, null, -1, IdentityZone.getUaa(),
+                Map.of(
+                        "token-endpoint-auth-method", "tls_client_auth",
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)
+                ));
+
+        MockHttpServletRequestBuilder postForToken = RestDocumentationRequestBuilders.post("/oauth/mtls/token")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param(CLIENT_ID, clientId)
+                .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
+                .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+                // RawPeerCertificateCaptureFilter.isMtlsTokenPath(...) matches on the *effective*
+                // servlet path (post-ZonePathContextRewritingFilter); MockMvc does not compute this
+                // itself from the request URI the way a real DispatcherServlet mapping would, so it
+                // must be set explicitly here to simulate the real /oauth/mtls/token servlet path.
+                .servletPath("/oauth/mtls/token")
+                .requestAttr("jakarta.servlet.request.X509Certificate", new X509Certificate[]{leafCert});
+
+        Snippet formParameters = formParameters(
+                clientIdParameter,
+                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
+                opaqueFormatParameter
+        );
+
+        Snippet responseFields = responseFields(
+                accessTokenFieldDescriptor,
+                tokenTypeFieldDescriptor,
+                expiresInFieldDescriptor,
+                scopeFieldDescriptorWhenClientCredentialsToken,
+                jtiFieldDescriptor
+        );
+
+        mockMvc.perform(postForToken)
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), formParameters, responseFields));
+    }
+
+    private static KeyPair generateKeyPair() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleFipsProvider.PROVIDER_NAME);
+        kpg.initialize(2048);
+        return kpg.generateKeyPair();
+    }
+
+    private static X509Certificate signCert(X500Name subject, X500Name issuer, PublicKey subjectKey,
+            PrivateKey signerKey, boolean isCa, BigInteger serial) throws Exception {
+        Date notBefore = new Date(System.currentTimeMillis() - 60_000);
+        Date notAfter = new Date(System.currentTimeMillis() + 3_600_000);
+        JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                issuer, serial, notBefore, notAfter, subject, subjectKey);
+        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(isCa));
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA")
+                .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
+                .build(signerKey);
+        X509CertificateHolder holder = builder.build(signer);
+        return new JcaX509CertificateConverter()
+                .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
+                .getCertificate(holder);
+    }
+
+    private static String toPem(X509Certificate cert) throws Exception {
+        StringWriter sw = new StringWriter();
+        try (PemWriter pemWriter = new PemWriter(sw)) {
+            pemWriter.writeObject(new PemObject("CERTIFICATE", cert.getEncoded()));
+        }
+        return sw.toString();
     }
 
     @Test
