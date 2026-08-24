@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
@@ -43,7 +42,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             if (!Collections.singleton("uaa.resource").equals(AuthorityUtils.authorityListToSet(clientDetails.getAuthorities()))) {
                 throw new InvalidClientDetailsException("only uaa.resource authority is allowed");
             }
-            if (StringUtils.isBlank(clientDetails.getClientId())) {
+            if (clientDetails.getClientId() == null || clientDetails.getClientId().isBlank()) {
                 throw new InvalidClientDetailsException("client_id cannot be blank");
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
@@ -55,7 +54,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_JWT_BEARER) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_TOKEN_EXCHANGE) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_PASSWORD)) {
-                if (StringUtils.isBlank(clientDetails.getClientSecret())) {
+                if (clientDetails.getClientSecret() == null || clientDetails.getClientSecret().isBlank()) {
                     throw new InvalidClientDetailsException("client_secret cannot be blank");
                 }
                 clientSecretValidator.validate(clientDetails.getClientSecret());

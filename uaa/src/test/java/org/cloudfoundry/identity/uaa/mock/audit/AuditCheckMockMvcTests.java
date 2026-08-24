@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.mock.audit;
 import tools.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.LostPasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
@@ -84,6 +83,7 @@ import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import java.security.MessageDigest;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -504,7 +504,7 @@ class AuditCheckMockMvcTests {
         assertThat(((Authentication) event1.getSource()).getName()).isEqualTo(username);
         assertThat(event2.getName()).isEqualTo(username);
 
-        String encodedUsername = Utf8.decode(Base64.encodeBase64(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(username))));
+        String encodedUsername = Utf8.decode(Base64.getEncoder().encode(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(username))));
         assertLogMessage(testLogger.getMessageAtIndex(0), UserNotFound, encodedUsername, "");
         assertLogMessage(testLogger.getMessageAtIndex(1), PrincipalAuthenticationFailure, username, "null");
     }
@@ -685,7 +685,7 @@ class AuditCheckMockMvcTests {
     @Test
     void clientAuthenticationSuccess() throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64("login:loginsecret".getBytes()));
+                + new String(Base64.getEncoder().encode("login:loginsecret".getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
@@ -705,7 +705,7 @@ class AuditCheckMockMvcTests {
     @Test
     void clientAuthenticationFailure() throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64("login:loginsecretwrong".getBytes()));
+                + new String(Base64.getEncoder().encode("login:loginsecretwrong".getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
@@ -725,7 +725,7 @@ class AuditCheckMockMvcTests {
     @Test
     void clientAuthenticationFailureClientNotFound() throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64("login2:loginsecret".getBytes()));
+                + new String(Base64.getEncoder().encode("login2:loginsecret".getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")

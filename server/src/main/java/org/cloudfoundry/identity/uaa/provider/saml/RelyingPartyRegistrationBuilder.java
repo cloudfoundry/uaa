@@ -4,7 +4,6 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.With;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -42,7 +41,7 @@ public final class RelyingPartyRegistrationBuilder {
      */
     public static RelyingPartyRegistration buildRelyingPartyRegistration(Params builderParams) {
         final Params params;
-        if (StringUtils.isEmpty(builderParams.getMetadataLocation())) {
+        if (builderParams.getMetadataLocation() == null || builderParams.getMetadataLocation().isEmpty()) {
             params = builderParams.withMetadataLocation(createOwnMetadata(builderParams.samlEntityID, builderParams.keys));
         } else {
             params = builderParams;

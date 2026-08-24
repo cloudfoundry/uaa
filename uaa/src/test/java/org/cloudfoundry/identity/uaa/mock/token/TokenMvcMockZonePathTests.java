@@ -1788,7 +1788,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .header("Authorization", "Basic "
-                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                        + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
                 .param(SCOPE, "openid")
@@ -1893,17 +1893,17 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         String requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1";
         ResultMatcher status = status().is3xxRedirection();
-        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
+        performAuthorize(state, clientId, "Basic " + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
         requestedUri = "http://subdomain.domain.com/path1/path2?query1=value1";
-        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
+        performAuthorize(state, clientId, "Basic " + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
         requestedUri = "http://subdomain.domain.com/path1/path1a/path1b/path2?query1=value1";
-        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
+        performAuthorize(state, clientId, "Basic " + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
         requestedUri = "https://wrongsub.domain.com/path1/path2?query1=value1";
         status = status().is4xxClientError();
-        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
+        performAuthorize(state, clientId, "Basic " + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
         requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
         status = status().is4xxClientError();
-        performAuthorize(state, clientId, "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
+        performAuthorize(state, clientId, "Basic " + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())), session, requestedUri, status);
     }
 
     @Test
@@ -1915,7 +1915,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", "Basic "
-                        + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                        + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                 .param(GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param("username", developer.getUserName())
@@ -2016,7 +2016,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         result = mockMvc.perform(post("/oauth/token")
                         .header("Authorization", "Basic "
-                                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                                + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                         .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                         .param("code", code)
                         .param(SCOPE, "openid")
@@ -2075,7 +2075,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         result = mockMvc.perform(post("/oauth/token")
                         .header("Authorization", "Basic "
-                                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                                + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                         .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                         .param("code", code)
                         .param(SCOPE, "openid")
@@ -2130,7 +2130,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         result = mockMvc.perform(post("/oauth/token")
                         .header("Authorization", "Basic "
-                                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                                + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                         .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                         .param("code", code)
                         .param(SCOPE, "openid")
@@ -2186,7 +2186,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         result = mockMvc.perform(post("/oauth/token")
                         .header("Authorization", "Basic "
-                                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                                + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                         .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                         .param("code", code)
                         .param(SCOPE, "openid")
@@ -2236,7 +2236,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         result = mockMvc.perform(post("/oauth/token")
                         .header("Authorization", "Basic "
-                                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                                + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                         .accept(APPLICATION_JSON)
                         .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                         .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
@@ -2292,7 +2292,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         result = mockMvc.perform(post("/oauth/token")
                         .header("Authorization", "Basic "
-                                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                                + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                         .accept(APPLICATION_JSON)
                         .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                         .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
@@ -2331,7 +2331,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
                         .header("Authorization", "Basic "
-                                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                                + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                         .session(session)
                         .param(RESPONSE_TYPE, "code")
                         .param(OAuth2Utils.STATE, "random-state")
@@ -2350,7 +2350,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         result = mockMvc.perform(post("/oauth/token")
                         .accept(APPLICATION_JSON)
                         .header("Authorization", "Basic "
-                                + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes())))
+                                + new String(Base64.getEncoder().encode((clientId + ":" + SECRET).getBytes())))
                         .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                         .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
                         .param("code", code))
@@ -3554,7 +3554,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64("identity:identitysecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes())))
                 .header("Accept", APPLICATION_JSON_VALUE)
                 .session(session)
                 .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
@@ -3593,7 +3593,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
 
         String state = generator.generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
-                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64("identity:identitysecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes())))
                 .header("Accept", APPLICATION_JSON_VALUE)
                 .session(session)
                 .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
@@ -3608,7 +3608,7 @@ class TokenMvcMockZonePathTests extends AbstractTokenMockMvcTests {
         Thread.sleep(2000);
 
         authRequest = get("/oauth/authorize")
-                .header("Authorization", "Basic " + new String(org.apache.commons.codec.binary.Base64.encodeBase64("identity:identitysecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes())))
                 .header("Accept", APPLICATION_JSON_VALUE)
                 .session(session)
                 .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)

@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -53,6 +52,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Collections.emptySet;
@@ -277,11 +277,11 @@ public abstract class ExternalLoginAuthenticationManager<EAD extends ExternalLog
     }
 
     protected final boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
-        return !StringUtils.equals(existingUser.getGivenName(), user.getGivenName())
-                || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName())
-                || !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber())
-                || !StringUtils.equals(existingUser.getEmail(), user.getEmail())
-                || !StringUtils.equals(existingUser.getExternalId(), user.getExternalId());
+        return !Objects.equals(existingUser.getGivenName(), user.getGivenName())
+                || !Objects.equals(existingUser.getFamilyName(), user.getFamilyName())
+                || !Objects.equals(existingUser.getPhoneNumber(), user.getPhoneNumber())
+                || !Objects.equals(existingUser.getEmail(), user.getEmail())
+                || !Objects.equals(existingUser.getExternalId(), user.getExternalId());
     }
 
     /**

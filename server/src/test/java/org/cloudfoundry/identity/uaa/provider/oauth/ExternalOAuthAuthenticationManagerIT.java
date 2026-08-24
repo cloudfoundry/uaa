@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import tools.jackson.core.type.TypeReference;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.nimbusds.jose.JWSSigner;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -87,6 +86,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -323,7 +323,57 @@ class ExternalOAuthAuthenticationManagerIT {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(secretKey);
         byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        assertThat(new String(Base64.encodeBase64URLSafe(hmacData))).isEqualTo(externalOAuthAuthenticationManager.hmacSignAndEncode(data, key));
+        assertThat(new String(Base64.getUrlEncoder().withoutPadding().encode(hmacData))).isEqualTo(externalOAuthAuthenticationManager.hmacSignAndEncode(data, key));
+    }
+
+    @Test
+    void signed_request_claims_are_extracted_when_parts_are_url_safe_base64_encoded() {
+        // signed_request parts use URL-safe, unpadded Base64 ('-'/'_' alphabet; hmacSignAndEncode emits
+        // Nimbus Base64URL). A standard/MIME decoder silently drops '-'/'_', corrupting the bytes.
+        config.setResponseType("signed_request");
+        String secret = config.getRelyingPartySecret();
+
+        // Payload chosen so its Base64URL encoding contains both '-' and '_'.
+        Map<String, Object> payload = Map.of(
+                "algorithm", "HMAC-SHA256",
+                "user_id", "abc>?>?123",
+                "email", "user+tag@example.com");
+        String data = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(JsonUtils.writeValueAsBytes(payload));
+        String signature = externalOAuthAuthenticationManager.hmacSignAndEncode(data, secret);
+
+        // Guard: the test is only meaningful if the encoded parts actually exercise the URL-safe alphabet.
+        assertThat(data + signature).as("encoded signed_request parts should contain URL-safe characters")
+                .containsAnyOf("-", "_");
+
+        String signedRequest = signature + "." + data;
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
+
+        Map<String, Object> resolvedClaims = externalOAuthAuthenticationManager.getClaimsFromToken(signedRequest, identityProvider);
+
+        assertThat(resolvedClaims)
+                .isNotNull()
+                .containsEntry("algorithm", "HMAC-SHA256")
+                .containsEntry("user_id", "abc>?>?123")
+                .containsEntry("email", "user+tag@example.com");
+    }
+
+    @Test
+    void signed_request_with_tampered_signature_returns_null() {
+        config.setResponseType("signed_request");
+        String secret = config.getRelyingPartySecret();
+
+        Map<String, Object> payload = Map.of("algorithm", "HMAC-SHA256", "user_id", "abc>?>?123");
+        String data = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(JsonUtils.writeValueAsBytes(payload));
+        String signature = externalOAuthAuthenticationManager.hmacSignAndEncode(data + "tampered", secret);
+
+        String signedRequest = signature + "." + data;
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
+
+        Map<String, Object> resolvedClaims = externalOAuthAuthenticationManager.getClaimsFromToken(signedRequest, identityProvider);
+
+        assertThat(resolvedClaims).isNull();
     }
 
     @Test
@@ -546,7 +596,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         //UAA exchanges the code for a token
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andExpect(bodyContains(
                         "grant_type=authorization_code",
@@ -945,7 +995,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         mockToken();
         mockUaaServer.expect(requestTo("http://localhost/token_key"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json,application/jwk-set+json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
 
@@ -1276,7 +1326,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setTokenKeyUrl(new URL(keyUrl));
         mockToken();
         mockUaaServer.expect(requestTo(keyUrl))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json,application/jwk-set+json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
@@ -1320,7 +1370,7 @@ class ExternalOAuthAuthenticationManagerIT {
     private void mockToken() {
         String response = getIdTokenResponse();
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andExpect(bodyContains(
                         "grant_type=authorization_code",

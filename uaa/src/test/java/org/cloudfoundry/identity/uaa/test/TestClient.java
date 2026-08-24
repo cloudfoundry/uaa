@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.test;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -8,6 +7,8 @@ import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import java.util.Base64;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
@@ -28,7 +29,7 @@ public class TestClient {
     public String getClientCredentialsOAuthAccessToken(String clientId, String clientSecret, String scope, String subdomain)
             throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+                + new String(Base64.getEncoder().encode((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
