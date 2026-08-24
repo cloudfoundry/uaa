@@ -420,6 +420,113 @@ class TlsClientAuthenticationTest {
     }
 
     @Test
+    void isCertificateFromTrustedProxyFalseWhenPeerCertIsItselfACaCertificate() throws Exception {
+        // Mirrors validateClientCertRejectsLeafThatIsItselfACaCertificate, but for the trusted-
+        // proxy leaf: PKIX path validation alone would succeed (a 1-cert chain from the
+        // intermediate to the root trust anchor is structurally valid), but the presented
+        // end-entity is itself a CA certificate, not a genuine proxy TLS credential.
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair interKp = generateKeyPair();
+        X500Name interName = new X500Name("CN=Trusted Proxy Intermediate CA");
+        X509Certificate intermediateCaCert = signCert(
+                interName, rootName, interKp.getPublic(), rootKp.getPrivate(), true, BigInteger.TWO);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{intermediateCaCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(config)).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void isCertificateFromTrustedProxyFalseWhenPeerCertExtendedKeyUsageExcludesClientAuth() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair peerKp = generateKeyPair();
+        X509Certificate peerCert = signCert(
+                new X500Name("CN=gorouter.service.cf.internal"), rootName, peerKp.getPublic(), rootKp.getPrivate(),
+                false, BigInteger.TWO, null, List.of(KeyPurposeId.id_kp_serverAuth));
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{peerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(config)).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void isCertificateFromTrustedProxyFalseWhenPeerCertKeyUsageExcludesDigitalSignature() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair peerKp = generateKeyPair();
+        // Key Usage present but only keyEncipherment -- digitalSignature explicitly excluded.
+        X509Certificate peerCert = signCert(
+                new X500Name("CN=gorouter.service.cf.internal"), rootName, peerKp.getPublic(), rootKp.getPrivate(),
+                false, BigInteger.TWO, KeyUsage.keyEncipherment, null);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{peerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(config)).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void isCertificateFromTrustedProxyTrueWhenPeerCertHasClientAuthExtendedKeyUsage() throws Exception {
+        // Positive control: a genuinely valid, EKU-restricted-to-clientAuth proxy leaf must
+        // still be accepted -- no regression to the happy path from adding end-entity checks.
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Trusted Proxy CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair peerKp = generateKeyPair();
+        X509Certificate peerCert = signCert(
+                new X500Name("CN=gorouter.service.cf.internal"), rootName, peerKp.getPublic(), rootKp.getPrivate(),
+                false, BigInteger.TWO, null, List.of(KeyPurposeId.id_kp_clientAuth));
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
+        config.setTrustedProxyCaPem(toPem(rootCert));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                new X509Certificate[]{peerCert});
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThat(service.isCertificateFromTrustedProxy(config)).isTrue();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
     void isCertificateFromTrustedProxyFalseWhenConfigIsNull() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));

@@ -180,9 +180,18 @@ public class TlsClientAuthentication {
      * at all ({@code certificateVerification=optionalNoCA}), so there is no static allowlist that could
      * drift out of sync with this per-client value.
      *
+     * <p>Like {@link #validateClientCert(X509Certificate[], TlsClientAuthConfiguration)}, PKIX path
+     * validation alone does not enforce that the validated peer leaf is actually meant to be used as a
+     * TLS client authentication credential -- since the connector's trust manager accepts any certificate
+     * at the TLS layer, a CA certificate or a certificate whose Key Usage/Extended Key Usage extensions
+     * explicitly exclude client authentication could otherwise still be accepted as the trusted proxy's
+     * own credential. This method therefore also applies {@link #validateEndEntityConstraints} to the
+     * validated peer leaf, returning {@code false} (via the catch-all below) if it fails.
+     *
      * @return {@code false} if {@code clientConfig} is {@code null}, has no
-     *         {@code tls-client-auth-trusted-proxy-ca} configured, or there is no current request or no
-     *         captured peer certificate
+     *         {@code tls-client-auth-trusted-proxy-ca} configured, there is no current request or no
+     *         captured peer certificate, the peer certificate does not validate against the configured
+     *         proxy CA, or the validated peer leaf fails an end-entity constraint check
      */
     public boolean isCertificateFromTrustedProxy(TlsClientAuthConfiguration clientConfig) {
         String trustedProxyCaPem = clientConfig != null ? clientConfig.getTrustedProxyCaPem() : null;
@@ -201,7 +210,11 @@ public class TlsClientAuthentication {
         }
         try {
             X509Certificate caCert = parsePemCertificate(trustedProxyCaPem);
-            return validateCertPath(peerChain, caCert).isPresent();
+            Optional<X509Certificate> validated = validateCertPath(peerChain, caCert);
+            if (validated.isPresent()) {
+                validateEndEntityConstraints(validated.get());
+            }
+            return validated.isPresent();
         } catch (Exception e) {
             logger.warn("isCertificateFromTrustedProxy: peer certificate did not validate against "
                     + "tls-client-auth-trusted-proxy-ca: {}", e.getMessage());
