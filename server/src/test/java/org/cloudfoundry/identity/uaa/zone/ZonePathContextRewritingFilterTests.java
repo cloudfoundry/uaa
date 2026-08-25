@@ -484,6 +484,7 @@ class ZonePathContextRewritingFilterTests {
         FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("A", "b");
             c.setPath("/");
+            c.setSecure(true);
             ((HttpServletResponse) res).addCookie(c);
         };
         filter.doFilter(request, response, chain);
@@ -501,6 +502,7 @@ class ZonePathContextRewritingFilterTests {
         FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("C", "d");
             c.setPath("/");
+            c.setSecure(true);
             ((HttpServletResponse) res).addCookie(c);
         };
         filter.doFilter(request, response, chain);
@@ -518,6 +520,7 @@ class ZonePathContextRewritingFilterTests {
         FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("K", "v");
             c.setPath("/");
+            c.setSecure(true);
             ((HttpServletResponse) res).addCookie(c);
         };
         filter.doFilter(request, response, chain);
@@ -536,9 +539,11 @@ class ZonePathContextRewritingFilterTests {
             HttpServletResponse httpRes = (HttpServletResponse) res;
             Cookie c1 = new Cookie("One", "1");
             c1.setPath("/");
+            c1.setSecure(true);
             httpRes.addCookie(c1);
             Cookie c2 = new Cookie("Two", "2");
             c2.setPath("/custom");
+            c2.setSecure(true);
             httpRes.addCookie(c2);
         };
         filter.doFilter(request, response, chain);
