@@ -55,10 +55,10 @@ a per-client trusted CA and, optionally, derives JWT claims from the certificate
 fields (e.g. mapping a Cloud Foundry app instance identity certificate to `app_guid`/
 `space_guid`/`org_guid` claims).
 
-The client is authenticated on a dedicated endpoint, `/oauth/mtls/token`, rather than the
-regular `/oauth/token`. This dedicated endpoint routing is what's scoped: only requests to
-`/oauth/mtls/token` (and its alias, if the mTLS endpoint alias is advertised in the OIDC
-discovery document) attempt to authenticate the caller via a presented client certificate --
+The client is authenticated on the fixed dedicated endpoint, `/oauth/mtls/token`, rather than
+the regular `/oauth/token`. A nonblank `tls-client-auth-ca` is the sole inbound mTLS selector
+for a client. This dedicated endpoint routing is what's scoped: only requests to
+`/oauth/mtls/token` attempt to authenticate the caller via a presented client certificate --
 requests to `/oauth/token` are never affected by this.
 
 The underlying TLS-layer change, however, is **connector-wide, not per-endpoint**: enabling
@@ -131,10 +131,12 @@ registers them as two separate UAA clients, only the latter configuring
 Per-client properties (set via the client-admin API, `oauth.clients` bootstrap, or the client
 admin UI, alongside the client's other properties such as `authorized-grant-types`):
 
+The nonblank `tls-client-auth-ca` property is the sole inbound mTLS selector. Inbound mTLS uses
+the fixed `/oauth/mtls/token` endpoint.
+
 | Property | Required | Description |
 |----------|----------|--------------|
-| `token-endpoint-auth-method: tls_client_auth` | yes | Selects mTLS client authentication for this client. |
-| `tls-client-auth-ca` | yes | PEM-encoded CA certificate. The client's own presented (leaf) certificate must chain to this CA. |
+| `tls-client-auth-ca` | yes | Nonblank PEM-encoded CA certificate. The client's presented leaf certificate must chain to this CA. |
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
 | `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values already produced by `tls-client-auth-claim-mappings`. When configured, authentication fails unless every entry matches exactly -- e.g. `{space_guid: "<specific-space-guid>"}` scopes this client to a single CF space, even if other clients share the same `tls-client-auth-ca`. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`) to JWT claim names, optionally extracting a capture group via `pattern`. |
@@ -145,7 +147,6 @@ Example (Gorouter-fronted; a Cloud Foundry app instance identity certificate map
 `cf_instance_guid`/`app_guid`/`space_guid`/`org_guid` claims):
 
 ```yaml
-token-endpoint-auth-method: tls_client_auth
 tls-client-auth-ca: <instance-identity CA certificate PEM>
 tls-client-auth-trusted-proxy-ca: <Gorouter backend mTLS CA certificate PEM, e.g. service_cf_internal_ca>
 tls-client-auth-claim-mappings:
