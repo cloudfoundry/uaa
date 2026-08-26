@@ -164,6 +164,21 @@ class ZoneEndpointsClientDetailsValidatorTests {
     }
 
     @Test
+    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsBlank() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "  ");
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client_secret cannot be blank");
+    }
+
+    @Test
     void stillValidatesSuppliedSecretWhenTlsClientAuthCaConfigured() {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
 

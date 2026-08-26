@@ -56,8 +56,9 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             checkMtlsClientConfigAllowed(clientDetails.getAdditionalInformation(), mtlsEnabled, clientDetails.getClientId());
             validateTlsClientAuthClaimConfig(clientDetails.getAdditionalInformation(), clientDetails.getClientId());
-            boolean hasTlsClientAuthCa = clientDetails.getAdditionalInformation()
-                    .containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            Object tlsClientAuthCa = clientDetails.getAdditionalInformation()
+                    .get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            boolean hasTlsClientAuthCa = tlsClientAuthCa instanceof String && !((String) tlsClientAuthCa).isBlank();
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
