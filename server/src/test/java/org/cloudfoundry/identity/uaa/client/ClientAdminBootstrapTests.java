@@ -695,6 +695,32 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
+    void invalidTlsClientAuthClaimConfigIsRejectedDuringBootstrap() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId),
+                true);
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "some-ca-cert");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "invalid", "claim", "cf_app")));
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("tls-client-auth-claim-mappings")
+                .hasMessageContaining("invalid field");
+    }
+
+    @Test
     void ordinaryClientBootstrapsSuccessfullyWhenMtlsDisabled() {
         Map<String, Object> map = createClientMap("foo");
         ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);

@@ -221,6 +221,8 @@ public class ClientAdminBootstrap implements
 
             client.setAdditionalInformation(info);
             ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, clientId);
+            ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(
+                    client.getAdditionalInformation(), clientId);
 
             ClientJwtConfiguration keyConfig = null;
             if (map.get(JWKS_URI) instanceof String || map.get(JWKS) instanceof String) {

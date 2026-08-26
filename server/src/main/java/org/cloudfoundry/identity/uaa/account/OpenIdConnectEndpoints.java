@@ -16,12 +16,11 @@ import static org.springframework.http.HttpStatus.OK;
 @Controller
 public class OpenIdConnectEndpoints {
 
+    private static final String MTLS_TOKEN_ENDPOINT_PATH = "/oauth/mtls/token";
+
     private final String issuer;
     private final IdentityZoneManager identityZoneManager;
     private final boolean mtlsEnabled;
-
-    @Value("${mtls.endpoint:/oauth/mtls/token}")
-    private String mtlsEndpointPath = "/oauth/mtls/token";
 
     public OpenIdConnectEndpoints(
             final @Value("${issuer.uri}") String issuer,
@@ -41,7 +40,7 @@ public class OpenIdConnectEndpoints {
         String contextPath = getServerContextPath(request);
         OpenIdConfiguration conf = new OpenIdConfiguration(contextPath, getTokenEndpoint(), mtlsEnabled);
         if (mtlsEnabled) {
-            conf.setMtlsEndpointAliases(Map.of("token_endpoint", contextPath + mtlsEndpointPath));
+            conf.setMtlsEndpointAliases(Map.of("token_endpoint", contextPath + MTLS_TOKEN_ENDPOINT_PATH));
         }
         return new ResponseEntity<>(conf, OK);
     }

@@ -90,6 +90,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final boolean mtlsEnabled;
 
+    private static final String TOKEN_ENDPOINT_AUTH_METHOD = "token-endpoint-auth-method";
+
     private final Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
@@ -367,6 +369,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     }
 
     public static void checkMtlsClientConfigAllowed(Map<String, Object> additionalInfo, boolean mtlsEnabled, String clientId) {
+        if (additionalInfo.containsKey(TOKEN_ENDPOINT_AUTH_METHOD)) {
+            throw new InvalidClientDetailsException(
+                    "token-endpoint-auth-method is not supported; configure tls-client-auth-ca to enable mTLS for client_id="
+                            + clientId);
+        }
         if (!mtlsEnabled
                 && (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
                         || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA))) {

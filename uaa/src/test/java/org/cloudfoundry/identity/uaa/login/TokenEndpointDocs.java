@@ -530,10 +530,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         String clientId = "mtlsdocclient" + generator.generate();
         setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
                 false, null, null, -1, IdentityZone.getUaa(),
-                Map.of(
-                        "token-endpoint-auth-method", "tls_client_auth",
-                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)
-                ));
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)));
 
         MockHttpServletRequestBuilder postForToken = RestDocumentationRequestBuilders.post("/oauth/mtls/token")
                 .accept(APPLICATION_JSON)

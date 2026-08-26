@@ -37,9 +37,7 @@ class OpenIdConnectEndpointsTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getMtlsEndpointAliases())
                 .isNotNull()
-                .containsKey("token_endpoint");
-        assertThat(response.getBody().getMtlsEndpointAliases().get("token_endpoint"))
-                .endsWith("/oauth/mtls/token");
+                .containsEntry("token_endpoint", "https://uaa.example.com/oauth/mtls/token");
     }
 
     @Test
