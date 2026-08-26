@@ -870,6 +870,23 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
+    void authorizationCodeExchangeRejectsStaleTlsClientAuthMethodBeforeSendingRequest() throws Exception {
+        oidcConfig.setAuthMethod(ClientAuthentication.TLS_CLIENT_AUTH);
+        oidcConfig.setTokenUrl(URI.create("https://idp.example.com/oauth/token").toURL());
+        RestTemplate restTemplate = mock(RestTemplate.class);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), restTemplate, restTemplate,
+                tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher, false);
+
+        ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken(
+                "authorization-code", ORIGIN, "https://uaa.example.com/callback", null, null, null);
+
+        assertThatThrownBy(() -> authManager.authenticate(codeToken))
+                .isInstanceOf(ProviderConfigurationException.class)
+                .hasMessage("External OpenID Connect provider configuration does not support tls_client_auth.");
+        verifyNoInteractions(restTemplate);
+    }
+
+    @Test
     void oidcPasswordGrantProviderJwtClientCredentials() throws Exception {
         // Given
         KeyInfoService keyInfoService = mockKeyInfoService();
