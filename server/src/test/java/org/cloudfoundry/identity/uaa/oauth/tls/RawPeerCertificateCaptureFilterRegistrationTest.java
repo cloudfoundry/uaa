@@ -75,8 +75,12 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
                 .as("must match the effective (post zone-path-rewrite) servlet path")
                 .isTrue();
 
+        MockHttpServletRequest tokenDescendant = new MockHttpServletRequest();
+        tokenDescendant.setServletPath("/oauth/mtls/token/alias");
+        assertThat(RawPeerCertificateCaptureFilter.isMtlsTokenPath(tokenDescendant)).isTrue();
+
         MockHttpServletRequest unrelated = new MockHttpServletRequest();
-        unrelated.setServletPath("/login");
+        unrelated.setServletPath("/oauth/mtls/not-token");
         assertThat(RawPeerCertificateCaptureFilter.isMtlsTokenPath(unrelated)).isFalse();
     }
 
@@ -84,7 +88,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
     void doesNotCaptureAnAttributeForUnrelatedPaths() throws Exception {
         RawPeerCertificateCaptureFilter filter = new RawPeerCertificateCaptureFilter();
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setServletPath("/login");
+        request.setServletPath("/oauth/mtls/not-token");
         request.setAttribute("jakarta.servlet.request.X509Certificate",
                 new X509Certificate[]{generateSelfSignedCert("CN=some-peer")});
         MockHttpServletResponse response = new MockHttpServletResponse();

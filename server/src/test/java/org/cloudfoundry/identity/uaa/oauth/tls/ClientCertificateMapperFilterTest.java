@@ -59,7 +59,7 @@ class ClientCertificateMapperFilterTest {
         FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setServletPath("/login");
+        request.setServletPath("/oauth/mtls/not-token");
         request.addHeader("X-Forwarded-Client-Cert",
                 Base64.getEncoder().encodeToString(generateSelfSignedCert().getEncoded()));
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -67,7 +67,7 @@ class ClientCertificateMapperFilterTest {
         mapperBean.getFilter().doFilter(request, response, (req, res) -> { });
 
         assertThat(request.getAttribute("jakarta.servlet.request.X509Certificate"))
-                .as("ClientCertificateMapper must not run for a path other than /oauth/mtls/*")
+                .as("ClientCertificateMapper must not run for a path other than /oauth/mtls/token/**")
                 .isNull();
     }
 

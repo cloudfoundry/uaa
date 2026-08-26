@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UserManagedAuthzApprovalHandler;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
@@ -475,7 +476,8 @@ class OauthEndpointSecurityConfiguration {
     @Order(FilterChainOrder.OAUTH_11)
     UaaFilterChain mtlsTokenEndpointSecurity(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher("/oauth/mtls/token", "/oauth/mtls/token/**")
+                .securityMatcher(RawPeerCertificateCaptureFilter.MTLS_TOKEN_PATH,
+                        RawPeerCertificateCaptureFilter.MTLS_TOKEN_PATH + "/**")
                 .authenticationManager(clientAuthenticationManager)
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/**").access(anyOf().fullyAuthenticated());

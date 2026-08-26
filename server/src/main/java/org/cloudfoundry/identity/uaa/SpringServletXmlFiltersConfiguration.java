@@ -240,10 +240,10 @@ public class SpringServletXmlFiltersConfiguration {
                 new FilterRegistrationBean<>(new RawPeerCertificateCaptureFilter());
         // No addUrlPatterns(...): registered on the default (all-requests) pattern, like every other
         // filter in this class. RawPeerCertificateCaptureFilter internally no-ops unless the request's
-        // effective (post-ZonePathContextRewritingFilter) servlet path is /oauth/mtls/* -- see
+         // effective (post-ZonePathContextRewritingFilter) servlet path is /oauth/mtls/token/** -- see
         // RawPeerCertificateCaptureFilter.isMtlsTokenPath(...) -- so it still runs for zone-path-
         // prefixed mTLS requests (e.g. /z/{subdomain}/oauth/mtls/token). A container URL-pattern
-        // registration for a literal "/oauth/mtls/*" is matched against the request's original,
+         // registration for a literal "/oauth/mtls/token/**" is matched against the request's original,
         // pre-rewrite URI, so it would never include this filter in the chain for such a request.
         // Must run before clientCertificateMapperFilter() (order -200) so it captures the genuine
         // TLS-handshake peer certificate before that filter overwrites the same standard
@@ -268,8 +268,8 @@ public class SpringServletXmlFiltersConfiguration {
                     new FilterRegistrationBean<>(new MtlsPathGuardedFilter(delegate));
             // No addUrlPatterns(...): see rawPeerCertificateCaptureFilter() above.
             // MtlsPathGuardedFilter internally scopes the delegate ClientCertificateMapper to the
-            // effective (post-ZonePathContextRewritingFilter) /oauth/mtls/* servlet path, so a literal
-            // "/oauth/mtls/*" URL-pattern registration -- which would not match zone-path-prefixed
+             // effective (post-ZonePathContextRewritingFilter) /oauth/mtls/token/** servlet path, so a literal
+             // "/oauth/mtls/token/**" URL-pattern registration -- which would not match zone-path-prefixed
             // requests -- is not needed here either.
             // Spring Boot registers its Security filter in the servlet container at order -100
             // (org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterProperties

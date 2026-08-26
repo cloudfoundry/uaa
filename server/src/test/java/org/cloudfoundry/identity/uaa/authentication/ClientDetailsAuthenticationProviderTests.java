@@ -57,6 +57,20 @@ class ClientDetailsAuthenticationProviderTests {
     }
 
     @Test
+    void tlsClientAuthPathIncludesTokenDescendants() {
+        UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
+        when(details.getRequestPath()).thenReturn("/oauth/mtls/token/alias");
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(details)).isTrue();
+    }
+
+    @Test
+    void unrelatedMtlsPathIsNotTlsClientAuth() {
+        UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
+        when(details.getRequestPath()).thenReturn("/oauth/mtls/not-token");
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(details)).isFalse();
+    }
+
+    @Test
     void regularTokenPathIsNotTlsClientAuth() {
         UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
         when(details.getRequestPath()).thenReturn("/oauth/token");

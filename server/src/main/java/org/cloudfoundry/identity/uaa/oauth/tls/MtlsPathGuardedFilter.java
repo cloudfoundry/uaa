@@ -11,7 +11,7 @@ import java.io.IOException;
 
 /**
  * Wraps a delegate {@link Filter} so it only runs for requests whose effective (post
- * {@code ZonePathContextRewritingFilter}) servlet path is {@code /oauth/mtls/*} -- see
+ * {@code ZonePathContextRewritingFilter}) servlet path is {@code /oauth/mtls/token/**} -- see
  * {@link RawPeerCertificateCaptureFilter#isMtlsTokenPath(HttpServletRequest)}.
  *
  * <p>Used in {@code SpringServletXmlFiltersConfiguration} to scope the third-party, package-private

@@ -514,7 +514,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
      * {@link RawPeerCertificateCaptureFilter} (added to the MockMvc filter chain in {@link #setUpContext}, as
      * it would run in the real filter chain) copies into the attribute
      * {@link org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication#getCertificateChainFromRequest}
-     * reads for {@code /oauth/mtls/*} requests -- exercising the same
+     * reads for {@code /oauth/mtls/token/**} requests -- exercising the same
      * {@code ClientDetailsAuthenticationProvider.validateTlsClientAuth} path a genuine mTLS handshake would.
      */
     @Test

@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -186,7 +187,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     static boolean isTlsClientAuthPath(Object uaaAuthenticationDetails) {
         UaaAuthenticationDetails details = getUaaAuthenticationDetails(uaaAuthenticationDetails);
         String path = details != null ? details.getRequestPath() : null;
-        return path != null && path.startsWith("/oauth/mtls");
+        return RawPeerCertificateCaptureFilter.isMtlsTokenPath(path);
     }
 
     boolean validateTlsClientAuth(UaaClient uaaClient) {

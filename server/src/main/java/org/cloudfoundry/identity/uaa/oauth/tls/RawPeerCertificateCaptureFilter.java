@@ -35,7 +35,7 @@ import java.io.IOException;
  * authenticated client certificate itself.
  *
  * <p>Registered in {@code SpringServletXmlFiltersConfiguration} on the default (all-requests) URL
- * pattern, not a literal {@code /oauth/mtls/*} one: {@link #isMtlsTokenPath(HttpServletRequest)} guards
+ * pattern, not a literal {@code /oauth/mtls/token/**} one: {@link #isMtlsTokenPath(HttpServletRequest)} guards
  * this filter's work internally instead, checking the request's <em>effective</em> servlet path (i.e.
  * after {@code ZonePathContextRewritingFilter}, which runs first, has rewritten it). A container
  * URL-pattern registration is matched against the request's original, pre-rewrite URI, so it would
@@ -49,8 +49,8 @@ public class RawPeerCertificateCaptureFilter implements Filter {
             "org.cloudfoundry.identity.uaa.oauth.tls.rawPeerCertificate";
 
     private static final String X509_CERTIFICATE_ATTRIBUTE = "jakarta.servlet.request.X509Certificate";
-    private static final String MTLS_SERVLET_PATH = "/oauth/mtls";
-    private static final String MTLS_SERVLET_PATH_PREFIX = MTLS_SERVLET_PATH + "/";
+    public static final String MTLS_TOKEN_PATH = "/oauth/mtls/token";
+    private static final String MTLS_TOKEN_PATH_PREFIX = MTLS_TOKEN_PATH + "/";
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -64,12 +64,14 @@ public class RawPeerCertificateCaptureFilter implements Filter {
     /**
      * Matches the request's effective servlet path -- i.e. after {@code ZonePathContextRewritingFilter}
      * (which runs first in the filter chain) has stripped any {@code /z/{subdomain}} prefix -- against
-     * {@code /oauth/mtls/*}. Also used by {@link MtlsPathGuardedFilter} to scope the (externally
+     * {@code /oauth/mtls/token/**}. Also used by {@link MtlsPathGuardedFilter} to scope the (externally
      * supplied, package-private) {@code ClientCertificateMapper} filter to the same effective path.
      */
     static boolean isMtlsTokenPath(HttpServletRequest request) {
-        String servletPath = request.getServletPath();
-        return servletPath != null
-                && (servletPath.equals(MTLS_SERVLET_PATH) || servletPath.startsWith(MTLS_SERVLET_PATH_PREFIX));
+        return isMtlsTokenPath(request.getServletPath());
+    }
+
+    public static boolean isMtlsTokenPath(String path) {
+        return path != null && (path.equals(MTLS_TOKEN_PATH) || path.startsWith(MTLS_TOKEN_PATH_PREFIX));
     }
 }
