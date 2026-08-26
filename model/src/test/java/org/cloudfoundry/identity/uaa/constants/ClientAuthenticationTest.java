@@ -26,6 +26,15 @@ class ClientAuthenticationTest {
     }
 
     @Test
+    void externalOAuthMethodsSupportStandardMethodsButNotTlsClientAuth() {
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(CLIENT_SECRET_BASIC)).isTrue();
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(CLIENT_SECRET_POST)).isTrue();
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(PRIVATE_KEY_JWT)).isTrue();
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(NONE)).isTrue();
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(TLS_CLIENT_AUTH)).isFalse();
+    }
+
+    @Test
     void isValidMethodTrue() {
         assertThat(ClientAuthentication.isValidMethod(NONE, false, false)).isTrue();
         assertThat(ClientAuthentication.isValidMethod(PRIVATE_KEY_JWT, false, true)).isTrue();

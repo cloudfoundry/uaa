@@ -24,6 +24,13 @@ public final class ClientAuthentication {
     public static final List<String> UAA_SUPPORTED_METHODS =
             List.of(CLIENT_SECRET_BASIC, CLIENT_SECRET_POST, NONE, PRIVATE_KEY_JWT, TLS_CLIENT_AUTH);
 
+    public static final List<String> EXTERNAL_OAUTH_SUPPORTED_METHODS =
+            List.of(CLIENT_SECRET_BASIC, CLIENT_SECRET_POST, NONE, PRIVATE_KEY_JWT);
+
+    public static boolean isExternalOAuthMethodSupported(String method) {
+        return Optional.ofNullable(method).map(EXTERNAL_OAUTH_SUPPORTED_METHODS::contains).orElse(true);
+    }
+
     public static boolean secretNeeded(String method) {
         return method == null || CLIENT_SECRET_POST.equals(method) || CLIENT_SECRET_BASIC.equals(method);
     }

@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -109,6 +110,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ExternalOAuthAuthenticationManagerTest {
@@ -850,6 +852,21 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThatThrownBy(() -> authManager.oauthTokenRequest(mock(UaaAuthenticationDetails.class), localIdp, GRANT_TYPE_PASSWORD, new LinkedMaskingMultiValueMap<>()))
                 .isInstanceOf(ProviderConfigurationException.class)
                 .hasMessage("External OpenID Connect provider configuration is missing relyingPartySecret, jwtClientAuthentication or authMethod.");
+    }
+
+    @Test
+    void oauthTokenRequestRejectsStaleTlsClientAuthMethodBeforeSendingRequest() throws Exception {
+        oidcConfig.setAuthMethod(ClientAuthentication.TLS_CLIENT_AUTH);
+        oidcConfig.setTokenUrl(URI.create("https://idp.example.com/oauth/token").toURL());
+        RestTemplate restTemplate = mock(RestTemplate.class);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), restTemplate, restTemplate,
+                tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher, false);
+
+        assertThatThrownBy(() -> authManager.oauthTokenRequest(
+                null, provider, GRANT_TYPE_PASSWORD, new LinkedMaskingMultiValueMap<>()))
+                .isInstanceOf(ProviderConfigurationException.class)
+                .hasMessage("External OpenID Connect provider configuration does not support tls_client_auth.");
+        verifyNoInteractions(restTemplate);
     }
 
     @Test

@@ -329,6 +329,15 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
     }
 
     @Test
+    void authMethodSetToTlsClientAuthIsRejected() {
+        idpDefinitionMap.put("authMethod", ClientAuthentication.TLS_CLIENT_AUTH);
+
+        assertThatThrownBy(() -> factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid IdP authentication method");
+    }
+
+    @Test
     void authMethodSet() {
         // given: jwtclientAuthentication, but overrule it with authMethod=none
         idpDefinitionMap.put("jwtclientAuthentication", true);
