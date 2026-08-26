@@ -11,7 +11,7 @@ commonsIo = "2.22.0"
 # Pin cryptacular for the OpenSAML 5.2.x upgrade to maintain compatibility with our FIPS dependency set.
 cryptacular = "1.2.6"
 eclipseJgit = "7.7.1.202607240634-r"
-greenmail = "2.1.12"
+greenmail = "2.1.13"
 guava = "33.7.1-jre"
 jacoco = "4.0.2"
 jackson = "3.1.5"
