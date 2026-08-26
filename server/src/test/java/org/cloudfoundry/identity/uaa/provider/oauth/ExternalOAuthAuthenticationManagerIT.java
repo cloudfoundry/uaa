@@ -526,10 +526,12 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void self_referencing_oidc_idp_rejects_a_uaa_token_issued_to_a_different_client() {
+        // simulates the interactive browser callback (/login/callback/{origin}), which always
+        // supplies an explicit origin and therefore must bind the id_token's audience
         IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
         idpProvider.setType(OriginKeys.OIDC10);
         idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
-        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
+        when(provisioning.retrieveByOrigin(eq(idpProvider.getOriginKey()), anyString())).thenReturn(idpProvider);
 
         // a token signed by this same UAA, but issued to a different client ("cf"), not the
         // self-referencing IdP's own relying party ("identity")
@@ -540,7 +542,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         CompositeToken token = getCompositeAccessToken();
         xCodeToken.setIdToken(token.getIdTokenValue());
-        xCodeToken.setOrigin(null);
+        xCodeToken.setOrigin(idpProvider.getOriginKey());
 
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
                 .isInstanceOf(InvalidTokenException.class)
@@ -549,22 +551,52 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void self_referencing_oidc_idp_rejects_a_uaa_token_with_no_audience_claim() {
+        // simulates the interactive browser callback (/login/callback/{origin}), which always
+        // supplies an explicit origin and therefore must bind the id_token's audience
         IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
         idpProvider.setType(OriginKeys.OIDC10);
         idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
-        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
+        when(provisioning.retrieveByOrigin(eq(idpProvider.getOriginKey()), anyString())).thenReturn(idpProvider);
 
-        // e.g. a plain access token response with no id_token/aud at all, as opposed to a real id_token
+        // an id_token with no aud claim at all - e.g. one that was never meant to be presented as
+        // an id_token to this relying party in the first place
         claims.put("sub", RandomStringUtils.random(50));
         claims.put("iss", UAA_ISSUER_URL);
         claims.put("origin", OriginKeys.UAA);
 
         CompositeToken token = getCompositeAccessToken(Collections.singletonList(ClaimConstants.AUD));
         xCodeToken.setIdToken(token.getIdTokenValue());
-        xCodeToken.setOrigin(null);
+        xCodeToken.setOrigin(idpProvider.getOriginKey());
 
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
                 .isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
+    void jwt_bearer_style_token_exchange_is_exempt_from_self_referencing_audience_check() {
+        // simulates the JWT Bearer grant / password-grant-with-id_token machine-to-machine path,
+        // which omits the origin and lets resolveOriginProvider() resolve the registered IdP by
+        // the token's own issuer claim. That path already authenticates the calling client to
+        // /oauth/token directly, and deliberately chains tokens minted for other clients.
+        IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
+        idpProvider.setType(OriginKeys.OIDC10);
+        idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
+
+        String username = RandomStringUtils.random(50);
+        claims.put("sub", username);
+        claims.put("iss", UAA_ISSUER_URL);
+        claims.put("origin", OriginKeys.UAA);
+        claims.put(ClaimConstants.AUD, Collections.singletonList("cf"));
+
+        CompositeToken token = getCompositeAccessToken();
+        xCodeToken.setIdToken(token.getIdTokenValue());
+        xCodeToken.setOrigin(null);
+
+        AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
+                .getExternalAuthenticationDetails(xCodeToken);
+
+        assertThat(username).isEqualTo(externalAuthenticationDetails.getUsername());
     }
 
     @Test
@@ -757,8 +789,8 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
 
-        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), any());
-        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), any());
+        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), any(), eq(true));
+        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), any(), eq(true));
         verify(externalOAuthAuthenticationManager, never()).getRestTemplate(any());
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
