@@ -1245,8 +1245,7 @@ FIPS BouncyCastle JSSE provider, required for TLS 1.3 client-certificate support
 does not implement server-side TLS 1.3 post-handshake client-certificate requests).
 
 When `false` (the default), no client certificate is requested at the TLS layer at all, and any
-client configured with `token-endpoint-auth-method: tls_client_auth` or a `tls-client-auth-ca`
-property fails validation at creation/update time.
+client configured with a `tls-client-auth-ca` property fails validation at creation/update time.
 
 [Back to table](#oauth-clients--users)
 

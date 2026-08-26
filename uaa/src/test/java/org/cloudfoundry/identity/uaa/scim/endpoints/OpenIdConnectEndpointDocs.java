@@ -41,7 +41,7 @@ class OpenIdConnectEndpointDocs extends EndpointDocs {
                 fieldWithPath("service_documentation").description("URL of a page containing human-readable information that developers might want or need to know when using the OpenID Provider."),
                 fieldWithPath("code_challenge_methods_supported").description("<small><mark>UAA 75.5.0</mark></small>JSON array containing a list of [PKCE](https://tools.ietf.org/html/rfc7636) code challenge methods supported by this authorization endpoint."),
                 fieldWithPath("ui_locales_supported").description("Languages and scripts supported for the user interface."),
-                fieldWithPath("mtls_endpoint_aliases.token_endpoint").description("mTLS-specific token endpoint alias for RFC 8705 mutual-TLS client authentication (proxy-terminated via Gorouter XFCC).")
+                fieldWithPath("mtls_endpoint_aliases.token_endpoint").description("mTLS-specific token endpoint alias for RFC 8705 mutual-TLS client authentication.")
         );
 
         mockMvc.perform(

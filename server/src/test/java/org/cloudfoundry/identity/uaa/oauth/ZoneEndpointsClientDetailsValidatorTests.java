@@ -163,14 +163,30 @@ class ZoneEndpointsClientDetailsValidatorTests {
         assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
     }
 
-    @Test
-    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsBlank() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "  ", "\t"})
+    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsBlank(final String ca) {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "  ");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, ca);
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client_secret cannot be blank");
+    }
+
+    @Test
+    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsNotAString() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, 42);
         clientDetails.setAdditionalInformation(additionalInfo);
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
