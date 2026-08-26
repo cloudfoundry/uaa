@@ -528,7 +528,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         X509Certificate leafCert = signCert(leafSubject, caSubject, leafKeyPair.getPublic(), caKeyPair.getPrivate(), false, BigInteger.valueOf(2));
 
         String clientId = "mtlsdocclient" + generator.generate();
-        UaaClientDetails client = setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
+        setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
                 false, null, null, -1, IdentityZone.getUaa(),
                 Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)));
         clientDetailsService.updateClientSecret(clientId, null);
