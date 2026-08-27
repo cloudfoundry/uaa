@@ -265,11 +265,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     protected AuthenticationData getExternalAuthenticationDetails(final Authentication authentication) {
         final ExternalOAuthCodeToken codeToken = (ExternalOAuthCodeToken) authentication;
 
-        // A caller that already supplies an origin (the interactive browser SSO callback,
-        // /login/callback/{origin}) is asserting a specific IdP by URL and must have the presented
-        // id_token bound to that IdP's own relying party. A caller that omits it (JWT Bearer grant,
-        // password grant with an id_token) is doing a machine-to-machine token exchange that already
-        // authenticates the calling client to /oauth/token directly, and deliberately chains tokens
+        // When the caller supplies an explicit origin (interactive browser callback: /login/callback/{origin}),
+        // bind the presented id_token to that IdP's relying party (audience).
+        // When origin is omitted (JWT Bearer/password-grant token exchange), we still validate audience for
+        // external IdPs, but skip the relying-party audience binding for self-referencing (UAA-issued) tokens
+        // to allow the intended token-chaining behavior.
         // minted for other clients in the same zone/origin - so it is exempt from that binding.
         final boolean enforceRelyingPartyAudience = hasLength(codeToken.getOrigin());
 
