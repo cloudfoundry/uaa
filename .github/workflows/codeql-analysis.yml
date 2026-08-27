@@ -42,7 +42,7 @@ jobs:
 
     - name: Set up Java
       id: java
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         distribution: 'liberica'
         java-version: '25'
