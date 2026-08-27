@@ -269,7 +269,19 @@ Authorization header. The client is identified by the certificate chaining to it
 for deployment and configuration details, including the connector-wide `uaa.mtls-enabled`
 requirement.
 
-<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/curl-request.md') %>
+The certificate and private key are TLS-layer credentials, not form parameters. Substitute paths
+and the UAA URL for your deployment:
+
+```bash
+curl --cert /path/to/client-cert.pem \
+  --key /path/to/client-key.pem \
+  --cacert /path/to/uaa-server-ca.pem \
+  --request POST \
+  --header 'Accept: application/json' \
+  --data 'grant_type=client_credentials&client_id=<client-id>&token_format=opaque' \
+  https://uaa.example.com/oauth/mtls/token
+```
+
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/http-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/http-response.md') %>
 

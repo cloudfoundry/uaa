@@ -131,12 +131,14 @@ registers them as two separate UAA clients, only the latter configuring
 Per-client properties (set via the client-admin API, `oauth.clients` bootstrap, or the client
 admin UI, alongside the client's other properties such as `authorized-grant-types`):
 
-The nonblank `tls-client-auth-ca` property is the sole inbound mTLS selector. Inbound mTLS uses
-the fixed `/oauth/mtls/token` endpoint.
+The mTLS token endpoint is fixed at `/oauth/mtls/token`; it is not configurable. A client opts
+into mTLS by configuring a nonblank `tls-client-auth-ca`. The client must use that endpoint and
+present a certificate whose chain validates to the configured CA; no separate
+`token-endpoint-auth-method` property is used or supported.
 
 | Property | Required | Description |
 |----------|----------|--------------|
-| `tls-client-auth-ca` | yes | Nonblank PEM-encoded CA certificate. The client's presented leaf certificate must chain to this CA. |
+| `tls-client-auth-ca` | yes | PEM-encoded CA certificate. This is the per-client mTLS selector: requests to the fixed `/oauth/mtls/token` endpoint authenticate with a presented leaf certificate only when it chains to this CA. |
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
 | `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values already produced by `tls-client-auth-claim-mappings`. When configured, authentication fails unless every entry matches exactly -- e.g. `{space_guid: "<specific-space-guid>"}` scopes this client to a single CF space, even if other clients share the same `tls-client-auth-ca`. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`) to JWT claim names, optionally extracting a capture group via `pattern`. |
