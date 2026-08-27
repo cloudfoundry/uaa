@@ -18,6 +18,7 @@ import tools.jackson.core.type.TypeReference;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jwt.JWTClaimsSet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.Data;
@@ -762,6 +763,33 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             return macSigner.sign(new JWSHeader(JWSAlgorithm.HS256), data.getBytes(StandardCharsets.UTF_8)).toString();
         } catch (JOSEException e) {
             throw new IllegalArgumentException(e);
+        }
+    }
+
+    /**
+     * Resolves the registered identity provider from the token's {@code iss} claim,
+     * verifies the JWT signature against that provider's keys, and checks expiry.
+     *
+     * <p>Intended for callers (e.g. {@code TokenExchangeGranter}) that need independent
+     * verification of a {@code subject_token} without going through the full authentication
+     * pipeline.
+     *
+     * @param idToken the JWT to verify
+     * @return the verified and expiry-checked {@link JWTClaimsSet}
+     * @throws InsufficientAuthenticationException if the issuer cannot be mapped to a registered provider
+     * @throws InvalidTokenException               if the signature or expiry checks fail
+     */
+    public JWTClaimsSet verifySubjectToken(String idToken) {
+        IdentityProvider provider = resolveOriginProvider(idToken);
+        if (!(provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition config)) {
+            throw new InsufficientAuthenticationException("Unable to map issuer to a registered OAuth/OIDC provider");
+        }
+        try {
+            return validateToken(idToken, config).getJwt().getClaimSet();
+        } catch (InvalidTokenException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new InvalidTokenException("Unable to verify subject_token", e);
         }
     }
 
