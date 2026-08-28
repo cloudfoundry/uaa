@@ -46,6 +46,10 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
     public ClientDetails validate(ClientDetails clientDetails, Mode mode) throws InvalidClientDetailsException {
 
         if (mode == Mode.CREATE) {
+            Map<String, Object> additionalInformation = clientDetails.getAdditionalInformation();
+            if (additionalInformation == null) {
+                additionalInformation = Collections.emptyMap();
+            }
             if (!Collections.singleton("openid").equals(clientDetails.getScope())) {
                 throw new InvalidClientDetailsException("only openid scope is allowed");
             }
@@ -56,9 +60,9 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                 throw new InvalidClientDetailsException("client_id cannot be blank");
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
-            checkMtlsClientConfigAllowed(clientDetails.getAdditionalInformation(), mtlsEnabled, clientDetails.getClientId());
-            validateTlsClientAuthClaimConfig(clientDetails.getAdditionalInformation(), clientDetails.getClientId());
-            boolean hasTlsClientAuthCa = hasNonblankTlsClientAuthCa(clientDetails.getAdditionalInformation());
+            checkMtlsClientConfigAllowed(additionalInformation, mtlsEnabled, clientDetails.getClientId());
+            validateTlsClientAuthClaimConfig(additionalInformation, clientDetails.getClientId());
+            boolean hasTlsClientAuthCa = hasNonblankTlsClientAuthCa(additionalInformation);
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
@@ -72,7 +76,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                 }
                 clientSecretValidator.validate(clientDetails.getClientSecret());
             }
-            if (!Collections.singletonList(OriginKeys.UAA).equals(clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS))) {
+            if (!Collections.singletonList(OriginKeys.UAA).equals(additionalInformation.get(ClientConstants.ALLOWED_PROVIDERS))) {
                 throw new InvalidClientDetailsException("only the internal IdP ('uaa') is allowed");
             }
 

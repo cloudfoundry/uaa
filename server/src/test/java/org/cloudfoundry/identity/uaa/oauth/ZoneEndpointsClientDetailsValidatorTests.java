@@ -89,6 +89,20 @@ class ZoneEndpointsClientDetailsValidatorTests {
     }
 
     @Test
+    void rejectsSecretlessClientCredentialsClientWhenAdditionalInformationIsNull() {
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource") {
+            @Override
+            public Map<String, Object> getAdditionalInformation() {
+                return null;
+            }
+        };
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client_secret cannot be blank");
+    }
+
+    @Test
     void createClientNoSecretForImplicitIsValid() {
         UaaClientDetails clientDetails = new UaaClientDetails("client", null, "openid", "implicit", "uaa.resource");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
