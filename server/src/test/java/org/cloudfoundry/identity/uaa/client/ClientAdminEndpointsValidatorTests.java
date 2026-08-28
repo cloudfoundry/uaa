@@ -475,6 +475,36 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
+    void validateTlsClientAuthClaimConfig_rejectsNativeNullAudTemplateEntry() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")),
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                Collections.singletonList(null));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
+                .hasMessageContaining("entry cannot be null")
+                .hasMessageContaining("client-id");
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsJsonNullAudTemplateEntry() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid")),
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                "[null]");
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
+                .hasMessageContaining("entry cannot be null")
+                .hasMessageContaining("client-id");
+    }
+
+    @Test
     void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsReferencingUndeclaredClaim() {
         Map<String, Object> info = new java.util.HashMap<>();
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,

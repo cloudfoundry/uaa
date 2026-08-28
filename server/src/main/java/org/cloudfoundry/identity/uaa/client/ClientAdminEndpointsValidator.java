@@ -496,7 +496,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
             if (audTemplates != null) {
                 for (String template : audTemplates) {
-                    if (template != null && !template.isBlank()) {
+                    if (template == null) {
+                        throw new InvalidClientDetailsException(
+                                "tls-client-auth-aud-templates entry cannot be null for client_id=" + clientId);
+                    }
+                    if (!template.isBlank()) {
                         checkTemplateLength(template, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
                         validateTemplatePlaceholders(template, declaredClaims,
                                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);

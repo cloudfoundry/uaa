@@ -165,6 +165,10 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         if (config.getAudTemplates() != null && !config.getAudTemplates().isEmpty()) {
             List<String> audList = new ArrayList<>();
             for (String tmpl : config.getAudTemplates()) {
+                // Legacy persisted clients can contain null entries created before validation.
+                if (tmpl == null) {
+                    continue;
+                }
                 String rendered = renderTemplate(tmpl, vars);
                 if (rendered != null) {
                     audList.add(rendered);

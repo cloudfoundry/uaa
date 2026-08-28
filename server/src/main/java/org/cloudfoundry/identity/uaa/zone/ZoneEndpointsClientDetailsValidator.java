@@ -12,9 +12,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed;
@@ -150,11 +152,27 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
         if ((nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
                 || nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
                 || nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS))
-                && (!nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS)
-                || nestedConfig.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS) == null)) {
+                && hasNullNestedTlsClientAuthClaimMappings(nestedConfig)) {
             nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, Collections.emptyList());
         }
         return nestedConfig;
+    }
+
+    private static boolean hasNullNestedTlsClientAuthClaimMappings(Map<String, Object> nestedConfig) {
+        Object rawMappings = nestedConfig.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
+        if (rawMappings == null) {
+            return true;
+        }
+        if (rawMappings instanceof String mappingsJson) {
+            try {
+                return JsonUtils.readValue(mappingsJson,
+                        new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {}) == null;
+            } catch (Exception e) {
+                // Leave malformed JSON to the shared validator so it preserves its existing error.
+                return false;
+            }
+        }
+        return false;
     }
 
     @Override

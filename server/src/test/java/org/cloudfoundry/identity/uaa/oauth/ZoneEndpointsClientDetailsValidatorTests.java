@@ -257,6 +257,27 @@ class ZoneEndpointsClientDetailsValidatorTests {
                 .hasMessageContaining("undeclared");
     }
 
+    @ParameterizedTest
+    @MethodSource("parserNullNestedMapClaimMappings")
+    void rejectsClientWithSuppliedSecretWhenNestedTlsClientAuthClaimMappingsParseToNull(
+            String claimMappings, String property, Object value) {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.setClientSecret("supplied-secret");
+        Map<String, Object> tlsClientAuthConfig = nestedTlsClientAuthConfig(property, value);
+        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, claimMappings);
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfig);
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(property)
+                .hasMessageContaining("undeclared");
+    }
+
     @Test
     void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthClaimMappingHasInvalidField() {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
@@ -408,6 +429,15 @@ class ZoneEndpointsClientDetailsValidatorTests {
                 Arguments.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                         nestedTlsClientAuthConfig(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                                 Map.of("undeclared", "value"))));
+    }
+
+    private static Stream<Arguments> parserNullNestedMapClaimMappings() {
+        return Stream.of(
+                Arguments.of("", TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "{undeclared}"),
+                Arguments.of("  ", TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                        Collections.singletonList("{undeclared}")),
+                Arguments.of("null", TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                        Map.of("undeclared", "value")));
     }
 
     private static Map<String, Object> nestedTlsClientAuthConfig(String property, Object value) {

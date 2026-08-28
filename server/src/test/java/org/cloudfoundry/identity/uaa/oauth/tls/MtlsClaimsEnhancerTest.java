@@ -15,6 +15,7 @@ import javax.security.auth.x500.X500Principal;
 import java.io.Serializable;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -258,6 +259,26 @@ class MtlsClaimsEnhancerTest {
             "o/org-guid/s/space-guid",
             "o/org-guid"
         );
+    }
+
+    @Test
+    void skipsNullAudTemplateEntryForPersistedClient() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAudTemplates(Arrays.asList(null, "o/{cf.org}"));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+
+        assertThat(result.get("aud")).asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.list(String.class))
+                .containsExactly("o/org-guid");
     }
 
     @Test
