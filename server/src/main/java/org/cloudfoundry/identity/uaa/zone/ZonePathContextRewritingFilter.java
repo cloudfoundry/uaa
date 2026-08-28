@@ -316,6 +316,9 @@ public class ZonePathContextRewritingFilter extends OncePerRequestFilter {
         }
 
         private boolean shouldRewritePath(String name, String path) {
+            if (name != null && name.startsWith("__Host-")) {
+                return false;
+            }
             if (ignoreCookies.contains(name)) {
                 return false;
             }
@@ -351,7 +354,7 @@ public class ZonePathContextRewritingFilter extends OncePerRequestFilter {
                 return headerValue;
             }
             String cookieName = extractCookieNameFromSetCookieHeader(headerValue);
-            if (cookieName != null && ignoreCookies.contains(cookieName)) {
+            if (cookieName != null && (cookieName.startsWith("__Host-") || ignoreCookies.contains(cookieName))) {
                 return headerValue;
             }
             String pathToUse = originalContextPath;

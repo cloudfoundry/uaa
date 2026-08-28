@@ -410,7 +410,8 @@ public class OauthEndpointBeanConfiguration {
                 entry("Authorization", asList("bearer "))
         ));
         bean.setParameters(Map.ofEntries(
-                entry("client_id", "")
+                entry("client_id", ""),
+                entry("grant_type", "user_token")
         ));
         return bean;
     }

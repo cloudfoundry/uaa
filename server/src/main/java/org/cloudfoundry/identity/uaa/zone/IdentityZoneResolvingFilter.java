@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -39,11 +40,14 @@ import java.util.Set;
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements InitializingBean {
 
     private final IdentityZoneProvisioning dao;
+    private final IdentityZoneManager identityZoneManager;
     private final Set<String> defaultZoneHostnames = new HashSet<>();
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public IdentityZoneResolvingFilter(final IdentityZoneProvisioning dao) {
+    public IdentityZoneResolvingFilter(final IdentityZoneProvisioning dao,
+                                       final IdentityZoneManager identityZoneManager) {
         this.dao = dao;
+        this.identityZoneManager = identityZoneManager;
     }
 
     private static final String INTERNAL_ERROR_MESSAGE = "Internal server error while fetching identity zone for subdomain ";
@@ -120,10 +124,10 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
 
     private void doFilterWithZone(IdentityZone identityZone, HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
-            IdentityZoneHolder.set(identityZone);
+            identityZoneManager.setCurrentIdentityZone(identityZone);
             filterChain.doFilter(request, response);
         } finally {
-            IdentityZoneHolder.clear();
+            identityZoneManager.clear();
         }
     }
 

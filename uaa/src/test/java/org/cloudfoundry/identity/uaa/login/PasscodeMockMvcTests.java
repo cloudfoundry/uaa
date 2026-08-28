@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -39,6 +38,7 @@ import java.io.IOException;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -110,7 +110,7 @@ class PasscodeMockMvcTests {
                 mockSecurityContext
         );
 
-        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64("cf:".getBytes()));
+        String basicDigestHeaderValue = "Basic " + new String(Base64.getEncoder().encode("cf:".getBytes()));
         MockHttpServletRequestBuilder post = post("/oauth/token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED)
@@ -199,7 +199,7 @@ class PasscodeMockMvcTests {
                 mockSecurityContext
         );
 
-        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64("cf:".getBytes()));
+        String basicDigestHeaderValue = "Basic " + new String(Base64.getEncoder().encode("cf:".getBytes()));
         MockHttpServletRequestBuilder post = post("/oauth/token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED)
@@ -214,7 +214,7 @@ class PasscodeMockMvcTests {
 
     @Test
     void loginUsingInvalidPasscode() throws Exception {
-        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64("cf:".getBytes()));
+        String basicDigestHeaderValue = "Basic " + new String(Base64.getEncoder().encode("cf:".getBytes()));
         MockHttpServletRequestBuilder post = post("/oauth/token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED)
@@ -231,7 +231,7 @@ class PasscodeMockMvcTests {
 
     @Test
     void loginUsingNoPasscode() throws Exception {
-        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64("cf:".getBytes()));
+        String basicDigestHeaderValue = "Basic " + new String(Base64.getEncoder().encode("cf:".getBytes()));
         MockHttpServletRequestBuilder post = post("/oauth/token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED)

@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import tools.jackson.core.type.TypeReference;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.nimbusds.jose.JWSSigner;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -87,6 +86,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -323,7 +323,57 @@ class ExternalOAuthAuthenticationManagerIT {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(secretKey);
         byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        assertThat(new String(Base64.encodeBase64URLSafe(hmacData))).isEqualTo(externalOAuthAuthenticationManager.hmacSignAndEncode(data, key));
+        assertThat(new String(Base64.getUrlEncoder().withoutPadding().encode(hmacData))).isEqualTo(externalOAuthAuthenticationManager.hmacSignAndEncode(data, key));
+    }
+
+    @Test
+    void signed_request_claims_are_extracted_when_parts_are_url_safe_base64_encoded() {
+        // signed_request parts use URL-safe, unpadded Base64 ('-'/'_' alphabet; hmacSignAndEncode emits
+        // Nimbus Base64URL). A standard/MIME decoder silently drops '-'/'_', corrupting the bytes.
+        config.setResponseType("signed_request");
+        String secret = config.getRelyingPartySecret();
+
+        // Payload chosen so its Base64URL encoding contains both '-' and '_'.
+        Map<String, Object> payload = Map.of(
+                "algorithm", "HMAC-SHA256",
+                "user_id", "abc>?>?123",
+                "email", "user+tag@example.com");
+        String data = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(JsonUtils.writeValueAsBytes(payload));
+        String signature = externalOAuthAuthenticationManager.hmacSignAndEncode(data, secret);
+
+        // Guard: the test is only meaningful if the encoded parts actually exercise the URL-safe alphabet.
+        assertThat(data + signature).as("encoded signed_request parts should contain URL-safe characters")
+                .containsAnyOf("-", "_");
+
+        String signedRequest = signature + "." + data;
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
+
+        Map<String, Object> resolvedClaims = externalOAuthAuthenticationManager.getClaimsFromToken(signedRequest, identityProvider);
+
+        assertThat(resolvedClaims)
+                .isNotNull()
+                .containsEntry("algorithm", "HMAC-SHA256")
+                .containsEntry("user_id", "abc>?>?123")
+                .containsEntry("email", "user+tag@example.com");
+    }
+
+    @Test
+    void signed_request_with_tampered_signature_returns_null() {
+        config.setResponseType("signed_request");
+        String secret = config.getRelyingPartySecret();
+
+        Map<String, Object> payload = Map.of("algorithm", "HMAC-SHA256", "user_id", "abc>?>?123");
+        String data = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(JsonUtils.writeValueAsBytes(payload));
+        String signature = externalOAuthAuthenticationManager.hmacSignAndEncode(data + "tampered", secret);
+
+        String signedRequest = signature + "." + data;
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
+
+        Map<String, Object> resolvedClaims = externalOAuthAuthenticationManager.getClaimsFromToken(signedRequest, identityProvider);
+
+        assertThat(resolvedClaims).isNull();
     }
 
     @Test
@@ -475,6 +525,81 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
+    void self_referencing_oidc_idp_rejects_a_uaa_token_issued_to_a_different_client() {
+        // simulates the interactive browser callback (/login/callback/{origin}), which always
+        // supplies an explicit origin and therefore must bind the id_token's audience
+        IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
+        idpProvider.setType(OriginKeys.OIDC10);
+        idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
+        when(provisioning.retrieveByOrigin(eq(idpProvider.getOriginKey()), anyString())).thenReturn(idpProvider);
+
+        // a token signed by this same UAA, but issued to a different client ("cf"), not the
+        // self-referencing IdP's own relying party ("identity")
+        claims.put("sub", RandomStringUtils.random(50));
+        claims.put("iss", UAA_ISSUER_URL);
+        claims.put("origin", OriginKeys.UAA);
+        claims.put(ClaimConstants.AUD, Collections.singletonList("cf"));
+
+        CompositeToken token = getCompositeAccessToken();
+        xCodeToken.setIdToken(token.getIdTokenValue());
+        xCodeToken.setOrigin(idpProvider.getOriginKey());
+
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("audience");
+    }
+
+    @Test
+    void self_referencing_oidc_idp_rejects_a_uaa_token_with_no_audience_claim() {
+        // simulates the interactive browser callback (/login/callback/{origin}), which always
+        // supplies an explicit origin and therefore must bind the id_token's audience
+        IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
+        idpProvider.setType(OriginKeys.OIDC10);
+        idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
+        when(provisioning.retrieveByOrigin(eq(idpProvider.getOriginKey()), anyString())).thenReturn(idpProvider);
+
+        // an id_token with no aud claim at all - e.g. one that was never meant to be presented as
+        // an id_token to this relying party in the first place
+        claims.put("sub", RandomStringUtils.random(50));
+        claims.put("iss", UAA_ISSUER_URL);
+        claims.put("origin", OriginKeys.UAA);
+
+        CompositeToken token = getCompositeAccessToken(Collections.singletonList(ClaimConstants.AUD));
+        xCodeToken.setIdToken(token.getIdTokenValue());
+        xCodeToken.setOrigin(idpProvider.getOriginKey());
+
+        assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
+                .isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
+    void jwt_bearer_style_token_exchange_is_exempt_from_self_referencing_audience_check() {
+        // simulates the JWT Bearer grant / password-grant-with-id_token machine-to-machine path,
+        // which omits the origin and lets resolveOriginProvider() resolve the registered IdP by
+        // the token's own issuer claim. That path already authenticates the calling client to
+        // /oauth/token directly, and deliberately chains tokens minted for other clients.
+        IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
+        idpProvider.setType(OriginKeys.OIDC10);
+        idpProvider.getConfig().setIssuer(UAA_ISSUER_URL);
+        when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
+
+        String username = RandomStringUtils.random(50);
+        claims.put("sub", username);
+        claims.put("iss", UAA_ISSUER_URL);
+        claims.put("origin", OriginKeys.UAA);
+        claims.put(ClaimConstants.AUD, Collections.singletonList("cf"));
+
+        CompositeToken token = getCompositeAccessToken();
+        xCodeToken.setIdToken(token.getIdTokenValue());
+        xCodeToken.setOrigin(null);
+
+        AuthenticationData externalAuthenticationDetails = externalOAuthAuthenticationManager
+                .getExternalAuthenticationDetails(xCodeToken);
+
+        assertThat(username).isEqualTo(externalAuthenticationDetails.getUsername());
+    }
+
+    @Test
     void when_exchanging_an_id_token_retrieved_by_an_external_oidc_idp_for_an_access_token_then_auth_data_should_contain_oidc_sub_claim() {
         IdentityProvider<OIDCIdentityProviderDefinition> idpProvider = getProvider();
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
@@ -546,7 +671,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         //UAA exchanges the code for a token
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andExpect(bodyContains(
                         "grant_type=authorization_code",
@@ -664,8 +789,8 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
 
-        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), any());
-        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), any());
+        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), any(), eq(true));
+        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), any(), eq(true));
         verify(externalOAuthAuthenticationManager, never()).getRestTemplate(any());
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
@@ -945,7 +1070,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         mockToken();
         mockUaaServer.expect(requestTo("http://localhost/token_key"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json,application/jwk-set+json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
 
@@ -1276,7 +1401,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setTokenKeyUrl(new URL(keyUrl));
         mockToken();
         mockUaaServer.expect(requestTo(keyUrl))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json,application/jwk-set+json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
@@ -1320,7 +1445,7 @@ class ExternalOAuthAuthenticationManagerIT {
     private void mockToken() {
         String response = getIdTokenResponse();
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
-                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andExpect(bodyContains(
                         "grant_type=authorization_code",

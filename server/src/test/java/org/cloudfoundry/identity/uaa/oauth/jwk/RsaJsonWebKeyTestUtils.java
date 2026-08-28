@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
-import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.asn1.ASN1Sequence;
 
 import java.security.KeyFactory;
@@ -13,6 +12,7 @@ import java.security.spec.KeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -90,7 +90,7 @@ public class RsaJsonWebKeyTestUtils {
         PrivateKey privateKey = null;
 
         try {
-            final byte[] content = Base64.decodeBase64(m.group(2));
+            final byte[] content = Base64.getMimeDecoder().decode(m.group(2));
             KeyFactory fact = KeyFactory.getInstance("RSA");
             if ("RSA PRIVATE KEY".equals(type)) {
                 ASN1Sequence seq = ASN1Sequence.getInstance(content);

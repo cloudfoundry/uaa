@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -25,6 +24,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -287,7 +287,7 @@ class TokenKeyEndpointMockMvcZonePathTests {
 
     private String getBasicAuth(UaaClientDetails client) {
         return "Basic "
-                + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
+                + new String(Base64.getEncoder().encode((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
     }
 
     private void validateKey(Map<String, Object> key) {
@@ -364,8 +364,8 @@ class TokenKeyEndpointMockMvcZonePathTests {
     }
 
     private void isUrlSafeBase64(String base64) {
-        java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
-        java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
+        Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+        Base64.Decoder decoder = Base64.getUrlDecoder();
         assertThat(encoder.encodeToString(decoder.decode(base64))).isEqualTo(base64);
     }
 }

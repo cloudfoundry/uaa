@@ -460,6 +460,23 @@ class ZonePathContextRewritingFilterTests {
     }
 
     @Test
+    void addCookie_hostPrefixedCookie_leavesPathUnchanged() throws Exception {
+        request.setContextPath("/uaa");
+        request.setRequestURI("/uaa/z/myzone/login");
+
+        FilterChain chain = (_, res) -> {
+            Cookie c = new Cookie("__Host-X-Uaa-Csrf", "v");
+            c.setPath("/");
+            ((HttpServletResponse) res).addCookie(c);
+        };
+        filter.doFilter(request, response, chain);
+
+        Cookie[] cookies = response.getCookies();
+        assertThat(cookies).hasSize(1);
+        assertThat(cookies[0].getPath()).isEqualTo("/");
+    }
+
+    @Test
     void noZonePath_withContextPath_rewritesCookiePathToContextPath() throws Exception {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa/login");
@@ -467,6 +484,7 @@ class ZonePathContextRewritingFilterTests {
         FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("A", "b");
             c.setPath("/");
+            c.setSecure(true);
             ((HttpServletResponse) res).addCookie(c);
         };
         filter.doFilter(request, response, chain);
@@ -484,6 +502,7 @@ class ZonePathContextRewritingFilterTests {
         FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("C", "d");
             c.setPath("/");
+            c.setSecure(true);
             ((HttpServletResponse) res).addCookie(c);
         };
         filter.doFilter(request, response, chain);
@@ -501,6 +520,7 @@ class ZonePathContextRewritingFilterTests {
         FilterChain chain = (_, res) -> {
             Cookie c = new Cookie("K", "v");
             c.setPath("/");
+            c.setSecure(true);
             ((HttpServletResponse) res).addCookie(c);
         };
         filter.doFilter(request, response, chain);
@@ -519,9 +539,11 @@ class ZonePathContextRewritingFilterTests {
             HttpServletResponse httpRes = (HttpServletResponse) res;
             Cookie c1 = new Cookie("One", "1");
             c1.setPath("/");
+            c1.setSecure(true);
             httpRes.addCookie(c1);
             Cookie c2 = new Cookie("Two", "2");
             c2.setPath("/custom");
+            c2.setSecure(true);
             httpRes.addCookie(c2);
         };
         filter.doFilter(request, response, chain);
@@ -596,8 +618,24 @@ class ZonePathContextRewritingFilterTests {
 
         String header = response.getHeader("Set-Cookie");
         assertThat(header)
-                .contains("Path=/")
+                .contains("Path=/;")
+                .doesNotContain("Path=/uaa")
                 .contains("Current-User=");
+    }
+
+    @Test
+    void addHeaderSetCookie_hostPrefixedCookie_leavesPathUnchanged() throws Exception {
+        request.setContextPath("/uaa");
+        request.setRequestURI("/uaa/z/myzone/login");
+
+        FilterChain chain = (_, res) -> ((HttpServletResponse) res).addHeader("Set-Cookie", "__Host-X-Uaa-Csrf=encoded; Path=/; HttpOnly");
+        filter.doFilter(request, response, chain);
+
+        String header = response.getHeader("Set-Cookie");
+        assertThat(header)
+                .contains("Path=/;")
+                .doesNotContain("Path=/uaa")
+                .contains("__Host-X-Uaa-Csrf=");
     }
 
     @Test
@@ -609,7 +647,9 @@ class ZonePathContextRewritingFilterTests {
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
-        assertThat(header).contains("Path=/");
+        assertThat(header)
+                .contains("Path=/")
+                .doesNotContain("Path=/uaa");
     }
 
     @Test
@@ -621,7 +661,9 @@ class ZonePathContextRewritingFilterTests {
         filter.doFilter(request, response, chain);
 
         String header = response.getHeader("Set-Cookie");
-        assertThat(header).contains("Path=/");
+        assertThat(header)
+                .contains("Path=/")
+                .doesNotContain("Path=/uaa");
     }
 
     // --- zones.paths.enabled flag ---

@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.springframework.util.StringUtils;
@@ -28,10 +27,18 @@ public class BannerValidator {
                 }
             }
             if (StringUtils.hasText(banner.getLogo())) {
-                if (!Base64.isBase64(banner.getLogo())) {
+                if (!isValidBase64(banner.getLogo())) {
                     throw new InvalidIdentityZoneConfigurationException("Invalid banner logo. Must be in BASE64 format.", null);
                 }
             }
         }
+    }
+
+    private static final Pattern VALID_BASE64 =
+            Pattern.compile("^[A-Za-z0-9+/\\-_=\\s]*$");
+
+    private static boolean isValidBase64(String value) {
+        // Accept standard and url-safe base64, including = anywhere — matches Commons Codec Base64.isBase64()
+        return VALID_BASE64.matcher(value).matches();
     }
 }

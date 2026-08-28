@@ -25,4 +25,9 @@ public class IdentityZoneManagerImpl implements IdentityZoneManager {
     public void setCurrentIdentityZone(final IdentityZone identityZone) {
         IdentityZoneHolder.set(identityZone);
     }
+
+    @Override
+    public void clear() {
+        IdentityZoneHolder.clear();
+    }
 }

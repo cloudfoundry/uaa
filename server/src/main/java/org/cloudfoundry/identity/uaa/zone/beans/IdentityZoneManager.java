@@ -9,5 +9,7 @@ public interface IdentityZoneManager {
 
     boolean isCurrentZoneUaa();
 
-    void setCurrentIdentityZone(final IdentityZone mockIdentityZone);
+    void setCurrentIdentityZone(final IdentityZone identityZone);
+
+    void clear();
 }

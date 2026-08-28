@@ -277,8 +277,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 claims.getGrantType(),
                 client);
 
-        throwIfInvalidRevocationHashSignature(claims.getRevSig(), user, client);
-
         Map<String, Object> additionalRootClaims = getAdditionalRootClaims(refreshTokenClaims);
 
         UserAuthenticationData authenticationData = new UserAuthenticationData(
@@ -388,16 +386,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     static boolean isRevocable(Claims claims, boolean isOpaque) {
         return isOpaque || claims.isRevocable();
-    }
-
-    private static void throwIfInvalidRevocationHashSignature(String revocableHashSignature, UaaUser user, ClientDetails client) {
-        if (hasText(revocableHashSignature)) {
-            String clientSecretForHash = getClientSecretForHash(client.getClientSecret());
-            String newRevocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, clientSecretForHash, user);
-            if (!revocableHashSignature.equals(newRevocableHashSignature)) {
-                throw new TokenRevokedException("Invalid refresh token: revocable signature mismatch");
-            }
-        }
     }
 
     private static Set<String> getAcrAsSet(Map<String, Object> refreshTokenClaims) {

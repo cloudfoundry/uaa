@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 
@@ -19,7 +18,7 @@ public final class SamlTestUtils {
         def.setAssertionConsumerIndex(0);
         def.setMetadataTrustCheck(false);
         def.setShowSamlLink(true);
-        if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals(OriginKeys.UAA)) {
+        if ((zoneId != null && !zoneId.isEmpty()) && !zoneId.equals(OriginKeys.UAA)) {
             def.setIdpEntityAlias(zoneId + "." + alias);
             def.setLinkText("Login with Local SAML IdP(" + zoneId + "." + alias + ")");
         } else {

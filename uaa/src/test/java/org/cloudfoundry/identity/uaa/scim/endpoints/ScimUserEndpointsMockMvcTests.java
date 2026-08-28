@@ -87,7 +87,6 @@ import static org.springframework.util.StringUtils.hasText;
 @ExtendWith(ZoneSeederExtension.class)
 @DefaultTestContext
 class ScimUserEndpointsMockMvcTests {
-    private static final MediaType APPLICATION_JSON_UTF8 = new MediaType("application", "json", java.nio.charset.StandardCharsets.UTF_8);
     private static final String HTTP_REDIRECT_EXAMPLE_COM = "http://redirect.example.com";
     private static final String USER_PASSWORD = "pas5Word";
     private String scimReadWriteToken;
@@ -630,7 +629,27 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
+
+        attemptLogin(userToLockout)
+                .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
+    void unlockAccountWithoutAcceptHeader() throws Exception {
+        // Regression test: without @ResponseBody on updateAccountStatus, a caller
+        // that omits Accept: application/json (e.g. uaa-cli's unlock-user, which
+        // issues a raw PATCH via its curl helper) gets routed into Thymeleaf view
+        // resolution instead of the normal HttpMessageConverter path, and 500s.
+        ScimUser userToLockout = createUser(uaaAdminToken);
+        attemptUnsuccessfulLogin(5, userToLockout.getUserName(), "");
+
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setLocked(false);
+        updateAccountStatusWithoutAcceptHeader(userToLockout, alteredAccountStatus)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
@@ -644,7 +663,7 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(userToLockout, new UserAccountStatus())
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string("{}"));
 
         attemptLogin(userToLockout)
@@ -672,7 +691,7 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
@@ -716,7 +735,7 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(user, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         assertThat(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId())).isTrue();
@@ -1384,6 +1403,17 @@ class ScimUserEndpointsMockMvcTests {
                         patch("/Users/" + user.getId() + "/status")
                                 .header("Authorization", "Bearer " + uaaAdminToken)
                                 .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                                .content(jsonStatus)
+                );
+    }
+
+    private ResultActions updateAccountStatusWithoutAcceptHeader(ScimUser user, UserAccountStatus alteredAccountStatus) throws Exception {
+        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
+        return mockMvc
+                .perform(
+                        patch("/Users/" + user.getId() + "/status")
+                                .header("Authorization", "Bearer " + uaaAdminToken)
                                 .contentType(APPLICATION_JSON)
                                 .content(jsonStatus)
                 );

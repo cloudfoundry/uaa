@@ -14,6 +14,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import jakarta.servlet.FilterChain;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -41,6 +43,7 @@ import static org.mockito.Mockito.when;
 class IdentityZoneResolvingFilterZonePathTests {
 
     private IdentityZoneProvisioning dao;
+    private IdentityZoneManager identityZoneManager;
     private IdentityZoneResolvingFilter filter;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
@@ -52,7 +55,8 @@ class IdentityZoneResolvingFilterZonePathTests {
     @BeforeEach
     void setUp() {
         dao = mock(IdentityZoneProvisioning.class);
-        filter = new IdentityZoneResolvingFilter(dao);
+        identityZoneManager = new IdentityZoneManagerImpl();
+        filter = new IdentityZoneResolvingFilter(dao, identityZoneManager);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         chainInvoked = new AtomicBoolean(false);
@@ -61,13 +65,13 @@ class IdentityZoneResolvingFilterZonePathTests {
 
     @AfterEach
     void tearDown() {
-        IdentityZoneHolder.clear();
+        identityZoneManager.clear();
     }
 
     private FilterChain chainThatCapturesHolder() {
         return (_, _) -> {
             chainInvoked.set(true);
-            zoneInHolderWhenChainInvoked.set(IdentityZoneHolder.get());
+            zoneInHolderWhenChainInvoked.set(identityZoneManager.getCurrentIdentityZone());
         };
     }
 
@@ -267,7 +271,7 @@ class IdentityZoneResolvingFilterZonePathTests {
 
         filter.doFilter(request, response, chainThatCapturesHolder());
 
-        assertThat(IdentityZoneHolder.get()).isEqualTo(IdentityZone.getUaa());
+        assertThat(identityZoneManager.getCurrentIdentityZone()).isEqualTo(IdentityZone.getUaa());
     }
 
     @Test
@@ -279,6 +283,6 @@ class IdentityZoneResolvingFilterZonePathTests {
 
         filter.doFilter(request, response, chainThatCapturesHolder());
 
-        assertThat(IdentityZoneHolder.get()).isEqualTo(IdentityZone.getUaa());
+        assertThat(identityZoneManager.getCurrentIdentityZone()).isEqualTo(IdentityZone.getUaa());
     }
 }
