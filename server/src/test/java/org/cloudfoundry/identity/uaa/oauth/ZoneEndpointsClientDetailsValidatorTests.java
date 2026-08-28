@@ -203,6 +203,42 @@ class ZoneEndpointsClientDetailsValidatorTests {
     }
 
     @Test
+    void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthClaimMappingHasInvalidField() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+                "ca-pem", Collections.singletonList(new TlsClientAuthConfiguration.ClaimMapping(null, null, "claim"))));
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("invalid field");
+    }
+
+    @Test
+    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaJsonMapClaimMappingHasInvalidField() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        Map<String, Object> malformedClaimMapping = new HashMap<>();
+        malformedClaimMapping.put("field", null);
+        malformedClaimMapping.put("claim", "claim");
+        Map<String, Object> tlsClientAuthConfig = new HashMap<>();
+        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                Collections.singletonList(malformedClaimMapping));
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfig);
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("invalid field");
+    }
+
+    @Test
     void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthCaIsBlank() {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
 

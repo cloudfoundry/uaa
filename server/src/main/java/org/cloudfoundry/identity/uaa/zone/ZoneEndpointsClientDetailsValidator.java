@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed;
@@ -62,6 +63,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             checkMtlsClientConfigAllowed(additionalInformation, mtlsEnabled, clientDetails.getClientId());
             validateTlsClientAuthClaimConfig(additionalInformation, clientDetails.getClientId());
+            validateTlsClientAuthClaimConfig(getNestedTlsClientAuthClaimConfig(additionalInformation), clientDetails.getClientId());
             boolean hasTlsClientAuthCa = hasNonblankTlsClientAuthCa(additionalInformation);
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
@@ -117,6 +119,32 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             }
         }
         return false;
+    }
+
+    private static Map<String, Object> getNestedTlsClientAuthClaimConfig(Map<String, Object> additionalInformation) {
+        Object rawConfig = additionalInformation.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        Map<String, Object> nestedConfig = new HashMap<>();
+        if (rawConfig instanceof TlsClientAuthConfiguration config) {
+            if (config.getClaimMappings() != null) {
+                nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, config.getClaimMappings());
+            }
+            if (config.getSubTemplate() != null) {
+                nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, config.getSubTemplate());
+            }
+            if (config.getAudTemplates() != null) {
+                nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, config.getAudTemplates());
+            }
+            if (config.getRequiredClaims() != null) {
+                nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, config.getRequiredClaims());
+            }
+        } else if (rawConfig instanceof Map<?, ?> config) {
+            config.forEach((key, value) -> {
+                if (key instanceof String name) {
+                    nestedConfig.put(name, value);
+                }
+            });
+        }
+        return nestedConfig;
     }
 
     @Override
