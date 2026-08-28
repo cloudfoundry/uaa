@@ -461,19 +461,34 @@ public class TlsClientAuthentication {
      * is case-insensitive, per LDAP semantics. Returns {@code null} if not present.
      */
     private static String rdnAttributeValue(Rdn rdn, String type) {
+        List<String> values = rdnAttributeValues(rdn, type);
+        return values.isEmpty() ? null : values.get(0);
+    }
+
+    /**
+     * Returns every value of an attribute from an RDN. A multi-valued RDN can contain the same
+     * attribute type more than once, as Diego instance identity certificates do for OU.
+     */
+    private static List<String> rdnAttributeValues(Rdn rdn, String type) {
+        List<String> values = new ArrayList<>();
         try {
             NamingEnumeration<? extends Attribute> attrs = rdn.toAttributes().getAll();
             while (attrs.hasMore()) {
                 Attribute attr = attrs.next();
                 if (attr.getID().equalsIgnoreCase(type)) {
-                    Object value = attr.get();
-                    return value == null ? null : value.toString();
+                    NamingEnumeration<?> attributeValues = attr.getAll();
+                    while (attributeValues.hasMore()) {
+                        Object value = attributeValues.next();
+                        if (value != null) {
+                            values.add(value.toString());
+                        }
+                    }
                 }
             }
         } catch (NamingException e) {
-            // fall through to null
+            // fall through to values collected so far
         }
-        return null;
+        return values;
     }
 
     /**
@@ -498,10 +513,7 @@ public class TlsClientAuthentication {
     private static List<String> extractOus(String dn) {
         List<String> ous = new ArrayList<>();
         for (Rdn rdn : parseRdnsMostSpecificFirst(dn)) {
-            String value = rdnAttributeValue(rdn, "OU");
-            if (value != null) {
-                ous.add(value);
-            }
+            ous.addAll(rdnAttributeValues(rdn, "OU"));
         }
         return ous;
     }

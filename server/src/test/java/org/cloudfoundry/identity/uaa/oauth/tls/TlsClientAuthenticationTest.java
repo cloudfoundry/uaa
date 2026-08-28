@@ -80,6 +80,25 @@ class TlsClientAuthenticationTest {
     }
 
     @Test
+    void extractClaimMappingValuesExtractsEveryOuFromMultiValuedRdn() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid,OU=organization:org-guid+OU=space:space-guid+OU=app:app-guid");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "app_guid"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^space:(.+)$", "space_guid"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^organization:(.+)$", "org_guid")
+        ));
+
+        assertThat(service.extractClaimMappingValues(cert, config)).containsExactlyInAnyOrderEntriesOf(Map.of(
+                "app_guid", "app-guid",
+                "space_guid", "space-guid",
+                "org_guid", "org-guid"
+        ));
+    }
+
+    @Test
     void extractClaimMappingValuesReturnsEmptyMapWhenNoClaimMappingsConfigured() throws Exception {
         KeyPair kp = generateKeyPair();
         X500Name subject = new X500Name("CN=instance-guid");
