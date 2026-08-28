@@ -110,7 +110,10 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
         if (rawConfig instanceof TlsClientAuthConfiguration config) {
             return TlsClientAuthConfiguration.isConfigured(config);
         }
-        if (rawConfig instanceof Map<?, ?>) {
+        if (rawConfig instanceof Map<?, ?> config) {
+            if (!(config.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String pem) || pem.isBlank()) {
+                return false;
+            }
             try {
                 return TlsClientAuthConfiguration.isConfigured(
                         JsonUtils.convertValue(rawConfig, TlsClientAuthConfiguration.class));
@@ -143,6 +146,13 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                     nestedConfig.put(name, value);
                 }
             });
+        }
+        if ((nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
+                || nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
+                || nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS))
+                && (!nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS)
+                || nestedConfig.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS) == null)) {
+            nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, Collections.emptyList());
         }
         return nestedConfig;
     }

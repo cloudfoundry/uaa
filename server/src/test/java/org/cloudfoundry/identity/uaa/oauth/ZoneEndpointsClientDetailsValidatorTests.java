@@ -13,6 +13,8 @@ import org.cloudfoundry.identity.uaa.zone.ZoneEndpointsClientDetailsValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -202,6 +205,58 @@ class ZoneEndpointsClientDetailsValidatorTests {
         assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
     }
 
+    @ParameterizedTest
+    @MethodSource("unsupportedNestedTlsClientAuthCaValues")
+    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaMapHasUnsupportedCaValue(Object ca) {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        Map<String, Object> tlsClientAuthConfig = new HashMap<>();
+        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, ca);
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfig);
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client_secret cannot be blank");
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidNestedTypedTlsClientAuthConfigurations")
+    void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthConfigurationHasUndeclaredClaimReference(
+            String property, TlsClientAuthConfiguration tlsClientAuthConfig) {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        clientDetails.setTlsClientAuthConfiguration(tlsClientAuthConfig);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(property)
+                .hasMessageContaining("undeclared");
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidNestedMapTlsClientAuthConfigurations")
+    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaMapHasUndeclaredClaimReference(
+            String property, Map<String, Object> tlsClientAuthConfig) {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfig);
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(property)
+                .hasMessageContaining("undeclared");
+    }
+
     @Test
     void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthClaimMappingHasInvalidField() {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
@@ -324,5 +379,41 @@ class ZoneEndpointsClientDetailsValidatorTests {
         ClientDetails validated = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
 
         assertThat(validated.getClientId()).isEqualTo(clientDetails.getClientId());
+    }
+
+    private static Stream<Object> unsupportedNestedTlsClientAuthCaValues() {
+        return Stream.of(42, true);
+    }
+
+    private static Stream<Arguments> invalidNestedTypedTlsClientAuthConfigurations() {
+        TlsClientAuthConfiguration subTemplateConfig = new TlsClientAuthConfiguration("ca-pem", null);
+        subTemplateConfig.setSubTemplate("{undeclared}");
+        TlsClientAuthConfiguration audTemplatesConfig = new TlsClientAuthConfiguration("ca-pem", null);
+        audTemplatesConfig.setAudTemplates(Collections.singletonList("{undeclared}"));
+        TlsClientAuthConfiguration requiredClaimsConfig = new TlsClientAuthConfiguration("ca-pem", null);
+        requiredClaimsConfig.setRequiredClaims(Map.of("undeclared", "value"));
+        return Stream.of(
+                Arguments.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, subTemplateConfig),
+                Arguments.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, audTemplatesConfig),
+                Arguments.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, requiredClaimsConfig));
+    }
+
+    private static Stream<Arguments> invalidNestedMapTlsClientAuthConfigurations() {
+        return Stream.of(
+                Arguments.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
+                        nestedTlsClientAuthConfig(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "{undeclared}")),
+                Arguments.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                        nestedTlsClientAuthConfig(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                                Collections.singletonList("{undeclared}"))),
+                Arguments.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                        nestedTlsClientAuthConfig(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                                Map.of("undeclared", "value"))));
+    }
+
+    private static Map<String, Object> nestedTlsClientAuthConfig(String property, Object value) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        config.put(property, value);
+        return config;
     }
 }
