@@ -335,7 +335,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(CLIENT_ID, "login")
                 .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", auth.code())
-                .param(REQUEST_TOKEN_FORMAT, JWT.getStringValue())
+                .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                 .param(PkceValidationService.CODE_VERIFIER, UaaTestAccounts.CODE_VERIFIER)
                 .param(REDIRECT_URI, auth.redirect());
 
