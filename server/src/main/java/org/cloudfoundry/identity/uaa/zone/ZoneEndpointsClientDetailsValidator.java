@@ -7,12 +7,14 @@ import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed;
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkRequestedGrantTypes;
@@ -56,9 +58,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             checkMtlsClientConfigAllowed(clientDetails.getAdditionalInformation(), mtlsEnabled, clientDetails.getClientId());
             validateTlsClientAuthClaimConfig(clientDetails.getAdditionalInformation(), clientDetails.getClientId());
-            Object tlsClientAuthCa = clientDetails.getAdditionalInformation()
-                    .get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-            boolean hasTlsClientAuthCa = tlsClientAuthCa instanceof String && !((String) tlsClientAuthCa).isBlank();
+            boolean hasTlsClientAuthCa = hasNonblankTlsClientAuthCa(clientDetails.getAdditionalInformation());
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
@@ -90,6 +90,29 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             return clientDetails;
         }
         throw new IllegalStateException("This validator must be called with a mode");
+    }
+
+    static boolean hasNonblankTlsClientAuthCa(Map<String, Object> additionalInformation) {
+        if (additionalInformation == null) {
+            return false;
+        }
+
+        Object rawConfig = additionalInformation.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        if (rawConfig instanceof String pem) {
+            return !pem.isBlank();
+        }
+        if (rawConfig instanceof TlsClientAuthConfiguration config) {
+            return TlsClientAuthConfiguration.isConfigured(config);
+        }
+        if (rawConfig instanceof Map<?, ?>) {
+            try {
+                return TlsClientAuthConfiguration.isConfigured(
+                        JsonUtils.convertValue(rawConfig, TlsClientAuthConfiguration.class));
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return false;
     }
 
     @Override

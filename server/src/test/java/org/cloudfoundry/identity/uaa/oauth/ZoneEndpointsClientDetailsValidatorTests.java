@@ -163,6 +163,59 @@ class ZoneEndpointsClientDetailsValidatorTests {
         assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
     }
 
+    @Test
+    void allowsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsTypedConfiguration() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration("ca-pem", null));
+
+        assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+    }
+
+    @Test
+    void allowsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsJsonMap() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem"));
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+    }
+
+    @Test
+    void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthCaIsBlank() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration("  ", null));
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client_secret cannot be blank");
+    }
+
+    @Test
+    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaMapIsMalformed() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, Map.of("unexpected", "value"));
+        clientDetails.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("client_secret cannot be blank");
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"", "  ", "\t"})
     void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsBlank(final String ca) {
