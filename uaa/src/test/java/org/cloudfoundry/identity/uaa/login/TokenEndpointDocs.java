@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
@@ -334,7 +335,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(CLIENT_ID, "login")
                 .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", auth.code())
-                .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+                .param(REQUEST_TOKEN_FORMAT, JWT.getStringValue())
                 .param(PkceValidationService.CODE_VERIFIER, UaaTestAccounts.CODE_VERIFIER)
                 .param(REDIRECT_URI, auth.redirect());
 
@@ -530,7 +531,11 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         String clientId = "mtlsdocclient" + generator.generate();
         setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
                 false, null, null, -1, IdentityZone.getUaa(),
-                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)));
+                Map.of(
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                        Collections.singletonList(new TlsClientAuthConfiguration.ClaimMapping(
+                                "subject_cn", null, "instance_guid"))));
         clientDetailsService.updateClientSecret(clientId, null);
         assertThat(clientDetailsService.loadClientByClientId(clientId).getClientSecret()).isNull();
 
@@ -539,7 +544,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param(CLIENT_ID, clientId)
                 .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
-                .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+                .param(REQUEST_TOKEN_FORMAT, JWT.getStringValue())
                 // RawPeerCertificateCaptureFilter.isMtlsTokenPath(...) matches on the *effective*
                 // servlet path (post-ZonePathContextRewritingFilter); MockMvc does not compute this
                 // itself from the request URI the way a real DispatcherServlet mapping would, so it
@@ -550,7 +555,8 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         Snippet formParameters = formParameters(
                 clientIdParameter,
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
-                opaqueFormatParameter
+                parameterWithName(REQUEST_TOKEN_FORMAT).optional("jwt").type(STRING)
+                        .description("Set to `jwt` to receive a JSON Web Token containing the mTLS certificate-derived claims and RFC 8705 confirmation claim.")
         );
 
         Snippet responseFields = responseFields(
@@ -561,9 +567,16 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 jtiFieldDescriptor
         );
 
-        mockMvc.perform(postForToken)
+        MvcResult result = mockMvc.perform(postForToken)
                 .andExpect(status().isOk())
-                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), formParameters, responseFields));
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), formParameters, responseFields))
+                .andReturn();
+
+        Map<String, Object> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        Map<String, Object> claims = JsonUtils.readValue(JwtHelper.decode((String) tokenResponse.get("access_token")).getClaims(), Map.class);
+        assertThat(claims).containsEntry("instance_guid", "mtls-doc-client");
+        assertThat((Map<String, Object>) claims.get("cnf")).containsKey("x5t#S256");
+        assertThat((String) ((Map<String, Object>) claims.get("cnf")).get("x5t#S256")).isNotBlank();
     }
 
     private static KeyPair generateKeyPair() throws Exception {

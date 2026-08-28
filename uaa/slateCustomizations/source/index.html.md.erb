@@ -278,7 +278,7 @@ curl --cert /path/to/client-cert.pem \
   --cacert /path/to/uaa-server-ca.pem \
   --request POST \
   --header 'Accept: application/json' \
-  --data 'grant_type=client_credentials&client_id=<client-id>&token_format=opaque' \
+  --data 'grant_type=client_credentials&client_id=<client-id>&token_format=jwt' \
   https://uaa.example.com/oauth/mtls/token
 ```
 
