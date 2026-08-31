@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
@@ -73,6 +74,7 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
@@ -105,6 +107,7 @@ import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyPassphrase;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.HOST;
@@ -552,8 +555,12 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .servletPath("/oauth/mtls/token")
                 .requestAttr("jakarta.servlet.request.X509Certificate", new X509Certificate[]{leafCert});
 
+        ParameterDescriptor mtlsClientIdParameter = parameterWithName(CLIENT_ID).required().type(STRING)
+                .description("The client ID whose tls-client-auth-ca selects the certificate trust anchor for this mTLS token request.");
+        assertThat(mtlsClientIdParameter.getAttributes()).containsEntry("constraints", SnippetUtils.REQUIRED);
+
         Snippet formParameters = formParameters(
-                clientIdParameter,
+                mtlsClientIdParameter,
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
                 parameterWithName(REQUEST_TOKEN_FORMAT).optional("jwt").type(STRING)
                         .description("Set to `jwt` to receive a JSON Web Token containing the mTLS certificate-derived claims and RFC 8705 confirmation claim.")
@@ -573,10 +580,18 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .andReturn();
 
         Map<String, Object> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
-        Map<String, Object> claims = JsonUtils.readValue(JwtHelper.decode((String) tokenResponse.get("access_token")).getClaims(), Map.class);
+        Jwt accessToken = JwtHelper.decode((String) tokenResponse.get("access_token"));
+        String kid = accessToken.getHeader().getKid();
+        assertThat(kid).isNotBlank();
+        assertThatCode(() -> accessToken.verifySignature(keyInfoService.getKey(kid).getVerifier()))
+                .doesNotThrowAnyException();
+
+        Map<String, Object> claims = JsonUtils.readValue(accessToken.getClaims(), Map.class);
         assertThat(claims).containsEntry("instance_guid", "mtls-doc-client");
-        assertThat((Map<String, Object>) claims.get("cnf")).containsKey("x5t#S256");
-        assertThat((String) ((Map<String, Object>) claims.get("cnf")).get("x5t#S256")).isNotBlank();
+        String expectedThumbprint = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(MessageDigest.getInstance("SHA-256").digest(leafCert.getEncoded()));
+        assertThat((Map<String, Object>) claims.get("cnf"))
+                .containsEntry("x5t#S256", expectedThumbprint);
     }
 
     private static KeyPair generateKeyPair() throws Exception {

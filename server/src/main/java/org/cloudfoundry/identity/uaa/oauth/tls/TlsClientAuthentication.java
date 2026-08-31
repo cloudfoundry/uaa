@@ -456,9 +456,10 @@ public class TlsClientAuthentication {
     }
 
     /**
-     * Returns the value of the given attribute {@code type} (e.g. {@code "CN"}) from an RDN,
+     * Returns one value of the given attribute {@code type} (e.g. {@code "CN"}) from an RDN,
      * including multi-valued RDNs (attributes joined by {@code +}). Attribute type matching
-     * is case-insensitive, per LDAP semantics. Returns {@code null} if not present.
+     * is case-insensitive, per LDAP semantics. Where an RDN contains repeated AVAs of the same
+     * type, the chosen value follows provider enumeration order. Returns {@code null} if not present.
      */
     private static String rdnAttributeValue(Rdn rdn, String type) {
         List<String> values = rdnAttributeValues(rdn, type);
@@ -507,8 +508,8 @@ public class TlsClientAuthentication {
     }
 
     /**
-     * Collects all OU values from a RFC 2253 DN string, in order.
-     * Handles multi-valued RDNs (attributes joined by {@code +}).
+     * Collects all matching OU AVAs from an RFC 2253 DN string, including multi-valued RDNs
+     * (attributes joined by {@code +}).
      */
     private static List<String> extractOus(String dn) {
         List<String> ous = new ArrayList<>();
@@ -520,7 +521,9 @@ public class TlsClientAuthentication {
 
     /**
      * Returns the first captured group from the first OU that matches {@code patternStr}.
-     * When {@code patternStr} is null or blank, returns the first OU value verbatim.
+     * When {@code patternStr} is null or blank, returns the first collected OU value verbatim;
+     * selection among repeated AVAs follows collected/provider order. Use a pattern to select a
+     * specific value.
      */
     private static String matchFirstOu(List<String> ous, String patternStr) {
         if (patternStr == null || patternStr.isBlank()) {
