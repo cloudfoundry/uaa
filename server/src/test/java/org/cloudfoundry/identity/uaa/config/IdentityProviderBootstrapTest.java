@@ -117,24 +117,44 @@ class IdentityProviderBootstrapTest {
 
     @Test
     void upgradeLDAPProvider() throws Exception {
+        // A pre-existing LDAP-origin row (e.g. from the legacy Flyway migration, or a
+        // previously bootstrapped/REST-managed provider) must survive bootstrap running
+        // with no `ldap:` config supplied - it must not be deleted just because there's
+        // nothing to configure it with on this boot. See TNZ-125736.
         String insertSQL = "INSERT INTO identity_provider (id,identity_zone_id,name,origin_key,type,config)VALUES ('ldap','uaa','ldap','ldap2','ldap','{\"ldapdebug\":\"Test debug\",\"profile\":{\"file\":\"ldap/ldap-search-and-bind.xml\"},\"base\":{\"url\":\"ldap://localhost:389/\",\"userDn\":\"cn=admin,dc=test,dc=com\",\"password\":\"password\",\"searchBase\":\"dc=test,dc=com\",\"searchFilter\":\"cn={0}\",\"referral\":\"follow\"},\"groups\":{\"file\":\"ldap/ldap-groups-map-to-scopes.xml\",\"searchBase\":\"dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"searchSubtree\":true,\"maxSearchDepth\":10,\"autoAdd\":true,\"ignorePartialResultException\":true}}')";
         jdbcTemplate.update(insertSQL);
         bootstrap.afterPropertiesSet();
+
+        assertThat(provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId())).isNotNull();
     }
 
     @Test
-    void ldapProfileBootstrap() throws Exception {
+    void ldapProfileAloneDoesNotBootstrapDummyProvider() throws Exception {
+        // Activating the `ldap` Spring profile with no `ldap:` config and no pre-existing
+        // provider must not manufacture a dummy, unconfigured LDAP identity provider: that
+        // row has no operational purpose and blocks a real LDAP IDP from being created via
+        // the REST API (unique origin/zone constraint). See TNZ-125736.
         environment.setActiveProfiles(LDAP);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
-        assertThat(ldapProvider).isNotNull();
-        assertThat(ldapProvider.getCreated()).isNotNull();
-        assertThat(ldapProvider.getLastModified()).isNotNull();
-        assertThat(ldapProvider.getType()).isEqualTo(LDAP);
-        LdapIdentityProviderDefinition definition = ldapProvider.getConfig();
-        assertThat(definition).isNotNull();
-        assertThat(definition.isConfigured()).isFalse();
+        assertThatThrownBy(() -> provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId()))
+                .isInstanceOf(EmptyResultDataAccessException.class);
+    }
+
+    @Test
+    void ldapConfigWithOnlyOverrideFlagDoesNotBootstrapDummyProvider() throws Exception {
+        // A `ldap:` block containing nothing but the `override` control flag (no
+        // baseUrl/bind/search settings) carries no real LDAP configuration. It must be
+        // treated the same as no `ldap:` block at all - not as "config was supplied".
+        // See TNZ-125736.
+        environment.setActiveProfiles(LDAP);
+        HashMap<String, Object> ldapConfig = new HashMap<>();
+        ldapConfig.put("override", false);
+        bootstrap.setLdapConfig(ldapConfig);
+        bootstrap.afterPropertiesSet();
+
+        assertThatThrownBy(() -> provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId()))
+                .isInstanceOf(EmptyResultDataAccessException.class);
     }
 
     @Test
