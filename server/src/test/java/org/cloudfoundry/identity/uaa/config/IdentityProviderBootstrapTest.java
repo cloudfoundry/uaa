@@ -134,6 +134,12 @@ class IdentityProviderBootstrapTest {
         // provider must not manufacture a dummy, unconfigured LDAP identity provider: that
         // row has no operational purpose and blocks a real LDAP IDP from being created via
         // the REST API (unique origin/zone constraint). See TNZ-125736.
+        //
+        // Requires a clean DB: other tests in this class bootstrap a real LDAP provider,
+        // and @WithDatabaseContext doesn't roll back between tests, so without this an
+        // `existing` row from a previously-run test would make this assertion flaky
+        // depending on JUnit's (unspecified) method execution order.
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
         environment.setActiveProfiles(LDAP);
         bootstrap.afterPropertiesSet();
 
@@ -147,6 +153,9 @@ class IdentityProviderBootstrapTest {
         // baseUrl/bind/search settings) carries no real LDAP configuration. It must be
         // treated the same as no `ldap:` block at all - not as "config was supplied".
         // See TNZ-125736.
+        //
+        // Requires a clean DB - see comment in ldapProfileAloneDoesNotBootstrapDummyProvider.
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
         environment.setActiveProfiles(LDAP);
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put("override", false);
