@@ -353,13 +353,43 @@ class ClientAdminEndpointsValidatorTests {
         client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
         Map<String, Object> additionalInfo = new java.util.HashMap<>();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem");
         client.setAdditionalInformation(additionalInfo);
 
         ClientDetails validated = mtlsEnabledValidator.validate(client, false, false);
 
         assertThat(validated.getAdditionalInformation())
                 .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+    }
+
+    @Test
+    void rejectsBlankTlsClientAuthTrustedProxyCaWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "  ");
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
+                .hasMessageContaining("blank");
+    }
+
+    @Test
+    void rejectsMalformedTlsClientAuthTrustedProxyCaWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "not-a-certificate");
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
     }
 
     @Test
