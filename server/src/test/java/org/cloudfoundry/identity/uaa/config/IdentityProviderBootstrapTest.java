@@ -117,15 +117,17 @@ class IdentityProviderBootstrapTest {
 
     @Test
     void upgradeLDAPProvider() throws Exception {
-        // A pre-existing LDAP-origin row (e.g. from the legacy Flyway migration, or a
-        // previously bootstrapped/REST-managed provider) must survive bootstrap running
-        // with no `ldap:` config supplied - it must not be deleted just because there's
-        // nothing to configure it with on this boot. See TNZ-125736.
+        // Originally added in 645b8a911 (2016) to prove bootstrap doesn't choke when an
+        // existing row's config JSON contains attributes unknown to
+        // LdapIdentityProviderDefinition (like "ldapdebug") - a legacy-shaped config blob,
+        // not the flattened shape bootstrap itself writes. Note the row's origin_key is
+        // "ldap2", not "ldap" - it's deliberately unrelated to the "ldap" origin
+        // addLdapProvider() manages, so it must survive bootstrap completely untouched.
         String insertSQL = "INSERT INTO identity_provider (id,identity_zone_id,name,origin_key,type,config)VALUES ('ldap','uaa','ldap','ldap2','ldap','{\"ldapdebug\":\"Test debug\",\"profile\":{\"file\":\"ldap/ldap-search-and-bind.xml\"},\"base\":{\"url\":\"ldap://localhost:389/\",\"userDn\":\"cn=admin,dc=test,dc=com\",\"password\":\"password\",\"searchBase\":\"dc=test,dc=com\",\"searchFilter\":\"cn={0}\",\"referral\":\"follow\"},\"groups\":{\"file\":\"ldap/ldap-groups-map-to-scopes.xml\",\"searchBase\":\"dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"searchSubtree\":true,\"maxSearchDepth\":10,\"autoAdd\":true,\"ignorePartialResultException\":true}}')";
         jdbcTemplate.update(insertSQL);
         bootstrap.afterPropertiesSet();
 
-        assertThat(provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId())).isNotNull();
+        assertThat(provisioning.retrieveByOriginIgnoreActiveFlag("ldap2", IdentityZone.getUaaZoneId())).isNotNull();
     }
 
     @Test
@@ -193,6 +195,14 @@ class IdentityProviderBootstrapTest {
     private static HashMap<String, Object> getGenericLdapConfig() {
         HashMap<String, Object> ldapConfig = new HashMap<>();
 
+        // A real connection detail is required: since TNZ-125736, bootstrap only creates the
+        // provider row when either it's genuinely configured (LdapIdentityProviderDefinition
+        // isConfigured(), i.e. baseUrl set) or a row already exists for this zone. This helper
+        // is meant to represent a realistic, fully-configured LDAP setup, so it needs one.
+        // Note: keys here are relative to the `ldap:` block (see removedLdapBootstrapRemainsActive
+        // below) - LdapIdentityProviderDefinition.LDAP_BASE_URL is already "ldap."-prefixed and
+        // would double up once wrapped in {"ldap": ldapConfig} before flattening.
+        ldapConfig.put("base.url", "ldap://localhost:389/");
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Collections.singletonList("test.domain"));
         ldapConfig.put(STORE_CUSTOM_ATTRIBUTES_NAME, false);
         ldapConfig.put(PROVIDER_DESCRIPTION, "Test LDAP Provider Description");
