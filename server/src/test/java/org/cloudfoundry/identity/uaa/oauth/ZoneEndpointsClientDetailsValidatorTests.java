@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
@@ -22,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.security.Security;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,8 +42,37 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 @ExtendWith(PollutionPreventionExtension.class)
 class ZoneEndpointsClientDetailsValidatorTests {
 
+    private static final String VALID_CERT = """
+            -----BEGIN CERTIFICATE-----
+            MIIDXTCCAkWgAwIBAgIJAOpOBuLToBXJMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+            BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+            aWRnaXRzIFB0eSBMdGQwHhcNMTcwNzE0MTcxNDE4WhcNMTcwODEzMTcxNDE4WjBF
+            MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+            ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+            CgKCAQEA3+07F4S5Fz3wv/UFm/OWsJXm6s3pKI2mp4fSAY8rx9+0cyLAHsedWzeq
+            5uKcDeRW858DOdnClaTOZC73FcvOmv1bw2eYcmfsbqHEhyR0dp+rDHt/7pr6kajC
+            yUvAW+hoRRSMpooiZckxrjJ7LOa5iqRyZRwshfGN+mFSygfVguMDKrsE2rvpK6/K
+            tkG/lcToLHiw4OnMnZ9ocrNRDAoCkzKGZTLJkUEr3MgOKmr2EO0P6KOAmNnOEmCf
+            05ohcrUXeFZVnS5MMUzoGAOzBstZhA0dd7l297IDnWH9uIhCANCvZ9sovZWz/o3J
+            pc2LyXsaI1cV7O1cGV4aEEn8zzWWGwIDAQABo1AwTjAdBgNVHQ4EFgQUXBO1+qo7
+            w6iiiv1pnm+zdrQ3CzkwHwYDVR0jBBgwFoAUXBO1+qo7w6iiiv1pnm+zdrQ3Czkw
+            DAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAT78lT5VEIetWPGk3szPz
+            CT9zNpR1F+7o3rvRTI6Psyjz4tGlyX5iU0Z99Xa9yimIEhWme2UVsgQ9uOzk2IgH
+            wMbB2TTP/RRK5+eO4BUu4zWWIXsIcfC6Rqw9Y3Hki+mRpuWMv+5pcOz/H+aYeSfy
+            WvVYfRZJOhcztysII4HWIxw8qqwBrf5kX8IRKZXay+A2W04A6kjjX3zfN2OzljTA
+            jZbtHedUGxSHvK8x6tHEwS0lZ9eZh+V4DWyRvrunwDCtA7zJQmrJd1qbM84H/1C8
+            cAC6dglvc82n1BTAZbZwWHYt+Ro3Vp0GMPsZLOXJ0g03LbkhXg4krwXjJPD42nus
+            3A==
+            -----END CERTIFICATE-----
+            """;
+
     @Mock
     private ClientSecretValidator mockClientSecretValidator;
+
+    @org.junit.jupiter.api.BeforeAll
+    static void addBouncyCastleFipsProvider() {
+        Security.addProvider(new BouncyCastleFipsProvider());
+    }
 
     private ZoneEndpointsClientDetailsValidator zoneEndpointsClientDetailsValidator;
 
@@ -140,7 +171,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         clientDetails.setClientSecret("secret");
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         clientDetails.setAdditionalInformation(additionalInfo);
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
@@ -156,13 +187,13 @@ class ZoneEndpointsClientDetailsValidatorTests {
         clientDetails.setClientSecret("secret");
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         clientDetails.setAdditionalInformation(additionalInfo);
 
         ClientDetails validated = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
 
         assertThat(validated.getAdditionalInformation())
-                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
     }
 
     @Test
@@ -172,7 +203,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         clientDetails.setAdditionalInformation(additionalInfo);
 
         assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
@@ -184,9 +215,22 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration("ca-pem", null));
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(VALID_CERT, null));
 
         assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+    }
+
+    @Test
+    void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthCaIsMalformed() {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
+        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration("not-a-certificate", null));
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
     }
 
     @Test
@@ -197,7 +241,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
-                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem"));
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT));
         clientDetails.setAdditionalInformation(additionalInfo);
 
         assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
@@ -218,7 +262,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("client_secret cannot be blank");
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
     }
 
     @ParameterizedTest
@@ -283,7 +327,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
-                "ca-pem", Collections.singletonList(new TlsClientAuthConfiguration.ClaimMapping(null, null, "claim"))));
+                VALID_CERT, Collections.singletonList(new TlsClientAuthConfiguration.ClaimMapping(null, null, "claim"))));
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
                 .isInstanceOf(InvalidClientDetailsException.class)
@@ -299,7 +343,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         malformedClaimMapping.put("field", null);
         malformedClaimMapping.put("claim", "claim");
         Map<String, Object> tlsClientAuthConfig = new HashMap<>();
-        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                 Collections.singletonList(malformedClaimMapping));
         Map<String, Object> additionalInfo = new HashMap<>();
@@ -322,7 +366,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("client_secret cannot be blank");
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
     }
 
     @Test
@@ -337,7 +381,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("client_secret cannot be blank");
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
     }
 
     @ParameterizedTest
@@ -353,7 +397,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("client_secret cannot be blank");
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
     }
 
     @Test
@@ -368,7 +412,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("client_secret cannot be blank");
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
     }
 
     @Test
@@ -379,7 +423,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         clientDetails.setClientSecret("supplied-secret");
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         clientDetails.setAdditionalInformation(additionalInfo);
 
         zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
@@ -405,11 +449,11 @@ class ZoneEndpointsClientDetailsValidatorTests {
     }
 
     private static Stream<Arguments> invalidNestedTypedTlsClientAuthConfigurations() {
-        TlsClientAuthConfiguration subTemplateConfig = new TlsClientAuthConfiguration("ca-pem", null);
+        TlsClientAuthConfiguration subTemplateConfig = new TlsClientAuthConfiguration(VALID_CERT, null);
         subTemplateConfig.setSubTemplate("{undeclared}");
-        TlsClientAuthConfiguration audTemplatesConfig = new TlsClientAuthConfiguration("ca-pem", null);
+        TlsClientAuthConfiguration audTemplatesConfig = new TlsClientAuthConfiguration(VALID_CERT, null);
         audTemplatesConfig.setAudTemplates(Collections.singletonList("{undeclared}"));
-        TlsClientAuthConfiguration requiredClaimsConfig = new TlsClientAuthConfiguration("ca-pem", null);
+        TlsClientAuthConfiguration requiredClaimsConfig = new TlsClientAuthConfiguration(VALID_CERT, null);
         requiredClaimsConfig.setRequiredClaims(Map.of("undeclared", "value"));
         return Stream.of(
                 Arguments.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, subTemplateConfig),
@@ -440,7 +484,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     private static Map<String, Object> nestedTlsClientAuthConfig(String property, Object value) {
         Map<String, Object> config = new HashMap<>();
-        config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem");
+        config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         config.put(property, value);
         return config;
     }

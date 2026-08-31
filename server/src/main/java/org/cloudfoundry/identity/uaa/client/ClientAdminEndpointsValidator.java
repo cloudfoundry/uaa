@@ -391,6 +391,29 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                         "Invalid tls-client-auth-trusted-proxy-ca for client_id=" + clientId + ": " + e.getMessage(), e);
             }
         }
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)) {
+            try {
+                PemCertificateParser.parseCertificate(getTlsClientAuthCaPem(additionalInfo));
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-ca for client_id=" + clientId + ": " + e.getMessage(), e);
+            }
+        }
+    }
+
+    private static String getTlsClientAuthCaPem(Map<String, Object> additionalInfo) {
+        Object rawConfig = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        if (rawConfig instanceof String pem) {
+            return pem;
+        }
+        if (rawConfig instanceof TlsClientAuthConfiguration config) {
+            return config.getTrustedCaPem();
+        }
+        if (rawConfig instanceof Map<?, ?> config
+                && config.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String pem) {
+            return pem;
+        }
+        throw new IllegalArgumentException("Not a supported tls-client-auth-ca configuration.");
     }
 
     /**
