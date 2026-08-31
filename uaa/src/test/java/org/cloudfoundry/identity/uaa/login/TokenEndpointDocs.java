@@ -72,6 +72,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
@@ -556,7 +558,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .requestAttr("jakarta.servlet.request.X509Certificate", new X509Certificate[]{leafCert});
 
         ParameterDescriptor mtlsClientIdParameter = parameterWithName(CLIENT_ID).required().type(STRING)
-                .description("The client ID whose tls-client-auth-ca selects the certificate trust anchor for this mTLS token request.");
+                .description("Required. The client ID whose tls-client-auth-ca selects the certificate trust anchor for this mTLS token request.");
         assertThat(mtlsClientIdParameter.getAttributes()).containsEntry("constraints", SnippetUtils.REQUIRED);
 
         Snippet formParameters = formParameters(
@@ -578,6 +580,14 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), formParameters, responseFields))
                 .andReturn();
+
+        String formParametersSnippet = Files.readString(Path.of(
+                System.getProperty("docs.build.generated.snippets.dir"),
+                "TokenEndpointDocs",
+                "getTokenUsingClientCredentialGrantWithTlsClientAuth",
+                "form-parameters.md"));
+        assertThat(formParametersSnippet)
+                .contains("`client_id`", "Required.");
 
         Map<String, Object> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         Jwt accessToken = JwtHelper.decode((String) tokenResponse.get("access_token"));
