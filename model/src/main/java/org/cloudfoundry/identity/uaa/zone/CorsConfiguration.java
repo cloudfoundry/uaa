@@ -34,14 +34,14 @@ public class CorsConfiguration {
      * requests.
      */
     private List<String> allowedOrigins = Collections.singletonList(".*");
-    private final List<Pattern> allowedOriginPatterns = new ArrayList<>();
+    private List<Pattern> allowedOriginPatterns = new ArrayList<>();
 
     /**
      * A comma delimited list of regular expression patterns that defines which
      * UAA URIs allow the "X-Requested-With" header in CORS requests.
      */
     private List<String> allowedUris = Collections.singletonList(".*");
-    private final List<Pattern> allowedUriPatterns = new ArrayList<>();
+    private List<Pattern> allowedUriPatterns = new ArrayList<>();
 
     /**
      * A comma delimited list of regular expression patterns that define which
@@ -58,6 +58,17 @@ public class CorsConfiguration {
 
     public boolean isAllowedCredentials() {
         return allowedCredentials;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private volatile boolean patternsCompiled = false;
+
+    public boolean isPatternsCompiled() {
+        return patternsCompiled;
+    }
+
+    public void setPatternsCompiled(boolean patternsCompiled) {
+        this.patternsCompiled = patternsCompiled;
     }
 
     public void setAllowedCredentials(boolean allowedCredentials) {
@@ -84,16 +95,25 @@ public class CorsConfiguration {
         return allowedOriginPatterns;
     }
 
+    public void setAllowedOriginPatterns(List<Pattern> allowedOriginPatterns) {
+        this.allowedOriginPatterns = allowedOriginPatterns;
+    }
+
     public List<String> getAllowedOrigins() {
         return allowedOrigins;
     }
 
     public void setAllowedOrigins(List<String> allowedOrigins) {
         this.allowedOrigins = allowedOrigins;
+        this.patternsCompiled = false;
     }
 
     public List<Pattern> getAllowedUriPatterns() {
         return allowedUriPatterns;
+    }
+
+    public void setAllowedUriPatterns(List<Pattern> allowedUriPatterns) {
+        this.allowedUriPatterns = allowedUriPatterns;
     }
 
     public List<String> getAllowedUris() {
@@ -102,6 +122,7 @@ public class CorsConfiguration {
 
     public void setAllowedUris(List<String> allowedUris) {
         this.allowedUris = allowedUris;
+        this.patternsCompiled = false;
     }
 
     public int getMaxAge() {

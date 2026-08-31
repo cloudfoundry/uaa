@@ -92,8 +92,8 @@ class CorsFilterNonDefaultZoneTests {
 
     @Test
     void requestWithAllowedOriginPatterns() throws Exception {
-        identityZone.getConfig().getCorsPolicy().getXhrConfiguration().getAllowedOriginPatterns()
-                .add(Pattern.compile("bunnyoutlet-shop.com$"));
+        identityZone.getConfig().getCorsPolicy().getXhrConfiguration().getAllowedOrigins()
+                .add("^.*bunnyoutlet-shop\\.com$");
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
         request.addHeader("Origin", "bunnyoutlet-shop.com");
@@ -105,8 +105,8 @@ class CorsFilterNonDefaultZoneTests {
 
     @Test
     void requestWithAllowedUriPatterns() throws Exception {
-        identityZone.getConfig().getCorsPolicy().getXhrConfiguration().getAllowedUriPatterns()
-                .add(Pattern.compile("/uaa/*"));
+        identityZone.getConfig().getCorsPolicy().getXhrConfiguration().getAllowedUris()
+                .add("^/uaa/.*$");
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/login");
         request.addHeader("Origin", "example.com");
@@ -258,8 +258,8 @@ class CorsFilterNonDefaultZoneTests {
 
     @Test
     void defaultCorsWithAllowedOriginPatterns() throws Exception {
-        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()
-                .add(Pattern.compile("bunnyoutlet.com$"));
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().getAllowedOrigins()
+                .add("^.*bunnyoutlet\\.com$");
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
         request.addHeader("Origin", "bunnyoutlet.com");
@@ -270,8 +270,8 @@ class CorsFilterNonDefaultZoneTests {
 
     @Test
     void defaultCorsWithAllowedUriPatterns() throws Exception {
-        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns()
-                .add(Pattern.compile("/uaa/*"));
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().getAllowedUris()
+                .add("^/uaa/.*$");
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/login");
         request.addHeader("Origin", "example.com");

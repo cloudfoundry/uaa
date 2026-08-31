@@ -2306,6 +2306,9 @@ Regex patterns for URIs that allow CORS requests (non-XHR). Default permits all.
 
 Regex patterns for allowed CORS origins (non-XHR).
 
+**Note:** Origin patterns are evaluated as full-string matches (they are implicitly anchored with `^` and `$`). If you previously relied on substring matching, you must update your patterns.
+For example, to safely match a domain with any subdomain and an optional port, use a pattern like: `^https?://([a-zA-Z0-9-]+\.)*example\.com(:[0-9]+)?$`
+
 [Back to table](#cors)
 
 ---
@@ -2377,6 +2380,9 @@ Regex patterns for URIs that allow XHR CORS requests.
 **Type:** `List<String>`
 
 Regex patterns for allowed XHR CORS origins.
+
+**Note:** Origin patterns are evaluated as full-string matches (they are implicitly anchored with `^` and `$`). If you previously relied on substring matching, you must update your patterns.
+For example, to safely match a domain with any subdomain and an optional port, use a pattern like: `^https?://([a-zA-Z0-9-]+\.)*example\.com(:[0-9]+)?$`
 
 [Back to table](#cors)
 
