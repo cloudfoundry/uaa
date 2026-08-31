@@ -411,33 +411,33 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
      * exception at token-issuance time (see {@link org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication#extractClaimMappingValues}
      * and {@link org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer#enhance}).
      *
-     * <p>A no-op when {@code additionalInfo} is {@code null} or has no
-     * {@code tls-client-auth-claim-mappings} key at all.
+     * <p>A no-op when {@code additionalInfo} is {@code null}.
      */
     public static void validateTlsClientAuthClaimConfig(Map<String, Object> additionalInfo, String clientId) {
-        if (additionalInfo == null
-                || !additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS)) {
+        if (additionalInfo == null) {
             return;
         }
 
-        List<TlsClientAuthConfiguration.ClaimMapping> claimMappings;
-        try {
-            Object rawMappings = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
-            if (rawMappings instanceof String mappingsJson) {
-                claimMappings = JsonUtils.readValue(mappingsJson,
-                        new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
-            } else {
-                claimMappings = JsonUtils.readValue(
-                        JsonUtils.writeValueAsString(rawMappings),
-                        new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+        List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = List.of();
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS)) {
+            try {
+                Object rawMappings = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
+                if (rawMappings instanceof String mappingsJson) {
+                    claimMappings = JsonUtils.readValue(mappingsJson,
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                } else {
+                    claimMappings = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(rawMappings),
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                }
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-claim-mappings for client_id=" + clientId + ": " + e.getMessage(), e);
             }
-        } catch (Exception e) {
-            throw new InvalidClientDetailsException(
-                    "Invalid tls-client-auth-claim-mappings for client_id=" + clientId + ": " + e.getMessage(), e);
         }
 
         if (claimMappings == null) {
-            return;
+            claimMappings = List.of();
         }
 
         Set<String> declaredClaims = new HashSet<>();

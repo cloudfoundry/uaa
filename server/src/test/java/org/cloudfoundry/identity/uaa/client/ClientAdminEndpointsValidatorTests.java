@@ -517,6 +517,19 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
+    void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsWithoutClaimMappings() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("cf_instance_guid", "instance-guid"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
+                .hasMessageContaining("undeclared claim")
+                .hasMessageContaining("client-id");
+    }
+
+    @Test
     void validateTlsClientAuthClaimConfig_rejectsRequiredClaimsWithNullValue() {
         Map<String, Object> info = new java.util.HashMap<>();
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
