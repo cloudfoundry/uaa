@@ -51,6 +51,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -473,6 +474,7 @@ class OauthEndpointSecurityConfiguration {
      * CSRF is disabled because this is a stateless machine-to-machine API endpoint.
      */
     @Bean
+    @ConditionalOnProperty(name = "uaa.mtls-enabled", havingValue = "true")
     @Order(FilterChainOrder.OAUTH_11)
     UaaFilterChain mtlsTokenEndpointSecurity(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http

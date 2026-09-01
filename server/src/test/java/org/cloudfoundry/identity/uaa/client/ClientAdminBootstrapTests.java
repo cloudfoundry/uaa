@@ -722,6 +722,31 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
+    void nestedTlsClientAuthConfigurationIsRejectedDuringBootstrap() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId),
+                true);
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT));
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                .hasMessageContaining("PEM string");
+    }
+
+    @Test
     void invalidTlsClientAuthClaimConfigIsRejectedDuringBootstrap() {
         ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
                 passwordEncoder,

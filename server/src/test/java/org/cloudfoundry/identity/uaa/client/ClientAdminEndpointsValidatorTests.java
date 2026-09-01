@@ -389,6 +389,21 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
+    void rejectsNestedTlsClientAuthConfigurationWhenMtlsEnabled() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        client.setAdditionalInformation(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT)));
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                .hasMessageContaining("PEM string");
+    }
+
+    @Test
     void rejectsBlankTlsClientAuthTrustedProxyCaWhenMtlsEnabled() {
         ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
                 mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);

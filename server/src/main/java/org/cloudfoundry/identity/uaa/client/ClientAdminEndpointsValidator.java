@@ -392,6 +392,10 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
         }
         if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)) {
+            if (!(additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String)) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-ca for client_id=" + clientId + ": must be a PEM string.");
+            }
             try {
                 PemCertificateParser.parseCertificate(getTlsClientAuthCaPem(additionalInfo));
             } catch (Exception e) {
