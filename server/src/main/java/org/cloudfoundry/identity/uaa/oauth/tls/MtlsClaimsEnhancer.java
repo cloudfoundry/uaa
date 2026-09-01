@@ -216,24 +216,13 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
     /**
      * Builds a {@link TlsClientAuthConfiguration} from the client's {@code additionalInformation} map.
-     * Mirrors {@code ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration} so that
-     * DB-loaded clients (whose {@code tlsClientAuthConfiguration} field is null) are handled correctly.
+     * Reads the documented flat configuration from a DB-loaded client's additional information.
      */
     private static TlsClientAuthConfiguration loadTlsConfig(Map<String, Object> info) {
         if (info == null) {
             return null;
         }
         Object raw = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-        if (raw instanceof TlsClientAuthConfiguration cfg) {
-            return cfg;  // in-memory / test client
-        }
-        if (raw instanceof Map<?, ?>) {
-            try {
-                return JsonUtils.convertValue(raw, TlsClientAuthConfiguration.class);
-            } catch (Exception e) {
-                return null;
-            }
-        }
         if (raw instanceof String pem) {
             try {
                 List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;

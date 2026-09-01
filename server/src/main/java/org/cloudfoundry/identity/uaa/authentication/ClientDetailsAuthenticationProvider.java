@@ -211,16 +211,6 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             return null;
         }
         Object rawConfig = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-        if (rawConfig instanceof TlsClientAuthConfiguration cfg) {
-            return cfg;  // in-memory client (tests)
-        }
-        if (rawConfig instanceof Map<?, ?>) {
-            try {
-                return JsonUtils.convertValue(rawConfig, TlsClientAuthConfiguration.class);
-            } catch (Exception e) {
-                return null;
-            }
-        }
         if (rawConfig instanceof String pem) {
             try {
                 List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;

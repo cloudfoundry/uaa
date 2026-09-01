@@ -210,31 +210,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
     }
 
     @Test
-    void allowsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsTypedConfiguration() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
-
-        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
-        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(VALID_CERT, null));
-
-        assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
-    }
-
-    @Test
-    void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthCaIsMalformed() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
-
-        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
-        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration("not-a-certificate", null));
-
-        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-    }
-
-    @Test
-    void allowsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsJsonMap() {
+    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsJsonMap() {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
@@ -244,7 +220,9 @@ class ZoneEndpointsClientDetailsValidatorTests {
                 Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT));
         clientDetails.setAdditionalInformation(additionalInfo);
 
-        assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
     }
 
     @ParameterizedTest
@@ -259,110 +237,6 @@ class ZoneEndpointsClientDetailsValidatorTests {
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfig);
         clientDetails.setAdditionalInformation(additionalInfo);
-
-        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-    }
-
-    @ParameterizedTest
-    @MethodSource("invalidNestedTypedTlsClientAuthConfigurations")
-    void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthConfigurationHasUndeclaredClaimReference(
-            String property, TlsClientAuthConfiguration tlsClientAuthConfig) {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
-
-        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
-        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        clientDetails.setTlsClientAuthConfiguration(tlsClientAuthConfig);
-
-        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(property)
-                .hasMessageContaining("undeclared");
-    }
-
-    @ParameterizedTest
-    @MethodSource("invalidNestedMapTlsClientAuthConfigurations")
-    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaMapHasUndeclaredClaimReference(
-            String property, Map<String, Object> tlsClientAuthConfig) {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
-
-        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
-        Map<String, Object> additionalInfo = new HashMap<>();
-        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfig);
-        clientDetails.setAdditionalInformation(additionalInfo);
-
-        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(property)
-                .hasMessageContaining("undeclared");
-    }
-
-    @ParameterizedTest
-    @MethodSource("parserNullNestedMapClaimMappings")
-    void rejectsClientWithSuppliedSecretWhenNestedTlsClientAuthClaimMappingsParseToNull(
-            String claimMappings, String property, Object value) {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
-
-        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
-        clientDetails.setClientSecret("supplied-secret");
-        Map<String, Object> tlsClientAuthConfig = nestedTlsClientAuthConfig(property, value);
-        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, claimMappings);
-        Map<String, Object> additionalInfo = new HashMap<>();
-        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfig);
-        clientDetails.setAdditionalInformation(additionalInfo);
-
-        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(property)
-                .hasMessageContaining("undeclared");
-    }
-
-    @Test
-    void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthClaimMappingHasInvalidField() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
-
-        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
-        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
-                VALID_CERT, Collections.singletonList(new TlsClientAuthConfiguration.ClaimMapping(null, null, "claim"))));
-
-        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("invalid field");
-    }
-
-    @Test
-    void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaJsonMapClaimMappingHasInvalidField() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
-
-        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
-        Map<String, Object> malformedClaimMapping = new HashMap<>();
-        malformedClaimMapping.put("field", null);
-        malformedClaimMapping.put("claim", "claim");
-        Map<String, Object> tlsClientAuthConfig = new HashMap<>();
-        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        tlsClientAuthConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
-                Collections.singletonList(malformedClaimMapping));
-        Map<String, Object> additionalInfo = new HashMap<>();
-        additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfig);
-        clientDetails.setAdditionalInformation(additionalInfo);
-
-        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("invalid field");
-    }
-
-    @Test
-    void rejectsSecretlessClientCredentialsClientWhenTypedTlsClientAuthCaIsBlank() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
-
-        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
-        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration("  ", null));
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
                 .isInstanceOf(InvalidClientDetailsException.class)

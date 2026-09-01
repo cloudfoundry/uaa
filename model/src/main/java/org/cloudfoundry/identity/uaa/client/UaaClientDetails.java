@@ -313,12 +313,29 @@ public class UaaClientDetails implements ClientDetails {
 
     public void setTlsClientAuthConfiguration(TlsClientAuthConfiguration tlsClientAuthConfiguration) {
         this.tlsClientAuthConfiguration = tlsClientAuthConfiguration;
-        // Keep additionalInformation in sync so JDBC-loaded clients (which only
-        // persist the additional_information JSON column) see the same value.
         if (tlsClientAuthConfiguration != null) {
-            this.additionalInformation.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, tlsClientAuthConfiguration);
+            this.additionalInformation.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                    tlsClientAuthConfiguration.getTrustedCaPem());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                    tlsClientAuthConfiguration.getClaimMappings());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
+                    tlsClientAuthConfiguration.getSubTemplate());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                    tlsClientAuthConfiguration.getAudTemplates());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                    tlsClientAuthConfiguration.getTrustedProxyCaPem());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                    tlsClientAuthConfiguration.getRequiredClaims());
         } else {
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        }
+    }
+
+    private void putOrRemove(String key, Object value) {
+        if (value == null) {
+            this.additionalInformation.remove(key);
+        } else {
+            this.additionalInformation.put(key, value);
         }
     }
 

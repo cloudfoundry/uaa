@@ -410,13 +410,6 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         if (rawConfig instanceof String pem) {
             return pem;
         }
-        if (rawConfig instanceof TlsClientAuthConfiguration config) {
-            return config.getTrustedCaPem();
-        }
-        if (rawConfig instanceof Map<?, ?> config
-                && config.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String pem) {
-            return pem;
-        }
         throw new IllegalArgumentException("Not a supported tls-client-auth-ca configuration.");
     }
 

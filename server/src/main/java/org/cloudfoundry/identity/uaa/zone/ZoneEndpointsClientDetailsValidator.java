@@ -6,16 +6,12 @@ import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.type.TypeReference;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed;
@@ -64,7 +60,6 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             checkMtlsClientConfigAllowed(additionalInformation, mtlsEnabled, clientDetails.getClientId());
             validateTlsClientAuthClaimConfig(additionalInformation, clientDetails.getClientId());
-            validateTlsClientAuthClaimConfig(getNestedTlsClientAuthClaimConfig(additionalInformation), clientDetails.getClientId());
             boolean hasTlsClientAuthCa = hasNonblankTlsClientAuthCa(additionalInformation);
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
                     clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
@@ -108,69 +103,6 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
         Object rawConfig = additionalInformation.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
         if (rawConfig instanceof String pem) {
             return !pem.isBlank();
-        }
-        if (rawConfig instanceof TlsClientAuthConfiguration config) {
-            return TlsClientAuthConfiguration.isConfigured(config);
-        }
-        if (rawConfig instanceof Map<?, ?> config) {
-            if (!(config.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String pem) || pem.isBlank()) {
-                return false;
-            }
-            try {
-                return TlsClientAuthConfiguration.isConfigured(
-                        JsonUtils.convertValue(rawConfig, TlsClientAuthConfiguration.class));
-            } catch (Exception e) {
-                return false;
-            }
-        }
-        return false;
-    }
-
-    private static Map<String, Object> getNestedTlsClientAuthClaimConfig(Map<String, Object> additionalInformation) {
-        Object rawConfig = additionalInformation.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-        Map<String, Object> nestedConfig = new HashMap<>();
-        if (rawConfig instanceof TlsClientAuthConfiguration config) {
-            if (config.getClaimMappings() != null) {
-                nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, config.getClaimMappings());
-            }
-            if (config.getSubTemplate() != null) {
-                nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, config.getSubTemplate());
-            }
-            if (config.getAudTemplates() != null) {
-                nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, config.getAudTemplates());
-            }
-            if (config.getRequiredClaims() != null) {
-                nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, config.getRequiredClaims());
-            }
-        } else if (rawConfig instanceof Map<?, ?> config) {
-            config.forEach((key, value) -> {
-                if (key instanceof String name) {
-                    nestedConfig.put(name, value);
-                }
-            });
-        }
-        if ((nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
-                || nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)
-                || nestedConfig.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS))
-                && hasNullNestedTlsClientAuthClaimMappings(nestedConfig)) {
-            nestedConfig.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, Collections.emptyList());
-        }
-        return nestedConfig;
-    }
-
-    private static boolean hasNullNestedTlsClientAuthClaimMappings(Map<String, Object> nestedConfig) {
-        Object rawMappings = nestedConfig.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
-        if (rawMappings == null) {
-            return true;
-        }
-        if (rawMappings instanceof String mappingsJson) {
-            try {
-                return JsonUtils.readValue(mappingsJson,
-                        new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {}) == null;
-            } catch (Exception e) {
-                // Leave malformed JSON to the shared validator so it preserves its existing error.
-                return false;
-            }
         }
         return false;
     }

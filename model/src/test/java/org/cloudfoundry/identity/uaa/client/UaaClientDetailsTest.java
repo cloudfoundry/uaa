@@ -220,14 +220,9 @@ class UaaClientDetailsTest {
             String json = new JsonMapper().writeValueAsString(details);
             UaaClientDetails deserialized = new JsonMapper().readValue(json, UaaClientDetails.class);
 
-            // @JsonIgnore on the typed field: after JSON round-trip the config is persisted via
-            // additionalInformation (@JsonAnySetter), not the typed getter.
-            // Authentication providers read it from additionalInformation and convert as needed.
             Object raw = deserialized.getAdditionalInformation()
                     .get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-            assertThat(raw).isInstanceOf(Map.class);
-            assertThat(((Map<?, ?>) raw).get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA))
-                    .isEqualTo(config.getTrustedCaPem());
+            assertThat(raw).isEqualTo(config.getTrustedCaPem());
         }
 
         @Test

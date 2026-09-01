@@ -78,15 +78,10 @@ class ClientDetailsAuthenticationProviderTests {
     }
 
     @Test
-    void tlsConfigIsDeserializedFromRawMapInAdditionalInfo() {
-        // Simulate what happens when additionalInformation comes from the DB:
-        // the JSON is parsed to a LinkedHashMap, not TlsClientAuthConfiguration
-        Map<String, Object> rawMap = Map.of(
-            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
-            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n"
-        );
+    void tlsConfigIsReadFromFlatAdditionalInfo() {
         Map<String, Object> additionalInfo = new HashMap<>();
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, rawMap);
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n");
 
         UaaClient mockClient = mock(UaaClient.class);
         when(mockClient.getAdditionalInformation()).thenReturn(additionalInfo);
@@ -219,20 +214,17 @@ class ClientDetailsAuthenticationProviderTests {
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE, presentedChain);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
         try {
-            TlsClientAuthConfiguration unconstrainedConfig = new TlsClientAuthConfiguration(toPem(caCert), null);
-
-            TlsClientAuthConfiguration constrainedConfig = new TlsClientAuthConfiguration(toPem(caCert), List.of(
-                    new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^space:(.+)$", "space_guid")
-            ));
-            constrainedConfig.setRequiredClaims(Map.of("space_guid", "the-expected-space-guid"));
-
             UaaClient unconstrainedClient = mock(UaaClient.class);
             when(unconstrainedClient.getAdditionalInformation()).thenReturn(Map.of(
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, unconstrainedConfig));
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)));
 
             UaaClient constrainedClient = mock(UaaClient.class);
-            when(constrainedClient.getAdditionalInformation()).thenReturn(Map.of(
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, constrainedConfig));
+            when(constrainedClient.getAdditionalInformation()).thenReturn(Map.ofEntries(
+                    Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)),
+                    Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                            List.of(Map.of("field", "subject_ou", "pattern", "^space:(.+)$", "claim", "space_guid"))),
+                    Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                            Map.of("space_guid", "the-expected-space-guid"))));
 
             ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
                     mock(UserDetailsService.class), mock(PasswordEncoder.class),
