@@ -117,24 +117,56 @@ class IdentityProviderBootstrapTest {
 
     @Test
     void upgradeLDAPProvider() throws Exception {
+        // Originally added in 645b8a911 (2016) to prove bootstrap doesn't choke when an
+        // existing row's config JSON contains attributes unknown to
+        // LdapIdentityProviderDefinition (like "ldapdebug") - a legacy-shaped config blob,
+        // not the flattened shape bootstrap itself writes. Note the row's origin_key is
+        // "ldap2", not "ldap" - it's deliberately unrelated to the "ldap" origin
+        // addLdapProvider() manages, so it must survive bootstrap completely untouched.
         String insertSQL = "INSERT INTO identity_provider (id,identity_zone_id,name,origin_key,type,config)VALUES ('ldap','uaa','ldap','ldap2','ldap','{\"ldapdebug\":\"Test debug\",\"profile\":{\"file\":\"ldap/ldap-search-and-bind.xml\"},\"base\":{\"url\":\"ldap://localhost:389/\",\"userDn\":\"cn=admin,dc=test,dc=com\",\"password\":\"password\",\"searchBase\":\"dc=test,dc=com\",\"searchFilter\":\"cn={0}\",\"referral\":\"follow\"},\"groups\":{\"file\":\"ldap/ldap-groups-map-to-scopes.xml\",\"searchBase\":\"dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"searchSubtree\":true,\"maxSearchDepth\":10,\"autoAdd\":true,\"ignorePartialResultException\":true}}')";
         jdbcTemplate.update(insertSQL);
         bootstrap.afterPropertiesSet();
+
+        assertThat(provisioning.retrieveByOriginIgnoreActiveFlag("ldap2", IdentityZone.getUaaZoneId())).isNotNull();
     }
 
     @Test
-    void ldapProfileBootstrap() throws Exception {
+    void ldapProfileAloneDoesNotBootstrapDummyProvider() throws Exception {
+        // Activating the `ldap` Spring profile with no `ldap:` config and no pre-existing
+        // provider must not manufacture a dummy, unconfigured LDAP identity provider: that
+        // row has no operational purpose and blocks a real LDAP IDP from being created via
+        // the REST API (unique origin/zone constraint).
+        // see https://github.com/cloudfoundry/uaa/issues/4062
+        //
+        // Requires a clean DB: other tests in this class bootstrap a real LDAP provider,
+        // and @WithDatabaseContext doesn't roll back between tests, so without this an
+        // `existing` row from a previously-run test would make this assertion flaky
+        // depending on JUnit's (unspecified) method execution order.
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
         environment.setActiveProfiles(LDAP);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
-        assertThat(ldapProvider).isNotNull();
-        assertThat(ldapProvider.getCreated()).isNotNull();
-        assertThat(ldapProvider.getLastModified()).isNotNull();
-        assertThat(ldapProvider.getType()).isEqualTo(LDAP);
-        LdapIdentityProviderDefinition definition = ldapProvider.getConfig();
-        assertThat(definition).isNotNull();
-        assertThat(definition.isConfigured()).isFalse();
+        assertThatThrownBy(() -> provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId()))
+                .isInstanceOf(EmptyResultDataAccessException.class);
+    }
+
+    @Test
+    void ldapConfigWithOnlyOverrideFlagDoesNotBootstrapDummyProvider() throws Exception {
+        // A `ldap:` block containing nothing but the `override` control flag (no
+        // baseUrl/bind/search settings) carries no real LDAP configuration. It must be
+        // treated the same as no `ldap:` block at all - not as "config was supplied".
+        // see https://github.com/cloudfoundry/uaa/issues/4062
+        //
+        // Requires a clean DB - see comment in ldapProfileAloneDoesNotBootstrapDummyProvider.
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
+        environment.setActiveProfiles(LDAP);
+        HashMap<String, Object> ldapConfig = new HashMap<>();
+        ldapConfig.put("override", false);
+        bootstrap.setLdapConfig(ldapConfig);
+        bootstrap.afterPropertiesSet();
+
+        assertThatThrownBy(() -> provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId()))
+                .isInstanceOf(EmptyResultDataAccessException.class);
     }
 
     @Test
@@ -165,6 +197,15 @@ class IdentityProviderBootstrapTest {
     private static HashMap<String, Object> getGenericLdapConfig() {
         HashMap<String, Object> ldapConfig = new HashMap<>();
 
+        // A real connection detail is required: bootstrap now only creates the provider row
+        // when either it's genuinely configured (LdapIdentityProviderDefinition
+        // isConfigured(), i.e. baseUrl set) or a row already exists for this zone. This helper
+        // is meant to represent a realistic, fully-configured LDAP setup, so it needs one.
+        // see https://github.com/cloudfoundry/uaa/issues/4062
+        // Note: keys here are relative to the `ldap:` block (see removedLdapBootstrapRemainsActive
+        // below) - LdapIdentityProviderDefinition.LDAP_BASE_URL is already "ldap."-prefixed and
+        // would double up once wrapped in {"ldap": ldapConfig} before flattening.
+        ldapConfig.put("base.url", "ldap://localhost:389/");
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Collections.singletonList("test.domain"));
         ldapConfig.put(STORE_CUSTOM_ATTRIBUTES_NAME, false);
         ldapConfig.put(PROVIDER_DESCRIPTION, "Test LDAP Provider Description");
