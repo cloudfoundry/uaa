@@ -135,7 +135,8 @@ class IdentityProviderBootstrapTest {
         // Activating the `ldap` Spring profile with no `ldap:` config and no pre-existing
         // provider must not manufacture a dummy, unconfigured LDAP identity provider: that
         // row has no operational purpose and blocks a real LDAP IDP from being created via
-        // the REST API (unique origin/zone constraint). See TNZ-125736.
+        // the REST API (unique origin/zone constraint).
+        // see https://github.com/cloudfoundry/uaa/issues/4062
         //
         // Requires a clean DB: other tests in this class bootstrap a real LDAP provider,
         // and @WithDatabaseContext doesn't roll back between tests, so without this an
@@ -154,7 +155,7 @@ class IdentityProviderBootstrapTest {
         // A `ldap:` block containing nothing but the `override` control flag (no
         // baseUrl/bind/search settings) carries no real LDAP configuration. It must be
         // treated the same as no `ldap:` block at all - not as "config was supplied".
-        // See TNZ-125736.
+        // see https://github.com/cloudfoundry/uaa/issues/4062
         //
         // Requires a clean DB - see comment in ldapProfileAloneDoesNotBootstrapDummyProvider.
         TestUtils.cleanAndSeedDb(jdbcTemplate);
@@ -195,10 +196,11 @@ class IdentityProviderBootstrapTest {
     private static HashMap<String, Object> getGenericLdapConfig() {
         HashMap<String, Object> ldapConfig = new HashMap<>();
 
-        // A real connection detail is required: since TNZ-125736, bootstrap only creates the
-        // provider row when either it's genuinely configured (LdapIdentityProviderDefinition
+        // A real connection detail is required: bootstrap now only creates the provider row
+        // when either it's genuinely configured (LdapIdentityProviderDefinition
         // isConfigured(), i.e. baseUrl set) or a row already exists for this zone. This helper
         // is meant to represent a realistic, fully-configured LDAP setup, so it needs one.
+        // see https://github.com/cloudfoundry/uaa/issues/4062
         // Note: keys here are relative to the `ldap:` block (see removedLdapBootstrapRemainsActive
         // below) - LdapIdentityProviderDefinition.LDAP_BASE_URL is already "ldap."-prefixed and
         // would double up once wrapped in {"ldap": ldapConfig} before flattening.

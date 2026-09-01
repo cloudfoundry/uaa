@@ -151,7 +151,8 @@ public class IdentityProviderBootstrap
           Merely activating the `ldap` Spring profile (with or without such a block) must
           not create a dummy, unconfigured identity provider - that row blocks a real LDAP
           IDP from being created via the REST API (unique origin/zone constraint) and has
-          no operational purpose. See TNZ-125736.
+          no operational purpose.
+          see https://github.com/cloudfoundry/uaa/issues/4062
          */
         IdentityProvider<AbstractIdentityProviderDefinition> existing = getProviderByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         if (!json.isConfigured() && existing == null) {

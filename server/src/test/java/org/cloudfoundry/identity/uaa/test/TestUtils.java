@@ -97,7 +97,8 @@ public class TestUtils {
         // here too, but a later migration (DeleteUnconfiguredBootstrapIdentityProviders) removes
         // those placeholders again on any database where they were never actually configured -
         // which is every fresh database. Only "uaa" plus whatever origins real user data already
-        // references survive the full migration chain now, so that's what this seeds. See TNZ-125736.
+        // references survive the full migration chain now, so that's what this seeds.
+        // see https://github.com/cloudfoundry/uaa/issues/4062
         origins.add(OriginKeys.UAA);
         origins.addAll(jdbcTemplate.queryForList("SELECT DISTINCT origin from users", String.class));
         for (String origin : origins) {
