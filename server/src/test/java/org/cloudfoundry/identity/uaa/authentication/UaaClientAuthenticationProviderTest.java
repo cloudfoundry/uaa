@@ -127,6 +127,16 @@ class UaaClientAuthenticationProviderTest {
     }
 
     @Test
+    void provider_rejectsClientSecretForClientConfiguredForTlsClientAuth() {
+        client = createClient("tls-client-auth-ca", "-----BEGIN CERTIFICATE-----\nCA\n-----END CERTIFICATE-----");
+        Authentication authentication = getToken(client.getClientId(), SECRET);
+
+        assertThatThrownBy(() -> authenticationProvider.authenticate(authentication))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("tls_client_auth");
+    }
+
+    @Test
     void provider_authenticate_client_without_password_public_string() {
         client = createClient(ClientConstants.ALLOW_PUBLIC, "true");
         UsernamePasswordAuthenticationToken a = getAuthenticationToken("authorization_code");

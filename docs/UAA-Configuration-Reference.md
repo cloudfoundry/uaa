@@ -1247,6 +1247,10 @@ does not implement server-side TLS 1.3 post-handshake client-certificate request
 When `false` (the default), no client certificate is requested at the TLS layer at all, and any
 client configured with a `tls-client-auth-ca` property fails validation at creation/update time.
 
+```yaml
+uaa.mtls-enabled: true
+```
+
 [Back to table](#oauth-clients--users)
 
 ---
