@@ -550,6 +550,17 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
+    void validateTlsClientAuthClaimConfig_rejectsNonStringSubTemplate() {
+        Map<String, Object> info = new java.util.HashMap<>();
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, List.of("template"));
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
+                .hasMessageContaining("client-id");
+    }
+
+    @Test
     void validateTlsClientAuthClaimConfig_rejectsAudTemplateReferencingUndeclaredClaim() {
         Map<String, Object> info = new java.util.HashMap<>();
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,

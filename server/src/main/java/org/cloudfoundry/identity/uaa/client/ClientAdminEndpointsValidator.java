@@ -503,6 +503,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
 
         Object rawSubTemplate = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
+                && !(rawSubTemplate instanceof String)) {
+            throw new InvalidClientDetailsException(
+                    "tls-client-auth-sub-template must be a string for client_id=" + clientId);
+        }
         if (rawSubTemplate instanceof String subTemplate && !subTemplate.isBlank()) {
             checkTemplateLength(subTemplate, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
             validateTemplatePlaceholders(subTemplate, declaredClaims,

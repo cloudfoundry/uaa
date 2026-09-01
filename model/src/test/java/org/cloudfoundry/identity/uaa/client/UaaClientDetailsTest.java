@@ -226,6 +226,28 @@ class UaaClientDetailsTest {
         }
 
         @Test
+        void setTlsClientAuthConfiguration_whenCleared_removesAllPersistedSettings() {
+            UaaClientDetails details = new UaaClientDetails();
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
+                    "trusted-ca", List.of(new TlsClientAuthConfiguration.ClaimMapping("field", "pattern", "claim")));
+            config.setSubTemplate("sub-template");
+            config.setAudTemplates(List.of("aud-template"));
+            config.setTrustedProxyCaPem("trusted-proxy-ca");
+            config.setRequiredClaims(Map.of("required-claim", "value"));
+
+            details.setTlsClientAuthConfiguration(config);
+            details.setTlsClientAuthConfiguration(null);
+
+            assertThat(details.getAdditionalInformation()).doesNotContainKeys(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+        }
+
+        @Test
         void autoApprove() {
             UaaClientDetails details = new UaaClientDetails();
             assertThat(details.getAutoApproveScopes()).isNull();

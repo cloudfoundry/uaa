@@ -328,6 +328,11 @@ public class UaaClientDetails implements ClientDetails {
                     tlsClientAuthConfiguration.getRequiredClaims());
         } else {
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
         }
     }
 
