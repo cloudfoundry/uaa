@@ -107,7 +107,9 @@ public class UaaClientDetails implements ClientDetails {
         this.setAdditionalInformation(prototype.getAdditionalInformation());
         if (prototype instanceof UaaClientDetails uaa) {
             this.setClientJwtConfig(uaa.getClientJwtConfig());
-            this.setTlsClientAuthConfiguration(uaa.getTlsClientAuthConfiguration());
+            if (uaa.getTlsClientAuthConfiguration() != null) {
+                this.setTlsClientAuthConfiguration(uaa.getTlsClientAuthConfiguration());
+            }
         }
     }
 

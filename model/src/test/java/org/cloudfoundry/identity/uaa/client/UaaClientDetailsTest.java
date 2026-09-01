@@ -60,6 +60,22 @@ class UaaClientDetailsTest {
         }
 
         @Test
+        void copiesFlatTlsClientAuthAdditionalInformationWhenTypedConfigurationIsNull() {
+            Map<String, Object> tlsClientAuthAdditionalInformation = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "trusted-ca",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, "claim-mappings",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "sub-template",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, "aud-templates",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "trusted-proxy-ca",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, "required-claims");
+            testClient.setAdditionalInformation(tlsClientAuthAdditionalInformation);
+
+            UaaClientDetails copy = new UaaClientDetails(testClient);
+
+            assertThat(copy.getAdditionalInformation()).containsExactlyInAnyOrderEntriesOf(tlsClientAuthAdditionalInformation);
+        }
+
+        @Test
         void clientJwtConfig() {
             UaaClientDetails copy = new UaaClientDetails(testClient);
             copy.setClientJwtConfig("test");
