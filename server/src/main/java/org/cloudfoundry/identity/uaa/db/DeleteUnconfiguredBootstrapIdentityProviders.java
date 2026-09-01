@@ -7,9 +7,10 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -40,16 +41,16 @@ import java.util.function.Predicate;
  */
 public class DeleteUnconfiguredBootstrapIdentityProviders extends BaseJavaMigration {
 
+    Logger logger = LoggerFactory.getLogger(DeleteUnconfiguredBootstrapIdentityProviders.class);
+
     @Override
     public void migrate(Context context) {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(context.getConnection(), true));
         String uaaZoneId = IdentityZone.getUaaZoneId();
 
         deleteIfConfigIsNull(jdbcTemplate, uaaZoneId, OriginKeys.LOGIN_SERVER);
-        deleteIfUnconfigured(jdbcTemplate, uaaZoneId, OriginKeys.KEYSTONE,
-                DeleteUnconfiguredBootstrapIdentityProviders::keystoneIsUnconfigured);
-        deleteIfUnconfigured(jdbcTemplate, uaaZoneId, OriginKeys.LDAP,
-                DeleteUnconfiguredBootstrapIdentityProviders::ldapIsUnconfigured);
+        deleteIfUnconfigured(jdbcTemplate, uaaZoneId, OriginKeys.KEYSTONE, this::keystoneIsUnconfigured);
+        deleteIfUnconfigured(jdbcTemplate, uaaZoneId, OriginKeys.LDAP, this::ldapIsUnconfigured);
     }
 
     private void deleteIfConfigIsNull(JdbcTemplate jdbcTemplate, String zoneId, String origin) {
@@ -71,24 +72,28 @@ public class DeleteUnconfiguredBootstrapIdentityProviders extends BaseJavaMigrat
         }
     }
 
-    private static boolean ldapIsUnconfigured(String config) {
+    private boolean ldapIsUnconfigured(String config) {
         try {
             LdapIdentityProviderDefinition definition = JsonUtils.readValue(config, LdapIdentityProviderDefinition.class);
             return definition == null || !definition.isConfigured();
         } catch (JsonUtils.JsonUtilException e) {
             // Not parseable as an LDAP definition - leave it alone rather than risk deleting
             // something we don't understand.
+            logger.warn("Could not parse ldap identity provider config as LdapIdentityProviderDefinition; leaving it alone", e);
             return false;
         }
     }
 
-    private static boolean keystoneIsUnconfigured(String config) {
+    private boolean keystoneIsUnconfigured(String config) {
         try {
             KeystoneIdentityProviderDefinition definition = JsonUtils.readValue(config, KeystoneIdentityProviderDefinition.class);
             return definition == null
                     || definition.getAdditionalConfiguration() == null
                     || definition.getAdditionalConfiguration().isEmpty();
         } catch (JsonUtils.JsonUtilException e) {
+            // Not parseable as a Keystone definition - leave it alone rather than risk deleting
+            // something we don't understand.
+            logger.warn("Could not parse keystone identity provider config as KeystoneIdentityProviderDefinition; leaving it alone", e);
             return false;
         }
     }
