@@ -121,7 +121,7 @@ class PemCertificateParserTest {
     }
 
     @Test
-    void parseCertificateChain_concatenatedCerts_returnsAllCertificatesInOrder() {
+    void parseCertificateChain_concatenatedCerts_returnsAllCertificates() {
         List<X509Certificate> certificates = PemCertificateParser.parseCertificateChain(CONCATENATED_CHAIN);
         assertThat(certificates).hasSize(2);
     }
