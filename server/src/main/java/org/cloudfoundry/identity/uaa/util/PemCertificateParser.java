@@ -41,6 +41,8 @@ public final class PemCertificateParser {
                         .getCertificate(x509CertificateHolder));
             }
         } catch (IllegalArgumentException e) {
+            // rethrow as-is so callers see our own validation message, rather than letting the
+            // catch below wrap it a second time into a nested "Unable to parse..." message
             throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException("Unable to parse CA certificate: " + e.getMessage(), e);

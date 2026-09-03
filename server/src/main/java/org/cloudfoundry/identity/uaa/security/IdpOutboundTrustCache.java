@@ -141,6 +141,11 @@ public class IdpOutboundTrustCache {
             throw new IllegalStateException("No X509TrustManager available from TrustManagerFactory.");
         } catch (GeneralSecurityException | IOException e) {
             throw new IllegalStateException("Unable to build merged trust manager for custom CA certificates.", e);
+        } catch (IllegalArgumentException e) {
+            // A stored caCertificates config can become invalid for reasons never checked at write time
+            // (e.g. it predates a parser change), so this must degrade the same way as the security/IO
+            // failures above rather than letting a raw IllegalArgumentException reach request-handling code.
+            throw new IllegalStateException("Unable to build merged trust manager for custom CA certificates: " + e.getMessage(), e);
         }
     }
 
