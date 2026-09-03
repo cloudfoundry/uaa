@@ -18,20 +18,37 @@ public final class PemCertificateParser {
     }
 
     public static X509Certificate parseCertificate(String pemEncodedCertificate) {
-        if (pemEncodedCertificate == null || pemEncodedCertificate.isBlank()) {
+        return parseCertificateChain(pemEncodedCertificate).get(0);
+    }
+
+    /**
+     * Parses every PEM-encoded X.509 certificate found in the given string, so a caller may pass
+     * either a single certificate or a full chain (leaf, intermediates, root) concatenated together.
+     */
+    public static List<X509Certificate> parseCertificateChain(String pemEncodedCertificates) {
+        if (pemEncodedCertificates == null || pemEncodedCertificates.isBlank()) {
             throw new IllegalArgumentException("CA certificate must not be null or blank.");
         }
+        List<X509Certificate> certificates = new ArrayList<>();
         try (PEMParser pemParser = new PEMParser(new InputStreamReader(
-                new ByteArrayInputStream(pemEncodedCertificate.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8))) {
-            Object object = pemParser.readObject();
-            if (object instanceof X509CertificateHolder x509CertificateHolder) {
-                return new JcaX509CertificateConverter().setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
-                        .getCertificate(x509CertificateHolder);
+                new ByteArrayInputStream(pemEncodedCertificates.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8))) {
+            Object object;
+            while ((object = pemParser.readObject()) != null) {
+                if (!(object instanceof X509CertificateHolder x509CertificateHolder)) {
+                    throw new IllegalArgumentException("Not a PEM-encoded X.509 certificate.");
+                }
+                certificates.add(new JcaX509CertificateConverter().setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
+                        .getCertificate(x509CertificateHolder));
             }
-            throw new IllegalArgumentException("Not a PEM-encoded X.509 certificate.");
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException("Unable to parse CA certificate: " + e.getMessage(), e);
         }
+        if (certificates.isEmpty()) {
+            throw new IllegalArgumentException("Not a PEM-encoded X.509 certificate.");
+        }
+        return certificates;
     }
 
     public static List<X509Certificate> parseCertificates(List<String> pemEncodedCertificates) {
@@ -41,7 +58,7 @@ public final class PemCertificateParser {
         List<X509Certificate> result = new ArrayList<>(pemEncodedCertificates.size());
         for (int i = 0; i < pemEncodedCertificates.size(); i++) {
             try {
-                result.add(parseCertificate(pemEncodedCertificates.get(i)));
+                result.addAll(parseCertificateChain(pemEncodedCertificates.get(i)));
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("CA certificate at index " + i + " is malformed: " + e.getMessage(), e);
             }
