@@ -42,4 +42,14 @@ class IntrospectionClaimsTest {
                 .containsEntry("aud", Arrays.asList("openid", "login"))
                 .containsEntry("scope", Arrays.asList("openid"));
     }
+
+    @Test
+    void unrecognizedClaimsAreCapturedAndFlattenedBackOut() {
+        IntrospectionClaims claims = JsonUtils.readValue(
+                "{\"jti\":\"abc\",\"unknown\":\"some-value\"}", IntrospectionClaims.class);
+
+        assertThat(claims.getJti()).isEqualTo("abc");
+        assertThat(claims.getAdditionalClaims()).containsEntry("unknown", "some-value");
+        assertThat(JsonUtils.writeValueAsString(claims)).contains("\"unknown\":\"some-value\"");
+    }
 }
