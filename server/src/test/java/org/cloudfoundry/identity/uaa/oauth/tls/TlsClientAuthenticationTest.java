@@ -191,6 +191,23 @@ class TlsClientAuthenticationTest {
     }
 
     @Test
+    void validateClientCertRejectsExpiredLeafCertificate() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Test Root CA");
+        X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate expiredLeafCert = signCertWithValidity(
+                new X500Name("CN=expired-leaf-instance"), rootName, leafKp.getPublic(), rootKp.getPrivate(), false,
+                BigInteger.TWO, new Date(System.currentTimeMillis() - 7_200_000), new Date(System.currentTimeMillis() - 3_600_000));
+
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(toPem(rootCert), null);
+
+        assertThatThrownBy(() -> service.validateClientCert(new X509Certificate[]{expiredLeafCert}, config))
+                .hasMessageContaining("validity check failed");
+    }
+
+    @Test
     void validateClientCertSucceedsWhenChainIncludesTrustAnchor() throws Exception {
         // Reproduces the reviewer's concern (PR #3972 discussion on TlsClientAuthentication.java:113):
         // some proxies/clients forward the full chain including the trust anchor / root CA itself.
@@ -805,6 +822,17 @@ class TlsClientAuthenticationTest {
             Integer keyUsageBits, List<KeyPurposeId> ekuPurposes) throws Exception {
         Date notBefore = new Date(System.currentTimeMillis() - 60_000);
         Date notAfter = new Date(System.currentTimeMillis() + 3_600_000);
+        return signCertWithValidity(subject, issuer, subjectKey, signerKey, isCa, serial, notBefore, notAfter, keyUsageBits, ekuPurposes);
+    }
+
+    private static X509Certificate signCertWithValidity(X500Name subject, X500Name issuer, PublicKey subjectKey,
+            PrivateKey signerKey, boolean isCa, BigInteger serial, Date notBefore, Date notAfter) throws Exception {
+        return signCertWithValidity(subject, issuer, subjectKey, signerKey, isCa, serial, notBefore, notAfter, null, null);
+    }
+
+    private static X509Certificate signCertWithValidity(X500Name subject, X500Name issuer, PublicKey subjectKey,
+            PrivateKey signerKey, boolean isCa, BigInteger serial, Date notBefore, Date notAfter,
+            Integer keyUsageBits, List<KeyPurposeId> ekuPurposes) throws Exception {
         JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
                 issuer, serial, notBefore, notAfter, subject, subjectKey);
         builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(isCa));
