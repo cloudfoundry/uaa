@@ -845,6 +845,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             final IdentityProvider<T> provider
     ) {
         final T config = provider.getConfig();
+        if (ClientAuthentication.TLS_CLIENT_AUTH.equals(config.getAuthMethod())) {
+            throw new ProviderConfigurationException(
+                    "External OpenID Connect provider configuration does not support tls_client_auth.");
+        }
 
         if (StringUtils.hasText(codeToken.getIdToken()) && ID_TOKEN.equals(getResponseType(config))) {
             log.debug("ExternalOAuthCodeToken contains id_token, not exchanging code.");
@@ -1043,6 +1047,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     public String oauthTokenRequest(UaaAuthenticationDetails details, final IdentityProvider<OIDCIdentityProviderDefinition> identityProvider,
                                 String grantType, MultiValueMap<String, String> additionalParameters) {
         final OIDCIdentityProviderDefinition config = identityProvider.getConfig();
+        if (ClientAuthentication.TLS_CLIENT_AUTH.equals(config.getAuthMethod())) {
+            throw new ProviderConfigurationException(
+                    "External OpenID Connect provider configuration does not support tls_client_auth.");
+        }
 
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();

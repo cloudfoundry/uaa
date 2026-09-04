@@ -107,6 +107,7 @@ dependencies {
     testImplementation(libs.xmlUnit)
     testImplementation(libs.awaitility)
     testImplementation(libs.nimbusJwt)
+    testImplementation(libs.bouncyCastlePkixFips)
 
     testRuntimeOnly(libs.jacocoAgent)
     testRuntimeOnly(libs.junit5PlatformLauncher)

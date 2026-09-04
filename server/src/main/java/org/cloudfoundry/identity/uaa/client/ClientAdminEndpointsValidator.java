@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.PemCertificateParser;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -29,14 +30,20 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import tools.jackson.core.type.TypeReference;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
@@ -82,14 +89,20 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final IdentityZoneManager identityZoneManager;
 
+    private final boolean mtlsEnabled;
+
+    private static final String TOKEN_ENDPOINT_AUTH_METHOD = "token-endpoint-auth-method";
+
     private final Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
 
     public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor,
-                                         final IdentityZoneManager identityZoneManager) {
+                                         final IdentityZoneManager identityZoneManager,
+                                         final boolean mtlsEnabled) {
         this.securityContextAccessor = securityContextAccessor;
         this.identityZoneManager = identityZoneManager;
+        this.mtlsEnabled = mtlsEnabled;
     }
 
     /**
@@ -123,6 +136,10 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
+
+        checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, client.getClientId());
+        validateTlsClientAuthClaimConfig(client.getAdditionalInformation(), client.getClientId());
+
         String clientId = client.getClientId();
         if (create) {
             if (reservedClientIds.contains(clientId)) {
@@ -348,6 +365,249 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             if (!VALID_GRANTS.contains(grant)) {
                 throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
                         + VALID_GRANTS.toString());
+            }
+        }
+    }
+
+    public static void checkMtlsClientConfigAllowed(Map<String, Object> additionalInfo, boolean mtlsEnabled, String clientId) {
+        if (additionalInfo.containsKey(TOKEN_ENDPOINT_AUTH_METHOD)) {
+            throw new InvalidClientDetailsException(
+                    "token-endpoint-auth-method is not supported; configure tls-client-auth-ca to enable mTLS for client_id="
+                            + clientId);
+        }
+        if (!mtlsEnabled
+                && (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                        || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA))) {
+            throw new InvalidClientDetailsException(
+                    "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls-enabled "
+                            + "to be true on this UAA deployment. ClientID: " + clientId);
+        }
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
+            try {
+                PemCertificateParser.parseCertificate((String) additionalInfo.get(
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA));
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-trusted-proxy-ca for client_id=" + clientId + ": " + e.getMessage(), e);
+            }
+        }
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)) {
+            if (!(additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String)) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-ca for client_id=" + clientId + ": must be a PEM string.");
+            }
+            try {
+                PemCertificateParser.parseCertificate(getTlsClientAuthCaPem(additionalInfo));
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-ca for client_id=" + clientId + ": " + e.getMessage(), e);
+            }
+        }
+    }
+
+    private static String getTlsClientAuthCaPem(Map<String, Object> additionalInfo) {
+        Object rawConfig = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        if (rawConfig instanceof String pem) {
+            return pem;
+        }
+        throw new IllegalArgumentException("Not a supported tls-client-auth-ca configuration.");
+    }
+
+    /**
+     * Mirrors {@link org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer}'s private
+     * {@code PLACEHOLDER} field -- must be kept in sync with it.
+     */
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]++)\\}");
+
+    /**
+     * Bounds the length of {@code tls-client-auth-sub-template} / {@code tls-client-auth-aud-templates}
+     * entries before they are ever passed to {@link #PLACEHOLDER}'s regex. This is the actual fix for
+     * the CodeQL "polynomial regular expression on uncontrolled data" finding: {@link Matcher#find()}
+     * retries the full match attempt at every character position in the input, giving O(n^2) worst-case
+     * cost regardless of the possessive-ness of the {@code [^}]++} quantifier. Bounding input length
+     * caps the worst case at a small, fixed constant. 256 is generous -- real templates (e.g.
+     * {@code "o/{cf.org}/s/{cf.space}/a/{cf.app}"}) are a few dozen characters at most.
+     *
+     * <p>Mirrored in {@link org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer#MAX_TEMPLATE_LENGTH}
+     * for defense-in-depth on the BOSH-flat-config bootstrap path, which bypasses this validator entirely.
+     */
+    static final int MAX_TEMPLATE_LENGTH = 256;
+
+    /**
+     * Validates a client's mTLS claim-related configuration ({@code tls-client-auth-claim-mappings},
+     * {@code tls-client-auth-sub-template}, {@code tls-client-auth-aud-templates}, and
+     * {@code tls-client-auth-required-claims}) at client creation/update time, before it is
+     * persisted, so malformed configuration is rejected here rather than causing an unhandled
+     * exception at token-issuance time (see {@link org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication#extractClaimMappingValues}
+     * and {@link org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer#enhance}).
+     *
+     * <p>A no-op when {@code additionalInfo} is {@code null}.
+     */
+    public static void validateTlsClientAuthClaimConfig(Map<String, Object> additionalInfo, String clientId) {
+        if (additionalInfo == null) {
+            return;
+        }
+
+        List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = List.of();
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS)) {
+            try {
+                Object rawMappings = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
+                if (rawMappings instanceof String mappingsJson) {
+                    claimMappings = JsonUtils.readValue(mappingsJson,
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                } else {
+                    claimMappings = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(rawMappings),
+                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
+                }
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-claim-mappings for client_id=" + clientId + ": " + e.getMessage(), e);
+            }
+        }
+
+        if (claimMappings == null) {
+            claimMappings = List.of();
+        }
+
+        Set<String> declaredClaims = new HashSet<>();
+        for (TlsClientAuthConfiguration.ClaimMapping mapping : claimMappings) {
+            if (mapping == null) {
+                throw new InvalidClientDetailsException(
+                        "tls-client-auth-claim-mappings entry cannot be null for client_id=" + clientId);
+            }
+            String field = mapping.getField();
+            if (field == null
+                    || !(field.equals("subject_cn") || field.equals("subject_ou") || field.equals("subject_o"))) {
+                throw new InvalidClientDetailsException(
+                        "tls-client-auth-claim-mappings entry has invalid field '" + field
+                                + "' for client_id=" + clientId
+                                + ". Must be one of: subject_cn, subject_ou, subject_o");
+            }
+            String claim = mapping.getClaim();
+            if (claim == null || claim.isBlank()) {
+                throw new InvalidClientDetailsException(
+                        "tls-client-auth-claim-mappings entry has a blank claim for client_id=" + clientId);
+            }
+            String pattern = mapping.getPattern();
+            if (pattern != null && !pattern.isBlank()) {
+                try {
+                    Pattern.compile(pattern);
+                } catch (PatternSyntaxException e) {
+                    throw new InvalidClientDetailsException(
+                            "tls-client-auth-claim-mappings entry has an invalid pattern '" + pattern
+                                    + "' for client_id=" + clientId + ": " + e.getMessage(), e);
+                }
+            }
+            declaredClaims.add(claim);
+        }
+
+        Object rawSubTemplate = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
+                && !(rawSubTemplate instanceof String)) {
+            throw new InvalidClientDetailsException(
+                    "tls-client-auth-sub-template must be a string for client_id=" + clientId);
+        }
+        if (rawSubTemplate instanceof String subTemplate && !subTemplate.isBlank()) {
+            checkTemplateLength(subTemplate, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
+            validateTemplatePlaceholders(subTemplate, declaredClaims,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
+        }
+
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)) {
+            List<String> audTemplates;
+            try {
+                Object rawAudTemplates = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
+                if (rawAudTemplates instanceof String audJson) {
+                    audTemplates = JsonUtils.readValue(audJson, new TypeReference<List<String>>() {});
+                } else {
+                    audTemplates = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(rawAudTemplates),
+                            new TypeReference<List<String>>() {});
+                }
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-aud-templates for client_id=" + clientId + ": " + e.getMessage(), e);
+            }
+            if (audTemplates != null) {
+                for (String template : audTemplates) {
+                    if (template == null) {
+                        throw new InvalidClientDetailsException(
+                                "tls-client-auth-aud-templates entry cannot be null for client_id=" + clientId);
+                    }
+                    if (!template.isBlank()) {
+                        checkTemplateLength(template, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
+                        validateTemplatePlaceholders(template, declaredClaims,
+                                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
+                    }
+                }
+            }
+        }
+
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)) {
+            Map<String, String> requiredClaims;
+            try {
+                Object rawRequiredClaims = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+                if (rawRequiredClaims instanceof String requiredClaimsJson) {
+                    requiredClaims = JsonUtils.readValue(requiredClaimsJson,
+                            new TypeReference<Map<String, String>>() {});
+                } else {
+                    requiredClaims = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(rawRequiredClaims),
+                            new TypeReference<Map<String, String>>() {});
+                }
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid tls-client-auth-required-claims for client_id=" + clientId + ": " + e.getMessage(), e);
+            }
+            if (requiredClaims != null) {
+                for (Map.Entry<String, String> requiredClaim : requiredClaims.entrySet()) {
+                    if (!declaredClaims.contains(requiredClaim.getKey())) {
+                        throw new InvalidClientDetailsException(
+                                "tls-client-auth-required-claims references undeclared claim '" + requiredClaim.getKey()
+                                        + "' for client_id=" + clientId
+                                        + ". Every required claim must be produced by a tls-client-auth-claim-mappings entry.");
+                    }
+                    String requiredValue = requiredClaim.getValue();
+                    if (requiredValue == null || requiredValue.isBlank()) {
+                        throw new InvalidClientDetailsException(
+                                "tls-client-auth-required-claims has a null or blank value for required claim '"
+                                        + requiredClaim.getKey() + "' for client_id=" + clientId);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Rejects templates longer than {@link #MAX_TEMPLATE_LENGTH} before they reach the
+     * {@link #PLACEHOLDER} regex -- see {@link #MAX_TEMPLATE_LENGTH}'s javadoc for why.
+     */
+    private static void checkTemplateLength(String template, String propertyName, String clientId) {
+        if (template.length() > MAX_TEMPLATE_LENGTH) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " for client_id=" + clientId + " has length " + template.length()
+                            + ", which exceeds the maximum allowed length of " + MAX_TEMPLATE_LENGTH + ".");
+        }
+    }
+
+    /**
+     * Validates that every {@code {placeholderName}} referenced in {@code template} is present in
+     * {@code declaredClaims} -- i.e. actually produced by some {@code tls-client-auth-claim-mappings}
+     * entry -- otherwise the placeholder could never be resolved by
+     * {@link org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer#renderTemplate}, silently
+     * dropping the whole template at token-issuance time.
+     */
+    private static void validateTemplatePlaceholders(
+            String template, Set<String> declaredClaims, String propertyName, String clientId) {
+        Matcher m = PLACEHOLDER.matcher(template);
+        while (m.find()) {
+            String placeholder = m.group(1);
+            if (!declaredClaims.contains(placeholder)) {
+                throw new InvalidClientDetailsException(
+                        propertyName + " references undeclared claim placeholder '{" + placeholder
+                                + "}' for client_id=" + clientId
+                                + ". Every placeholder must be produced by a tls-client-auth-claim-mappings entry.");
             }
         }
     }

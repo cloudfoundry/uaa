@@ -1,9 +1,13 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+
+import java.util.Arrays;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -19,7 +23,7 @@ public class OpenIdConfiguration {
     private String tokenUrl;
 
     @JsonProperty("token_endpoint_auth_methods_supported")
-    private String[] tokenAMR = new String[]{ClientAuthentication.CLIENT_SECRET_BASIC, ClientAuthentication.CLIENT_SECRET_POST, ClientAuthentication.PRIVATE_KEY_JWT};
+    private String[] tokenAMR = new String[]{ClientAuthentication.CLIENT_SECRET_BASIC, ClientAuthentication.CLIENT_SECRET_POST, ClientAuthentication.PRIVATE_KEY_JWT, ClientAuthentication.TLS_CLIENT_AUTH};
 
     @JsonProperty("token_endpoint_auth_signing_alg_values_supported")
     private String[] tokenEndpointAuthSigningValues = new String[]{"RS256", "HS256"};
@@ -67,12 +71,25 @@ public class OpenIdConfiguration {
     @JsonProperty("code_challenge_methods_supported")
     private String[] codeChallengeMethodsSupported = new String[]{"S256", "plain"};
 
+    @JsonProperty("mtls_endpoint_aliases")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Map<String, String> mtlsEndpointAliases;
+
     public OpenIdConfiguration(final String contextPath, final String issuer) {
+        this(contextPath, issuer, true);
+    }
+
+    public OpenIdConfiguration(final String contextPath, final String issuer, final boolean mtlsEnabled) {
         this.issuer = issuer;
         this.authUrl = contextPath + "/oauth/authorize";
         this.tokenUrl = contextPath + "/oauth/token";
         this.userInfoUrl = contextPath + "/userinfo";
         this.jwksUri = contextPath + "/token_keys";
         this.logoutEndpoint = contextPath + "/logout.do";
+        if (!mtlsEnabled) {
+            this.tokenAMR = Arrays.stream(this.tokenAMR)
+                    .filter(method -> !ClientAuthentication.TLS_CLIENT_AUTH.equals(method))
+                    .toArray(String[]::new);
+        }
     }
 }

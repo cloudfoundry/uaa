@@ -17,6 +17,7 @@ jacoco = "4.0.2"
 jackson = "3.1.5"
 jackson2 = "2.21.5"
 jacocoAgent = "0.8.15"
+javaBuildpackClientCertificateMapper = "2.0.1"
 nimbusJwt = "10.9.1"
 opensaml = "5.2.3"
 orgJson = "20260814"
@@ -69,6 +70,9 @@ bouncyCastleFipsProv = { module = "org.bouncycastle:bc-fips", version.ref = "bou
 bouncyCastlePkixFips = { module = "org.bouncycastle:bcpkix-fips", version.ref = "bouncyCastlePkix" }
 bouncyCastleTlsFips = { module = "org.bouncycastle:bctls-fips", version.ref = "bouncyCastleTls" }
 bouncyCastleUtilFips = { module = "org.bouncycastle:bcutil-fips", version.ref = "bouncyCastleUtil" }
+
+# CloudFoundry
+javaBuildpackClientCertificateMapper = { module = "org.cloudfoundry:java-buildpack-client-certificate-mapper-jakarta", version.ref = "javaBuildpackClientCertificateMapper" }
 
 # Eclipse JGit
 eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "eclipseJgit" }
@@ -164,6 +168,7 @@ springBootStarterMail = { module = "org.springframework.boot:spring-boot-starter
 springBootStarterTest = { module = "org.springframework.boot:spring-boot-starter-test" }
 springBootStarterTomcatRuntime = { module = "org.springframework.boot:spring-boot-starter-tomcat-runtime" }
 springBootStarterWeb = { module = "org.springframework.boot:spring-boot-starter-web" }
+springBootTomcat = { module = "org.springframework.boot:spring-boot-tomcat" }
 springBootTransaction = { module = "org.springframework.boot:spring-boot-transaction" }
 
 # Spring Data

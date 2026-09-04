@@ -67,8 +67,8 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
 
         if (hasText(def.getAuthMethod())) {
             String authMethod = def.getAuthMethod();
-            if (!ClientAuthentication.isMethodSupported(authMethod)) {
-                errors.add("Relying Party Authentication Method must be set to either " + String.join(" or ", ClientAuthentication.UAA_SUPPORTED_METHODS));
+            if (!ClientAuthentication.isExternalOAuthMethodSupported(authMethod)) {
+                errors.add("Relying Party Authentication Method must be set to either " + String.join(" or ", ClientAuthentication.EXTERNAL_OAUTH_SUPPORTED_METHODS));
             } else if (!ClientAuthentication.isAuthMethodEqual(ClientAuthentication.getCalculatedMethod(authMethod, def.getRelyingPartySecret() != null, hasKeyConfigured), (getAuthMethod(definition)))) {
                 errors.add("Relying Party Authentication Method [%s] does not match with expected on [%s]".formatted(authMethod, getAuthMethod(definition)));
             }

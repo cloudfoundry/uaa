@@ -9,21 +9,27 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.OK;
 
 @Controller
 public class OpenIdConnectEndpoints {
 
+    private static final String MTLS_TOKEN_ENDPOINT_PATH = "/oauth/mtls/token";
+
     private final String issuer;
     private final IdentityZoneManager identityZoneManager;
+    private final boolean mtlsEnabled;
 
     public OpenIdConnectEndpoints(
             final @Value("${issuer.uri}") String issuer,
-            final IdentityZoneManager identityZoneManager
+            final IdentityZoneManager identityZoneManager,
+            final @Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled
     ) {
         this.issuer = issuer;
         this.identityZoneManager = identityZoneManager;
+        this.mtlsEnabled = mtlsEnabled;
     }
 
     @GetMapping(value = {
@@ -31,7 +37,11 @@ public class OpenIdConnectEndpoints {
             "/oauth/token/.well-known/openid-configuration"
     })
     public ResponseEntity<OpenIdConfiguration> getOpenIdConfiguration(HttpServletRequest request) throws URISyntaxException {
-        OpenIdConfiguration conf = new OpenIdConfiguration(getServerContextPath(request), getTokenEndpoint());
+        String contextPath = getServerContextPath(request);
+        OpenIdConfiguration conf = new OpenIdConfiguration(contextPath, getTokenEndpoint(), mtlsEnabled);
+        if (mtlsEnabled) {
+            conf.setMtlsEndpointAliases(Map.of("token_endpoint", contextPath + MTLS_TOKEN_ENDPOINT_PATH));
+        }
         return new ResponseEntity<>(conf, OK);
     }
 
