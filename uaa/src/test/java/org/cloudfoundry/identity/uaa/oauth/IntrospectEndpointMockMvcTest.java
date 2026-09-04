@@ -78,6 +78,20 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    void invalidTokenResponseContainsOnlyActiveField() throws Exception {
+        // RFC 7662 section 2.2: an inactive-token response SHOULD NOT include any
+        // additional information about the token.
+        mockMvc.perform(
+                post("/introspect")
+                        .with(httpBasic(CLIENT_ID, CLIENT_SECRET))
+                        .header(ACCEPT, APPLICATION_JSON_VALUE)
+                        .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
+                        .param("token", "invalid-token"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("{\"active\":false}"));
+    }
+
+    @Test
     void deleteNotSupported() throws Exception {
         mockMvc.perform(
                 delete("/introspect")
