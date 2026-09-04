@@ -50,6 +50,10 @@ class IntrospectionClaimsTest {
 
         assertThat(claims.getJti()).isEqualTo("abc");
         assertThat(claims.getAdditionalClaims()).containsEntry("unknown", "some-value");
-        assertThat(JsonUtils.writeValueAsString(claims)).contains("\"unknown\":\"some-value\"");
+
+        String serialized = JsonUtils.writeValueAsString(claims);
+        assertThat(JsonUtils.readValue(serialized, java.util.Map.class))
+                .containsEntry("unknown", "some-value")
+                .doesNotContainKey("additionalClaims");
     }
 }
