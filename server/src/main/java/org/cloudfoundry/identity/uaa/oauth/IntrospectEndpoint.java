@@ -17,9 +17,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.Map;
+
 @Controller
 public class IntrospectEndpoint {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+    // RFC 7662 section 2.2: an inactive-token response MUST contain only "active": false
+    // and SHOULD NOT include any other information about the token. IntrospectionClaims
+    // has other fields (e.g. `revocable`, a primitive) that can't be suppressed via
+    // @JsonInclude once populated, so the inactive case returns this minimal value instead.
+    private static final Map<String, Object> INACTIVE_TOKEN_RESPONSE = Map.of("active", false);
 
     private final ResourceServerTokenServices resourceServerTokenServices;
 
@@ -30,24 +38,19 @@ public class IntrospectEndpoint {
 
     @PostMapping("/introspect")
     @ResponseBody
-    public IntrospectionClaims introspect(@RequestParam String token) {
-        IntrospectionClaims introspectionClaims = new IntrospectionClaims();
-
+    public Object introspect(@RequestParam String token) {
         try {
             OAuth2AccessToken oAuth2AccessToken = resourceServerTokenServices.readAccessToken(token);
             if (oAuth2AccessToken.isExpired()) {
-                introspectionClaims.setActive(false);
-                return introspectionClaims;
+                return INACTIVE_TOKEN_RESPONSE;
             }
             resourceServerTokenServices.loadAuthentication(token);
-            introspectionClaims = UaaTokenUtils.getClaims(oAuth2AccessToken.getValue(), IntrospectionClaims.class);
+            IntrospectionClaims introspectionClaims = UaaTokenUtils.getClaims(oAuth2AccessToken.getValue(), IntrospectionClaims.class);
             introspectionClaims.setActive(true);
-        } catch (InvalidTokenException _) {
-            introspectionClaims.setActive(false);
             return introspectionClaims;
+        } catch (InvalidTokenException _) {
+            return INACTIVE_TOKEN_RESPONSE;
         }
-
-        return introspectionClaims;
     }
 
     @RequestMapping(value = "/introspect")
