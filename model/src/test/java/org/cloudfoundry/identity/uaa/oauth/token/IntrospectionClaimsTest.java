@@ -42,4 +42,18 @@ class IntrospectionClaimsTest {
                 .containsEntry("aud", Arrays.asList("openid", "login"))
                 .containsEntry("scope", Arrays.asList("openid"));
     }
+
+    @Test
+    void unrecognizedClaimsAreCapturedAndFlattenedBackOut() {
+        IntrospectionClaims claims = JsonUtils.readValue(
+                "{\"jti\":\"abc\",\"unknown\":\"some-value\"}", IntrospectionClaims.class);
+
+        assertThat(claims.getJti()).isEqualTo("abc");
+        assertThat(claims.getAdditionalClaims()).containsEntry("unknown", "some-value");
+
+        String serialized = JsonUtils.writeValueAsString(claims);
+        assertThat(JsonUtils.readValue(serialized, java.util.Map.class))
+                .containsEntry("unknown", "some-value")
+                .doesNotContainKey("additionalClaims");
+    }
 }
