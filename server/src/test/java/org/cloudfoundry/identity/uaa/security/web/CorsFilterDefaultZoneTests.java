@@ -434,6 +434,78 @@ class CorsFilterDefaultZoneTests {
         assertThat(logEvents.stream().anyMatch(logMsg -> logMsg.contains("Invalid regular expression pattern in cors.xhr.allowed.origins:"))).as("Did not find expected error message in log.").isTrue();
     }
 
+    @Test
+    void unanchoredOriginConfigurationAcceptsValidSubdomainsAndPorts() throws Exception {
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, false);
+        // User configures "example\.com" with no anchors
+        corsFilter.getDefaultConfiguration().setAllowedOrigins(Collections.singletonList("example\\.com"));
+        corsFilter.initialize();
+
+        FilterChain filterChain = newMockFilterChain();
+
+        // Standard request (should pass)
+        MockHttpServletResponse response1 = new MockHttpServletResponse();
+        MockHttpServletRequest request1 = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request1.addHeader("Origin", "https://example.com");
+        corsFilter.doFilter(request1, response1, filterChain);
+        assertThat(response1.getStatus()).isEqualTo(200);
+
+        // Subdomain + Port request (should pass due to auto-wrap)
+        MockHttpServletResponse response2 = new MockHttpServletResponse();
+        MockHttpServletRequest request2 = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request2.addHeader("Origin", "http://login.example.com:8080");
+        corsFilter.doFilter(request2, response2, filterChain);
+        assertThat(response2.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void unanchoredOriginConfigurationRejectsSpoofedDomains() throws Exception {
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, false);
+        // User configures "example\.com" with no anchors
+        corsFilter.getDefaultConfiguration().setAllowedOrigins(Collections.singletonList("example\\.com"));
+        corsFilter.initialize();
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain filterChain = newMockFilterChain();
+
+        // Spoofed domain request (Must fail - 403 Forbidden)
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "https://example.com.attacker.com");
+        corsFilter.doFilter(request, response, filterChain);
+        assertThat(response.getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    void explicitlyAnchoredConfigurationIsStrictlyEnforced() throws Exception {
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, false);
+        // User configures a strict, fully anchored pattern
+        corsFilter.getDefaultConfiguration().setAllowedOrigins(Collections.singletonList("^https://secure\\.example\\.com$"));
+        corsFilter.initialize();
+
+        FilterChain filterChain = newMockFilterChain();
+
+        // Exact match (should pass)
+        MockHttpServletResponse response1 = new MockHttpServletResponse();
+        MockHttpServletRequest request1 = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request1.addHeader("Origin", "https://secure.example.com");
+        corsFilter.doFilter(request1, response1, filterChain);
+        assertThat(response1.getStatus()).isEqualTo(200);
+
+        // Subdomain request (should fail because auto-wrap was bypassed and ^ requires strict start)
+        MockHttpServletResponse response2 = new MockHttpServletResponse();
+        MockHttpServletRequest request2 = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request2.addHeader("Origin", "https://sub.secure.example.com");
+        corsFilter.doFilter(request2, response2, filterChain);
+        assertThat(response2.getStatus()).isEqualTo(403);
+        
+        // Port request (should fail because auto-wrap was bypassed and $ requires strict end)
+        MockHttpServletResponse response3 = new MockHttpServletResponse();
+        MockHttpServletRequest request3 = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request3.addHeader("Origin", "https://secure.example.com:8443");
+        corsFilter.doFilter(request3, response3, filterChain);
+        assertThat(response3.getStatus()).isEqualTo(403);
+    }
+
     private CorsFilter createConfiguredCorsFilter() {
         CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, false);
 
