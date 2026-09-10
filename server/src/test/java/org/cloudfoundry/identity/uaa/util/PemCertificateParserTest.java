@@ -58,6 +58,8 @@ class PemCertificateParserTest {
             -----END CERTIFICATE-----
             """;
 
+    private static final String CONCATENATED_CHAIN = VALID_CERT + VALID_CERT;
+
     @Test
     void parseCertificate_validPem_returnsCertificate() {
         X509Certificate certificate = PemCertificateParser.parseCertificate(VALID_CERT);
@@ -110,5 +112,35 @@ class PemCertificateParserTest {
         assertThatThrownBy(() -> PemCertificateParser.parseCertificates(withNullEntry))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("index 1");
+    }
+
+    @Test
+    void parseCertificateChain_singleCert_returnsOneCertificate() {
+        List<X509Certificate> certificates = PemCertificateParser.parseCertificateChain(VALID_CERT);
+        assertThat(certificates).hasSize(1);
+    }
+
+    @Test
+    void parseCertificateChain_concatenatedCerts_returnsAllCertificates() {
+        List<X509Certificate> certificates = PemCertificateParser.parseCertificateChain(CONCATENATED_CHAIN);
+        assertThat(certificates).hasSize(2);
+    }
+
+    @Test
+    void parseCertificateChain_malformedPem_throwsIllegalArgumentException() {
+        assertThatThrownBy(() -> PemCertificateParser.parseCertificateChain(MALFORMED_CERT))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void parseCertificates_oneEntryContainsFullChain_returnsAllCertificatesFromThatEntry() {
+        List<X509Certificate> certificates = PemCertificateParser.parseCertificates(List.of(CONCATENATED_CHAIN));
+        assertThat(certificates).hasSize(2);
+    }
+
+    @Test
+    void parseCertificates_mixOfSingleAndChainEntries_returnsFlattenedList() {
+        List<X509Certificate> certificates = PemCertificateParser.parseCertificates(List.of(VALID_CERT, CONCATENATED_CHAIN));
+        assertThat(certificates).hasSize(3);
     }
 }

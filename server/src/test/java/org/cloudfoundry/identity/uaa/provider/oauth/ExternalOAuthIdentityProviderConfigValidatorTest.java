@@ -215,4 +215,10 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
         definition.setCaCertificates(null);
         validator.validate(definition);
     }
+
+    @Test
+    void configWithConcatenatedCaCertificateChain_doesNotThrow() {
+        definition.setCaCertificates(List.of(VALID_CERT + VALID_CERT));
+        validator.validate(definition);
+    }
 }

@@ -106,20 +106,27 @@ class LdapIdentityProviderConfigValidatorTest {
     void validate_definition_withValidCaCertificates_doesNotThrow() {
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.setCaCertificates(List.of(VALID_CERT));
-        assertThatCode(() -> validator.validate((AbstractIdentityProviderDefinition) definition)).doesNotThrowAnyException();
+        assertThatCode(() -> validator.validate(definition)).doesNotThrowAnyException();
     }
 
     @Test
     void validate_definition_withMalformedCaCertificate_throws() {
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.setCaCertificates(List.of("not a pem certificate"));
-        assertThatThrownBy(() -> validator.validate((AbstractIdentityProviderDefinition) definition))
+        assertThatThrownBy(() -> validator.validate(definition))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void validate_definition_withNoCaCertificates_doesNotThrow() {
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
-        assertThatCode(() -> validator.validate((AbstractIdentityProviderDefinition) definition)).doesNotThrowAnyException();
+        assertThatCode(() -> validator.validate(definition)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void validate_definition_withConcatenatedCaCertificateChain_doesNotThrow() {
+        LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
+        definition.setCaCertificates(List.of(VALID_CERT + VALID_CERT));
+        assertThatCode(() -> validator.validate(definition)).doesNotThrowAnyException();
     }
 }

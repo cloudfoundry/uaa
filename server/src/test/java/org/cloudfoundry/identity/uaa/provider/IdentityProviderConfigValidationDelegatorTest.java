@@ -186,4 +186,15 @@ class IdentityProviderConfigValidationDelegatorTest {
 
         assertThatCode(() -> identityProviderConfigValidationDelegator.validate(identityProvider)).doesNotThrowAnyException();
     }
+
+    @Test
+    void saml_withConcatenatedCaCertificateChain_doesNotThrow() {
+        identityProvider.setType(SAML);
+        identityProvider.setOriginKey("my-saml-idp");
+        SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition();
+        definition.setCaCertificates(List.of(VALID_CERT + VALID_CERT));
+        identityProvider.setConfig(definition);
+
+        assertThatCode(() -> identityProviderConfigValidationDelegator.validate(identityProvider)).doesNotThrowAnyException();
+    }
 }

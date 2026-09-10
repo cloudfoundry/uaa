@@ -1960,7 +1960,7 @@ External OAuth 2.0 and OIDC provider definitions. Each provider entry includes:
   certificate chain validation and hostname verification, offering no protection against
   man-in-the-middle attacks; it is intended for development and diagnostics. To trust a private
   CA in production, use `caCertificates` instead, which keeps validation enabled. Default `false`
-- `caCertificates` — List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when calling the provider. Ignored if `skipSslValidation` is `true`
+- `caCertificates` — List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when calling the provider. Each entry may contain a single certificate or multiple concatenated PEM certificates (e.g. a full chain); use multiple entries to supply independent trust anchors, such as during a CA rotation. Ignored if `skipSslValidation` is `true`
 
 [Back to table](#login--branding)
 
@@ -2130,7 +2130,7 @@ Bootstrap SAML Identity Provider definitions. Each entry is keyed by a provider 
 | `externalGroupsWhitelist` | `List<String>` | External group names to map |
 | `attributeMappings` | `Map<String, Object>` | Attribute mapping configuration |
 | `skipSslValidation` | `boolean` | Skip TLS validation when fetching metadata URL. Disables both certificate chain validation and hostname verification, offering no protection against man-in-the-middle attacks; intended for development and diagnostics. Use `caCertificates` to trust a private CA in production. Default `false` |
-| `caCertificates` | `List<String>` | PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when fetching the metadata URL. Ignored if `skipSslValidation` is `true` |
+| `caCertificates` | `List<String>` | PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when fetching the metadata URL. Each entry may contain a single certificate or multiple concatenated PEM certificates (e.g. a full chain); use multiple entries to supply independent trust anchors, such as during a CA rotation. Ignored if `skipSslValidation` is `true` |
 | `storeCustomAttributes` | `boolean` | Persist custom SAML attributes on the user. Default `true` |
 | `authnContext` | `List<String>` | Requested authentication context class references |
 | `override` | `boolean` | Overwrite an existing provider with the same alias on startup. Default `true` |
@@ -2678,7 +2678,9 @@ Should only be used in development/testing.
 List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust
 store, for LDAPS connections to this LDAP server. Useful when the LDAP server's certificate
 chain is signed by a private/internal certificate authority and importing it into the JVM
-truststore is not desired. Ignored if `ldap.ssl.skipverification` is `true`.
+truststore is not desired. Each entry may contain a single certificate or multiple concatenated
+PEM certificates (e.g. a full chain); use multiple entries to supply independent trust anchors,
+such as during a CA rotation. Ignored if `ldap.ssl.skipverification` is `true`.
 
 [Back to table](#ldap)
 

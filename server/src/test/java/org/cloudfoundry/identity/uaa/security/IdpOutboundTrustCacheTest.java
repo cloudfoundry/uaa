@@ -30,6 +30,7 @@ import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.util.SocketUtils.getSelfCertificate;
 
 class IdpOutboundTrustCacheTest {
@@ -139,6 +140,13 @@ class IdpOutboundTrustCacheTest {
         assertThat(merged.getAcceptedIssuers()).contains(defaultIssuers);
         assertThat(merged.getAcceptedIssuers()).contains(testCa);
         merged.checkServerTrusted(new X509Certificate[]{testCa}, "RSA");
+    }
+
+    @Test
+    void buildMergedTrustManager_withMalformedCertificate_throwsIllegalStateException() {
+        assertThatThrownBy(() -> IdpOutboundTrustCache.buildMergedTrustManager(List.of("not a pem certificate")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Unable to build merged trust manager");
     }
 
     @Test
