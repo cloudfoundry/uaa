@@ -88,6 +88,7 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                         .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
                         .param("token", "invalid-token"))
                 .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
                 .andExpect(content().string("{\"active\":false}"));
     }
 

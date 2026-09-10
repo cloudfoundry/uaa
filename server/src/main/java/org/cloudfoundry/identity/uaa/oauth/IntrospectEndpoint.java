@@ -23,10 +23,10 @@ import java.util.Map;
 public class IntrospectEndpoint {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    // RFC 7662 section 2.2: an inactive-token response MUST contain only "active": false
-    // and SHOULD NOT include any other information about the token. IntrospectionClaims
-    // has other fields (e.g. `revocable`, a primitive) that can't be suppressed via
-    // @JsonInclude once populated, so the inactive case returns this minimal value instead.
+    // RFC 7662 section 2.2: an inactive-token response MUST contain only {"active": false}
+    // and SHOULD NOT include any other information about the token.
+    // IntrospectionClaims includes fields like `revocable` (a primitive boolean inherited from Claims)
+    // that cannot be null, so @JsonInclude(NON_NULL) can't suppress them in the inactive case.
     private static final Map<String, Object> INACTIVE_TOKEN_RESPONSE = Map.of("active", false);
 
     private final ResourceServerTokenServices resourceServerTokenServices;
