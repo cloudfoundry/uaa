@@ -140,6 +140,24 @@ public class IdentityProviderBootstrap
         Map<String, Object> ldap = new HashMap<>();
         ldap.put(LdapIdentityProviderDefinition.LDAP, ldapConfig);
         LdapIdentityProviderDefinition json = getLdapConfigAsDefinition(ldap);
+        /*
+          Only manufacture the bootstrap LDAP identity provider when there's something to
+          bootstrap: either real connection details were actually supplied (baseUrl set -
+          see LdapIdentityProviderDefinition.isConfigured()), or a provider already exists
+          for this zone (e.g. from a prior real config, the REST API, or the legacy Flyway
+          migration that used to insert one unconditionally). A `ldap:` block containing
+          only control flags like `override: false` - with no baseUrl/bind/search settings
+          - is not "configured" and must be treated the same as no `ldap:` block at all.
+          Merely activating the `ldap` Spring profile (with or without such a block) must
+          not create a dummy, unconfigured identity provider - that row blocks a real LDAP
+          IDP from being created via the REST API (unique origin/zone constraint) and has
+          no operational purpose.
+          see https://github.com/cloudfoundry/uaa/issues/4062
+         */
+        IdentityProvider<AbstractIdentityProviderDefinition> existing = getProviderByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
+        if (!json.isConfigured() && existing == null) {
+            return;
+        }
         provider.setConfig(json);
         provider.setActive(ldapProfile && json.isConfigured());
         /*
@@ -148,7 +166,6 @@ public class IdentityProviderBootstrap
          */
         boolean override = ldapConfig == null || ldapConfig.get("override") == null || (boolean) ldapConfig.get("override");
         if (!override) {
-            IdentityProvider<AbstractIdentityProviderDefinition> existing = getProviderByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
             override = existing == null || existing.getConfig() == null;
         }
         IdentityProviderWrapper<LdapIdentityProviderDefinition> wrapper = new IdentityProviderWrapper<>(provider);
