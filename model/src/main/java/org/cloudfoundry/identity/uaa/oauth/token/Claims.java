@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -385,7 +386,7 @@ public class Claims {
 
     @JsonAnyGetter
     public Map<String, Object> getAdditionalClaims() {
-        return java.util.Collections.unmodifiableMap(additionalClaims);
+        return Collections.unmodifiableMap(additionalClaims);
     }
 
     @JsonAnySetter
