@@ -5,11 +5,14 @@ import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.ResourceServerTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.IntrospectionClaims;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -40,7 +43,7 @@ class IntrospectEndpointTest {
         when(token.isExpired()).thenReturn(false);
         when(token.getValue()).thenReturn(validToken);
 
-        IntrospectionClaims claims = introspectEndpoint.introspect(validToken);
+        IntrospectionClaims claims = (IntrospectionClaims) introspectEndpoint.introspect(validToken);
         assertThat(claims.isActive()).isTrue();
 
         verify(resourceServerTokenServices).readAccessToken(validToken);
@@ -55,15 +58,15 @@ class IntrospectEndpointTest {
         when(resourceServerTokenServices.readAccessToken(validToken)).thenReturn(token);
         when(token.isExpired()).thenReturn(true);
 
-        IntrospectionClaims claims = introspectEndpoint.introspect(validToken);
-        assertThat(claims.isActive()).isFalse();
+        Object result = introspectEndpoint.introspect(validToken);
+        assertThat(result).isEqualTo(Map.of("active", false));
     }
 
     @Test
     void invalidToken_inReadAccessToken() {
         when(resourceServerTokenServices.readAccessToken(validToken)).thenThrow(new InvalidTokenException("Bla"));
-        IntrospectionClaims claims = introspectEndpoint.introspect(validToken);
-        assertThat(claims.isActive()).isFalse();
+        Object result = introspectEndpoint.introspect(validToken);
+        assertThat(result).isEqualTo(Map.of("active", false));
     }
 
     @Test
@@ -71,8 +74,25 @@ class IntrospectEndpointTest {
         OAuth2AccessToken token = mock(OAuth2AccessToken.class);
         when(resourceServerTokenServices.readAccessToken(validToken)).thenReturn(token);
         when(resourceServerTokenServices.loadAuthentication(validToken)).thenThrow(new InvalidTokenException("Bla"));
-        IntrospectionClaims claims = introspectEndpoint.introspect(validToken);
-        assertThat(claims.isActive()).isFalse();
+        Object result = introspectEndpoint.introspect(validToken);
+        assertThat(result).isEqualTo(Map.of("active", false));
+    }
+
+    @Test
+    void falseRevocableClaimIsNotSuppressedOnActiveToken() {
+        // A `false` value on an active token is real information and must still be
+        // returned, unlike the inactive-token case where no other fields are present.
+        String tokenWithRevocableFalse = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXZvY2FibGUiOmZhbHNlfQ.jS74pusAMo7VBsEN08rzpxMrk57ZMoRH3QX_gNUopJ4";
+        OAuth2AccessToken token = mock(OAuth2AccessToken.class);
+        when(resourceServerTokenServices.readAccessToken(tokenWithRevocableFalse)).thenReturn(token);
+        when(token.isExpired()).thenReturn(false);
+        when(token.getValue()).thenReturn(tokenWithRevocableFalse);
+
+        Object result = introspectEndpoint.introspect(tokenWithRevocableFalse);
+
+        assertThat(result).isInstanceOf(IntrospectionClaims.class);
+        assertThat(((IntrospectionClaims) result).isRevocable()).isFalse();
+        assertThat(JsonUtils.writeValueAsString(result)).contains("\"revocable\":false");
     }
 
     @Test
@@ -82,7 +102,7 @@ class IntrospectEndpointTest {
         when(token.isExpired()).thenReturn(false);
         when(token.getValue()).thenReturn(validToken);
 
-        IntrospectionClaims claimsResult = introspectEndpoint.introspect(validToken);
+        IntrospectionClaims claimsResult = (IntrospectionClaims) introspectEndpoint.introspect(validToken);
 
         assertThat(claimsResult.isActive()).isTrue();
         assertThat(claimsResult.getName()).isEqualTo("UAA username");
@@ -97,9 +117,8 @@ class IntrospectEndpointTest {
         when(token.isExpired()).thenReturn(false);
         when(token.getValue()).thenReturn(invalidToken);
 
-        IntrospectionClaims claimsResult = introspectEndpoint.introspect(invalidToken);
+        Object result = introspectEndpoint.introspect(invalidToken);
 
-        assertThat(claimsResult.isActive()).isFalse();
-        assertThat(claimsResult.getName()).isNull();
+        assertThat(result).isEqualTo(Map.of("active", false));
     }
 }
