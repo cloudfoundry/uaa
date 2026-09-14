@@ -681,6 +681,18 @@ class CheckTokenEndpointTests {
 
     @MethodSource("data")
     @ParameterizedTest
+    void additionalClaimsInResult(String signerKey, boolean useOpaque) throws Exception {
+        initCheckTokenEndpointTests(signerKey, useOpaque);
+        tokenServices.setUaaTokenEnhancer(new TestTokenEnhancer());
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+        Claims result = endpoint.checkToken(accessToken.getValue(), List.of(), request);
+        assertThat(result.getAdditionalClaims()).as("custom claims added by a token enhancer must not be dropped")
+                .containsEntry("ex_groups", List.of("admin", "editor"))
+                .containsEntry("ex_prop", Map.of("country", "nz"));
+    }
+
+    @MethodSource("data")
+    @ParameterizedTest
     void issuerInResults(String signerKey, boolean useOpaque) throws Exception {
         initCheckTokenEndpointTests(signerKey, useOpaque);
         ReflectionTestUtils.setField(tokenEndpointBuilder, "issuer", "http://some.other.issuer");
