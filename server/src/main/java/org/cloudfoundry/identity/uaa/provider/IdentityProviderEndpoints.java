@@ -394,25 +394,52 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
         switch (provider.getType()) {
             case LDAP: {
-                if (provider.getConfig() instanceof LdapIdentityProviderDefinition definition && definition.getBindPassword() == null) {
-                    IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
-                    if (existing != null &&
-                            existing.getConfig() != null &&
-                            existing.getConfig() instanceof LdapIdentityProviderDefinition existingDefinition) {
-                        definition.setBindPassword(existingDefinition.getBindPassword());
+                if (provider.getConfig() instanceof LdapIdentityProviderDefinition definition) {
+                    boolean needsBindPassword = definition.getBindPassword() == null;
+                    boolean needsCaCertificates = definition.getCaCertificates() == null;
+                    if (needsBindPassword || needsCaCertificates) {
+                        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
+                        if (existing != null &&
+                                existing.getConfig() != null &&
+                                existing.getConfig() instanceof LdapIdentityProviderDefinition existingDefinition) {
+                            if (needsBindPassword) {
+                                definition.setBindPassword(existingDefinition.getBindPassword());
+                            }
+                            if (needsCaCertificates) {
+                                definition.setCaCertificates(existingDefinition.getCaCertificates());
+                            }
+                        }
                     }
                 }
                 break;
             }
             case OAUTH20, OIDC10: {
-                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition definition &&
-                        definition.getRelyingPartySecret() == null &&
-                        secretNeeded(definition)) {
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition definition) {
+                    boolean needsSecret = definition.getRelyingPartySecret() == null && secretNeeded(definition);
+                    boolean needsCaCertificates = definition.getCaCertificates() == null;
+                    if (needsSecret || needsCaCertificates) {
+                        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
+                        if (existing != null &&
+                                existing.getConfig() != null &&
+                                existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition existingDefinition) {
+                            if (needsSecret) {
+                                definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
+                            }
+                            if (needsCaCertificates) {
+                                definition.setCaCertificates(existingDefinition.getCaCertificates());
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case SAML: {
+                if (provider.getConfig() instanceof SamlIdentityProviderDefinition definition && definition.getCaCertificates() == null) {
                     IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
                     if (existing != null &&
                             existing.getConfig() != null &&
-                            existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition existingDefinition) {
-                        definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
+                            existing.getConfig() instanceof SamlIdentityProviderDefinition existingDefinition) {
+                        definition.setCaCertificates(existingDefinition.getCaCertificates());
                     }
                 }
                 break;
