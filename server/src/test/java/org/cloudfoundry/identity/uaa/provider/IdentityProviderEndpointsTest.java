@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -338,59 +339,56 @@ class IdentityProviderEndpointsTest {
         assertThat(spy.getCaCertificates()).isEqualTo(List.of("new-ldap-cert"));
     }
 
-    @Test
-    void patch_ca_certificates_oauth() {
-        for (String type : Arrays.asList(OIDC10, OAUTH20)) {
-            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
-            AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
-            def.setCaCertificates(null);
-            AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(def);
-            provider.setConfig(spy);
-            provider.setType(type);
-            reset(mockIdentityProviderProvisioning);
-            String zoneId = IdentityZone.getUaaZoneId();
-            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> existing = getExternalOAuthProvider();
-            existing.getConfig().setCaCertificates(List.of("existing-oauth-cert"));
-            when(mockIdentityProviderProvisioning.retrieve(provider.getId(), zoneId)).thenReturn(existing);
-            identityProviderEndpoints.patchSensitiveData(provider.getId(), provider);
-            verify(spy, times(1)).setCaCertificates(List.of("existing-oauth-cert"));
-        }
+    @ParameterizedTest
+    @ValueSource(strings = {OIDC10, OAUTH20})
+    void patch_ca_certificates_oauth(String type) {
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
+        AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
+        def.setCaCertificates(null);
+        AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(def);
+        provider.setConfig(spy);
+        provider.setType(type);
+        reset(mockIdentityProviderProvisioning);
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> existing = getExternalOAuthProvider();
+        existing.getConfig().setCaCertificates(List.of("existing-oauth-cert"));
+        when(mockIdentityProviderProvisioning.retrieve(provider.getId(), zoneId)).thenReturn(existing);
+        identityProviderEndpoints.patchSensitiveData(provider.getId(), provider);
+        verify(spy, times(1)).setCaCertificates(List.of("existing-oauth-cert"));
     }
 
-    @Test
-    void patch_ca_certificates_oauth_no_current_no_passed() {
-        for (String type : Arrays.asList(OIDC10, OAUTH20)) {
-            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
-            AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
-            def.setCaCertificates(null);
-            AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(def);
-            provider.setConfig(spy);
-            provider.setType(type);
-            reset(mockIdentityProviderProvisioning);
-            String zoneId = IdentityZone.getUaaZoneId();
-            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> existing = getExternalOAuthProvider();
-            existing.getConfig().setCaCertificates(null);
-            when(mockIdentityProviderProvisioning.retrieve(provider.getId(), zoneId)).thenReturn(existing);
-            identityProviderEndpoints.patchSensitiveData(provider.getId(), provider);
-            assertThat(spy.getCaCertificates()).isNull();
-        }
+    @ParameterizedTest
+    @ValueSource(strings = {OIDC10, OAUTH20})
+    void patch_ca_certificates_oauth_no_current_no_passed(String type) {
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
+        AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
+        def.setCaCertificates(null);
+        AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(def);
+        provider.setConfig(spy);
+        provider.setType(type);
+        reset(mockIdentityProviderProvisioning);
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> existing = getExternalOAuthProvider();
+        existing.getConfig().setCaCertificates(null);
+        when(mockIdentityProviderProvisioning.retrieve(provider.getId(), zoneId)).thenReturn(existing);
+        identityProviderEndpoints.patchSensitiveData(provider.getId(), provider);
+        assertThat(spy.getCaCertificates()).isNull();
     }
 
-    @Test
-    void patch_ca_certificates_oauth_not_overwritten_when_provided() {
-        for (String type : Arrays.asList(OIDC10, OAUTH20)) {
-            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
-            AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
-            def.setCaCertificates(List.of("new-oauth-cert"));
-            AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(def);
-            provider.setConfig(spy);
-            provider.setType(type);
-            reset(mockIdentityProviderProvisioning);
-            identityProviderEndpoints.patchSensitiveData(provider.getId(), provider);
-            verify(mockIdentityProviderProvisioning, never()).retrieve(any(), any());
-            verify(spy, never()).setCaCertificates(any());
-            assertThat(spy.getCaCertificates()).isEqualTo(List.of("new-oauth-cert"));
-        }
+    @ParameterizedTest
+    @ValueSource(strings = {OIDC10, OAUTH20})
+    void patch_ca_certificates_oauth_not_overwritten_when_provided(String type) {
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
+        AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
+        def.setCaCertificates(List.of("new-oauth-cert"));
+        AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(def);
+        provider.setConfig(spy);
+        provider.setType(type);
+        reset(mockIdentityProviderProvisioning);
+        identityProviderEndpoints.patchSensitiveData(provider.getId(), provider);
+        verify(mockIdentityProviderProvisioning, never()).retrieve(any(), any());
+        verify(spy, never()).setCaCertificates(any());
+        assertThat(spy.getCaCertificates()).isEqualTo(List.of("new-oauth-cert"));
     }
 
     @Test
