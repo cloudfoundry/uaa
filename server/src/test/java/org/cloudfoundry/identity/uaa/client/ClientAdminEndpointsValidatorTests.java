@@ -705,7 +705,7 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    void validateTlsClientAuthClaimConfig_acceptsSubTemplateAtExactlyMaxLength() {
+    void validateTlsClientAuthClaimConfig_rejectsPlaceholderlessSubTemplateAtMaxLengthQuickly() {
         // A pathological all-'{' template of exactly MAX_TEMPLATE_LENGTH characters must still
         // be processed quickly, confirming the bound (combined with the possessive quantifier)
         // makes this genuinely fast rather than merely rejected.
@@ -716,10 +716,15 @@ class ClientAdminEndpointsValidatorTests {
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, maxLengthSubTemplate);
 
         long start = System.nanoTime();
-        // The all-'{' template never closes a placeholder, so no undeclared-placeholder
-        // exception is thrown -- validateTemplatePlaceholders() simply finds no matches.
-        assertThatNoException().isThrownBy(() ->
-                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+        // The all-'{' template never closes a placeholder. It is now rejected for that reason (a
+        // template with no placeholder renders to a constant), but the point of this test is the
+        // timing bound below: the rejection must still be reached quickly rather than the regex
+        // backtracking over a pathological input.
+        assertThatThrownBy(() ->
+                ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE)
+                .hasMessageContaining("at least one {claim} placeholder");
         long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
         assertThat(elapsedMillis).isLessThan(100);
