@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsManagedBean;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsEndpointAvailabilityFilter;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsPathGuardedFilter;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -231,6 +232,18 @@ public class SpringServletXmlFiltersConfiguration {
         filter.setBlockContentTypeSniffingEnabled(true);
         FilterRegistrationBean<HttpHeaderSecurityFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
+        return bean;
+    }
+
+    @Bean
+    public FilterRegistrationBean<MtlsEndpointAvailabilityFilter> mtlsEndpointAvailabilityFilter(
+            @Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled) {
+        FilterRegistrationBean<MtlsEndpointAvailabilityFilter> bean =
+                new FilterRegistrationBean<>(new MtlsEndpointAvailabilityFilter(mtlsEnabled));
+        // After ZonePathContextRewritingFilter (Ordered.HIGHEST_PRECEDENCE + 1) so the servlet path is
+        // already rewritten, and before Spring Boot's Security filter (-100) so a request to a disabled
+        // feature's path never reaches a security filter chain. See the filter's javadoc.
+        bean.setOrder(-290);
         return bean;
     }
 
