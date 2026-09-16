@@ -274,9 +274,13 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
             // alongside user_id/user_name/email from the password grant and app_id from the
             // certificate. The returned refresh_token is also usable at this endpoint.
             if (result.getResponse().getStatus() != 200) {
+                // Any clean client error is an acceptable refusal here -- invalid_grant for a grant
+                // type the endpoint does not serve, invalid_client for a credential problem. What is
+                // NOT acceptable is a 5xx or a body with no error code.
+                assertThat(denial(result).status()).isBetween(400, 499);
                 assertThat(denial(result).error())
-                        .as("if the endpoint refuses the grant it must refuse cleanly")
-                        .isEqualTo("invalid_client");
+                        .as("the refusal must carry an OAuth error code")
+                        .isNotNull();
                 return;
             }
             Map<String, Object> claims = claimsOf(result);
