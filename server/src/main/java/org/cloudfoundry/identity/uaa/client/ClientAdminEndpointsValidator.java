@@ -91,8 +91,6 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final boolean mtlsEnabled;
 
-    private static final String TOKEN_ENDPOINT_AUTH_METHOD = "token-endpoint-auth-method";
-
     private final Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
@@ -370,11 +368,6 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     }
 
     public static void checkMtlsClientConfigAllowed(Map<String, Object> additionalInfo, boolean mtlsEnabled, String clientId) {
-        if (additionalInfo.containsKey(TOKEN_ENDPOINT_AUTH_METHOD)) {
-            throw new InvalidClientDetailsException(
-                    "token-endpoint-auth-method is not supported; configure tls-client-auth-ca to enable mTLS for client_id="
-                            + clientId);
-        }
         if (!mtlsEnabled
                 && (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
                         || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA))) {
@@ -499,6 +492,18 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                                     + "' for client_id=" + clientId + ": " + e.getMessage(), e);
                 }
             }
+            if (TlsClientAuthConfiguration.RESERVED_CLAIM_NAMES.contains(claim)) {
+                throw new InvalidClientDetailsException(
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS
+                                + " entry maps onto reserved claim '" + claim + "' for client_id="
+                                + clientId
+                                + ". A certificate subject field must not be able to set a claim UAA "
+                                + "owns, or one that states how the caller authenticated "
+                                + "(amr, acr, auth_time, client_auth_method, cnf). Use "
+                                + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE + " or "
+                                + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES
+                                + " to set sub or aud.");
+            }
             declaredClaims.add(claim);
         }
 
@@ -510,6 +515,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
         if (rawSubTemplate instanceof String subTemplate && !subTemplate.isBlank()) {
             checkTemplateLength(subTemplate, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
+            requireAtLeastOnePlaceholder(subTemplate,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
             validateTemplatePlaceholders(subTemplate, declaredClaims,
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
         }
@@ -537,6 +544,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                     if (!template.isBlank()) {
                         checkTemplateLength(template, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
+                        requireAtLeastOnePlaceholder(template,
+                                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
                         validateTemplatePlaceholders(template, declaredClaims,
                                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
                     }
@@ -576,6 +585,33 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Rejects a template that contains no {@code {claim}} placeholder at all.
+     *
+     * <p>{@code MtlsClaimsEnhancer.renderTemplate} substitutes the placeholders it finds and returns
+     * the rest of the template verbatim, so a template with no placeholders renders to itself --
+     * a constant. For {@code tls-client-auth-sub-template} that was a subject-forgery primitive:
+     * {@code UaaTokenServices} deliberately re-applies {@code sub} after its own defaults, so
+     * configuring the constant {@code "00000000-0000-0000-0000-000000000000"} produced a token whose
+     * {@code sub} was exactly that -- any fixed string a client admin chooses, including a real
+     * user's id. The existing placeholder check only verified that placeholders which ARE present are
+     * declared; it never required one to be. The same rule is applied to
+     * {@code tls-client-auth-aud-templates}, where a constant would let a client aim a token at an
+     * audience unrelated to the certificate.
+     *
+     * <p>Requiring a placeholder ties every templated claim back to a value extracted from the
+     * presented certificate, which is the only thing this feature is entitled to assert.
+     */
+    private static void requireAtLeastOnePlaceholder(String template, String propertyName, String clientId) {
+        if (!PLACEHOLDER.matcher(template).find()) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " for client_id=" + clientId
+                            + " must contain at least one {claim} placeholder. A template with no "
+                            + "placeholder renders to a constant, which would let this client assert a "
+                            + "fixed value unrelated to the certificate it presented.");
         }
     }
 

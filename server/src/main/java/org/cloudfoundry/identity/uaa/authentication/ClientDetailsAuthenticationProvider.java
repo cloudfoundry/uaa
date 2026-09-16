@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -85,7 +86,21 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         for (String pwd : passwordList) {
             try {
                 UaaClient uaaClient = new UaaClient(userDetails, pwd);
-                if (TlsClientAuthConfiguration.isConfigured(getTlsClientAuthConfiguration(uaaClient))) {
+                boolean tlsClientAuthConfigured =
+                        TlsClientAuthConfiguration.isConfigured(getTlsClientAuthConfiguration(uaaClient));
+                // /oauth/mtls/token is advertised in OIDC discovery as
+                // mtls_endpoint_aliases.token_endpoint (RFC 8705 section 5), so it must serve mutual-TLS
+                // client authentication and nothing else. Without this check the endpoint is an
+                // unrestricted alias of /oauth/token: a client with no tls-client-auth-ca that presents
+                // a client_secret authenticates here exactly as it would there, and the issued token
+                // records no mTLS authentication at all.
+                if (isTlsClientAuthPath(authentication.getDetails()) && !tlsClientAuthConfigured) {
+                    error = new BadCredentialsException(
+                            "tls_client_auth: /oauth/mtls/token requires a client configured with "
+                                    + "tls-client-auth-ca");
+                    break;
+                }
+                if (tlsClientAuthConfigured) {
                     if (!ObjectUtils.isEmpty(authentication.getCredentials())
                             || !isTlsClientAuthPath(authentication.getDetails())) {
                         error = new BadCredentialsException(
@@ -107,12 +122,6 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         setAuthenticationMethod(authentication, CLIENT_AUTH_PRIVATE_KEY_JWT);
                         if (!validatePrivateKeyJwt(authentication.getDetails(), uaaClient)) {
                             error = new BadCredentialsException("Bad client_assertion type");
-                        }
-                        break;
-                    } else if (isTlsClientAuthPath(authentication.getDetails())) {
-                        setAuthenticationMethod(authentication, CLIENT_AUTH_TLS_CLIENT_AUTH);
-                        if (!validateTlsClientAuth(uaaClient)) {
-                            error = new BadCredentialsException("tls_client_auth: certificate validation failed");
                         }
                         break;
                     } else {
@@ -203,6 +212,24 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         return RawPeerCertificateCaptureFilter.isMtlsTokenPath(path);
     }
 
+    /**
+     * @throws BadCredentialsException when the presented chain does not validate. {@link
+     *         TlsClientAuthentication#validateClientCert} signals that with {@link
+     *         InvalidClientDetailsException}, which is a {@code UaaException} -> {@code
+     *         OAuth2Exception} -> {@code RuntimeException} and NOT a Spring {@link
+     *         AuthenticationException}. Spring's {@code AbstractUserDetailsAuthenticationProvider},
+     *         {@code ProviderManager} and {@code BasicAuthenticationFilter} all catch only
+     *         {@code AuthenticationException}, so left unconverted it escapes the whole security
+     *         chain: requests carrying an {@code Authorization: Basic} header (where
+     *         {@code ClientParametersAuthenticationFilter} stands down and
+     *         {@code ClientBasicAuthenticationFilter} handles the request) got HTTP 500 and an
+     *         ERROR-level stack trace per attempt, while the identical certificate sent with a
+     *         {@code client_id} parameter got a clean 401 -- the latter only because
+     *         {@code AbstractClientParametersAuthenticationFilter} happens to wrap every exception.
+     *         Converting here makes the outcome identical on both paths and removes an
+     *         unauthenticated log-flooding vector. The message is preserved verbatim so the response
+     *         body is unchanged on the path that already worked.
+     */
     boolean validateTlsClientAuth(UaaClient uaaClient) {
         // Cheap presence-only check (no config resolution, no JSON/claim-mapping parsing) before
         // doing any work to resolve this client's TlsClientAuthConfiguration.
@@ -214,8 +241,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         if (chain == null || chain.length == 0) {
             return false;
         }
-        return tlsClientAuthentication.validateClientCert(chain, config).isPresent()
-                && tlsClientAuthentication.certificateSatisfiesRequiredClaims(chain[0], config);
+        try {
+            return tlsClientAuthentication.validateClientCert(chain, config).isPresent()
+                    && tlsClientAuthentication.certificateSatisfiesRequiredClaims(chain[0], config);
+        } catch (InvalidClientDetailsException e) {
+            throw new BadCredentialsException(e.getMessage(), e);
+        }
     }
 
     static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
