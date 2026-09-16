@@ -14,13 +14,23 @@ import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsEndpointAvailabilityFilter;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.ZoneContextPathSessionFilter;
+import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.io.StringWriter;
 import java.math.BigInteger;
@@ -39,6 +49,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.security.config.BeanIds.SPRING_SECURITY_FILTER_CHAIN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 /**
@@ -58,6 +69,38 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
 
     private static final String MTLS_PATH = "/oauth/mtls/token";
+
+    @Qualifier(SPRING_SECURITY_FILTER_CHAIN)
+    @Autowired
+    FilterChainProxy securityFilterChain;
+
+    @Qualifier(ZonePathContextRewritingFilter.REGISTRATION_BEAN_NAME)
+    @Autowired
+    FilterRegistrationBean<ZonePathContextRewritingFilter> zonePathFilterRegistration;
+
+    @Qualifier(ZoneContextPathSessionFilter.REGISTRATION_BEAN_NAME)
+    @Autowired
+    FilterRegistrationBean<ZoneContextPathSessionFilter> zoneContextPathSessionFilterRegistration;
+
+    /**
+     * Registered in {@code SpringServletXmlFiltersConfiguration} but not added to the MockMvc chain by
+     * {@code DefaultTestContext}, so it has to be wired in explicitly -- exactly as it runs in the
+     * real servlet container, before Spring Security.
+     */
+    @Qualifier("mtlsEndpointAvailabilityFilter")
+    @Autowired
+    FilterRegistrationBean<MtlsEndpointAvailabilityFilter> mtlsEndpointAvailabilityFilterRegistration;
+
+    @BeforeEach
+    void setUpMockMvcWithAvailabilityFilter() {
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(zonePathFilterRegistration.getFilter())
+                .addFilter(zoneContextPathSessionFilterRegistration.getFilter())
+                .addFilter(mtlsEndpointAvailabilityFilterRegistration.getFilter())
+                .addFilter(securityFilterChain)
+                .build();
+        testClient = new TestClient(mockMvc);
+    }
 
     @BeforeAll
     static void registerFipsProvider() {

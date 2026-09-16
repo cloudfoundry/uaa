@@ -19,6 +19,31 @@ public class TlsClientAuthConfiguration {
     public static final String TLS_CLIENT_AUTH_TRUSTED_PROXY_CA = "tls-client-auth-trusted-proxy-ca";
     public static final String TLS_CLIENT_AUTH_REQUIRED_CLAIMS = "tls-client-auth-required-claims";
 
+    /**
+     * Claim names a {@code tls-client-auth-claim-mappings} entry may not target.
+     *
+     * <p>Two groups. The first is UAA's own token vocabulary, which {@code UaaTokenServices} already
+     * refuses to let an enhancer overwrite; rejecting those names at configuration time turns a
+     * silently ignored mapping into an error the operator sees. The second is the group that was
+     * genuinely reachable: authentication-context claims ({@code amr}, {@code acr},
+     * {@code auth_time}, {@code client_auth_method}) and the RFC 8705 confirmation claim
+     * ({@code cnf}). Those are not part of UAA's protected set, so a certificate subject field could
+     * be mapped straight onto them -- letting a client admin assert, in a signed token, how the
+     * caller authenticated. Downstream policy engines read exactly those claims.
+     *
+     * <p>{@code sub} and {@code aud} appear here as mapping targets only. They remain settable
+     * through {@code tls-client-auth-sub-template} / {@code tls-client-auth-aud-templates}, which is
+     * the supported, placeholder-checked path for them.
+     */
+    public static final java.util.Set<String> RESERVED_CLAIM_NAMES = java.util.Set.of(
+            // UAA-owned token vocabulary
+            "jti", "sub", "aud", "iss", "exp", "iat", "nbf", "zid",
+            "scope", "granted_scopes", "authorities", "client_id", "cid", "azp",
+            "grant_type", "user_id", "user_name", "origin", "email", "revocable",
+            "rev_sig", "previous_logon_time",
+            // authentication context and certificate binding
+            "amr", "acr", "auth_time", "cnf", "client_auth_method");
+
     @JsonProperty(TLS_CLIENT_AUTH_CA)
     private String trustedCaPem;
 
