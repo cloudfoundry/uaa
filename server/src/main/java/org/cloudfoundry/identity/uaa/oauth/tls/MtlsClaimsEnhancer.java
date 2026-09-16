@@ -123,6 +123,12 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         for (Map.Entry<String, String> entry : vars.entrySet()) {
             String key   = entry.getKey();
             String value = entry.getValue();
+            // ClientAdminEndpointsValidator rejects these at configuration time; this is the
+            // defense-in-depth half for clients persisted before that check existed and for the
+            // BOSH oauth.clients bootstrap path, which does not run admin-API validation.
+            if (TlsClientAuthConfiguration.RESERVED_CLAIM_NAMES.contains(key)) {
+                continue;
+            }
             // Only a single dot level is supported (spec: UAA-RFC8705-001 configurable-token-shape).
             // A key like "cf.app.id" would produce parent="cf", child="app.id" (not deeper nesting).
             int dotIdx = key.indexOf('.');
@@ -191,13 +197,21 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
      * are treated as part of the name, not as path separators.
      *
      * <p>Returns {@code null} without attempting to match if {@code template} exceeds
-     * {@link #MAX_TEMPLATE_LENGTH}, treating an oversized template the same as an unresolvable
-     * one (silently dropped by the caller) rather than a hard failure -- a hard failure here
-     * would break every future token request for a client with a pre-existing, already-persisted
-     * oversized template.
+     * {@link #MAX_TEMPLATE_LENGTH}, or if it contains no placeholder at all, treating both the same
+     * as an unresolvable template (silently dropped by the caller) rather than a hard failure -- a
+     * hard failure here would break every future token request for a client with a pre-existing,
+     * already-persisted template of either shape.
      */
     private String renderTemplate(String template, Map<String, String> vars) {
         if (template.length() > MAX_TEMPLATE_LENGTH) {
+            return null;
+        }
+        // A template with no placeholder renders to itself -- a constant the certificate had no part
+        // in producing. Dropped here as well as rejected in ClientAdminEndpointsValidator, for
+        // clients persisted before that check and for the bootstrap path that bypasses it. Dropped
+        // rather than thrown for the same reason as the length guard above: a hard failure would
+        // break every future token request for a client already carrying such a template.
+        if (!PLACEHOLDER.matcher(template).find()) {
             return null;
         }
         StringBuilder sb = new StringBuilder();
