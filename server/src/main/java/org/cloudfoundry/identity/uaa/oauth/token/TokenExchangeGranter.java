@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AbstractTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.TokenActor;
 import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
@@ -19,6 +20,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.text.ParseException;
@@ -35,15 +37,18 @@ public class TokenExchangeGranter extends AbstractTokenGranter {
 
     private final MultitenantClientServices clientDetailsService;
     private final RevocableTokenProvisioning revocableTokenProvisioning;
+    private final ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
 
     public TokenExchangeGranter(AuthorizationServerTokenServices tokenServices,
                                 MultitenantClientServices clientDetailsService,
                                 OAuth2RequestFactory requestFactory,
-                                RevocableTokenProvisioning revocableTokenProvisioning) {
+                                RevocableTokenProvisioning revocableTokenProvisioning,
+                                ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_TOKEN_EXCHANGE);
         defaultSecurityContextAccessor = new DefaultSecurityContextAccessor();
         this.clientDetailsService = clientDetailsService;
         this.revocableTokenProvisioning = revocableTokenProvisioning;
+        this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
     }
 
     protected Authentication validateRequest(TokenRequest request) {
@@ -143,7 +148,13 @@ public class TokenExchangeGranter extends AbstractTokenGranter {
                 throw new InvalidGrantException("Invalid subject_token: not a JWT and not found in the revocable token store");
             }
         }
-        JWTClaimsSet claims = JwtHelper.decode(subjectToken).getClaimSet();
+        JWTClaimsSet claims;
+        try {
+            claims = externalOAuthAuthenticationManager.verifySubjectToken(subjectToken);
+        } catch (AuthenticationException | InvalidTokenException e) {
+            logger.debug("subject_token signature verification failed", e);
+            throw new InvalidGrantException("Invalid subject_token: " + e.getMessage());
+        }
         String clientId = tokenRequest.getClientId();
         try {
             return new TokenActor(

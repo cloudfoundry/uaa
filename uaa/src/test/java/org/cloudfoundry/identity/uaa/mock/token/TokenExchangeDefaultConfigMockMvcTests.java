@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -261,6 +263,56 @@ class TokenExchangeDefaultConfigMockMvcTests extends TokenExchangeMockMvcBase {
                 .containsEntry(ClaimConstants.USER_NAME, subjectTokenClaims.get(ClaimConstants.USER_NAME))
                 .containsEntry(ClaimConstants.USER_ID, subjectTokenClaims.get(ClaimConstants.USER_ID))
                 .containsEntry(ClaimConstants.ORIGIN, subjectTokenClaims.get(ClaimConstants.ORIGIN));
+    }
+
+    /**
+     * Confirms that a {@code subject_token} with a tampered payload is rejected in the
+     * default configuration (no bean overrides).
+     *
+     * <p>Takes a legitimately signed access token from the control server, replaces its
+     * {@code sub} and {@code user_id} claims, and submits the result as {@code subject_token}.
+     * The {@code iss} claim is left intact so that the registered IdP can be resolved;
+     * the signature is now cryptographically invalid for the modified payload.
+     *
+     * <p>The default {@code tokenExchangeAuthenticationManager} wraps
+     * {@link org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager},
+     * which resolves the IdP by the token's {@code iss} claim and then verifies the
+     * signature against that IdP's published keys.  The mismatch is caught at the filter
+     * layer, before {@code TokenExchangeGranter.getTokenActor()} is reached, and translated
+     * to HTTP 401.
+     */
+    @Test
+    void forged_subject_token_is_blocked_by_filter_in_default_configuration() throws Exception {
+        ThreeWayUAASetup setup = getThreeWayUaaSetUp();
+        AuthorizationServer workerServer = setup.workerServer();
+
+        String legitimateJwt = (String) setup.controlServerTokens().get("access_token");
+
+        // Tamper sub and user_id; leave iss intact so the registered IdP can be resolved.
+        String[] parts = legitimateJwt.split("\\.");
+        Map<String, Object> claims = JsonUtils.readValueAsMap(
+                new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8));
+        claims.put(ClaimConstants.SUB,     "FORGED-" + claims.get(ClaimConstants.SUB));
+        claims.put(ClaimConstants.USER_ID, "FORGED-" + claims.get(ClaimConstants.USER_ID));
+        String tamperedPayload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(JsonUtils.writeValueAsString(claims).getBytes(StandardCharsets.UTF_8));
+
+        // Original header · tampered payload · original signature (now invalid).
+        String tamperedJwt = parts[0] + "." + tamperedPayload + "." + parts[2];
+
+        ResultActions result = performTokenExchangeGrantForJWT(
+                workerServer.zone().getIdentityZone(),
+                tamperedJwt,
+                TokenConstants.TOKEN_TYPE_ACCESS,
+                TokenConstants.TOKEN_TYPE_ACCESS,
+                null, null,
+                workerServer.client(),
+                ClientAuthType.FORM,
+                null
+        );
+
+        // The filter's validateToken() catches the invalid signature → 401.
+        result.andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -98,8 +98,9 @@ public class OAuth2FilterConfig {
             @Qualifier("tokenServices") AuthorizationServerTokenServices tokenServices,
             @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
             @Qualifier("authorizationRequestManager") OAuth2RequestFactory requestFactory,
-            @Qualifier("revocableTokenProvisioning") RevocableTokenProvisioning revocableTokenProvisioning) {
-        TokenExchangeGranter tokenExchangeGranter = new TokenExchangeGranter(tokenServices, clientDetailsService, requestFactory, revocableTokenProvisioning);
+            @Qualifier("revocableTokenProvisioning") RevocableTokenProvisioning revocableTokenProvisioning,
+            @Qualifier("externalOAuthAuthenticationManager") ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager) {
+        TokenExchangeGranter tokenExchangeGranter = new TokenExchangeGranter(tokenServices, clientDetailsService, requestFactory, revocableTokenProvisioning, externalOAuthAuthenticationManager);
         compositeTokenGranter.addTokenGranter(tokenExchangeGranter);
         return tokenExchangeGranter;
     }
