@@ -126,6 +126,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#oauthclientautoapprove"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.autoapprove` | `[]`| Clients auto-approved for all scopes|
 | <a href="#oauthuserauthorities"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.user.authorities` | (see details)| Default authorities for new users|
 | <a href="#clientmaxcount"><img src="images/click-me.png" width="14" height="14"/></a> `clientMaxCount` | `500`| Max clients returned by list endpoint|
+| <a href="#uaamtls-enabled"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.mtls-enabled` | `false`| Enables RFC 8705 mutual-TLS client authentication|
 
 ### Password Policy
 
@@ -1216,6 +1217,39 @@ Default authorities (group memberships) automatically assigned to every new user
 
 Maximum number of clients returned in a single list/search response from the
 client admin API (`/oauth/clients`).
+
+[Back to table](#oauth-clients--users)
+
+---
+
+### `uaa.mtls-enabled`
+
+**Default:** `false`
+**Source:** `@Value("${uaa.mtls-enabled:false}")` in [`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java), [`ClientAdminBootstrap`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminBootstrap.java), [`ZoneEndpointsClientDetailsValidator`](../server/src/main/java/org/cloudfoundry/identity/uaa/zone/ZoneEndpointsClientDetailsValidator.java), [`MtlsClientAuthTomcatCustomizer`](../server/src/main/java/org/cloudfoundry/identity/uaa/web/tomcat/MtlsClientAuthTomcatCustomizer.java)
+**Type:** `boolean`
+
+Master switch enabling RFC 8705 mutual-TLS client authentication (`tls_client_auth`)
+deployment-wide. This is **connector-wide**: it affects every TLS connection to this UAA
+instance, not just requests to the mTLS token endpoint (`/oauth/mtls/token`).
+[`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
+also uses this value to wire
+[`ClientAdminEndpointsValidator`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminEndpointsValidator.java)'s
+`mtlsEnabled` constructor argument.
+
+When `true`, the embedded Tomcat connector is reconfigured to request a client certificate
+during every TLS handshake (`certificateVerification=optionalNoCA`), without validating it
+against any CA at the transport layer -- the trust decision is deferred entirely to per-client
+application logic (see [`docs/UAA-Client-Authentication.md`](UAA-Client-Authentication.md) for
+the per-client `tls-client-auth-*` properties). Enabling this also switches the connector to the
+FIPS BouncyCastle JSSE provider, required for TLS 1.3 client-certificate support (OpenJDK's JSSE
+does not implement server-side TLS 1.3 post-handshake client-certificate requests).
+
+When `false` (the default), no client certificate is requested at the TLS layer at all, and any
+client configured with a `tls-client-auth-ca` property fails validation at creation/update time.
+
+```yaml
+uaa.mtls-enabled: true
+```
 
 [Back to table](#oauth-clients--users)
 

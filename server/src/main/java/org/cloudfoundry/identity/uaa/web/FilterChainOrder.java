@@ -35,6 +35,7 @@ public class FilterChainOrder {
     public static final int OAUTH_08 = 208;
     public static final int OAUTH_09 = 209;
     public static final int OAUTH_10 = 210;
+    public static final int OAUTH_11 = 211;
 
     // scim-endpoints.xml: 300
     public static final int SCIM_PASSWORD = 300;
