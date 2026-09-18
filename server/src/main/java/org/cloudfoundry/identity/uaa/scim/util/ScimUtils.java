@@ -101,6 +101,9 @@ public final class ScimUtils {
         if (!hasText(user.getUserName())) {
             throw new InvalidScimResourceException("A username must be provided.");
         }
+        if (user.getUserName().length() > 255) {
+            throw new InvalidScimResourceException("Username must be no more than 255 characters in length.");
+        }
         if (OriginKeys.UAA.equals(user.getOrigin()) && !usernamePattern.matcher(user.getUserName()).matches()) {
             throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
         }
@@ -111,6 +114,12 @@ public final class ScimUtils {
             if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
                 throw new InvalidScimResourceException("An email must be provided.");
             }
+        }
+        if (user.getGivenName() != null && user.getGivenName().length() > 255) {
+            throw new InvalidScimResourceException("Given name must be no more than 255 characters in length.");
+        }
+        if (user.getFamilyName() != null && user.getFamilyName().length() > 255) {
+            throw new InvalidScimResourceException("Family name must be no more than 255 characters in length.");
         }
     }
 }
