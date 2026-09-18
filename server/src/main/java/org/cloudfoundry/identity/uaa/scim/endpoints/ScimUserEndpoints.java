@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
@@ -55,6 +57,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -86,8 +89,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -322,6 +323,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
         int version = getVersion(userId, etag);
         user.setVersion(version);
+
+        ScimUtils.validate(user);
 
         user.setZoneId(identityZoneManager.getCurrentIdentityZoneId());
 
@@ -647,6 +650,11 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                         e = new ScimException(t.getMessage(), t, statuses.get(key));
                         break;
                     }
+                }
+                // Never leak DB internals (SQL statements, column names, driver messages) to the caller
+                // for any DataAccessException not explicitly mapped to a status above.
+                if (e.getStatus() == HttpStatus.INTERNAL_SERVER_ERROR && t instanceof DataAccessException) {
+                    e = new ScimException("A database error occurred.", t, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
         }
