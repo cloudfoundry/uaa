@@ -180,10 +180,17 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     @Nested
-    class CreateUserWithFieldsExceedingColumnLimits {
+    class UserOperationsWithFieldsExceedingColumnLimits {
 
         // The DB columns for 'username', ’givenname', and ’familyname' are VARCHAR(255).
-        private static final int OVER_LIMIT = 256;
+        private static final int MAX_LENGTH = 255;
+        private static final int OVER_LIMIT = MAX_LENGTH + 1;
+
+        private static final String USERNAME = "username";
+        private static final String GIVEN_NAME = "given name";
+        private static final String FAMILY_NAME = "family name";
+
+        // --- POST ---
 
         @Test
         void tooLongUsername_returnsUserFriendlyMessage() throws Exception {
@@ -202,6 +209,7 @@ class ScimUserEndpointsMockMvcTests {
 
             final String body = result.getResponse().getContentAsString();
             assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, USERNAME);
         }
 
         @Test
@@ -216,6 +224,7 @@ class ScimUserEndpointsMockMvcTests {
 
             final String body = result.getResponse().getContentAsString();
             assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, GIVEN_NAME);
         }
 
         @Test
@@ -230,6 +239,95 @@ class ScimUserEndpointsMockMvcTests {
 
             final String body = result.getResponse().getContentAsString();
             assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, FAMILY_NAME);
+        }
+
+        // --- PUT ---
+
+        @Test
+        void put_tooLongUsername_returnsUserFriendlyMessage() throws Exception {
+            ScimUser user = setUpScimUser();
+            user.setUserName(new RandomValueStringGenerator(OVER_LIMIT).generate());
+
+            MvcResult result = mockMvc.perform(put("/Users/" + user.getId())
+                            .header("Authorization", "Bearer " + scimReadWriteToken)
+                            .header("If-Match", "\"" + user.getVersion() + "\"")
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsString(user)))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, USERNAME);
+        }
+
+        @Test
+        void put_tooLongGivenName_returnsUserFriendlyMessage() throws Exception {
+            ScimUser user = setUpScimUser();
+            user.setName(new ScimUser.Name(new RandomValueStringGenerator(OVER_LIMIT).generate(), "User"));
+
+            MvcResult result = mockMvc.perform(put("/Users/" + user.getId())
+                            .header("Authorization", "Bearer " + scimReadWriteToken)
+                            .header("If-Match", "\"" + user.getVersion() + "\"")
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsString(user)))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, GIVEN_NAME);
+        }
+
+        @Test
+        void put_tooLongFamilyName_returnsUserFriendlyMessage() throws Exception {
+            ScimUser user = setUpScimUser();
+            user.setName(new ScimUser.Name("Joe", new RandomValueStringGenerator(OVER_LIMIT).generate()));
+
+            MvcResult result = mockMvc.perform(put("/Users/" + user.getId())
+                            .header("Authorization", "Bearer " + scimReadWriteToken)
+                            .header("If-Match", "\"" + user.getVersion() + "\"")
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsString(user)))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, FAMILY_NAME);
+        }
+
+        // --- PATCH ---
+
+        @Test
+        void patch_tooLongGivenName_returnsUserFriendlyMessage() throws Exception {
+            ScimUser user = setUpScimUser();
+            ScimUser patch = new ScimUser();
+            patch.setName(new ScimUser.Name(new RandomValueStringGenerator(OVER_LIMIT).generate(), null));
+
+            MvcResult result = patchUser(user, patch, scimReadWriteToken, user.getVersion())
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, GIVEN_NAME);
+        }
+
+        @Test
+        void patch_tooLongFamilyName_returnsUserFriendlyMessage() throws Exception {
+            ScimUser user = setUpScimUser();
+            ScimUser patch = new ScimUser();
+            patch.setName(new ScimUser.Name(null, new RandomValueStringGenerator(OVER_LIMIT).generate()));
+
+            MvcResult result = patchUser(user, patch, scimReadWriteToken, user.getVersion())
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, FAMILY_NAME);
         }
 
         private static void assertDoesNotLeakDatabaseInternalsInErrorMessage(final String body) {
@@ -238,6 +336,13 @@ class ScimUserEndpointsMockMvcTests {
                     .doesNotContainIgnoringCase("insert into")
                     .doesNotContainIgnoringCase("sql")
                     .doesNotContainIgnoringCase("PreparedStatementCallback");
+        }
+
+        private static void assertHasErrorMessageMentioningExceededMaxLength(final String body, final String fieldName) {
+            assertThat(JsonUtils.readValueAsMap(body))
+                    .containsEntry("error", "invalid_scim_resource")
+                    .hasEntrySatisfying("message", msg ->
+                            assertThat((String) msg).containsIgnoringCase(fieldName).containsIgnoringCase("" + MAX_LENGTH));
         }
     }
 
@@ -511,12 +616,16 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     private ResultActions patchUser(final ScimUser user, final String token, final int version) throws Exception {
+        return patchUser(user, user, token, version);
+    }
+
+    private ResultActions patchUser(final ScimUser user, final ScimUser patchBody, final String token, final int version) throws Exception {
         return mockMvc.perform(
                 patch("/Users/" + user.getId())
                         .header("Authorization", "Bearer " + token)
                         .header("If-Match", "\"" + version + "\"")
                         .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(user))
+                        .content(JsonUtils.writeValueAsString(patchBody))
         );
     }
 
