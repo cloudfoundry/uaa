@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import tools.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.NameValuePair;
@@ -53,6 +52,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.core.type.TypeReference;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -177,6 +177,68 @@ class ScimUserEndpointsMockMvcTests {
                 .andExpect(jsonPath("$.error").value("invalid_password"))
                 .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."))
                 .andExpect(jsonPath("$.error_description").value("Password must be no more than 255 characters in length."));
+    }
+
+    @Nested
+    class CreateUserWithFieldsExceedingColumnLimits {
+
+        // The DB columns for 'username', ’givenname', and ’familyname' are VARCHAR(255).
+        private static final int OVER_LIMIT = 256;
+
+        @Test
+        void tooLongUsername_returnsUserFriendlyMessage() throws Exception {
+            final String shortEmail = "joe@" + generator.generate().toLowerCase() + ".com";
+
+            final String longUsername = new RandomValueStringGenerator(OVER_LIMIT).generate();
+            assertThat(longUsername).hasSizeGreaterThanOrEqualTo(OVER_LIMIT);
+
+            final ScimUser user = new ScimUser(null, longUsername, "Joe", "User");
+            user.setPassword(USER_PASSWORD);
+            user.setPrimaryEmail(shortEmail);
+
+            final MvcResult result = createUserAndReturnResult(user, scimReadWriteToken, null, null)
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            final String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+        }
+
+        @Test
+        void tooLongGivenName_returnsUserFriendlyMessage() throws Exception {
+            final ScimUser user = getScimUser();
+            user.setPassword(USER_PASSWORD);
+            user.setName(new ScimUser.Name(new RandomValueStringGenerator(OVER_LIMIT).generate(), "User"));
+
+            final MvcResult result = createUserAndReturnResult(user, scimReadWriteToken, null, null)
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            final String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+        }
+
+        @Test
+        void tooLongFamilyName_returnsUserFriendlyMessage() throws Exception {
+            final ScimUser user = getScimUser();
+            user.setPassword(USER_PASSWORD);
+            user.setName(new ScimUser.Name("Joe", new RandomValueStringGenerator(OVER_LIMIT).generate()));
+
+            final MvcResult result = createUserAndReturnResult(user, scimReadWriteToken, null, null)
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            final String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+        }
+
+        private static void assertDoesNotLeakDatabaseInternalsInErrorMessage(final String body) {
+            assertThat(body)
+                    .as("error response must not leak DB details or the SQL statement")
+                    .doesNotContainIgnoringCase("insert into")
+                    .doesNotContainIgnoringCase("sql")
+                    .doesNotContainIgnoringCase("PreparedStatementCallback");
+        }
     }
 
     @Test
