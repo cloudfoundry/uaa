@@ -638,9 +638,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
         if (t instanceof ScimException exception) {
             e = exception;
-        } else if (t instanceof DataAccessException) {
-            // Never leak DB internals (SQL statements, column names, driver messages) to the caller.
-            e = new ScimException("A database error occurred.", t, HttpStatus.INTERNAL_SERVER_ERROR);
         } else {
             Class<?> clazz = t.getClass();
             //attempt to get the status directly first, before we browse the map
@@ -653,6 +650,11 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                         e = new ScimException(t.getMessage(), t, statuses.get(key));
                         break;
                     }
+                }
+                // Never leak DB internals (SQL statements, column names, driver messages) to the caller
+                // for any DataAccessException not explicitly mapped to a status above.
+                if (e.getStatus() == HttpStatus.INTERNAL_SERVER_ERROR && t instanceof DataAccessException) {
+                    e = new ScimException("A database error occurred.", t, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
         }
