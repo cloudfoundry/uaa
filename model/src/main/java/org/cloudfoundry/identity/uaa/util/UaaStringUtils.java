@@ -205,6 +205,20 @@ public final class UaaStringUtils {
         return result.replace("\\*", ".*");
     }
 
+    /**
+     * Returns a pattern where the * character matches any sequence of characters except the
+     * ':' separator. Intended for JWT claims that are structured as colon delimited key/value
+     * pairs, e.g. the GitLab or GitHub OIDC 'sub' claim, where a wildcard must stay inside the
+     * segment it was written in and must not swallow the remaining claim components.
+     *
+     * @param s the wildcard string
+     * @return the wildcard pattern
+     */
+    public static String constructSimpleWildcardPatternWithColonDelimiter(String s) {
+        String result = escapeRegExCharacters(s);
+        return result.replace("\\*", "[^:]*");
+    }
+
     public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings) {
         return constructWildcards(wildcardStrings, UaaStringUtils::constructSimpleWildcardPattern);
     }
