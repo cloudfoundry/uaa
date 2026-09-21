@@ -90,7 +90,7 @@ public class ClientAdminBootstrap implements
             @Value("#{@applicationProperties.containsKey('oauth.client.autoapprove') ? @config['oauth']['client']['autoapprove'] : 'cf'}") final Collection<String> autoApproveClients,
             @Value("#{@config['delete']==null ? null : @config['delete']['clients']}") final Collection<String> clientsToDelete,
             final JdbcTemplate jdbcTemplate,
-            final Set<String> allowPublicClients) {
+            @Value("#{@config['oauth']==null ? null : @config['oauth']['client']==null ? null : @config['oauth']['client']['allowpublic']}") final Set<String> allowPublicClients) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
