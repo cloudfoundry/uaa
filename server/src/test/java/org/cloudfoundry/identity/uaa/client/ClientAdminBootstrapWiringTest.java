@@ -67,6 +67,7 @@ class ClientAdminBootstrapWiringTest {
             @Bean
             MultitenantClientServices clientRegistrationService() {
                 MultitenantClientServices svc = mock(MultitenantClientServices.class);
+                // Minimal stub: client lookup is not the concern here; we only verify the correct id is wired
                 doThrow(new NoSuchClientException("not found")).when(svc).loadClientByClientId(anyString(), anyString());
                 return svc;
             }
