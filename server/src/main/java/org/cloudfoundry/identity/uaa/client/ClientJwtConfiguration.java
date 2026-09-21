@@ -98,7 +98,9 @@ public class ClientJwtConfiguration implements Cloneable {
     }
 
     private static String credKey(ClientJwtCredential entry) {
-        return entry.getSubject() + '\0' + entry.getIssuer();
+        // A pattern credential and an exact credential of the same text are different trust
+        // statements, so they must not deduplicate against each other.
+        return (entry.isSubjectPattern() ? "p" : "s") + '\0' + entry.getSubject() + '\0' + entry.getIssuer();
     }
 
     private static void validateClientJwtCredentials(List<ClientJwtCredential> additionalCredentials, HashMap<String, ClientJwtCredential> clientJwtCredentialHashMap) {
@@ -432,9 +434,12 @@ public class ClientJwtConfiguration implements Cloneable {
                 result.jwksUri = null;
             }
         } else if (existingConfig.clientJwtCredentials != null && tobeDeleted.clientJwtCredentials != null) {
+            // Deletion compares the subject text verbatim; a pattern selects the credential
+            // stored under that pattern, it does not delete every credential it would match.
             existingConfig.clientJwtCredentials = existingConfig.clientJwtCredentials.stream()
                     .filter (c -> tobeDeleted.clientJwtCredentials.stream()
-                    .noneMatch(e -> e.getSubject().equals(c.getSubject()) && e.getIssuer().equals(c.getIssuer()))).toList();
+                    .noneMatch(e -> e.getSubject().equals(c.getSubject()) && e.getIssuer().equals(c.getIssuer())
+                            && e.isSubjectPattern() == c.isSubjectPattern())).toList();
             if (ObjectUtils.isEmpty(result.clientJwtCredentials) || tobeDeleted.clientJwtCredentials.equals(List.of(new ClientJwtCredential("*", "*", null))) || tobeDeleted.clientJwtCredentials.equals(List.of(new ClientJwtCredential("*", "*", "*")))) {
                 result.clientJwtCredentials = null;
             }
