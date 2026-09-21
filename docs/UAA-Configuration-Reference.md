@@ -124,6 +124,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#oauthclients"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.clients` | `{}`| Bootstrap OAuth client definitions|
 | <a href="#oauthclientoverride"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.override` | —| Override existing client on bootstrap|
 | <a href="#oauthclientautoapprove"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.autoapprove` | `[]`| Clients auto-approved for all scopes|
+| <a href="#oauthclientallowpublic"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.allowpublic` | `[]`| Clients allowed to authenticate without a client secret (PKCE S256)|
 | <a href="#oauthuserauthorities"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.user.authorities` | (see details)| Default authorities for new users|
 | <a href="#clientmaxcount"><img src="images/click-me.png" width="14" height="14"/></a> `clientMaxCount` | `500`| Max clients returned by list endpoint|
 
@@ -1191,6 +1192,37 @@ defined in the configuration file.
 **Type:** `List<String>`
 
 List of client IDs that are auto-approved for all scopes (user consent is not requested).
+
+[Back to table](#oauth-clients--users)
+
+---
+
+### `oauth.client.allowpublic`
+
+<a name="oauthclientallowpublic"></a>
+
+**Default:** `[]` (empty — no clients allowed without a secret)
+**Source:** `@config['oauth']['client']['allowpublic']` resolved by
+[`ClientAdminBootstrap`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminBootstrap.java)
+**Type:** `List<String>`
+
+List of client IDs that are permitted to authenticate without a `client_secret`, provided
+they use PKCE with the S256 code-challenge method. Clients listed here are marked with
+the `allowpublic` flag at bootstrap time.
+
+This is the **global** allowlist applied across all bootstrapped clients. To allow a single
+client without a secret, you can also set `allowpublic: true` directly on the individual
+client entry under [`oauth.clients`](#oauthclients).
+
+**Example:**
+
+```yaml
+oauth:
+  client:
+    allowpublic:
+      - my-spa-client
+      - mobile-app-client
+```
 
 [Back to table](#oauth-clients--users)
 
