@@ -17,6 +17,7 @@ public class ClientJwtChangeRequest {
     public static final String ISS = "iss";
     public static final String SUB = "sub";
     public static final String AUD = "aud";
+    public static final String SUB_PATTERN = "sub_pattern";
 
     public enum ChangeMode {
         UPDATE,
@@ -37,6 +38,8 @@ public class ClientJwtChangeRequest {
     private String subject;
     @JsonProperty(AUD)
     private String audience;
+    @JsonProperty(SUB_PATTERN)
+    private String subjectPattern;
 
     private ChangeMode changeMode = ADD;
 
@@ -121,14 +124,22 @@ public class ClientJwtChangeRequest {
         return jsonWebKeyUri != null ? jsonWebKeyUri : jsonWebKeySet;
     }
 
+    public String getSubjectPattern() {
+        return subjectPattern;
+    }
+
+    public void setSubjectPattern(String subjectPattern) {
+        this.subjectPattern = subjectPattern;
+    }
+
     @JsonIgnore
     public boolean isFederated() {
         // private_key_jwt according to RFC 7523. audience is addition supported, but optional
-        return issuer != null && subject != null;
+        return issuer != null && (subject != null || subjectPattern != null);
     }
 
     @JsonIgnore
     public ClientJwtCredential getFederation() {
-        return new ClientJwtCredential(subject, issuer, audience);
+        return new ClientJwtCredential(subject, issuer, audience, subjectPattern);
     }
 }
