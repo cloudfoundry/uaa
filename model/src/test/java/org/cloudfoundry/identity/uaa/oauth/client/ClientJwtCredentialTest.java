@@ -86,8 +86,8 @@ class ClientJwtCredentialTest {
         @ParameterizedTest
         @CsvSource(delimiter = '|', value = {
                 "project_path:myteam/deploy:ref_type:branch:ref:* | project_path:myteam/deploy:ref_type:branch:ref:main",
-                "project_path:myteam/deploy:ref_type:branch:ref:* | project_path:myteam/deploy:ref_type:branch:ref:feature/nested",
-                "project_path:myteam/deploy:ref_type:branch:ref:* | project_path:myteam/deploy:ref_type:branch:ref:release/1.0",
+                "project_path:myteam/deploy:ref_type:branch:ref:** | project_path:myteam/deploy:ref_type:branch:ref:feature/nested",
+                "project_path:myteam/deploy:ref_type:branch:ref:** | project_path:myteam/deploy:ref_type:branch:ref:release/1.0",
                 "repo:octo-org/octo-repo:ref:refs/heads/*         | repo:octo-org/octo-repo:ref:refs/heads/demo-branch",
                 "repo:octo-org/octo-repo:environment:*            | repo:octo-org/octo-repo:environment:Production",
         })
@@ -100,11 +100,17 @@ class ClientJwtCredentialTest {
                 // a wildcard must not swallow further claim components
                 "project_path:myteam/deploy:ref_type:branch:ref:* | project_path:myteam/deploy:ref_type:branch:ref:main:evil",
                 // a wildcard must not authorise a different project
-                "project_path:myteam/*:ref_type:branch:ref:*      | project_path:otherteam/deploy:ref_type:branch:ref:main",
+                "project_path:myteam/*:ref_type:branch:ref:**     | project_path:otherteam/deploy:ref_type:branch:ref:main",
                 // anchored at both ends
                 "repo:org/repo:ref:*                              | PREFIXrepo:org/repo:ref:main",
                 // '.' is a literal
                 "project_path:team/a.b:ref:*                      | project_path:team/aXb:ref:main",
+                // a single wildcard must not span '/' and take in both org and repository
+                "repo:*:ref:refs/heads/main                       | repo:evilorg/evilrepo:ref:refs/heads/main",
+                // nor reach into a nested subgroup
+                "project_path:myteam/*:ref_type:branch:ref:**     | project_path:myteam/sub/evil:ref_type:branch:ref:main",
+                // a literal prefix must not admit a longer group it is a prefix of
+                "project_path:myteam*:ref:*                       | project_path:myteamEVIL/r:ref:main",
         })
         void doesNotMatchSubject(String pattern, String assertedSubject) {
             assertThat(new ClientJwtCredential(null, "issuer", null, pattern).matchesSubject(assertedSubject)).isFalse();
@@ -123,6 +129,10 @@ class ClientJwtCredentialTest {
                 "**",
                 "no-wildcard-at-all",
                 "repo:org/r:*:*:*:*:*:*",
+                // no component is entirely literal, so the pattern pins no structure
+                "a*",
+                "*a*",
+                "*a",
         })
         void rejectsInvalidPattern(String pattern) {
             assertThatThrownBy(() -> new ClientJwtCredential(null, "issuer", null, pattern))
@@ -134,6 +144,26 @@ class ClientJwtCredentialTest {
             String pattern = "repo:org/" + "a".repeat(MAX_LENGTH) + ":*";
             assertThatThrownBy(() -> new ClientJwtCredential(null, "issuer", null, pattern))
                     .isInstanceOf(IllegalArgumentException.class).hasMessage("Invalid federated jwt credentials");
+        }
+
+        @Test
+        void blankPatternIsNormalisedToNone() {
+            // otherwise isSubjectPattern, credKey and equals disagree about this credential
+            List<ClientJwtCredential> parsed = ClientJwtCredential.parse(
+                    "[{\"iss\":\"issuer\",\"sub\":\"s\",\"sub_pattern\":\"   \"}]");
+            ClientJwtCredential credential = parsed.getFirst();
+            assertThat(credential.isSubjectPattern()).isFalse();
+            assertThat(credential.getSubjectPattern()).isNull();
+            assertThat(credential).isEqualTo(new ClientJwtCredential("s", "issuer", null));
+            assertThat(JsonUtils.writeValueAsString(credential)).doesNotContain("sub_pattern");
+        }
+
+        @Test
+        void doubleWildcardCrossesPathSeparatorButNotClaimSeparator() {
+            ClientJwtCredential credential = new ClientJwtCredential(null, "issuer", null,
+                    "project_path:myteam/deploy:ref_type:branch:ref:**");
+            assertThat(credential.matchesSubject("project_path:myteam/deploy:ref_type:branch:ref:feature/a/b")).isTrue();
+            assertThat(credential.matchesSubject("project_path:myteam/deploy:ref_type:branch:ref:main:evil")).isFalse();
         }
 
         @Test

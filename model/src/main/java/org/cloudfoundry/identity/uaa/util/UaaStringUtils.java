@@ -206,17 +206,36 @@ public final class UaaStringUtils {
     }
 
     /**
-     * Returns a pattern where the * character matches any sequence of characters except the
-     * ':' separator. Intended for JWT claims that are structured as colon delimited key/value
-     * pairs, e.g. the GitLab or GitHub OIDC 'sub' claim, where a wildcard must stay inside the
-     * segment it was written in and must not swallow the remaining claim components.
+     * Returns a pattern for a structured claim value, where ':' and '/' delimit the components.
+     * Those are the structural characters of the subjects OIDC providers issue, e.g.
+     * {@code project_path:group/repo:ref_type:branch:ref:main} or
+     * {@code spiffe://domain/ns/prod/sa/web}.
+     * <p>
+     * A single '*' matches one component, so it crosses neither ':' nor '/'. A double '**'
+     * matches across '/' but never across ':', for the components that legitimately contain a
+     * path, such as a git ref. Every other character is matched literally.
      *
      * @param s the wildcard string
      * @return the wildcard pattern
      */
-    public static String constructSimpleWildcardPatternWithColonDelimiter(String s) {
-        String result = escapeRegExCharacters(s);
-        return result.replace("\\*", "[^:]*");
+    public static String constructComponentWildcardPattern(String s) {
+        StringBuilder result = new StringBuilder(s.length() + 16);
+        int i = 0;
+        while (i < s.length()) {
+            char c = s.charAt(i);
+            if (c == '*') {
+                boolean crossesPathSeparator = i + 1 < s.length() && s.charAt(i + 1) == '*';
+                result.append(crossesPathSeparator ? "[^:]*" : "[^:/]*");
+                i += crossesPathSeparator ? 2 : 1;
+            } else {
+                if (!Character.isLetterOrDigit(c) && c != ' ') {
+                    result.append('\\');
+                }
+                result.append(c);
+                i++;
+            }
+        }
+        return result.toString();
     }
 
     public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings) {
