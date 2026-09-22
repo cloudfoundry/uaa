@@ -75,7 +75,8 @@ character, including `.`, is matched literally, and the pattern has to match the
 
 A pattern must contain at least one wildcard and some literal text of its own. `*` on its own is
 rejected, because it would trust any subject the issuer asserts. Patterns are limited to 256
-characters and five wildcards.
+characters and five wildcards. The same length limit applies to the subject being matched, so a
+pattern does not match an asserted subject longer than 256 characters.
 
 Only the subject can be a pattern. The issuer is always compared verbatim, and a pattern only
 widens which subjects that one issuer may assert; the assertion is still rejected unless its
