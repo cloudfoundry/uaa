@@ -68,15 +68,28 @@ credentials per client, so `sub_pattern` accepts a wildcard instead:
 [{"iss":"https://gitlab.example.com","sub_pattern":"project_path:myteam/deploy:ref_type:branch:ref:*"}]
 ```
 
-In a pattern, `*` matches any sequence of characters except `:`, so a wildcard cannot extend
-beyond the claim component it was written in. For the pattern above, a subject ending in
-`:ref:main` or `:ref:release/1.0` is accepted, while `:ref:main:extra` is not. Every other
-character, including `.`, is matched literally, and the pattern has to match the whole subject.
+Subjects are structured by two separators, `:` between the claim components and `/` inside a
+component that carries a path. A pattern has a wildcard for each:
 
-A pattern must contain at least one wildcard and some literal text of its own. `*` on its own is
-rejected, because it would trust any subject the issuer asserts. Patterns are limited to 256
-characters and five wildcards. The same length limit applies to the subject being matched, so a
-pattern does not match an asserted subject longer than 256 characters.
+| Wildcard | Matches | Use for |
+| --- | --- | --- |
+| `*` | one component, crossing neither `:` nor `/` | a group, a project, an environment |
+| `**` | across `/` but never across `:` | a git ref, which may contain `/` |
+
+For the pattern above, `…:ref:main` is accepted and `…:ref:main:extra` is not. A branch such as
+`release/1.0` or `feature/nested` contains a `/`, so it needs `…:ref:**`. Every other character,
+including `.`, is matched literally, and the pattern always has to match the whole subject.
+
+The distinction matters where a component identifies who is calling. `repo:*:ref:refs/heads/main`
+admits one repository, because `*` cannot cross the `/` between organisation and repository;
+`repo:**:ref:refs/heads/main` would admit every repository of every organisation on that issuer.
+Prefer `*` and reach for `**` only where the component genuinely holds a path.
+
+A pattern must contain at least one wildcard and at least one component that is entirely
+literal, so `*`, `a*` and `*:*` are rejected: they would authorise most of what the issuer can
+assert. Patterns are limited to 256 characters and five wildcards. The same length limit applies
+to the subject being matched, so a pattern does not match an asserted subject longer than 256
+characters.
 
 Only the subject can be a pattern. The issuer is always compared verbatim, and a pattern only
 widens which subjects that one issuer may assert; the assertion is still rejected unless its

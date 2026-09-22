@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.WildcardPatternCache;
 import org.springframework.util.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -51,17 +52,19 @@ public class ClientJwtCredential {
             @JsonProperty("aud") String audience, @JsonProperty("sub_pattern") String subjectPattern) {
         this.issuer = issuer;
         this.audience = audience;
-        this.subjectPattern = subjectPattern;
+        // Normalise a blank pattern away, so that isSubjectPattern, credKey and equals cannot
+        // disagree about whether this credential carries one.
+        String pattern = StringUtils.hasText(subjectPattern) ? subjectPattern : null;
+        this.subjectPattern = pattern;
         // sub and sub_pattern are mutually exclusive, so a subject supplied alongside a pattern
         // is a conflict rather than something to overwrite.
-        if (StringUtils.hasText(subjectPattern) && StringUtils.hasText(subject)
-                && !subjectPattern.equals(subject)) {
+        if (pattern != null && StringUtils.hasText(subject) && !pattern.equals(subject)) {
             throw new IllegalArgumentException("Invalid federated jwt credentials");
         }
         // A pattern is mirrored into the subject so that subject is never null, which credKey,
         // equals and delete all rely on, and so that a node which does not yet know the
         // sub_pattern field compares the pattern text literally and therefore fails closed.
-        this.subject = StringUtils.hasText(subjectPattern) ? subjectPattern : subject;
+        this.subject = pattern != null ? pattern : subject;
         if (!isValid()) {
             throw new IllegalArgumentException("Invalid federated jwt credentials");
         }
@@ -84,9 +87,13 @@ public class ClientJwtCredential {
                 || pattern.chars().filter(c -> c == '*').count() > MAX_WILDCARDS) {
             return false;
         }
-        // Reject a pattern that carries no literal context of its own, such as "*" or "*:*",
-        // which would trust any subject the issuer asserts.
-        if (pattern.replace("*", "").chars().noneMatch(Character::isLetterOrDigit)) {
+        // A wildcard may stand in for a whole component, but the pattern as a whole has to pin
+        // the structure around it. Requiring a component that is entirely literal rejects
+        // patterns such as "*", "a*" or "*:*" that would authorise most of what the issuer can
+        // assert, while still allowing the usual "prefix:*" and "prefix*" forms.
+        if (Arrays.stream(pattern.split("[:/]", -1))
+                .noneMatch(component -> component.indexOf('*') < 0
+                        && component.chars().anyMatch(Character::isLetterOrDigit))) {
             return false;
         }
         try {
@@ -98,7 +105,7 @@ public class ClientJwtCredential {
     }
 
     private static Pattern subjectPatternOf(String pattern) {
-        return WildcardPatternCache.compile(pattern, UaaStringUtils::constructSimpleWildcardPatternWithColonDelimiter);
+        return WildcardPatternCache.compile(pattern, UaaStringUtils::constructComponentWildcardPattern);
     }
 
     @JsonIgnore
@@ -109,7 +116,8 @@ public class ClientJwtCredential {
     /**
      * Whether the asserted subject is authorised by this credential. An exact credential must
      * match verbatim; a pattern credential matches when the whole subject matches the pattern,
-     * where '*' stands for any characters other than the ':' claim separator.
+     * where '*' stands for one component of the subject and '**' for a run of components
+     * separated by '/'. Neither crosses the ':' claim separator.
      */
     public boolean matchesSubject(String assertedSubject) {
         if (assertedSubject == null) {

@@ -51,6 +51,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -185,12 +186,16 @@ public class JwtClientAuthentication {
             return null;
         }
         // The issuer is never pattern matched: it selects the key set the assertion is verified
-        // against, so it is checked first and always verbatim.
+        // against, so it is checked first and always verbatim. Exact credentials are preferred
+        // over patterns, because the stored order is not stable and a pattern may overlap
+        // another credential's subject, which would otherwise make the audience that credential
+        // requires depend on iteration order.
         return clientJwtConfiguration.getClientJwtCredentials().stream()
                 .filter(e -> e.getIssuer().equals(clientClaims.getIssuer()))
                 .filter(e -> e.matchesSubject(clientClaims.getSubject()))
                 .filter(e -> isAudienceSupported(e.getAudience(), clientClaims.getAudience()))
-                .findFirst().orElse(null);
+                .min(Comparator.comparing(ClientJwtCredential::isSubjectPattern))
+                .orElse(null);
     }
 
     private static boolean isAudienceSupported(String audience, List<String> audList) {
