@@ -1204,7 +1204,7 @@ List of client IDs that are auto-approved for all scopes (user consent is not re
 **Default:** `[]` (empty — no clients allowed without a secret)
 **Source:** `@config['oauth']['client']['allowpublic']` resolved by
 [`ClientAdminBootstrap`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminBootstrap.java)
-**Type:** `List<String>`
+**Type:** `List<String>` (duplicate entries are silently deduplicated at runtime)
 
 List of client IDs that are permitted to authenticate without a `client_secret`, provided
 they use PKCE with the S256 code-challenge method. Clients listed here are marked with

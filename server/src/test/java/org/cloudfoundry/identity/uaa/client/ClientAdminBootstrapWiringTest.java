@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -53,6 +54,11 @@ class ClientAdminBootstrapWiringTest {
         @Profile("client-admin-wiring-test")
         @Import(ClientAdminBootstrap.class)
         static class Config {
+            @Bean
+            static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
+                return new PropertySourcesPlaceholderConfigurer();
+            }
+
             @Bean("config")
             Map<String, Object> config() {
                 return Map.of("oauth", Map.of("client", Map.of("allowpublic", List.of("public-test-client"))));
@@ -111,6 +117,11 @@ class ClientAdminBootstrapWiringTest {
         @Profile("client-admin-wiring-test")
         @Import(ClientAdminBootstrap.class)
         static class Config {
+            @Bean
+            static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
+                return new PropertySourcesPlaceholderConfigurer();
+            }
+
             @Bean("config")
             Map<String, Object> config() {
                 return Map.of();
@@ -166,6 +177,11 @@ class ClientAdminBootstrapWiringTest {
         @Profile("client-admin-wiring-test")
         @Import(ClientAdminBootstrap.class)
         static class Config {
+            @Bean
+            static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
+                return new PropertySourcesPlaceholderConfigurer();
+            }
+
             @Bean("config")
             Map<String, Object> config() {
                 return Map.of("oauth", Map.of());
