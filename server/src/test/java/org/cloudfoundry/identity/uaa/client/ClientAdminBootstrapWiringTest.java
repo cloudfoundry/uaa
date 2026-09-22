@@ -5,11 +5,13 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.lang.reflect.Field;
@@ -44,9 +46,11 @@ class ClientAdminBootstrapWiringTest {
 
     @Nested
     @SpringJUnitConfig(classes = WithAllowPublicConfigured.Config.class)
+    @ActiveProfiles("client-admin-wiring-test")
     class WithAllowPublicConfigured {
 
-        @Configuration
+        @TestConfiguration
+        @Profile("client-admin-wiring-test")
         @Import(ClientAdminBootstrap.class)
         static class Config {
             @Bean("config")
@@ -100,9 +104,11 @@ class ClientAdminBootstrapWiringTest {
 
     @Nested
     @SpringJUnitConfig(classes = WhenOauthConfigAbsent.Config.class)
+    @ActiveProfiles("client-admin-wiring-test")
     class WhenOauthConfigAbsent {
 
-        @Configuration
+        @TestConfiguration
+        @Profile("client-admin-wiring-test")
         @Import(ClientAdminBootstrap.class)
         static class Config {
             @Bean("config")
@@ -153,9 +159,11 @@ class ClientAdminBootstrapWiringTest {
 
     @Nested
     @SpringJUnitConfig(classes = WhenOauthClientConfigAbsent.Config.class)
+    @ActiveProfiles("client-admin-wiring-test")
     class WhenOauthClientConfigAbsent {
 
-        @Configuration
+        @TestConfiguration
+        @Profile("client-admin-wiring-test")
         @Import(ClientAdminBootstrap.class)
         static class Config {
             @Bean("config")
