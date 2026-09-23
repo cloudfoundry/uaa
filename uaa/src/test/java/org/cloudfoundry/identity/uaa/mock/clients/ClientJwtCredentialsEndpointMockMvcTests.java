@@ -10,6 +10,8 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
@@ -256,17 +258,51 @@ class ClientJwtCredentialsEndpointMockMvcTests {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void updateWithMalformedClientJwtConfigIsRejected() throws Exception {
+        String clientId = "jwt-upd-bad-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        updateClientWithJwtConfig(clientId, "not-json").andExpect(status().isBadRequest());
+
+        // the stored configuration is untouched and still readable
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    void blankClientJwtConfigIsTreatedAsNone(String blank) throws Exception {
+        String clientId = "jwt-blank-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, blank).andExpect(status().isCreated());
+        assertThat(getClient(clientId).getClientJwtCredentials()).isNullOrEmpty();
+
+        updateClientWithJwtConfig(clientId, blank).andExpect(status().isOk());
+        assertThat(getClient(clientId).getClientJwtCredentials()).isNullOrEmpty();
+    }
+
     private ResultActions createClientWithJwtConfig(String clientId, String clientJwtConfig) throws Exception {
+        return mockMvc.perform(post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(clientWithJwtConfig(clientId, clientJwtConfig))));
+    }
+
+    private ResultActions updateClientWithJwtConfig(String clientId, String clientJwtConfig) throws Exception {
+        return mockMvc.perform(put("/oauth/clients/" + clientId)
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(clientWithJwtConfig(clientId, clientJwtConfig))));
+    }
+
+    private static UaaClientDetails clientWithJwtConfig(String clientId, String clientJwtConfig) {
         UaaClientDetails client = new UaaClientDetails();
         client.setClientId(clientId);
         client.setClientSecret("secret");
         client.setAuthorizedGrantTypes(List.of("client_credentials"));
         client.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority("uaa.none")));
         client.setClientJwtConfig(clientJwtConfig);
-        return mockMvc.perform(post("/oauth/clients")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(client)));
+        return client;
     }
 
     private ResultActions changeClientJwt(String clientId, ClientJwtChangeRequest request) throws Exception {
