@@ -3143,12 +3143,14 @@ Example::
     }
 
 A federated credential (RFC 7523) is registered with an issuer and either a subject or a
-subject pattern. In a pattern, ``*`` matches any characters except the ``:`` claim separator::
+subject pattern. In a pattern, ``*`` matches one component and crosses neither ``:`` nor
+``/``; ``**`` crosses ``/`` but never ``:``, for a component such as a git ref that may
+contain a path::
 
     PUT /oauth/clients/foo/clientjwt
     {
       "iss": "https://gitlab.example.com",
-      "sub_pattern": "project_path:myteam/deploy:ref_type:branch:ref:*",
+      "sub_pattern": "project_path:myteam/deploy:ref_type:branch:ref:**",
       "changeMode": "ADD"
     }
 
