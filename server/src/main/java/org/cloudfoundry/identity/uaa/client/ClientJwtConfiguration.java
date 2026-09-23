@@ -294,6 +294,21 @@ public class ClientJwtConfiguration implements Cloneable {
     }
 
     /**
+     * Parses a client_jwt_config supplied by a caller, rejecting a malformed one as invalid
+     * client details rather than letting the parse failure surface as a server error.
+     */
+    @JsonIgnore
+    public static ClientJwtConfiguration readSuppliedValue(String clientJwtConfig) {
+        try {
+            return readValue(clientJwtConfig);
+        } catch (InvalidClientDetailsException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new InvalidClientDetailsException("Invalid client_jwt_config: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Creator from ClientDetails. Should abstract the persistence.
      * Use currently the client_jwt_config in UaaClientDetails
      */
