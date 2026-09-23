@@ -31,6 +31,8 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -616,21 +618,20 @@ class JwtClientAuthenticationTest {
                 .hasMessage("Wrong client_assertion");
     }
 
-    @Test
-    void clientJwtFederatedExactCredentialWinsOverOverlappingPattern() throws Exception {
-        // An exact credential and a pattern that also matches its subject may both be
-        // configured. The stored order is not stable, so selection must not depend on it.
+    // An exact credential and a pattern that also matches its subject may both be configured.
+    // The stored order is not stable, so selection must not depend on it.
+    @ParameterizedTest(name = "exact first: {0}")
+    @ValueSource(booleans = {true, false})
+    void clientJwtFederatedExactCredentialWinsOverOverlappingPattern(boolean exactFirst) throws Exception {
         ClientJwtCredential exact = new ClientJwtCredential("repo:myteam/deploy:ref:main", EXTERNAL_ISSUER, "audience");
         ClientJwtCredential pattern = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience", "repo:myteam/deploy:ref:*");
-        for (List<ClientJwtCredential> order : List.of(List.of(exact, pattern), List.of(pattern, exact))) {
-            assertThat(validateFederatedAssertion(new ClientJwtConfiguration(order),
-                    "repo:myteam/deploy:ref:main", EXTERNAL_ISSUER))
-                    .as("accepted regardless of stored order %s", order)
-                    .isTrue();
-            // and the subject only the pattern covers still works
-            assertThat(validateFederatedAssertion(new ClientJwtConfiguration(order),
-                    "repo:myteam/deploy:ref:other", EXTERNAL_ISSUER)).isTrue();
-        }
+        List<ClientJwtCredential> order = exactFirst ? List.of(exact, pattern) : List.of(pattern, exact);
+
+        assertThat(validateFederatedAssertion(new ClientJwtConfiguration(order),
+                "repo:myteam/deploy:ref:main", EXTERNAL_ISSUER)).isTrue();
+        // and the subject only the pattern covers still works
+        assertThat(validateFederatedAssertion(new ClientJwtConfiguration(order),
+                "repo:myteam/deploy:ref:other", EXTERNAL_ISSUER)).isTrue();
     }
 
     private boolean validateFederatedAssertion(ClientJwtCredential credential, String assertedSubject, String assertionIssuer) throws Exception {
