@@ -261,6 +261,27 @@ class ClientJwtCredentialsEndpointMockMvcTests {
     }
 
     @Test
+    void createWithMalformedClientJwtConfigIsRejected() throws Exception {
+        createClientWithJwtConfig("jwt-crt-bad-" + UUID.randomUUID().toString().substring(0, 8), "not-json")
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void restrictedUpdateWithMalformedClientJwtConfigIsRejected() throws Exception {
+        String clientId = "jwt-rst-bad-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(put("/oauth/clients/restricted/" + clientId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(clientWithJwtConfig(clientId, "not-json"))))
+                .andExpect(status().isBadRequest());
+
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
+    }
+
+    @Test
     void updateWithMalformedClientJwtConfigIsRejected() throws Exception {
         String clientId = "jwt-upd-bad-" + UUID.randomUUID().toString().substring(0, 8);
         createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
