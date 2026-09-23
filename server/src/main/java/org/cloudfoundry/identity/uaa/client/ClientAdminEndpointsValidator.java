@@ -251,11 +251,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         // A client_jwt_config supplied directly is persisted as given, on create as well as on
         // update, so reject a malformed one here rather than letting it fail when read back.
         if (StringUtils.hasText(client.getClientJwtConfig())) {
-            try {
-                ClientJwtConfiguration.readValue(client.getClientJwtConfig());
-            } catch (RuntimeException e) {
-                throw new InvalidClientDetailsException("Invalid client_jwt_config: " + e.getMessage(), e);
-            }
+            ClientJwtConfiguration.readSuppliedValue(client.getClientJwtConfig());
         }
 
         if (create) {

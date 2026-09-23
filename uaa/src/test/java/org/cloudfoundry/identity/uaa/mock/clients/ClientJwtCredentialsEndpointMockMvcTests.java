@@ -17,9 +17,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import tools.jackson.core.type.TypeReference;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -267,6 +269,40 @@ class ClientJwtCredentialsEndpointMockMvcTests {
         updateClientWithJwtConfig(clientId, "not-json").andExpect(status().isBadRequest());
 
         // the stored configuration is untouched and still readable
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
+    }
+
+    @Test
+    void batchUpdateWithMalformedClientJwtConfigIsRejected() throws Exception {
+        String clientId = "jwt-tx-bad-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(put("/oauth/clients/tx")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(new UaaClientDetails[]{clientWithJwtConfig(clientId, "not-json")})))
+                .andExpect(status().isBadRequest());
+
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
+    }
+
+    @Test
+    void modifyUpdateWithMalformedClientJwtConfigIsRejected() throws Exception {
+        String clientId = "jwt-mod-bad-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        // built as raw JSON, because ClientDetailsModification parses client_jwt_config itself
+        Map<String, Object> modification = JsonUtils.readValue(
+                JsonUtils.writeValueAsString(clientWithJwtConfig(clientId, "not-json")), new TypeReference<>() {});
+        modification.put("action", ClientDetailsModification.UPDATE);
+        mockMvc.perform(post("/oauth/clients/tx/modify")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(List.of(modification))))
+                .andExpect(status().isBadRequest());
+
         assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
     }
 
