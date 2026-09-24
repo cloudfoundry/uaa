@@ -191,13 +191,11 @@ class ClientDetailsAuthenticationProviderTests {
 
     @Test
     void validateTlsClientAuthEnforcesRequiredClaimsAgainstAClientSharingTheSameCa() throws Exception {
-        // Reproduces the reviewer's impersonation scenario (PR review comment on
-        // TlsClientAuthentication.java:150, also flagged at line 175): two UAA clients share the
-        // same tls-client-auth-ca (e.g. Diego's shared instance-identity CA). Without a
-        // tls-client-auth-required-claims constraint, a certificate for one app could authenticate
-        // as ANY client trusting that CA. A client that configures tls-client-auth-required-claims
-        // now rejects a certificate belonging to a different space, while an unconstrained client
-        // sharing the same CA still accepts it.
+        // Two UAA clients share the same tls-client-auth-ca (e.g. Diego's shared instance-identity
+        // CA). RFC 8705 section 2.1.2 requires each to register exactly one expected certificate
+        // subject value, so issuance by the shared CA is never on its own enough: a client with no
+        // subject binding authenticates nobody, and a bound client accepts only the certificate
+        // carrying its own subject.
         KeyPair caKeyPair = generateKeyPair();
         X500Name caName = new X500Name("CN=Shared Diego Instance Identity CA");
         X509Certificate caCert = signCert(caName, caName, caKeyPair.getPublic(), caKeyPair.getPrivate(), true, BigInteger.ONE);
@@ -218,24 +216,37 @@ class ClientDetailsAuthenticationProviderTests {
             when(unconstrainedClient.getAdditionalInformation()).thenReturn(Map.of(
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)));
 
+            UaaClient boundToThisCertClient = mock(UaaClient.class);
+            when(boundToThisCertClient.getAdditionalInformation()).thenReturn(Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+                    appCert.getSubjectX500Principal().getName(javax.security.auth.x500.X500Principal.RFC2253)));
+
             UaaClient constrainedClient = mock(UaaClient.class);
             when(constrainedClient.getAdditionalInformation()).thenReturn(Map.ofEntries(
                     Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)),
                     Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                             List.of(Map.of("field", "subject_ou", "pattern", "^space:(.+)$", "claim", "space_guid"))),
                     Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
-                            Map.of("space_guid", "the-expected-space-guid"))));
+                            Map.of("space_guid", "the-expected-space-guid")),
+                    Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+                            appCert.getSubjectX500Principal().getName(
+                                    javax.security.auth.x500.X500Principal.RFC2253))));
 
             ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
                     mock(UserDetailsService.class), mock(PasswordEncoder.class),
                     mock(JwtClientAuthentication.class), tlsClientAuthentication);
 
             assertThat(provider.validateTlsClientAuth(unconstrainedClient))
-                    .as("the unconstrained client (no tls-client-auth-required-claims) still accepts any cert from the shared CA")
-                    .isTrue();
+                    .as("a client registering no subject value cannot be authenticated by any certificate, "
+                            + "however impeccable its chain")
+                    .isFalse();
             assertThat(provider.validateTlsClientAuth(constrainedClient))
                     .as("the constrained client rejects a cert whose space_guid doesn't match its required claim")
                     .isFalse();
+            assertThat(provider.validateTlsClientAuth(boundToThisCertClient))
+                    .as("positive control: the client bound to THIS certificate's subject authenticates")
+                    .isTrue();
         } finally {
             RequestContextHolder.resetRequestAttributes();
         }

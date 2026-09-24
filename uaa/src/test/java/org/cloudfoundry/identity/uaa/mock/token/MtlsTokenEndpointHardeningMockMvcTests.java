@@ -540,16 +540,21 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("D4. required-claims gates authentication for a certificate from the same CA")
         void requiredClaimsGateAuthentication() throws Exception {
+            // Bound by SAN rather than subject DN so that both certificates below satisfy the RFC
+            // 8705 subject binding identically, and the only thing separating them is the
+            // UAA-specific required-claims constraint this test is about. (Binding by DN could not
+            // express that: the space these certificates differ in is carried in the DN itself.)
             Map<String, Object> config = Map.of(
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "d4-app.example.com",
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, List.of(
                             new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "space:(.+)", "space_guid")),
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                     Map.of("space_guid", "the-only-allowed-space"));
             String clientId = mtlsClient("d4", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
 
-            // Same CA, wrong space -- the shared-CA scenario the docs call out.
-            X509Certificate wrongSpace = leafSignedByCa("CN=d4-app,OU=space:some-other-space");
+            // Same CA, same SAN, wrong space -- the shared-CA scenario the docs call out.
+            X509Certificate wrongSpace = leafWithDnsSan("CN=d4-app,OU=space:some-other-space", "d4-app.example.com");
             // NOTE: this is the same message A4 gets for presenting no certificate at all. The product
             // does not distinguish "your certificate is not trusted" from "your certificate is trusted
             // but not permitted here", so this assertion pins the denial that exists rather than the
@@ -559,7 +564,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .isEqualTo(new Denial(401, "invalid_client",
                             "tls_client_auth: certificate validation failed"));
 
-            X509Certificate rightSpace = leafSignedByCa("CN=d4-app,OU=space:the-only-allowed-space");
+            X509Certificate rightSpace = leafWithDnsSan("CN=d4-app,OU=space:the-only-allowed-space", "d4-app.example.com");
             MvcResult allowed = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, rightSpace)
                     .param("token_format", "jwt"));
             assertThat(allowed.getResponse().getStatus())
@@ -769,14 +774,25 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                 (clientId + ":" + secret).getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * BouncyCastle encodes RDNs in the order given, while RFC 2253/4514 renders an encoded DN back
+     * to front -- so handing a multi-RDN string straight to {@code new X500Name(String)} yields a
+     * certificate whose subject reads in reverse. Round-tripping through X500Principal makes the
+     * certificate carry the DN as written, which is the form
+     * {@code tls_client_auth_subject_dn} is registered in.
+     */
+    private static X500Name x500(String rfc2253Dn) {
+        return X500Name.getInstance(new javax.security.auth.x500.X500Principal(rfc2253Dn).getEncoded());
+    }
+
     private static X509Certificate leafSignedByCa(String subjectDn) throws Exception {
-        return signCert(new X500Name(subjectDn), caSubject, generateKeyPair().getPublic(),
+        return signCert(x500(subjectDn), caSubject, generateKeyPair().getPublic(),
                 caKeyPair.getPrivate(), false, BigInteger.valueOf(System.nanoTime()), 3_600_000L);
     }
 
     /** A CA-issued leaf carrying a dNSName subjectAltName, for RFC 8705 SAN-bound clients. */
     private static X509Certificate leafWithDnsSan(String subjectDn, String dnsName) throws Exception {
-        X500Name subject = new X500Name(subjectDn);
+        X500Name subject = x500(subjectDn);
         JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
                 caSubject, BigInteger.valueOf(System.nanoTime()),
                 new Date(System.currentTimeMillis() - 120_000),
