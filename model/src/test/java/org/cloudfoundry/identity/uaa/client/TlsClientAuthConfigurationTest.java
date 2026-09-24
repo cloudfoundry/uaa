@@ -13,6 +13,29 @@ class TlsClientAuthConfigurationTest {
     private static final String EXAMPLE_CA = "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n";
 
     @Test
+    void isReservedClaimName_trueForExactReservedName() {
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("sub")).isTrue();
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cnf")).isTrue();
+    }
+
+    @Test
+    void isReservedClaimName_trueForDottedClaimWhoseFirstSegmentIsReserved() {
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("sub.foo")).isTrue();
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("aud.bar")).isTrue();
+    }
+
+    @Test
+    void isReservedClaimName_falseForUnreservedAndUnreservedDottedClaim() {
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cf_instance_guid")).isFalse();
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cf.app")).isFalse();
+    }
+
+    @Test
+    void isReservedClaimName_falseForNull() {
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName(null)).isFalse();
+    }
+
+    @Test
     void roundTripsViaJson() throws Exception {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
             EXAMPLE_CA,

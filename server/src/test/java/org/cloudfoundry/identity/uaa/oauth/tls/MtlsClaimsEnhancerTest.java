@@ -212,6 +212,38 @@ class MtlsClaimsEnhancerTest {
     }
 
     @Test
+    void dottedMappingWhoseParentIsReservedIsSkipped() throws Exception {
+        // "sub.foo" is not itself in RESERVED_CLAIM_NAMES, but dot-notation nesting would turn it
+        // into a nested {"foo": ...} object stored under the top-level claim "sub" -- which
+        // UaaTokenServices then uses to overwrite the real sub claim, producing a JWT whose sub is
+        // an object rather than the RFC 7519 string it must be. ClientAdminEndpointsValidator
+        // rejects this at configuration time; this is the defense-in-depth check for
+        // configurations that bypass it (pre-existing clients, BOSH bootstrap path).
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=inst-guid, OU=app:app-guid"));
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null,         "sub.foo"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "aud.bar")
+            )
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        OAuth2Authentication auth = mockAuthentication("instance-identity");
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), auth);
+
+        assertThat(result).doesNotContainKey("sub");
+        assertThat(result).doesNotContainKey("aud");
+    }
+
+    @Test
     void subTemplateRendered() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
