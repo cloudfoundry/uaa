@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 
@@ -37,7 +38,14 @@ import java.util.regex.Pattern;
  * <p>Spring auto-wires this bean into
  * {@link org.cloudfoundry.identity.uaa.oauth.UaaTokenServices#setUaaTokenEnhancers} via
  * {@code @Autowired(required = false)}.
+ *
+ * <p>Gated on {@code uaa.mtls-enabled} so that a deployment which has not turned the feature on
+ * registers no {@link UaaTokenEnhancer} at all. That keeps {@code uaaTokenEnhancers} empty, which
+ * is what it was before this feature existed -- {@code UaaTokenServices} takes a different code
+ * path when the list is non-empty, so registering this bean unconditionally would change token
+ * contents on deployments that do not use mTLS.
  */
+@ConditionalOnProperty(name = "uaa.mtls-enabled", havingValue = "true")
 @Component
 public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 

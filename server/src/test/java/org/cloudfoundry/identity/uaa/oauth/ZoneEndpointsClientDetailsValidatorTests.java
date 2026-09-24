@@ -188,6 +188,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
         clientDetails.setAdditionalInformation(additionalInfo);
 
         ClientDetails validated = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
@@ -204,6 +205,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
         clientDetails.setAdditionalInformation(additionalInfo);
 
         assertThatNoException().isThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
@@ -298,6 +300,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
         clientDetails.setAdditionalInformation(additionalInfo);
 
         zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);

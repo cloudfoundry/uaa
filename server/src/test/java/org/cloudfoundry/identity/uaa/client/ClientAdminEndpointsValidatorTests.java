@@ -380,6 +380,62 @@ class ClientAdminEndpointsValidatorTests {
         client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
         Map<String, Object> additionalInfo = new java.util.HashMap<>();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
+        client.setAdditionalInformation(additionalInfo);
+
+        ClientDetails validated = mtlsEnabledValidator.validate(client, false, false);
+
+        assertThat(validated.getAdditionalInformation())
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+    }
+
+    @Test
+    void rejectsTlsClientAuthCaWithNoSubjectBinding() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        // CA only: nothing ties a presented certificate to THIS client, so any certificate the CA
+        // ever issued would authenticate as it.
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA);
+    }
+
+    @Test
+    void rejectsTlsClientAuthCaWithEmptyRequiredClaims() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        // Present but empty binds nothing, so it must not satisfy the requirement.
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, Map.of());
+        client.setAdditionalInformation(additionalInfo);
+
+        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+    }
+
+    @Test
+    void allowsTlsClientAuthCaWhenScopedByRequiredClaims() {
+        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        Map<String, Object> additionalInfo = new java.util.HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "pattern", "^space:(.+)$", "claim", "space_guid")));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("space_guid", "a-specific-space"));
         client.setAdditionalInformation(additionalInfo);
 
         ClientDetails validated = mtlsEnabledValidator.validate(client, false, false);
