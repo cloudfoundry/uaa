@@ -26,7 +26,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.ArrayList;
@@ -372,76 +375,114 @@ class ClientAdminEndpointsValidatorTests {
                 .hasMessageContaining("uaa.mtls-enabled");
     }
 
-    @Test
-    void allowsTlsClientAuthCaWhenMtlsEnabled() {
-        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
+    private ClientAdminEndpointsValidator mtlsEnabledValidator() {
+        return new ClientAdminEndpointsValidator(
                 mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+    }
 
+    private Map<String, Object> mtlsClientInfo() {
         client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
         Map<String, Object> additionalInfo = new java.util.HashMap<>();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
         client.setAdditionalInformation(additionalInfo);
+        return additionalInfo;
+    }
 
-        ClientDetails validated = mtlsEnabledValidator.validate(client, false, false);
+    @Test
+    @DisplayName("RFC 8705 2.1.2: a tls_client_auth client must register exactly one subject parameter")
+    void allowsTlsClientAuthCaWithExactlyOneSubjectBinding() {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one,O=acme");
+
+        ClientDetails validated = mtlsEnabledValidator().validate(client, false, false);
 
         assertThat(validated.getAdditionalInformation())
-                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT)
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one,O=acme");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS,
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI,
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP,
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL})
+    void acceptsEachOfTheFiveSubjectParameters(String parameter) {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(parameter, sampleValueFor(parameter));
+
+        assertThatNoException().isThrownBy(() -> mtlsEnabledValidator().validate(client, false, false));
     }
 
     @Test
     void rejectsTlsClientAuthCaWithNoSubjectBinding() {
-        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
-                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+        // CA only: chain validation proves issuance, not identity, so any certificate the CA ever
+        // issued would authenticate as this client.
+        mtlsClientInfo();
 
-        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
-        Map<String, Object> additionalInfo = new java.util.HashMap<>();
-        // CA only: nothing ties a presented certificate to THIS client, so any certificate the CA
-        // ever issued would authenticate as it.
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        client.setAdditionalInformation(additionalInfo);
-
-        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA);
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN)
+                .hasMessageContaining("exactly one");
     }
 
     @Test
-    void rejectsTlsClientAuthCaWithEmptyRequiredClaims() {
-        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
-                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+    void rejectsTlsClientAuthCaWithMoreThanOneSubjectBinding() {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "app.example.com");
 
-        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
-        Map<String, Object> additionalInfo = new java.util.HashMap<>();
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        // Present but empty binds nothing, so it must not satisfy the requirement.
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, Map.of());
-        client.setAdditionalInformation(additionalInfo);
-
-        assertThatThrownBy(() -> mtlsEnabledValidator.validate(client, false, false))
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+                .hasMessageContaining("exactly one");
     }
 
     @Test
-    void allowsTlsClientAuthCaWhenScopedByRequiredClaims() {
-        ClientAdminEndpointsValidator mtlsEnabledValidator = new ClientAdminEndpointsValidator(
-                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
+    void rejectsBlankSubjectBindingValue() {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "   ");
 
-        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
-        Map<String, Object> additionalInfo = new java.util.HashMap<>();
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("exactly one");
+    }
+
+    @Test
+    @DisplayName("required-claims is a UAA extension and does not satisfy the RFC subject binding")
+    void requiredClaimsAloneDoesNotSatisfySubjectBinding() {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                 List.of(Map.of("field", "subject_ou", "pattern", "^space:(.+)$", "claim", "space_guid")));
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                 Map.of("space_guid", "a-specific-space"));
-        client.setAdditionalInformation(additionalInfo);
 
-        ClientDetails validated = mtlsEnabledValidator.validate(client, false, false);
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("exactly one");
+    }
 
-        assertThat(validated.getAdditionalInformation())
-                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+    @Test
+    void allowsRequiredClaimsAlongsideASubjectBinding() {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one");
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "pattern", "^space:(.+)$", "claim", "space_guid")));
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("space_guid", "a-specific-space"));
+
+        assertThatNoException().isThrownBy(() -> mtlsEnabledValidator().validate(client, false, false));
+    }
+
+    private static String sampleValueFor(String parameter) {
+        return switch (parameter) {
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN -> "CN=app-one,O=acme";
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS -> "app.example.com";
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI -> "spiffe://acme/app/one";
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP -> "10.0.0.7";
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL -> "svc@example.com";
+            default -> throw new IllegalArgumentException(parameter);
+        };
     }
 
     @Test
