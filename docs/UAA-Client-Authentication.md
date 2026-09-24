@@ -116,11 +116,38 @@ was issued by the configured CA, not that it belongs to *this* client specifical
 section 2.1.2 therefore requires the authorization server to compare a configured subject value
 against the presented certificate.
 
-**A client configuring `tls-client-auth-ca` must therefore also configure
-`tls-client-auth-required-claims`.** UAA rejects the client otherwise, at registration and again
-at authentication time:
+**A client configuring `tls-client-auth-ca` must therefore also register exactly one expected
+certificate subject value**, using one of the five RFC 8705 section 2.1.2 parameters. UAA rejects
+the client otherwise, at registration and again at authentication time:
+
+| Parameter | Matched against |
+|-----------|-----------------|
+| `tls_client_auth_subject_dn` | the certificate's subject DN, in RFC 4514 string form |
+| `tls_client_auth_san_dns` | a `dNSName` subjectAltName entry |
+| `tls_client_auth_san_uri` | a `uniformResourceIdentifier` subjectAltName entry |
+| `tls_client_auth_san_ip` | an `iPAddress` subjectAltName entry, compared in binary form |
+| `tls_client_auth_san_email` | an `rfc822Name` subjectAltName entry |
+
+These are the IANA-registered client metadata names, spelled exactly as RFC 7591 dynamic client
+registration sends them, so they use underscores rather than UAA's usual hyphens.
 
 ```yaml
+tls-client-auth-ca: <instance-identity CA certificate PEM>
+tls_client_auth_subject_dn: "CN=my-app,OU=space:<space-guid>,O=cloudfoundry"
+```
+
+Take the DN from the certificate itself rather than writing it by hand --
+`openssl x509 -in cert.pem -noout -subject -nameopt RFC2253` prints exactly the form expected.
+Comparison follows RFC 4517 `distinguishedNameMatch`: attribute-type case and whitespace around
+separators are insignificant, but the order of the relative distinguished names is.
+
+UAA additionally offers `tls-client-auth-required-claims`, which constrains the certificate
+further by matching values extracted through `tls-client-auth-claim-mappings`. That is a UAA
+extension, not part of RFC 8705, and it does not substitute for the subject binding -- use it
+*alongside* one, for example to pin a SAN-bound client to a particular CF space:
+
+```yaml
+tls_client_auth_san_dns: my-app.apps.internal
 tls-client-auth-claim-mappings:
   - field: subject_ou
     pattern: "space:(.+)"
@@ -129,15 +156,8 @@ tls-client-auth-required-claims:
   space_guid: <specific-space-guid>
 ```
 
-The one case where issuance genuinely is the binding is a CA dedicated to a single client, which
-issues certificates to nothing else. That configuration stays available, but has to be stated
-explicitly with `tls-client-auth-allow-any-cert-from-ca: true`, so that accepting any certificate
-the CA ever issued is a recorded decision rather than a silent default. Do not set it on a shared
-CA such as the Diego instance-identity CA: on that CA it means "any app in the foundation may
-authenticate as this client".
-
-An operator who needs both a broadly-scoped client and a narrowly-scoped one registers them as
-two separate UAA clients, scoping each with its own `tls-client-auth-required-claims`.
+An operator who needs two differently-scoped clients registers them as two separate UAA clients,
+each with its own subject value.
 
 #### Configuration
 
@@ -153,8 +173,8 @@ present a certificate whose chain validates to the configured CA; no separate
 |----------|----------|--------------|
 | `tls-client-auth-ca` | yes | PEM-encoded CA certificate. This is the per-client mTLS selector: requests to the fixed `/oauth/mtls/token` endpoint authenticate with a presented leaf certificate only when it chains to this CA. |
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
-| `tls-client-auth-required-claims` | yes, unless `tls-client-auth-allow-any-cert-from-ca` is set | Map of `claimName -> requiredValue`, checked against the values already produced by `tls-client-auth-claim-mappings`. Authentication fails unless every entry matches exactly -- e.g. `{space_guid: "<specific-space-guid>"}` scopes this client to a single CF space, even if other clients share the same `tls-client-auth-ca`. This is what ties a certificate to *this* client; see "Scoping a client" above. |
-| `tls-client-auth-allow-any-cert-from-ca` | no | Boolean, default `false`. Accepts any certificate that chains to `tls-client-auth-ca`, with no subject check. Only appropriate when the CA is dedicated to this one client. Setting it on a shared CA (e.g. the Diego instance-identity CA) lets any holder of any certificate from that CA authenticate as this client. |
+| one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`, `tls_client_auth_san_email` | yes -- exactly one | The expected certificate subject value (RFC 8705 section 2.1.2). Chain validation proves only that the CA issued the certificate; this is what identifies *this* client. See "Scoping a client" above. |
+| `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values produced by `tls-client-auth-claim-mappings`. A UAA extension applied in addition to the subject binding, not instead of it -- authentication fails unless every entry matches exactly. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to JWT claim names. `subject_cn` and `subject_o` map their values directly; `pattern` is supported only for `subject_ou`, where it extracts a capture group. Patterns are UAA administrator-controlled configuration and are evaluated on every mTLS authentication request; use efficient Java regular expressions and avoid patterns with catastrophic backtracking. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. |
 | `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. |
@@ -177,13 +197,13 @@ tls-client-auth-claim-mappings:
   - field: subject_ou
     pattern: "organization:(.+)"
     claim: org_guid
-tls-client-auth-required-claims:
-  space_guid: <the one space whose apps may authenticate as this client>
+tls_client_auth_subject_dn: "CN=<app instance guid>,OU=organization:<org-guid>,OU=space:<space-guid>,OU=app:<app-guid>"
 ```
 
-`tls-client-auth-required-claims` is part of the example because the instance-identity CA issues
-a certificate to every app instance in the foundation. Without it this client would accept any of
-them, and UAA rejects that configuration.
+The subject binding is part of the example because the instance-identity CA issues a certificate
+to every app instance in the foundation. Without it this client would accept any of them, and UAA
+rejects that configuration. Where a single client must serve several app instances, bind on a SAN
+they share and use `tls-client-auth-required-claims` to narrow it to an org, space or app.
 
 For the direct-connection topology described above, omit `tls-client-auth-trusted-proxy-ca`
 entirely rather than setting it -- configuring it at all switches this client to proxy-only.

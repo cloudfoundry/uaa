@@ -94,6 +94,7 @@ public class OpenIdConfiguration {
         this.userInfoUrl = contextPath + "/userinfo";
         this.jwksUri = contextPath + "/token_keys";
         this.logoutEndpoint = contextPath + "/logout.do";
+        this.tlsClientCertificateBoundAccessTokens = mtlsEnabled;
         if (!mtlsEnabled) {
             this.tokenAMR = Arrays.stream(this.tokenAMR)
                     .filter(method -> !ClientAuthentication.TLS_CLIENT_AUTH.equals(method))

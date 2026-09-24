@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthSubjectMatcher;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -106,21 +107,20 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                             || !isTlsClientAuthPath(authentication.getDetails())) {
                         error = new BadCredentialsException(
                                 "tls_client_auth: configured clients must authenticate at /oauth/mtls/token without client credentials");
-                    } else if (!TlsClientAuthConfiguration.hasSubjectBinding(tlsClientAuthConfiguration)) {
-                        // PKIX validation against tls-client-auth-ca proves only that
-                        // SOME certificate from that CA was presented, not that it belongs to this
-                        // client. Where the CA is shared -- as Diego's instance-identity CA is,
-                        // across every app instance in a foundation -- authenticating on issuance
-                        // alone lets any holder of any certificate from that CA obtain this
-                        // client's tokens. ClientAdminEndpointsValidator rejects this shape at
+                    } else if (tlsClientAuthConfiguration.configuredSubjectBindings().size() != 1) {
+                        // RFC 8705 2.1.2 requires exactly one registered subject value. PKIX
+                        // validation proves only that SOME certificate from the configured CA was
+                        // presented, not that it belongs to this client -- and where the CA is
+                        // shared, as Diego's instance-identity CA is across every app instance in
+                        // a foundation, that lets any certificate holder obtain this client's
+                        // tokens. ClientAdminEndpointsValidator rejects this shape at
                         // configuration time; this is the enforcement for clients that reached the
                         // store by another route (persisted before that check existed, written
                         // directly, or restored from a backup).
                         error = new BadCredentialsException(
-                                "tls_client_auth: client is configured with tls-client-auth-ca but nothing binds a "
-                                        + "certificate to this client. Configure tls-client-auth-required-claims, or "
-                                        + "set tls-client-auth-allow-any-cert-from-ca=true to accept any certificate "
-                                        + "issued by that CA");
+                                "tls_client_auth: client is configured with tls-client-auth-ca but does not register "
+                                        + "exactly one certificate subject value. Configure one of "
+                                        + String.join(", ", TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS));
                     } else {
                         setAuthenticationMethod(authentication, CLIENT_AUTH_TLS_CLIENT_AUTH);
                         if (!validateTlsClientAuth(uaaClient)) {
@@ -258,11 +258,21 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             return false;
         }
         try {
+            // Three separate questions, in increasing cost: was it issued by the CA we trust for
+            // this client (RFC 8705 2.1, chain validation); is it THIS client's certificate
+            // (RFC 8705 2.1.2, subject binding); and does it satisfy any additional UAA-specific
+            // required-claims constraint layered on top.
             return tlsClientAuthentication.validateClientCert(chain, config).isPresent()
+                    && TlsClientAuthSubjectMatcher.matches(chain[0], config)
                     && tlsClientAuthentication.certificateSatisfiesRequiredClaims(chain[0], config);
         } catch (InvalidClientDetailsException e) {
             throw new BadCredentialsException(e.getMessage(), e);
         }
+    }
+
+    /** A non-blank String value from the flat additionalInformation map, or {@code null}. */
+    private static String flatString(Map<String, Object> info, String key) {
+        return info.get(key) instanceof String value && !value.isBlank() ? value : null;
     }
 
     static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
@@ -318,23 +328,19 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                             new TypeReference<Map<String, String>>() {});
                 }
 
-                // BOSH oauth.clients renders every value as a String, so accept both the native
-                // boolean and its textual form. Anything else (absent, null, unparseable) stays
-                // false, which is the fail-closed default.
-                boolean allowAnyCertFromCa = false;
-                Object rawAllowAnyCert = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA);
-                if (rawAllowAnyCert instanceof Boolean b) {
-                    allowAnyCertFromCa = b;
-                } else if (rawAllowAnyCert instanceof String s) {
-                    allowAnyCertFromCa = Boolean.parseBoolean(s.trim());
-                }
-
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
                 cfg.setRequiredClaims(requiredClaims);
-                cfg.setAllowAnyCertFromCa(allowAnyCertFromCa);
+                // RFC 8705 2.1.2 subject binding. Read from the flat additionalInformation path so
+                // that clients registered through the BOSH oauth.clients bootstrap, which never
+                // goes through the admin API's typed model, are bound too.
+                cfg.setSubjectDn(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN));
+                cfg.setSanDns(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS));
+                cfg.setSanUri(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI));
+                cfg.setSanIp(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP));
+                cfg.setSanEmail(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL));
                 return cfg;
             } catch (Exception e) {
                 return null;

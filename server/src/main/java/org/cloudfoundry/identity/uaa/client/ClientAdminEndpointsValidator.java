@@ -395,58 +395,46 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 throw new InvalidClientDetailsException(
                         "Invalid tls-client-auth-ca for client_id=" + clientId + ": " + e.getMessage(), e);
             }
-            requireSubjectBinding(additionalInfo, clientId);
+            requireExactlyOneSubjectBinding(additionalInfo, clientId);
         }
     }
 
     /**
-     * Rejects an mTLS client that nothing binds a certificate to.
+     * Enforces RFC 8705 section 2.1.2: "A client using the {@code tls_client_auth} authentication
+     * method MUST use exactly one of the below metadata parameters to indicate the certificate
+     * subject value that the authorization server is to expect when authenticating the respective
+     * client."
      *
      * <p>Chain validation against {@code tls-client-auth-ca} establishes only that the presented
      * certificate was issued by that CA. That is an identity for this client only if the CA issues
-     * certificates for this client alone. The feature's headline use case is the opposite: Cloud
-     * Foundry's Diego instance-identity CA issues a certificate to every app instance in the
-     * foundation, so accepting issuance alone means any app in the foundation can authenticate as
-     * this client. RFC 8705 section 2.1.2 requires the authorization server to compare a configured
-     * subject value against the presented certificate; {@code tls-client-auth-required-claims} is
-     * how that comparison is expressed here.
+     * certificates for this client alone, and the feature's headline use case is the opposite:
+     * Cloud Foundry's Diego instance-identity CA issues to every app instance in the foundation,
+     * so accepting issuance alone would let any app there authenticate as this client. Section 2.1
+     * makes the subject, not the issuer, the thing that identifies the client.
      *
-     * <p>A dedicated single-purpose CA is a legitimate configuration in which issuance really is
-     * the binding. That case stays available, but has to be stated -- {@code
-     * tls-client-auth-allow-any-cert-from-ca=true} -- so it is a recorded decision rather than the
-     * silent default.
+     * <p>More than one parameter is refused as well as none: the spec defines no way to combine
+     * them, and guessing (any-of would be weaker than either alone) is worse than making the
+     * operator state one.
      */
-    private static void requireSubjectBinding(Map<String, Object> additionalInfo, String clientId) {
-        if (parseAllowAnyCertFromCa(additionalInfo.get(
-                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA))) {
+    private static void requireExactlyOneSubjectBinding(Map<String, Object> additionalInfo, String clientId) {
+        List<String> configured = TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS.stream()
+                .filter(parameter -> additionalInfo.get(parameter) instanceof String value && !value.isBlank())
+                .toList();
+        if (configured.size() == 1) {
             return;
         }
-        Object rawRequiredClaims = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
-        boolean hasRequiredClaims = switch (rawRequiredClaims) {
-            case null -> false;
-            case Map<?, ?> map -> !map.isEmpty();
-            case String json -> !json.isBlank() && !"{}".equals(json.trim());
-            default -> false;
-        };
-        if (!hasRequiredClaims) {
-            throw new InvalidClientDetailsException(
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA + " for client_id=" + clientId
-                            + " must be paired with " + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS
-                            + ", which ties the presented certificate to this client. Chain validation alone only "
-                            + "proves the certificate was issued by that CA, so on a shared CA (e.g. the Diego "
-                            + "instance-identity CA, which issues to every app in the foundation) any holder of "
-                            + "any certificate from it could authenticate as this client. If this CA is dedicated "
-                            + "to this client and issuance alone is intended to be sufficient, set "
-                            + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA + "=true.");
-        }
-    }
-
-    private static boolean parseAllowAnyCertFromCa(Object raw) {
-        return switch (raw) {
-            case Boolean b -> b;
-            case String s -> Boolean.parseBoolean(s.trim());
-            case null, default -> false;
-        };
+        String problem = configured.isEmpty()
+                ? "none is configured"
+                : "these are configured: " + String.join(", ", configured);
+        throw new InvalidClientDetailsException(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA + " for client_id=" + clientId
+                        + " requires exactly one of "
+                        + String.join(", ", TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS)
+                        + " (RFC 8705 section 2.1.2), but " + problem
+                        + ". Chain validation only proves the certificate was issued by that CA; the subject "
+                        + "value is what identifies this particular client, so on a shared CA -- such as the "
+                        + "Diego instance-identity CA, which issues to every app in the foundation -- any "
+                        + "certificate holder could otherwise authenticate as this client.");
     }
 
     private static String getTlsClientAuthCaPem(Map<String, Object> additionalInfo) {
