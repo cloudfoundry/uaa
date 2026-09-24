@@ -380,12 +380,20 @@ class ClientAdminEndpointsValidatorTests {
                 mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), true);
     }
 
+    /**
+     * additionalInformation is defensively copied by {@code setAdditionalInformation}, so the map
+     * is populated first and applied by {@link #validateMtlsClient} once it is complete.
+     */
     private Map<String, Object> mtlsClientInfo() {
         client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
         Map<String, Object> additionalInfo = new java.util.HashMap<>();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        client.setAdditionalInformation(additionalInfo);
         return additionalInfo;
+    }
+
+    private ClientDetails validateMtlsClient(Map<String, Object> additionalInfo) {
+        client.setAdditionalInformation(additionalInfo);
+        return mtlsEnabledValidator().validate(client, false, false);
     }
 
     @Test
@@ -394,7 +402,7 @@ class ClientAdminEndpointsValidatorTests {
         Map<String, Object> additionalInfo = mtlsClientInfo();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one,O=acme");
 
-        ClientDetails validated = mtlsEnabledValidator().validate(client, false, false);
+        ClientDetails validated = validateMtlsClient(additionalInfo);
 
         assertThat(validated.getAdditionalInformation())
                 .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT)
@@ -412,16 +420,16 @@ class ClientAdminEndpointsValidatorTests {
         Map<String, Object> additionalInfo = mtlsClientInfo();
         additionalInfo.put(parameter, sampleValueFor(parameter));
 
-        assertThatNoException().isThrownBy(() -> mtlsEnabledValidator().validate(client, false, false));
+        assertThatNoException().isThrownBy(() -> validateMtlsClient(additionalInfo));
     }
 
     @Test
     void rejectsTlsClientAuthCaWithNoSubjectBinding() {
         // CA only: chain validation proves issuance, not identity, so any certificate the CA ever
         // issued would authenticate as this client.
-        mtlsClientInfo();
+        Map<String, Object> additionalInfo = mtlsClientInfo();
 
-        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+        assertThatThrownBy(() -> validateMtlsClient(additionalInfo))
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN)
                 .hasMessageContaining("exactly one");
@@ -433,7 +441,7 @@ class ClientAdminEndpointsValidatorTests {
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one");
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "app.example.com");
 
-        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+        assertThatThrownBy(() -> validateMtlsClient(additionalInfo))
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining("exactly one");
     }
@@ -443,7 +451,7 @@ class ClientAdminEndpointsValidatorTests {
         Map<String, Object> additionalInfo = mtlsClientInfo();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "   ");
 
-        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+        assertThatThrownBy(() -> validateMtlsClient(additionalInfo))
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining("exactly one");
     }
@@ -457,7 +465,7 @@ class ClientAdminEndpointsValidatorTests {
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                 Map.of("space_guid", "a-specific-space"));
 
-        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+        assertThatThrownBy(() -> validateMtlsClient(additionalInfo))
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining("exactly one");
     }
@@ -471,7 +479,7 @@ class ClientAdminEndpointsValidatorTests {
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                 Map.of("space_guid", "a-specific-space"));
 
-        assertThatNoException().isThrownBy(() -> mtlsEnabledValidator().validate(client, false, false));
+        assertThatNoException().isThrownBy(() -> validateMtlsClient(additionalInfo));
     }
 
     private static String sampleValueFor(String parameter) {

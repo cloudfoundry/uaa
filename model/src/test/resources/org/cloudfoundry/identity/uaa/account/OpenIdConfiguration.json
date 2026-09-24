@@ -75,5 +75,6 @@
   "code_challenge_methods_supported": [
     "S256",
     "plain"
-  ]
+  ],
+  "tls_client_certificate_bound_access_tokens": true
 }

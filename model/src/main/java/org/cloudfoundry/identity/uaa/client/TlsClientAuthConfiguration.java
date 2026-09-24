@@ -18,7 +18,6 @@ public class TlsClientAuthConfiguration {
     public static final String TLS_CLIENT_AUTH_AUD_TEMPLATES = "tls-client-auth-aud-templates";
     public static final String TLS_CLIENT_AUTH_TRUSTED_PROXY_CA = "tls-client-auth-trusted-proxy-ca";
     public static final String TLS_CLIENT_AUTH_REQUIRED_CLAIMS = "tls-client-auth-required-claims";
-    public static final String TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA = "tls-client-auth-allow-any-cert-from-ca";
 
     /**
      * RFC 8705 section 2.1.2 client registration metadata: the expected certificate subject value.
@@ -107,9 +106,6 @@ public class TlsClientAuthConfiguration {
     @JsonProperty(TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
     private Map<String, String> requiredClaims;
 
-    @JsonProperty(TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA)
-    private boolean allowAnyCertFromCa;
-
     @JsonProperty(TLS_CLIENT_AUTH_SUBJECT_DN)
     private String subjectDn;
 
@@ -149,9 +145,6 @@ public class TlsClientAuthConfiguration {
 
     public Map<String, String> getRequiredClaims() { return requiredClaims; }
     public void setRequiredClaims(Map<String, String> requiredClaims) { this.requiredClaims = requiredClaims; }
-
-    public boolean isAllowAnyCertFromCa() { return allowAnyCertFromCa; }
-    public void setAllowAnyCertFromCa(boolean allowAnyCertFromCa) { this.allowAnyCertFromCa = allowAnyCertFromCa; }
 
     public String getSubjectDn() { return subjectDn; }
     public void setSubjectDn(String subjectDn) { this.subjectDn = subjectDn; }
@@ -199,7 +192,6 @@ public class TlsClientAuthConfiguration {
                Objects.equals(audTemplates, that.audTemplates) &&
                Objects.equals(trustedProxyCaPem, that.trustedProxyCaPem) &&
                Objects.equals(requiredClaims, that.requiredClaims) &&
-               allowAnyCertFromCa == that.allowAnyCertFromCa &&
                Objects.equals(subjectDn, that.subjectDn) &&
                Objects.equals(sanDns, that.sanDns) &&
                Objects.equals(sanUri, that.sanUri) &&
@@ -210,37 +202,13 @@ public class TlsClientAuthConfiguration {
     @Override
     public int hashCode() {
         return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates, trustedProxyCaPem,
-                requiredClaims, allowAnyCertFromCa, subjectDn, sanDns, sanUri, sanIp, sanEmail);
+                requiredClaims, subjectDn, sanDns, sanUri, sanIp, sanEmail);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {
         return config != null && config.getTrustedCaPem() != null && !config.getTrustedCaPem().isBlank();
     }
 
-    /**
-     * Whether this client's configuration ties a presented certificate to <em>this</em> client,
-     * rather than accepting any certificate the configured CA ever issued.
-     *
-     * <p>PKIX validation against {@code tls-client-auth-ca} only proves "issued by that CA". Where
-     * the CA is shared -- and the headline use case, Cloud Foundry's Diego instance-identity CA, is
-     * shared across every app instance in the foundation -- that is not an identity for this client:
-     * any holder of any certificate from that CA would authenticate as this client. RFC 8705
-     * section 2.1.2 therefore requires the authorization server to compare a configured subject
-     * value against the presented certificate.
-     *
-     * <p>{@code tls-client-auth-required-claims} is that comparison. A client that deliberately
-     * wants CA-issuance alone to be sufficient -- e.g. a dedicated single-purpose CA, where the CA
-     * itself is the binding -- must say so explicitly via
-     * {@code tls-client-auth-allow-any-cert-from-ca}, so the decision is recorded in configuration
-     * instead of being the silent default.
-     */
-    public static boolean hasSubjectBinding(TlsClientAuthConfiguration config) {
-        if (config == null) {
-            return false;
-        }
-        return config.isAllowAnyCertFromCa()
-                || (config.getRequiredClaims() != null && !config.getRequiredClaims().isEmpty());
-    }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
