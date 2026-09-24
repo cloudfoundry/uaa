@@ -634,6 +634,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException, InternalUserManagementDisabledException {
         logger.error("Unhandled exception in SCIM user endpoints. {}", t.getMessage());
+        logger.debug("Exception details:", t);
 
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
         if (t instanceof ScimException exception) {
