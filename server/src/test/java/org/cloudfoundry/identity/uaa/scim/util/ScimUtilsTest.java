@@ -253,6 +253,34 @@ class ScimUtilsTest {
         }
 
         @Test
+        void origin_atMaxLength_passes() {
+            ScimUser user = validUser();
+            user.setOrigin(RandomStringUtils.randomAlphanumeric(36));
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void origin_overMaxLength_throwsWithFieldName() {
+            ScimUser user = validUser();
+            user.setOrigin(RandomStringUtils.randomAlphanumeric(37));
+
+            assertThatThrownBy(() -> ScimUtils.validate(user))
+                    .isInstanceOf(InvalidScimResourceException.class)
+                    .hasMessageContainingAll("Origin", "36");
+        }
+
+        @Test
+        void nullOrigin_passes() {
+            ScimUser user = validUser();
+            user.setOrigin(null);
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
         void nullGivenName_passes() {
             ScimUser user = validUser();
             user.setName(new ScimUser.Name(null, "User"));

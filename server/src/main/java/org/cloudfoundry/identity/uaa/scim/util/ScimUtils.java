@@ -107,6 +107,9 @@ public final class ScimUtils {
         if (OriginKeys.UAA.equals(user.getOrigin()) && !usernamePattern.matcher(user.getUserName()).matches()) {
             throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
         }
+        if (user.getOrigin() != null && user.getOrigin().length() > 36) {
+            throw new InvalidScimResourceException("Origin must be no more than 36 characters in length.");
+        }
         if (user.getEmails() == null || user.getEmails().size() != 1) {
             throw new InvalidScimResourceException("Exactly one email must be provided.");
         }
