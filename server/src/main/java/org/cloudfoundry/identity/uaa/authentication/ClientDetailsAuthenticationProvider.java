@@ -86,8 +86,9 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         for (String pwd : passwordList) {
             try {
                 UaaClient uaaClient = new UaaClient(userDetails, pwd);
+                TlsClientAuthConfiguration tlsClientAuthConfiguration = getTlsClientAuthConfiguration(uaaClient);
                 boolean tlsClientAuthConfigured =
-                        TlsClientAuthConfiguration.isConfigured(getTlsClientAuthConfiguration(uaaClient));
+                        TlsClientAuthConfiguration.isConfigured(tlsClientAuthConfiguration);
                 // /oauth/mtls/token is advertised in OIDC discovery as
                 // mtls_endpoint_aliases.token_endpoint (RFC 8705 section 5), so it must serve mutual-TLS
                 // client authentication and nothing else. Without this check the endpoint is an
@@ -105,6 +106,21 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                             || !isTlsClientAuthPath(authentication.getDetails())) {
                         error = new BadCredentialsException(
                                 "tls_client_auth: configured clients must authenticate at /oauth/mtls/token without client credentials");
+                    } else if (!TlsClientAuthConfiguration.hasSubjectBinding(tlsClientAuthConfiguration)) {
+                        // PKIX validation against tls-client-auth-ca proves only that
+                        // SOME certificate from that CA was presented, not that it belongs to this
+                        // client. Where the CA is shared -- as Diego's instance-identity CA is,
+                        // across every app instance in a foundation -- authenticating on issuance
+                        // alone lets any holder of any certificate from that CA obtain this
+                        // client's tokens. ClientAdminEndpointsValidator rejects this shape at
+                        // configuration time; this is the enforcement for clients that reached the
+                        // store by another route (persisted before that check existed, written
+                        // directly, or restored from a backup).
+                        error = new BadCredentialsException(
+                                "tls_client_auth: client is configured with tls-client-auth-ca but nothing binds a "
+                                        + "certificate to this client. Configure tls-client-auth-required-claims, or "
+                                        + "set tls-client-auth-allow-any-cert-from-ca=true to accept any certificate "
+                                        + "issued by that CA");
                     } else {
                         setAuthenticationMethod(authentication, CLIENT_AUTH_TLS_CLIENT_AUTH);
                         if (!validateTlsClientAuth(uaaClient)) {
@@ -302,11 +318,23 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                             new TypeReference<Map<String, String>>() {});
                 }
 
+                // BOSH oauth.clients renders every value as a String, so accept both the native
+                // boolean and its textual form. Anything else (absent, null, unparseable) stays
+                // false, which is the fail-closed default.
+                boolean allowAnyCertFromCa = false;
+                Object rawAllowAnyCert = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA);
+                if (rawAllowAnyCert instanceof Boolean b) {
+                    allowAnyCertFromCa = b;
+                } else if (rawAllowAnyCert instanceof String s) {
+                    allowAnyCertFromCa = Boolean.parseBoolean(s.trim());
+                }
+
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
                 cfg.setRequiredClaims(requiredClaims);
+                cfg.setAllowAnyCertFromCa(allowAnyCertFromCa);
                 return cfg;
             } catch (Exception e) {
                 return null;

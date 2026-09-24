@@ -139,7 +139,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             CLIENT_ID, CID, AZP, REVOCABLE,
             GRANT_TYPE, USER_ID, ORIGIN, USER_NAME,
             EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
-            EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD
+            EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD,
+            // granted_scopes belongs to the refresh token only: it records the full consented set,
+            // while an access token's `scope` may deliberately be a narrower subset the caller asked
+            // for. Copying it onto the access token discloses the full set to a recipient that was
+            // intentionally given reduced authority. getAdditionalRootClaims() tries to drop it, but
+            // does so after the copy loop, so the removal there never took effect -- filtering it
+            // here is what actually enforces the invariant.
+            GRANTED_SCOPES
     );
     private static final long MILLIS_PER_SECOND = 1000L;
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
