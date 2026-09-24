@@ -114,6 +114,9 @@ public final class ScimUtils {
             if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
                 throw new InvalidScimResourceException("An email must be provided.");
             }
+            if (email.getValue().length() > 255) {
+                throw new InvalidScimResourceException("Email must be no more than 255 characters in length.");
+            }
         }
         if (user.getGivenName() != null && user.getGivenName().length() > 255) {
             throw new InvalidScimResourceException("Given name must be no more than 255 characters in length.");

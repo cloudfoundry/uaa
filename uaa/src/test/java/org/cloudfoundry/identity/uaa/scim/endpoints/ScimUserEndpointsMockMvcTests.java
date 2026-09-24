@@ -182,13 +182,14 @@ class ScimUserEndpointsMockMvcTests {
     @Nested
     class UserOperationsWithFieldsExceedingColumnLimits {
 
-        // The DB columns for 'username', ’givenname', and ’familyname' are VARCHAR(255).
+        // The DB columns for 'username', 'givenname', 'familyname', and 'email' are VARCHAR(255).
         private static final int MAX_LENGTH = 255;
         private static final int OVER_LIMIT = MAX_LENGTH + 1;
 
         private static final String USERNAME = "username";
         private static final String GIVEN_NAME = "given name";
         private static final String FAMILY_NAME = "family name";
+        private static final String EMAIL = "email";
 
         // --- POST ---
 
@@ -240,6 +241,21 @@ class ScimUserEndpointsMockMvcTests {
             final String body = result.getResponse().getContentAsString();
             assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
             assertHasErrorMessageMentioningExceededMaxLength(body, FAMILY_NAME);
+        }
+
+        @Test
+        void tooLongEmail_returnsUserFriendlyMessage() throws Exception {
+            final ScimUser user = getScimUser();
+            user.setPassword(USER_PASSWORD);
+            user.setPrimaryEmail(new RandomValueStringGenerator(OVER_LIMIT).generate() + "@example.com");
+
+            final MvcResult result = createUserAndReturnResult(user, scimReadWriteToken, null, null)
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            final String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, EMAIL);
         }
 
         // --- PUT ---
@@ -298,6 +314,24 @@ class ScimUserEndpointsMockMvcTests {
             assertHasErrorMessageMentioningExceededMaxLength(body, FAMILY_NAME);
         }
 
+        @Test
+        void put_tooLongEmail_returnsUserFriendlyMessage() throws Exception {
+            ScimUser user = setUpScimUser();
+            user.setPrimaryEmail(new RandomValueStringGenerator(OVER_LIMIT).generate() + "@example.com");
+
+            MvcResult result = mockMvc.perform(put("/Users/" + user.getId())
+                            .header("Authorization", "Bearer " + scimReadWriteToken)
+                            .header("If-Match", "\"" + user.getVersion() + "\"")
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsString(user)))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, EMAIL);
+        }
+
         // --- PATCH ---
 
         @Test
@@ -328,6 +362,21 @@ class ScimUserEndpointsMockMvcTests {
             String body = result.getResponse().getContentAsString();
             assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
             assertHasErrorMessageMentioningExceededMaxLength(body, FAMILY_NAME);
+        }
+
+        @Test
+        void patch_tooLongEmail_returnsUserFriendlyMessage() throws Exception {
+            ScimUser user = setUpScimUser();
+            ScimUser patch = new ScimUser();
+            patch.setPrimaryEmail(new RandomValueStringGenerator(OVER_LIMIT).generate() + "@example.com");
+
+            MvcResult result = patchUser(user, patch, scimReadWriteToken, user.getVersion())
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+
+            String body = result.getResponse().getContentAsString();
+            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
+            assertHasErrorMessageMentioningExceededMaxLength(body, EMAIL);
         }
 
         private static void assertDoesNotLeakDatabaseInternalsInErrorMessage(final String body) {

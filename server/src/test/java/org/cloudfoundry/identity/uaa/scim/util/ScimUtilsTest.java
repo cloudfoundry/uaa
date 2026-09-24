@@ -230,6 +230,29 @@ class ScimUtilsTest {
         }
 
         @Test
+        void email_atMaxLength_passes() {
+            ScimUser user = new ScimUser(null, "joe", "Jo", "User");
+            user.setOrigin(OriginKeys.UAA);
+            // Total length 255: 243 local-part chars + "@example.com" (12 chars)
+            user.addEmail(RandomStringUtils.randomAlphanumeric(243) + "@example.com");
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void email_overMaxLength_throwsWithFieldName() {
+            ScimUser user = new ScimUser(null, "joe", "Jo", "User");
+            user.setOrigin(OriginKeys.UAA);
+            // Total length 256: 244 local-part chars + "@example.com" (12 chars)
+            user.addEmail(RandomStringUtils.randomAlphanumeric(244) + "@example.com");
+
+            assertThatThrownBy(() -> ScimUtils.validate(user))
+                    .isInstanceOf(InvalidScimResourceException.class)
+                    .hasMessageContainingAll("Email", "255");
+        }
+
+        @Test
         void nullGivenName_passes() {
             ScimUser user = validUser();
             user.setName(new ScimUser.Name(null, "User"));
