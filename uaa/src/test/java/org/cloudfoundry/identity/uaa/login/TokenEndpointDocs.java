@@ -538,6 +538,9 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 false, null, null, -1, IdentityZone.getUaa(),
                 Map.of(
                         TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                        // RFC 8705 section 2.1.2 requires exactly one registered subject value; the
+                        // CA only establishes who issued the certificate, not which client it is.
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=mtls-doc-client",
                         TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                         Collections.singletonList(new TlsClientAuthConfiguration.ClaimMapping(
                                 "subject_cn", null, "instance_guid"))));
