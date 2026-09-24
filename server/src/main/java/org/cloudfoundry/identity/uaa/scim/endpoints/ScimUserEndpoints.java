@@ -660,10 +660,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         incrementErrorCounts(e);
-        // User can supply trace=true or just trace (unspecified) to get stack
-        // traces
-        boolean trace = request.getParameter("trace") != null && !"false".equals(request.getParameter("trace"));
-        return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e, trace, e.getExtraInfo()),
+        return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e, false, e.getExtraInfo()),
                 e.getStatus()), messageConverters);
     }
 
