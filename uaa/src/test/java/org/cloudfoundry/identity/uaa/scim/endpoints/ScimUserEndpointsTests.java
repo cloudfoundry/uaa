@@ -433,7 +433,7 @@ class ScimUserEndpointsTests {
     }
 
     @Test
-    void handleExceptionWithConstraintViolation() throws Exception {
+    void handleExceptionWithConstraintViolation_ShouldReturnGenericDbErrorMessage() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         View view = scimUserEndpoints.handleException(new DataIntegrityViolationException("foo"), request);
@@ -441,7 +441,7 @@ class ScimUserEndpointsTests {
         converted.render(Collections.emptyMap(), request, response);
         String body = response.getContentAsString();
         assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
-        assertThat(body).as("Wrong body: " + body).contains("message\":\"foo");
+        assertThat(body).as("Wrong body: " + body).contains("\"message\":\"A database error occurred.\"");
     }
 
     @Test
