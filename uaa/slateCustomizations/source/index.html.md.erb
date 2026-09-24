@@ -263,8 +263,19 @@ _Response Fields_
 
 Authenticates using an X.509 certificate presented at the TLS layer, on the dedicated
 `/oauth/mtls/token` endpoint, instead of a `client_secret`, `client_assertion`, or Basic
-Authorization header. The client is identified by the certificate chaining to its configured
-`tls-client-auth-ca`; no additional request parameter carries the certificate itself. See
+Authorization header. No request parameter carries the certificate itself.
+
+Two pieces of client configuration are involved, and both are required. `tls-client-auth-ca` is
+the trust anchor: the presented certificate chain must validate to it. That establishes only who
+issued the certificate, so the client must additionally register exactly one expected subject
+value, using one of the RFC 8705 section 2.1.2 parameters — `tls_client_auth_subject_dn`,
+`tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip` or
+`tls_client_auth_san_email`. That value is what identifies *this* client; without it a client
+sharing a CA with others could be authenticated by any certificate that CA ever issued, and UAA
+rejects the registration. Take a subject DN from
+`openssl x509 -in cert.pem -noout -subject -nameopt RFC2253` rather than writing it by hand.
+
+See
 [UAA Client Authentication](https://github.com/cloudfoundry/uaa/blob/develop/docs/UAA-Client-Authentication.md#tls_client_auth-rfc-8705)
 for deployment and configuration details, including the connector-wide `uaa.mtls-enabled`
 requirement.
