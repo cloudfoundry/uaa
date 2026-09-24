@@ -127,5 +127,24 @@ public final class ScimUtils {
         if (user.getFamilyName() != null && user.getFamilyName().length() > 255) {
             throw new InvalidScimResourceException("Family name must be no more than 255 characters in length.");
         }
+        if (user.getPhoneNumbers() != null) {
+            for (ScimUser.PhoneNumber phoneNumber : user.getPhoneNumbers()) {
+                if (phoneNumber != null && phoneNumber.getValue() != null && phoneNumber.getValue().length() > 255) {
+                    throw new InvalidScimResourceException("Phone number must be no more than 255 characters in length.");
+                }
+            }
+        }
+        if (user.getExternalId() != null && user.getExternalId().length() > 255) {
+            throw new InvalidScimResourceException("External id must be no more than 255 characters in length.");
+        }
+        if (user.getSalt() != null && user.getSalt().length() > 36) {
+            throw new InvalidScimResourceException("Salt must be no more than 36 characters in length.");
+        }
+        if (user.getAliasId() != null && user.getAliasId().length() > 36) {
+            throw new InvalidScimResourceException("Alias id must be no more than 36 characters in length.");
+        }
+        if (user.getAliasZid() != null && user.getAliasZid().length() > 36) {
+            throw new InvalidScimResourceException("Alias zid must be no more than 36 characters in length.");
+        }
     }
 }

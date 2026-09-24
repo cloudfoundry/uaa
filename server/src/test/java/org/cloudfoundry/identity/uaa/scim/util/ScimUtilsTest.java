@@ -297,5 +297,127 @@ class ScimUtilsTest {
             assertThatNoException()
                     .isThrownBy(() -> ScimUtils.validate(user));
         }
+
+        @Test
+        void phoneNumber_atMaxLength_passes() {
+            ScimUser user = validUser();
+            user.setPhoneNumbers(List.of(new ScimUser.PhoneNumber(RandomStringUtils.randomNumeric(255))));
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void phoneNumber_overMaxLength_throwsWithFieldName() {
+            ScimUser user = validUser();
+            user.setPhoneNumbers(List.of(new ScimUser.PhoneNumber(RandomStringUtils.randomNumeric(256))));
+
+            assertThatThrownBy(() -> ScimUtils.validate(user))
+                    .isInstanceOf(InvalidScimResourceException.class)
+                    .hasMessageContainingAll("Phone number", "255");
+        }
+
+        @Test
+        void nullPhoneNumbers_passes() {
+            ScimUser user = validUser();
+            user.setPhoneNumbers(null);
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void externalId_atMaxLength_passes() {
+            ScimUser user = validUser();
+            user.setExternalId(RandomStringUtils.randomAlphanumeric(255));
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void externalId_overMaxLength_throwsWithFieldName() {
+            ScimUser user = validUser();
+            user.setExternalId(RandomStringUtils.randomAlphanumeric(256));
+
+            assertThatThrownBy(() -> ScimUtils.validate(user))
+                    .isInstanceOf(InvalidScimResourceException.class)
+                    .hasMessageContainingAll("External id", "255");
+        }
+
+        @Test
+        void nullExternalId_passes() {
+            ScimUser user = validUser();
+            user.setExternalId(null);
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void salt_atMaxLength_passes() {
+            ScimUser user = validUser();
+            user.setSalt(RandomStringUtils.randomAlphanumeric(36));
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void salt_overMaxLength_throwsWithFieldName() {
+            ScimUser user = validUser();
+            user.setSalt(RandomStringUtils.randomAlphanumeric(37));
+
+            assertThatThrownBy(() -> ScimUtils.validate(user))
+                    .isInstanceOf(InvalidScimResourceException.class)
+                    .hasMessageContainingAll("Salt", "36");
+        }
+
+        @Test
+        void nullSalt_passes() {
+            ScimUser user = validUser();
+            user.setSalt(null);
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void aliasId_atMaxLength_passes() {
+            ScimUser user = validUser();
+            user.setAliasId(RandomStringUtils.randomAlphanumeric(36));
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void aliasId_overMaxLength_throwsWithFieldName() {
+            ScimUser user = validUser();
+            user.setAliasId(RandomStringUtils.randomAlphanumeric(37));
+
+            assertThatThrownBy(() -> ScimUtils.validate(user))
+                    .isInstanceOf(InvalidScimResourceException.class)
+                    .hasMessageContainingAll("Alias id", "36");
+        }
+
+        @Test
+        void aliasZid_atMaxLength_passes() {
+            ScimUser user = validUser();
+            user.setAliasZid(RandomStringUtils.randomAlphanumeric(36));
+
+            assertThatNoException()
+                    .isThrownBy(() -> ScimUtils.validate(user));
+        }
+
+        @Test
+        void aliasZid_overMaxLength_throwsWithFieldName() {
+            ScimUser user = validUser();
+            user.setAliasZid(RandomStringUtils.randomAlphanumeric(37));
+
+            assertThatThrownBy(() -> ScimUtils.validate(user))
+                    .isInstanceOf(InvalidScimResourceException.class)
+                    .hasMessageContainingAll("Alias zid", "36");
+        }
     }
 }
