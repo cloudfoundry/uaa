@@ -651,13 +651,14 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                         break;
                     }
                 }
-                // Never leak DB internals (SQL statements, column names, driver messages) to the caller
-                // for any DataAccessException not explicitly mapped to a status above.
-                if (e.getStatus() == HttpStatus.INTERNAL_SERVER_ERROR && t instanceof DataAccessException) {
-                    e = new ScimException("A database error occurred.", t, HttpStatus.INTERNAL_SERVER_ERROR);
-                }
             }
         }
+
+        // redact database internals if applicable
+        if (t instanceof DataAccessException) {
+            e = new ScimException("A database error occurred.", e.getStatus());
+        }
+
         incrementErrorCounts(e);
         // User can supply trace=true or just trace (unspecified) to get stack
         // traces
