@@ -4,6 +4,8 @@ import tools.jackson.core.type.TypeReference;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
@@ -151,7 +153,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @DisplayName("A1. an mTLS-configured client cannot fall back to client_secret_basic at /oauth/token")
         void mtlsConfiguredClientCannotUseSecretAtPlainTokenEndpoint() throws Exception {
             // Client keeps its secret AND has tls-client-auth-ca configured.
-            String clientId = mtlsClient("a1", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert), true);
+            String clientId = mtlsClient("a1", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=a1-app"), true);
 
             MvcResult result = perform(post("/oauth/token")
                     .accept(APPLICATION_JSON)
@@ -170,7 +172,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("A2. an mTLS-configured client cannot present a cert AND a client_secret")
         void mtlsClientCannotCombineCertificateAndSecret() throws Exception {
-            String clientId = mtlsClient("a2", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert), true);
+            String clientId = mtlsClient("a2", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=a2-app"), true);
             X509Certificate leaf = leafSignedByCa("CN=a2-app");
 
             MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leaf)
@@ -219,7 +221,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("A4. an mTLS client with no certificate on the request is rejected")
         void mtlsClientWithoutCertificateIsRejected() throws Exception {
-            String clientId = mtlsClient("a4", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert), false);
+            String clientId = mtlsClient("a4", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=a4-app"), false);
 
             MvcResult result = perform(post(MTLS_PATH)
                     .accept(APPLICATION_JSON)
@@ -258,7 +260,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
             String clientId = "mtlsb1" + generator.generate();
             setUpClients(clientId, "uaa.resource", "uaa.user",
                     "client_credentials,password,refresh_token",
-                    false, null, null, -1, IdentityZone.getUaa(), tlsConfig(caCert));
+                    false, null, null, -1, IdentityZone.getUaa(), tlsConfig(caCert, "CN=b1-app"));
             clientDetailsService.updateClientSecret(clientId, null);
             X509Certificate leaf = leafSignedByCa("CN=b1-app");
 
@@ -293,7 +295,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("B2. client_credentials over tls_client_auth issues no refresh token")
         void clientCredentialsAtMtlsEndpointHasNoRefreshToken() throws Exception {
-            String clientId = mtlsClient("b2", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert), false);
+            String clientId = mtlsClient("b2", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=b2-app"), false);
             X509Certificate leaf = leafSignedByCa("CN=b2-app");
 
             MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leaf)
@@ -323,7 +325,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("C1. a certificate signed by a DIFFERENT CA is rejected as an untrusted chain")
         void certificateFromWrongCaIsUnauthorized() throws Exception {
-            String clientId = mtlsClient("c1", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert), false);
+            String clientId = mtlsClient("c1", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=c1-attacker"), false);
             // Leaf chains to the rogue CA; the client trusts caCert.
             X509Certificate rogueLeaf = signCert(new X500Name("CN=c1-attacker"), rogueCaSubject,
                     generateKeyPair().getPublic(), rogueCaKeyPair.getPrivate(),
@@ -340,7 +342,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("C2. an EXPIRED certificate is rejected on the validity check")
         void expiredCertificateIsUnauthorized() throws Exception {
-            String clientId = mtlsClient("c2", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert), false);
+            String clientId = mtlsClient("c2", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=c2-app"), false);
             X509Certificate expiredLeaf = signCert(new X500Name("CN=c2-app"), caSubject,
                     generateKeyPair().getPublic(), caKeyPair.getPrivate(),
                     false, BigInteger.valueOf(98), -60_000L); // notAfter in the past
@@ -362,7 +364,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
             // so a malformed CA can reach the authentication path in production too.
             String clientId = mtlsClient("c3", GRANT_TYPE_CLIENT_CREDENTIALS,
                     Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "not-a-certificate",
-                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true), false);
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=c3-app"), false);
             X509Certificate leaf = leafSignedByCa("CN=c3-app");
 
             assertThat(denial(perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leaf))))
@@ -376,7 +378,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("C4. a CA certificate presented as the client leaf is rejected by the end-entity check")
         void caCertificatePresentedAsLeafIsRejected() throws Exception {
-            String clientId = mtlsClient("c4", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert), false);
+            String clientId = mtlsClient("c4", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=Test mTLS CA"), false);
 
             // The trust anchor itself, presented as the end-entity certificate. Pinning the message is
             // what makes this test meaningful: chain validation ALSO rejects it, so a bare 401
@@ -391,7 +393,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("C5. FINDING -- the same wrong-CA failure returns 500 when reached via Basic auth")
         void wrongCaViaBasicAuthWithEmptySecret() throws Exception {
-            String clientId = mtlsClient("c5", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert), false);
+            String clientId = mtlsClient("c5", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=c5-attacker"), false);
             X509Certificate rogueLeaf = signCert(new X500Name("CN=c5-attacker"), rogueCaSubject,
                     generateKeyPair().getPublic(), rogueCaKeyPair.getPrivate(),
                     false, BigInteger.valueOf(97), 3_600_000L);
@@ -442,7 +444,8 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                             new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "scope"),
                             new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "esc:(.+)", "client_id"),
                             new TlsClientAuthConfiguration.ClaimMapping("subject_o", null, "zid")),
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+                    "CN=uaa.admin,OU=esc:admin-client,O=some-other-zone");
             String clientId = mtlsClient("d1", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
             X509Certificate leaf = leafSignedByCa("CN=uaa.admin,OU=esc:admin-client,O=some-other-zone");
 
@@ -480,7 +483,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     // and UaaTokenServices re-applies sub AFTER its own defaults.
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
                     "00000000-0000-0000-0000-000000000000",
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true));
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=d2-app"));
 
             if (created.getResponse().getStatus() != 201) {
                 assertThat(denial(created).description())
@@ -511,7 +514,8 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, List.of(
                             new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "amr"),
                             new TlsClientAuthConfiguration.ClaimMapping("subject_o", null, "acr")),
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true));
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+                    "CN=mfa,O=urn:example:high"));
 
             if (created.getResponse().getStatus() != 201) {
                 assertThat(denial(created).description())
@@ -577,10 +581,9 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     class CertificateClientBinding {
 
         /**
-         * A CA-only client -- no {@code tls-client-auth-required-claims}, no explicit
-         * {@code tls-client-auth-allow-any-cert-from-ca} -- must not authenticate anyone, because
-         * nothing about such a configuration distinguishes this client's certificate from any other
-         * certificate the CA ever issued.
+         * A CA-only client: no RFC 8705 section 2.1.2 subject parameter at all. Chain validation
+         * would prove only that the CA issued the certificate, so nothing distinguishes this
+         * client from any other the CA ever issued.
          */
         private static Map<String, Object> caOnlyConfigWithNoBinding() throws Exception {
             return Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
@@ -589,7 +592,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
-        @DisplayName("E2. a CA-only client with no subject binding is refused rather than trusting the CA alone")
+        @DisplayName("E2. a client with no subject binding is refused rather than trusting the CA alone")
         void caOnlyClientWithNoSubjectBindingIsRefused() throws Exception {
             String clientId = mtlsClient("e2", GRANT_TYPE_CLIENT_CREDENTIALS, caOnlyConfigWithNoBinding(), false);
             X509Certificate ownCert = leafSignedByCa("CN=e2-app");
@@ -600,9 +603,8 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .as("a client that binds nothing but the CA must fail closed. Actual: %s", outcome(result))
                     .isEqualTo(401);
             assertThat(denial(result).description())
-                    .as("the refusal must tell the operator which configuration is missing")
-                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
-                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA);
+                    .as("the refusal must name the configuration the operator has to supply")
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN);
         }
 
         @Test
@@ -611,19 +613,14 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
             // Two SEPARATE registered clients trusting the same CA. Not contrived: the documented
             // use case is the Cloud Foundry Diego instance-identity CA, which issues a certificate
             // to every app instance in the foundation, so every mTLS client in that foundation
-            // shares one anchor. The victim scopes itself to its own space, which is the binding
-            // that makes "issued by the CA" into "is this client".
-            Map<String, Object> victimConfig = Map.of(
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, List.of(
-                            new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^space:(.+)$", "space_guid")),
-                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
-                            Map.of("space_guid", "victim-space"));
-            String victimClientId = mtlsClient("e1victim", GRANT_TYPE_CLIENT_CREDENTIALS, victimConfig, false);
+            // shares one anchor. RFC 8705 section 2.1 makes the subject -- not the issuer -- the
+            // thing that identifies the client.
+            String victimClientId = mtlsClient("e1victim", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    tlsConfig(caCert, "CN=e1-victim-app"), false);
 
             // The attacker legitimately holds a certificate for its OWN workload, issued by the very
             // same shared CA. It was never issued for, and says nothing about, the victim client.
-            X509Certificate attackerOwnCert = leafSignedByCa("CN=e1-attacker-app,OU=space:attacker-space");
+            X509Certificate attackerOwnCert = leafSignedByCa("CN=e1-attacker-app");
 
             MvcResult result = perform(mtlsPost(victimClientId, GRANT_TYPE_CLIENT_CREDENTIALS, attackerOwnCert)
                     .param("token_format", "jwt"));
@@ -634,14 +631,37 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .isEqualTo(401);
 
             // Positive control: the victim's own certificate still works, so the rejection above
-            // proves binding rather than the client being broken outright.
-            X509Certificate victimOwnCert = leafSignedByCa("CN=e1-victim-app,OU=space:victim-space");
+            // proves subject binding rather than the client being broken outright.
+            X509Certificate victimOwnCert = leafSignedByCa("CN=e1-victim-app");
             MvcResult allowed = perform(mtlsPost(victimClientId, GRANT_TYPE_CLIENT_CREDENTIALS, victimOwnCert)
                     .param("token_format", "jwt"));
-            assertThat(allowed.getResponse().getStatus()).isEqualTo(200);
+            assertThat(allowed.getResponse().getStatus())
+                    .as("Actual: %s", outcome(allowed))
+                    .isEqualTo(200);
             assertThat(claimsOf(allowed))
-                    .containsEntry("space_guid", "victim-space")
+                    .containsEntry("app_id", "e1-victim-app")
                     .containsEntry("client_auth_method", "tls_client_auth");
+        }
+
+        @Test
+        @DisplayName("E3. a SAN-bound client authenticates on its SAN, not its subject DN")
+        void sanBoundClientAuthenticatesOnItsSan() throws Exception {
+            Map<String, Object> config = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "e3-app.example.com");
+            String clientId = mtlsClient("e3", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult allowed = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafWithDnsSan("CN=anything-at-all", "e3-app.example.com")));
+            assertThat(allowed.getResponse().getStatus())
+                    .as("Actual: %s", outcome(allowed))
+                    .isEqualTo(200);
+
+            MvcResult refused = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafWithDnsSan("CN=anything-at-all", "other.example.com")));
+            assertThat(denial(refused).status())
+                    .as("a different dNSName is a different client. Actual: %s", outcome(refused))
+                    .isEqualTo(401);
         }
     }
 
@@ -660,18 +680,16 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     /**
-     * A client whose only certificate constraint is the CA. Declares
-     * {@code tls-client-auth-allow-any-cert-from-ca} because that is precisely what these tests
-     * mean: the CA here is dedicated to the test, and each test is exercising some property other
-     * than certificate-to-client binding (grant types, chain-validation semantics, claim mapping).
-     * Without the declaration the client is refused outright -- see
-     * {@link CertificateClientBinding#caOnlyClientWithNoSubjectBindingIsRefused()}.
+     * A client bound to {@code expectedSubjectDn} per RFC 8705 section 2.1.2. Every mTLS client
+     * must register exactly one subject value, so tests exercising other properties (grant types,
+     * chain-validation semantics, claim mapping) still have to declare the subject of the
+     * certificate they intend to present.
      */
-    private static Map<String, Object> tlsConfig(X509Certificate ca) throws Exception {
+    private static Map<String, Object> tlsConfig(X509Certificate ca, String expectedSubjectDn) throws Exception {
         return Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(ca),
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                 List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "app_id")),
-                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, expectedSubjectDn);
     }
 
     private MockHttpServletRequestBuilder mtlsPost(String clientId, String grantType, X509Certificate cert) {
@@ -754,6 +772,25 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     private static X509Certificate leafSignedByCa(String subjectDn) throws Exception {
         return signCert(new X500Name(subjectDn), caSubject, generateKeyPair().getPublic(),
                 caKeyPair.getPrivate(), false, BigInteger.valueOf(System.nanoTime()), 3_600_000L);
+    }
+
+    /** A CA-issued leaf carrying a dNSName subjectAltName, for RFC 8705 SAN-bound clients. */
+    private static X509Certificate leafWithDnsSan(String subjectDn, String dnsName) throws Exception {
+        X500Name subject = new X500Name(subjectDn);
+        JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                caSubject, BigInteger.valueOf(System.nanoTime()),
+                new Date(System.currentTimeMillis() - 120_000),
+                new Date(System.currentTimeMillis() + 3_600_000L),
+                subject, generateKeyPair().getPublic());
+        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+        builder.addExtension(Extension.subjectAlternativeName, false,
+                new GeneralNames(new GeneralName(GeneralName.dNSName, dnsName)));
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA")
+                .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
+                .build(caKeyPair.getPrivate());
+        return new JcaX509CertificateConverter()
+                .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
+                .getCertificate(builder.build(signer));
     }
 
     private static KeyPair generateKeyPair() throws Exception {
