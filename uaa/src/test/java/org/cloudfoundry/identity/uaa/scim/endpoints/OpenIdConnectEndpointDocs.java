@@ -41,7 +41,8 @@ class OpenIdConnectEndpointDocs extends EndpointDocs {
                 fieldWithPath("service_documentation").description("URL of a page containing human-readable information that developers might want or need to know when using the OpenID Provider."),
                 fieldWithPath("code_challenge_methods_supported").description("<small><mark>UAA 75.5.0</mark></small>JSON array containing a list of [PKCE](https://tools.ietf.org/html/rfc7636) code challenge methods supported by this authorization endpoint."),
                 fieldWithPath("ui_locales_supported").description("Languages and scripts supported for the user interface."),
-                fieldWithPath("mtls_endpoint_aliases.token_endpoint").description("mTLS-specific token endpoint alias for RFC 8705 mutual-TLS client authentication.")
+                fieldWithPath("mtls_endpoint_aliases.token_endpoint").description("mTLS-specific token endpoint alias for RFC 8705 mutual-TLS client authentication."),
+                fieldWithPath("tls_client_certificate_bound_access_tokens").description("Boolean value indicating server support for mutual-TLS client certificate-bound access tokens ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705#section-3.3)). True when `uaa.mtls-enabled` is set, in which case tokens issued at the mTLS token endpoint carry a `cnf.x5t#S256` confirmation claim.")
         );
 
         mockMvc.perform(
