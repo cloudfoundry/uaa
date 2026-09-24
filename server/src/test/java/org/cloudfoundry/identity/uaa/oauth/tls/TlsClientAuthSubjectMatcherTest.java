@@ -297,11 +297,24 @@ class TlsClientAuthSubjectMatcherTest {
         return buildCert(subjectDn, new GeneralNames(sans));
     }
 
+    /**
+     * Builds the name via {@link javax.security.auth.x500.X500Principal} rather than
+     * {@code new X500Name(String)}: BouncyCastle encodes the RDNs in the order given, while RFC
+     * 2253/4514 renders an encoded DN back to front, so passing the string straight to
+     * BouncyCastle would produce a certificate whose subject reads in reverse. Round-tripping
+     * through X500Principal makes the certificate actually carry the DN written here -- which is
+     * also the form an operator reads out of
+     * {@code openssl x509 -subject -nameopt RFC2253}.
+     */
+    private static X500Name x500(String rfc2253Dn) {
+        return X500Name.getInstance(new javax.security.auth.x500.X500Principal(rfc2253Dn).getEncoded());
+    }
+
     private static X509Certificate buildCert(String subjectDn, GeneralNames sans) throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleFipsProvider.PROVIDER_NAME);
         kpg.initialize(2048);
         KeyPair kp = kpg.generateKeyPair();
-        X500Name subject = new X500Name(subjectDn);
+        X500Name subject = x500(subjectDn);
         JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
                 subject, BigInteger.valueOf(System.nanoTime()),
                 new Date(System.currentTimeMillis() - 60_000),
