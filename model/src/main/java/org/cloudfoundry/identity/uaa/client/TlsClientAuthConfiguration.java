@@ -21,6 +21,29 @@ public class TlsClientAuthConfiguration {
     public static final String TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA = "tls-client-auth-allow-any-cert-from-ca";
 
     /**
+     * RFC 8705 section 2.1.2 client registration metadata: the expected certificate subject value.
+     *
+     * <p>These use the IANA-registered parameter names verbatim (underscores, not UAA's usual
+     * hyphenated style) so that metadata from an RFC 7591 dynamic client registration is accepted
+     * unchanged. A client using {@code tls_client_auth} MUST use exactly one of them -- chain
+     * validation establishes only that some certificate from the configured CA was presented, and
+     * the subject value is what identifies <em>this</em> client.
+     */
+    public static final String TLS_CLIENT_AUTH_SUBJECT_DN = "tls_client_auth_subject_dn";
+    public static final String TLS_CLIENT_AUTH_SAN_DNS = "tls_client_auth_san_dns";
+    public static final String TLS_CLIENT_AUTH_SAN_URI = "tls_client_auth_san_uri";
+    public static final String TLS_CLIENT_AUTH_SAN_IP = "tls_client_auth_san_ip";
+    public static final String TLS_CLIENT_AUTH_SAN_EMAIL = "tls_client_auth_san_email";
+
+    /** The five RFC 8705 section 2.1.2 subject parameters, in the order the RFC lists them. */
+    public static final List<String> SUBJECT_BINDING_PARAMETERS = List.of(
+            TLS_CLIENT_AUTH_SUBJECT_DN,
+            TLS_CLIENT_AUTH_SAN_DNS,
+            TLS_CLIENT_AUTH_SAN_URI,
+            TLS_CLIENT_AUTH_SAN_IP,
+            TLS_CLIENT_AUTH_SAN_EMAIL);
+
+    /**
      * Claim names a {@code tls-client-auth-claim-mappings} entry may not target.
      *
      * <p>Two groups. The first is UAA's own token vocabulary, which {@code UaaTokenServices} already
@@ -87,6 +110,21 @@ public class TlsClientAuthConfiguration {
     @JsonProperty(TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA)
     private boolean allowAnyCertFromCa;
 
+    @JsonProperty(TLS_CLIENT_AUTH_SUBJECT_DN)
+    private String subjectDn;
+
+    @JsonProperty(TLS_CLIENT_AUTH_SAN_DNS)
+    private String sanDns;
+
+    @JsonProperty(TLS_CLIENT_AUTH_SAN_URI)
+    private String sanUri;
+
+    @JsonProperty(TLS_CLIENT_AUTH_SAN_IP)
+    private String sanIp;
+
+    @JsonProperty(TLS_CLIENT_AUTH_SAN_EMAIL)
+    private String sanEmail;
+
     public TlsClientAuthConfiguration() {}
 
     public TlsClientAuthConfiguration(String trustedCaPem, List<ClaimMapping> claimMappings) {
@@ -115,6 +153,42 @@ public class TlsClientAuthConfiguration {
     public boolean isAllowAnyCertFromCa() { return allowAnyCertFromCa; }
     public void setAllowAnyCertFromCa(boolean allowAnyCertFromCa) { this.allowAnyCertFromCa = allowAnyCertFromCa; }
 
+    public String getSubjectDn() { return subjectDn; }
+    public void setSubjectDn(String subjectDn) { this.subjectDn = subjectDn; }
+
+    public String getSanDns() { return sanDns; }
+    public void setSanDns(String sanDns) { this.sanDns = sanDns; }
+
+    public String getSanUri() { return sanUri; }
+    public void setSanUri(String sanUri) { this.sanUri = sanUri; }
+
+    public String getSanIp() { return sanIp; }
+    public void setSanIp(String sanIp) { this.sanIp = sanIp; }
+
+    public String getSanEmail() { return sanEmail; }
+    public void setSanEmail(String sanEmail) { this.sanEmail = sanEmail; }
+
+    /**
+     * The RFC 8705 section 2.1.2 subject parameters this configuration actually sets, by parameter
+     * name. The spec requires exactly one; returning them all lets callers report "none" and "more
+     * than one" distinctly.
+     */
+    public List<String> configuredSubjectBindings() {
+        List<String> configured = new java.util.ArrayList<>();
+        addIfPresent(configured, TLS_CLIENT_AUTH_SUBJECT_DN, subjectDn);
+        addIfPresent(configured, TLS_CLIENT_AUTH_SAN_DNS, sanDns);
+        addIfPresent(configured, TLS_CLIENT_AUTH_SAN_URI, sanUri);
+        addIfPresent(configured, TLS_CLIENT_AUTH_SAN_IP, sanIp);
+        addIfPresent(configured, TLS_CLIENT_AUTH_SAN_EMAIL, sanEmail);
+        return configured;
+    }
+
+    private static void addIfPresent(List<String> target, String name, String value) {
+        if (value != null && !value.isBlank()) {
+            target.add(name);
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -125,13 +199,18 @@ public class TlsClientAuthConfiguration {
                Objects.equals(audTemplates, that.audTemplates) &&
                Objects.equals(trustedProxyCaPem, that.trustedProxyCaPem) &&
                Objects.equals(requiredClaims, that.requiredClaims) &&
-               allowAnyCertFromCa == that.allowAnyCertFromCa;
+               allowAnyCertFromCa == that.allowAnyCertFromCa &&
+               Objects.equals(subjectDn, that.subjectDn) &&
+               Objects.equals(sanDns, that.sanDns) &&
+               Objects.equals(sanUri, that.sanUri) &&
+               Objects.equals(sanIp, that.sanIp) &&
+               Objects.equals(sanEmail, that.sanEmail);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates, trustedProxyCaPem,
-                requiredClaims, allowAnyCertFromCa);
+                requiredClaims, allowAnyCertFromCa, subjectDn, sanDns, sanUri, sanIp, sanEmail);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {

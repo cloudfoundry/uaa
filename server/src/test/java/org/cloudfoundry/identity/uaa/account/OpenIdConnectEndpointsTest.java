@@ -73,6 +73,11 @@ class OpenIdConnectEndpointsTest {
         assertThat(conf).isNotNull();
         assertThat(conf.getTokenAMR()).contains(ClientAuthentication.TLS_CLIENT_AUTH);
         assertThat(conf.getMtlsEndpointAliases()).isNotNull().containsKey("token_endpoint");
+        assertThat(conf.isTlsClientCertificateBoundAccessTokens())
+                .as("RFC 8705 section 3.3: UAA stamps cnf.x5t#S256 on mTLS-issued tokens, so it must "
+                        + "advertise that capability -- the metadata defaults to false when omitted, "
+                        + "which would tell a resource server the opposite of the truth")
+                .isTrue();
     }
 
     @Test
@@ -90,5 +95,8 @@ class OpenIdConnectEndpointsTest {
         assertThat(conf).isNotNull();
         assertThat(conf.getTokenAMR()).doesNotContain(ClientAuthentication.TLS_CLIENT_AUTH);
         assertThat(conf.getMtlsEndpointAliases()).isNull();
+        assertThat(conf.isTlsClientCertificateBoundAccessTokens())
+                .as("a deployment that cannot issue certificate-bound tokens must not claim it can")
+                .isFalse();
     }
 }

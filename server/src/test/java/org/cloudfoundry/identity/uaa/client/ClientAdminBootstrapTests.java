@@ -713,7 +713,7 @@ class ClientAdminBootstrapTests {
 
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
         clients.put((String) map.get("id"), map);
 
         mtlsEnabledBootstrap.afterPropertiesSet();
@@ -763,7 +763,7 @@ class ClientAdminBootstrapTests {
 
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                 List.of(Map.of("field", "invalid", "claim", "cf_app")));
         clients.put((String) map.get("id"), map);
@@ -792,7 +792,7 @@ class ClientAdminBootstrapTests {
      * The BOSH {@code oauth.clients} path does not go through the client-admin API, so it is the
      * route by which an unbound mTLS client would most plausibly reach a real deployment -- it is
      * also how the Diego instance-identity client is normally registered, which is precisely the
-     * shared-CA case that needs the binding.
+     * shared-CA case that RFC 8705 section 2.1.2 requires a subject binding for.
      */
     @Test
     void mtlsClientWithNoSubjectBindingIsRejectedDuringBootstrap() {
@@ -802,54 +802,52 @@ class ClientAdminBootstrapTests {
 
         assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA);
+                .hasMessageContaining("exactly one");
     }
 
     @Test
-    void mtlsClientWithAllowAnyCertFromCaExplicitlyFalseIsRejectedDuringBootstrap() {
+    void mtlsClientWithTwoSubjectBindingsIsRejectedDuringBootstrap() {
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        // Present but false must behave exactly as absent -- the key existing is not the opt-out,
-        // its value being true is.
-        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, false);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "foo.example.com");
         clients.put((String) map.get("id"), map);
 
         assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+                .hasMessageContaining("exactly one");
     }
 
     @Test
-    void mtlsClientWithAllowAnyCertFromCaAsStringFalseIsRejectedDuringBootstrap() {
+    void mtlsClientWithBlankSubjectBindingIsRejectedDuringBootstrap() {
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        // BOSH renders manifest values as strings, so the string form has to be read as a boolean
-        // rather than treated as a non-null (and therefore truthy) object.
-        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, "false");
+        // BOSH renders an unset manifest property as an empty string; that must not count as a
+        // configured subject value.
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "   ");
         clients.put((String) map.get("id"), map);
 
         assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+                .hasMessageContaining("exactly one");
     }
 
     @Test
-    void mtlsClientWithAllowAnyCertFromCaAsStringTrueBootstrapsSuccessfully() {
+    void mtlsClientWithASanBindingBootstrapsSuccessfully() {
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, "true");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "spiffe://acme/app/foo");
         clients.put((String) map.get("id"), map);
 
         mtlsEnabledBootstrap().afterPropertiesSet();
 
         ClientDetails created = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
         assertThat(created.getAdditionalInformation())
-                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "spiffe://acme/app/foo");
     }
 
     @Test
-    void mtlsClientScopedByRequiredClaimsBootstrapsSuccessfullyWithoutTheOptOut() {
+    void mtlsClientWithRequiredClaimsButNoSubjectBindingIsRejectedDuringBootstrap() {
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
@@ -858,11 +856,10 @@ class ClientAdminBootstrapTests {
                 Map.of("space_guid", "a-specific-space"));
         clients.put((String) map.get("id"), map);
 
-        mtlsEnabledBootstrap().afterPropertiesSet();
-
-        ClientDetails created = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
-        assertThat(created.getAdditionalInformation())
-                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .as("required-claims is a UAA extension, not one of the five RFC subject parameters")
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("exactly one");
     }
 
     @Test

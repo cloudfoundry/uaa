@@ -75,6 +75,14 @@ public class OpenIdConfiguration {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, String> mtlsEndpointAliases;
 
+    /**
+     * RFC 8705 section 3.3. Signals that this server binds issued access tokens to the client
+     * certificate (via the {@code cnf.x5t#S256} claim of section 3.1). The metadata defaults to
+     * {@code false} when omitted, so a server that does issue bound tokens has to say so.
+     */
+    @JsonProperty("tls_client_certificate_bound_access_tokens")
+    private boolean tlsClientCertificateBoundAccessTokens;
+
     public OpenIdConfiguration(final String contextPath, final String issuer) {
         this(contextPath, issuer, true);
     }
