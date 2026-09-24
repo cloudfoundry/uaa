@@ -110,11 +110,15 @@ than expecting one client to accept either.
 #### Scoping a client to a specific org/space/app
 
 Because Cloud Foundry's Diego instance-identity CA is shared across every app instance in a
-foundation, any two clients configured with the same `tls-client-auth-ca` can otherwise
+foundation, any two clients configured with the same `tls-client-auth-ca` would otherwise
 authenticate each other's certificates -- PKIX chain validation alone only proves a certificate
-was issued by the configured CA, not that it belongs to *this* client specifically. Configure
-`tls-client-auth-required-claims` to close this gap for a client that should only be reachable by
-a specific subset of apps:
+was issued by the configured CA, not that it belongs to *this* client specifically. RFC 8705
+section 2.1.2 therefore requires the authorization server to compare a configured subject value
+against the presented certificate.
+
+**A client configuring `tls-client-auth-ca` must therefore also configure
+`tls-client-auth-required-claims`.** UAA rejects the client otherwise, at registration and again
+at authentication time:
 
 ```yaml
 tls-client-auth-claim-mappings:
@@ -125,10 +129,15 @@ tls-client-auth-required-claims:
   space_guid: <specific-space-guid>
 ```
 
-An operator who needs both a broadly-scoped client (e.g. the generic `instance-identity` client,
-accepting any app in the foundation) and a narrowly-scoped one (e.g. limited to a single space)
-registers them as two separate UAA clients, only the latter configuring
-`tls-client-auth-required-claims`.
+The one case where issuance genuinely is the binding is a CA dedicated to a single client, which
+issues certificates to nothing else. That configuration stays available, but has to be stated
+explicitly with `tls-client-auth-allow-any-cert-from-ca: true`, so that accepting any certificate
+the CA ever issued is a recorded decision rather than a silent default. Do not set it on a shared
+CA such as the Diego instance-identity CA: on that CA it means "any app in the foundation may
+authenticate as this client".
+
+An operator who needs both a broadly-scoped client and a narrowly-scoped one registers them as
+two separate UAA clients, scoping each with its own `tls-client-auth-required-claims`.
 
 #### Configuration
 
@@ -144,7 +153,8 @@ present a certificate whose chain validates to the configured CA; no separate
 |----------|----------|--------------|
 | `tls-client-auth-ca` | yes | PEM-encoded CA certificate. This is the per-client mTLS selector: requests to the fixed `/oauth/mtls/token` endpoint authenticate with a presented leaf certificate only when it chains to this CA. |
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
-| `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values already produced by `tls-client-auth-claim-mappings`. When configured, authentication fails unless every entry matches exactly -- e.g. `{space_guid: "<specific-space-guid>"}` scopes this client to a single CF space, even if other clients share the same `tls-client-auth-ca`. |
+| `tls-client-auth-required-claims` | yes, unless `tls-client-auth-allow-any-cert-from-ca` is set | Map of `claimName -> requiredValue`, checked against the values already produced by `tls-client-auth-claim-mappings`. Authentication fails unless every entry matches exactly -- e.g. `{space_guid: "<specific-space-guid>"}` scopes this client to a single CF space, even if other clients share the same `tls-client-auth-ca`. This is what ties a certificate to *this* client; see "Scoping a client" above. |
+| `tls-client-auth-allow-any-cert-from-ca` | no | Boolean, default `false`. Accepts any certificate that chains to `tls-client-auth-ca`, with no subject check. Only appropriate when the CA is dedicated to this one client. Setting it on a shared CA (e.g. the Diego instance-identity CA) lets any holder of any certificate from that CA authenticate as this client. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to JWT claim names. `subject_cn` and `subject_o` map their values directly; `pattern` is supported only for `subject_ou`, where it extracts a capture group. Patterns are UAA administrator-controlled configuration and are evaluated on every mTLS authentication request; use efficient Java regular expressions and avoid patterns with catastrophic backtracking. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. |
 | `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. |
@@ -167,7 +177,13 @@ tls-client-auth-claim-mappings:
   - field: subject_ou
     pattern: "organization:(.+)"
     claim: org_guid
+tls-client-auth-required-claims:
+  space_guid: <the one space whose apps may authenticate as this client>
 ```
+
+`tls-client-auth-required-claims` is part of the example because the instance-identity CA issues
+a certificate to every app instance in the foundation. Without it this client would accept any of
+them, and UAA rejects that configuration.
 
 For the direct-connection topology described above, omit `tls-client-auth-trusted-proxy-ca`
 entirely rather than setting it -- configuring it at all switches this client to proxy-only.

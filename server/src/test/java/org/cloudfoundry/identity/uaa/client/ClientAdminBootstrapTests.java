@@ -713,6 +713,7 @@ class ClientAdminBootstrapTests {
 
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
         clients.put((String) map.get("id"), map);
 
         mtlsEnabledBootstrap.afterPropertiesSet();
@@ -762,6 +763,7 @@ class ClientAdminBootstrapTests {
 
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, true);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                 List.of(Map.of("field", "invalid", "claim", "cf_app")));
         clients.put((String) map.get("id"), map);
@@ -770,6 +772,97 @@ class ClientAdminBootstrapTests {
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining("tls-client-auth-claim-mappings")
                 .hasMessageContaining("invalid field");
+    }
+
+    private ClientAdminBootstrap mtlsEnabledBootstrap() {
+        return new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId),
+                true);
+    }
+
+    /**
+     * The BOSH {@code oauth.clients} path does not go through the client-admin API, so it is the
+     * route by which an unbound mTLS client would most plausibly reach a real deployment -- it is
+     * also how the Diego instance-identity client is normally registered, which is precisely the
+     * shared-CA case that needs the binding.
+     */
+    @Test
+    void mtlsClientWithNoSubjectBindingIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA);
+    }
+
+    @Test
+    void mtlsClientWithAllowAnyCertFromCaExplicitlyFalseIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        // Present but false must behave exactly as absent -- the key existing is not the opt-out,
+        // its value being true is.
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, false);
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+    }
+
+    @Test
+    void mtlsClientWithAllowAnyCertFromCaAsStringFalseIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        // BOSH renders manifest values as strings, so the string form has to be read as a boolean
+        // rather than treated as a non-null (and therefore truthy) object.
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, "false");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+    }
+
+    @Test
+    void mtlsClientWithAllowAnyCertFromCaAsStringTrueBootstrapsSuccessfully() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOW_ANY_CERT_FROM_CA, "true");
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap().afterPropertiesSet();
+
+        ClientDetails created = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(created.getAdditionalInformation())
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+    }
+
+    @Test
+    void mtlsClientScopedByRequiredClaimsBootstrapsSuccessfullyWithoutTheOptOut() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "pattern", "^space:(.+)$", "claim", "space_guid")));
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("space_guid", "a-specific-space"));
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap().afterPropertiesSet();
+
+        ClientDetails created = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(created.getAdditionalInformation())
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
     }
 
     @Test
