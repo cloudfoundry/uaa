@@ -251,7 +251,10 @@ class ScimUserEndpointsMockMvcTests {
         void tooLongEmail_returnsUserFriendlyMessage() throws Exception {
             final ScimUser user = getScimUser();
             user.setPassword(USER_PASSWORD);
-            user.setPrimaryEmail(new RandomValueStringGenerator(OVER_LIMIT).generate() + "@example.com");
+            final ScimUser.Email email = new ScimUser.Email();
+            email.setPrimary(true);
+            email.setValue(new RandomValueStringGenerator(OVER_LIMIT).generate() + "@example.com");
+            user.setEmails(List.of(email));
 
             final MvcResult result = createUserAndReturnResult(user, scimReadWriteToken, null, null)
                     .andExpect(status().isBadRequest())
@@ -335,8 +338,11 @@ class ScimUserEndpointsMockMvcTests {
 
         @Test
         void put_tooLongEmail_returnsUserFriendlyMessage() throws Exception {
-            ScimUser user = setUpScimUser();
-            user.setPrimaryEmail(new RandomValueStringGenerator(OVER_LIMIT).generate() + "@example.com");
+            final ScimUser user = setUpScimUser();
+            final ScimUser.Email email = new ScimUser.Email();
+            email.setPrimary(true);
+            email.setValue(new RandomValueStringGenerator(OVER_LIMIT).generate() + "@example.com");
+            user.setEmails(List.of(email));
 
             MvcResult result = mockMvc.perform(put("/Users/" + user.getId())
                             .header("Authorization", "Bearer " + scimReadWriteToken)
@@ -416,20 +422,7 @@ class ScimUserEndpointsMockMvcTests {
             assertHasErrorMessageMentioningExceededMaxLength(body, EMAIL);
         }
 
-        @Test
-        void patch_tooLongOrigin_returnsUserFriendlyMessage() throws Exception {
-            ScimUser user = setUpScimUser();
-            ScimUser patch = new ScimUser();
-            patch.setOrigin(new RandomValueStringGenerator(ORIGIN_OVER_LIMIT).generate());
-
-            MvcResult result = patchUser(user, patch, scimReadWriteToken, user.getVersion())
-                    .andExpect(status().isBadRequest())
-                    .andReturn();
-
-            String body = result.getResponse().getContentAsString();
-            assertDoesNotLeakDatabaseInternalsInErrorMessage(body);
-            assertHasErrorMessageMentioningExceededMaxLength(body, ORIGIN, ORIGIN_MAX_LENGTH);
-        }
+        // no test for origin being too long (changing an origin is not allowed in PATCH requests)
 
         private static void assertDoesNotLeakDatabaseInternalsInErrorMessage(final String body) {
             assertThat(body)
