@@ -492,7 +492,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                                     + "' for client_id=" + clientId + ": " + e.getMessage(), e);
                 }
             }
-            if (TlsClientAuthConfiguration.RESERVED_CLAIM_NAMES.contains(claim)) {
+            if (TlsClientAuthConfiguration.isReservedClaimName(claim)) {
                 throw new InvalidClientDetailsException(
                         TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS
                                 + " entry maps onto reserved claim '" + claim + "' for client_id="

@@ -126,7 +126,7 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             // ClientAdminEndpointsValidator rejects these at configuration time; this is the
             // defense-in-depth half for clients persisted before that check existed and for the
             // BOSH oauth.clients bootstrap path, which does not run admin-API validation.
-            if (TlsClientAuthConfiguration.RESERVED_CLAIM_NAMES.contains(key)) {
+            if (TlsClientAuthConfiguration.isReservedClaimName(key)) {
                 continue;
             }
             // Only a single dot level is supported (spec: UAA-RFC8705-001 configurable-token-shape).

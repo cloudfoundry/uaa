@@ -528,6 +528,34 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
+    void validateTlsClientAuthClaimConfig_rejectsReservedClaim() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cnf"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("reserved claim");
+    }
+
+    @Test
+    void validateTlsClientAuthClaimConfig_rejectsDottedClaimWhoseParentIsReserved() {
+        // "sub.foo" is not itself in RESERVED_CLAIM_NAMES, but MtlsClaimsEnhancer's dot-notation
+        // nesting turns it into a nested object stored under the top-level claim "sub", which then
+        // overwrites the real sub claim in UaaTokenServices -- producing a JWT whose sub is an
+        // object rather than the RFC 7519 string it must be. Must be rejected the same as "sub".
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "sub.foo"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("reserved claim");
+    }
+
+    @Test
     void validateTlsClientAuthClaimConfig_rejectsInvalidRegexPattern() {
         Map<String, Object> info = Map.of(
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,

@@ -44,6 +44,27 @@ public class TlsClientAuthConfiguration {
             // authentication context and certificate binding
             "amr", "acr", "auth_time", "cnf", "client_auth_method");
 
+    /**
+     * True when {@code claim} is itself a reserved name, or when it is a dotted claim (e.g.
+     * {@code "sub.foo"}) whose first segment is reserved.
+     *
+     * <p>{@code MtlsClaimsEnhancer}'s dot-notation nesting turns a mapping named {@code "sub.foo"}
+     * into a nested {@code {"foo": ...}} object stored under the top-level claim {@code "sub"} --
+     * an exact-name check against {@code RESERVED_CLAIM_NAMES} does not catch this, because the
+     * dotted claim name itself is not in the set, only its parent is. That nested object then
+     * overwrites the real {@code sub}/{@code aud} value in {@code UaaTokenServices}, producing a
+     * JWT whose {@code sub}/{@code aud} is an object rather than the RFC 7519 string/string-array
+     * it must be.
+     */
+    public static boolean isReservedClaimName(String claim) {
+        if (claim == null) {
+            return false;
+        }
+        int dotIdx = claim.indexOf('.');
+        String root = dotIdx >= 0 ? claim.substring(0, dotIdx) : claim;
+        return RESERVED_CLAIM_NAMES.contains(root);
+    }
+
     @JsonProperty(TLS_CLIENT_AUTH_CA)
     private String trustedCaPem;
 
