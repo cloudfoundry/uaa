@@ -57,9 +57,13 @@ fields (e.g. mapping a Cloud Foundry app instance identity certificate to `app_g
 
 The client is authenticated on the fixed dedicated endpoint, `/oauth/mtls/token`, rather than
 the regular `/oauth/token`. A nonblank `tls-client-auth-ca` is the sole inbound mTLS selector
-for a client. This dedicated endpoint routing is what's scoped: only requests to
-`/oauth/mtls/token` attempt to authenticate the caller via a presented client certificate --
-requests to `/oauth/token` are never affected by this.
+for a client, and configuring it is exclusive: the client must authenticate at
+`/oauth/mtls/token` with its certificate, and every other credential path is refused, including
+at the regular `/oauth/token` -- a client that keeps a `client_secret` alongside
+`tls-client-auth-ca` cannot fall back to `client_secret_basic` there. This is deliberate:
+allowing a dual path would let the same client obtain both certificate-bound and unbound
+tokens, undermining the guarantee that a `tls-client-auth-ca`-configured client's tokens are
+always certificate-bound.
 
 The underlying TLS-layer change, however, is **connector-wide, not per-endpoint**: enabling
 this feature (`uaa.mtls-enabled`) reconfigures the whole embedded Tomcat connector to request a
