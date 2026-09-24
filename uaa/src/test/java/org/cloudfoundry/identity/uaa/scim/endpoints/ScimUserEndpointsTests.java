@@ -433,7 +433,7 @@ class ScimUserEndpointsTests {
     }
 
     @Test
-    void handleExceptionWithConstraintViolation_ShouldReturnGenericDbErrorMessage() throws Exception {
+    void handleExceptionWithConstraintViolation_returnsGenericDbErrorMessage() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         View view = scimUserEndpoints.handleException(new DataIntegrityViolationException("foo"), request);

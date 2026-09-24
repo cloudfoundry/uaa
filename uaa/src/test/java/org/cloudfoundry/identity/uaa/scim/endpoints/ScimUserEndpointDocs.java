@@ -89,7 +89,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String userZoneIdDescription = "The Identity Zone this user belongs to. The value `uaa` refers to the default zone.";
     private final String passwordLastModifiedDescription = "The timestamp when this user's password was last changed.";
     private final String externalIdDescription = "External user ID if authenticated through an external identity provider. Max length: 255.";
-    private final String passwordDescription = "User's password, required if origin is set to `uaa`. May be be subject to validations if the UAA is configured with a password policy. Max length: 255.";
+    private final String passwordDescription = "User's password, required if origin is set to `uaa`. May be subject to validations if the UAA is configured with a password policy. The maximum length is configured by the applicable password policy.";
     private final String phoneNumbersListDescription = "The user's phone numbers.";
     private final String phoneNumbersDescription = "The phone number. Max length: 255.";
     private final String aliasIdDescription = "The ID of the alias user. Max length: 36.";
