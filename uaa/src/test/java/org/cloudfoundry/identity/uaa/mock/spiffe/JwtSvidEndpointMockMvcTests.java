@@ -56,9 +56,11 @@ class JwtSvidEndpointMockMvcTests extends AbstractTokenMockMvcTests {
 
     /**
      * Applied before refresh, so {@code @ConditionalOnProperty} sees the property when bean
-     * definitions are evaluated. Kebab-case is used deliberately: it is the only spelling that
-     * satisfies both {@code @ConditionalOnProperty} (exact key lookup, no relaxed binding) and
-     * {@code @ConfigurationProperties} (relaxed binding).
+     * definitions are evaluated.
+     *
+     * <p>Kebab-case here, snake_case in {@code uaa.yml}: both resolve, because Spring Boot
+     * attaches a relaxed-binding property source to the {@code Environment}, which
+     * {@code @ConditionalOnProperty} reads through just as {@code @ConfigurationProperties} does.
      */
     static class SpiffeEnabled implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         @Override

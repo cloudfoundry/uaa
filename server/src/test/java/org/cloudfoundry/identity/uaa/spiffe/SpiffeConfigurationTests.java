@@ -30,4 +30,29 @@ class SpiffeConfigurationTests {
         assertThatThrownBy(() -> configuration.spiffeInstanceIdentityCa(props))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    /**
+     * Only {@code instance-identity-ca} gates the feature on, so the trust domain can be left
+     * unset. Without this check every workload on the foundation would be issued an identity
+     * under {@code spiffe://null/}, and the mistake would only surface at a relying party.
+     */
+    @Test
+    void failsFastWhenTrustDomainIsMissing() {
+        String caPem = SpiffeTestCerts.certificatePem(SpiffeTestCerts.newCa().certificate());
+        SpiffeProperties props = new SpiffeProperties(null, caPem, null, null, null);
+
+        assertThatThrownBy(() -> configuration.spiffeInstanceIdentityCa(props))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("uaa.spiffe.trust-domain");
+    }
+
+    @Test
+    void failsFastWhenTrustDomainIsNotSpiffeConformant() {
+        String caPem = SpiffeTestCerts.certificatePem(SpiffeTestCerts.newCa().certificate());
+        SpiffeProperties props = new SpiffeProperties("Example.Org/cf", caPem, null, null, null);
+
+        assertThatThrownBy(() -> configuration.spiffeInstanceIdentityCa(props))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("uaa.spiffe.trust-domain");
+    }
 }

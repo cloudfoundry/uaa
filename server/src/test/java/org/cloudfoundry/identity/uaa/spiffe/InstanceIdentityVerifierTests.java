@@ -45,4 +45,27 @@ class InstanceIdentityVerifierTests {
 
         assertThat(verifier.isValid(leaf.certificate())).isFalse();
     }
+
+    /**
+     * A self-signed certificate verifies against its own public key, so the raw signature check
+     * cannot distinguish the trust anchor from a leaf it issued. The CA certificate is public
+     * configuration, so accepting it would make the anchor a presentable workload identity.
+     */
+    @Test
+    void rejectsTheConfiguredCaCertificateItself() {
+        assertThatThrownBy(() -> verifier.verify(ca.certificate()))
+                .isInstanceOf(InstanceIdentityVerifier.InvalidInstanceCertificateException.class)
+                .hasMessageContaining("self-issued");
+    }
+
+    @Test
+    void rejectsEveryCertOnceTheCaHasExpired() {
+        SpiffeTestCerts.CertKey expiredCa = SpiffeTestCerts.newCa(
+                Instant.now().minus(10, ChronoUnit.DAYS), Instant.now().minus(1, ChronoUnit.DAYS));
+        SpiffeTestCerts.CertKey leaf = SpiffeTestCerts.newInstanceCert(expiredCa, "o", "s", "a");
+
+        assertThat(new InstanceIdentityVerifier(expiredCa.certificate()).isValid(leaf.certificate()))
+                .as("an expired trust anchor must stop anchoring trust")
+                .isFalse();
+    }
 }

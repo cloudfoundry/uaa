@@ -19,6 +19,7 @@ import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 
@@ -50,13 +51,35 @@ public final class SpiffeTestCerts {
 
     /** Self-signed CA usable as the configured instance-identity CA. */
     public static CertKey newCa() {
+        return newCa(Instant.now().minus(1, ChronoUnit.DAYS), Instant.now().plus(365, ChronoUnit.DAYS));
+    }
+
+    /** Self-signed CA with explicit validity, for exercising an expired trust anchor. */
+    public static CertKey newCa(Instant notBefore, Instant notAfter) {
         KeyPair caKeys = newRsaKeyPair();
         X500Name caName = new X500NameBuilder(BCStyle.INSTANCE)
                 .addRDN(BCStyle.CN, "instanceIdentityCA")
                 .build();
         X509Certificate cert = sign(caName, caName, caKeys.getPublic(), caKeys.getPrivate(),
-                Instant.now().minus(1, ChronoUnit.DAYS), Instant.now().plus(365, ChronoUnit.DAYS));
+                notBefore, notAfter);
         return new CertKey(cert, caKeys);
+    }
+
+    /** Instance cert carrying raw OU values verbatim, for malformed or ambiguous subjects. */
+    public static CertKey newInstanceCertWithOus(CertKey ca, String... ouValues) {
+        KeyPair leafKeys = newRsaKeyPair();
+        ASN1ObjectIdentifier[] types = new ASN1ObjectIdentifier[ouValues.length];
+        Arrays.fill(types, BCStyle.OU);
+        X500Name subject = new X500NameBuilder(BCStyle.INSTANCE)
+                .addMultiValuedRDN(types, ouValues)
+                .addRDN(BCStyle.CN, "instance-test")
+                .build();
+        X500Name issuer = new X500NameBuilder(BCStyle.INSTANCE)
+                .addRDN(BCStyle.CN, "instanceIdentityCA")
+                .build();
+        X509Certificate cert = sign(issuer, subject, leafKeys.getPublic(), ca.keyPair().getPrivate(),
+                Instant.now().minus(1, ChronoUnit.HOURS), Instant.now().plus(1, ChronoUnit.HOURS));
+        return new CertKey(cert, leafKeys);
     }
 
     /** Instance cert signed by {@code ca}, with org/space/app OUs in one multi-valued RDN. */

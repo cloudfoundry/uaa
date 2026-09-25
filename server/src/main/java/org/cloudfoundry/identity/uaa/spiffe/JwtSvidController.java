@@ -107,8 +107,17 @@ public class JwtSvidController {
         }
     }
 
-    /** Maps verifier/parser failures to HTTP status codes. */
-    @ControllerAdvice
+    /**
+     * Maps verifier/parser failures to HTTP status codes.
+     *
+     * <p>Scoped to this controller on purpose. {@code @ControllerAdvice} is meta-annotated with
+     * {@code @Component}, and this nested class carries no {@code @ConditionalOnProperty} of its
+     * own, so an unscoped advice is component-scanned and applied to every controller in UAA even
+     * when the SPIFFE feature is switched off -- turning any {@code IllegalArgumentException}
+     * anywhere in the application into a 400 whose body is the raw exception message. The only
+     * other advice in the codebase, {@code HttpMethodNotSupportedAdvice}, is scoped the same way.
+     */
+    @ControllerAdvice(assignableTypes = JwtSvidController.class)
     public static class ExceptionHandling {
 
         @ExceptionHandler(InstanceIdentityVerifier.InvalidInstanceCertificateException.class)

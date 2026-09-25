@@ -40,11 +40,11 @@ public class CertificateOuParser {
                 }
                 String ou = IETFUtils.valueToString(typeAndValue.getValue());
                 if (ou.startsWith(ORG_PREFIX)) {
-                    org = ou.substring(ORG_PREFIX.length());
+                    org = requireFirst(org, ou.substring(ORG_PREFIX.length()), "organization");
                 } else if (ou.startsWith(SPACE_PREFIX)) {
-                    space = ou.substring(SPACE_PREFIX.length());
+                    space = requireFirst(space, ou.substring(SPACE_PREFIX.length()), "space");
                 } else if (ou.startsWith(APP_PREFIX)) {
-                    app = ou.substring(APP_PREFIX.length());
+                    app = requireFirst(app, ou.substring(APP_PREFIX.length()), "app");
                 }
             }
         }
@@ -53,6 +53,17 @@ public class CertificateOuParser {
         require(space, "space");
         require(app, "app");
         return new CfInstanceIdentity(org, space, app);
+    }
+
+    /**
+     * Two OUs sharing a prefix leave the workload's identity ambiguous, and silently letting the
+     * last one win means the identity depends on RDN ordering. Refuse instead of guessing.
+     */
+    private static String requireFirst(String existing, String value, String name) {
+        if (existing != null) {
+            throw new IllegalArgumentException("Certificate has more than one '" + name + "' OU attribute");
+        }
+        return value;
     }
 
     private static void require(String value, String name) {
