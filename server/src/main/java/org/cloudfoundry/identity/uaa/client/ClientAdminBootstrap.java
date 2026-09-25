@@ -87,10 +87,10 @@ public class ClientAdminBootstrap implements
             final ClientMetadataProvisioning clientMetadataProvisioning,
             @Value("${oauth.client.override:true}")final boolean defaultOverride,
             @Value("#{@config['oauth']==null ? null : @config['oauth']['clients']}") final Map<String, Map<String, Object>> clients,
-            @Value("#{@applicationProperties.containsKey('oauth.client.autoapprove') ? @config['oauth']['client']['autoapprove'] : 'cf'}") final Collection<String> autoApproveClients,
+            @Value("#{@applicationProperties.containsKey('oauth.client.autoapprove') ? (@config['oauth']==null ? null : @config['oauth']['client']==null ? null : @config['oauth']['client']['autoapprove']) : 'cf'}") final Collection<String> autoApproveClients,
             @Value("#{@config['delete']==null ? null : @config['delete']['clients']}") final Collection<String> clientsToDelete,
             final JdbcTemplate jdbcTemplate,
-            final Set<String> allowPublicClients) {
+            @Value("#{@config['oauth']==null ? null : @config['oauth']['client']==null ? null : @config['oauth']['client']['allowpublic']}") final Set<String> allowPublicClients) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
@@ -117,7 +117,11 @@ public class ClientAdminBootstrap implements
         autoApproveClients.removeAll(clientsToDelete);
         for (String clientId : autoApproveClients) {
             try {
-                UaaClientDetails base = (UaaClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
+                ClientDetails loaded = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
+                if (!(loaded instanceof UaaClientDetails base)) {
+                    logger.warn("Client {} is not a UaaClientDetails instance, skipping autoapprove", clientId);
+                    continue;
+                }
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
                 logger.debug("Adding autoapprove flag to client: {}", clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
@@ -131,7 +135,11 @@ public class ClientAdminBootstrap implements
         allowPublicClients.removeAll(clientsToDelete);
         for (String clientId : allowPublicClients) {
             try {
-                UaaClientDetails base = (UaaClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
+                ClientDetails loaded = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
+                if (!(loaded instanceof UaaClientDetails base)) {
+                    logger.warn("Client {} is not a UaaClientDetails instance, skipping allowpublic", clientId);
+                    continue;
+                }
                 base.addAdditionalInformation(ClientConstants.ALLOW_PUBLIC, true);
                 logger.debug("Adding allowpublic flag to client: {}", clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
@@ -341,5 +349,9 @@ public class ClientAdminBootstrap implements
         if (publisher != null) {
             publisher.publishEvent(event);
         }
+    }
+
+    protected Set<String> getAllowPublicClients() {
+        return allowPublicClients;
     }
 }
