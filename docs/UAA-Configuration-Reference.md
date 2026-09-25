@@ -28,6 +28,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
   - [LDAP](#ldap)
   - [Encryption](#encryption)
   - [Rate Limiting](#rate-limiting)
+  - [SPIFFE / JWT-SVID](#spiffe--jwt-svid)
   - [REST Template (HTTP Client)](#rest-template-http-client)
   - [Tracing (Brave/Zipkin)](#tracing-bravezipkin)
   - [Health & Shutdown](#health--shutdown)
@@ -312,6 +313,16 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#ratelimitloggingoption"><img src="images/click-me.png" width="14" height="14"/></a> `ratelimit.loggingOption` | `OnlyLimited`| Rate-limit logging mode|
 | <a href="#ratelimitcredentialid"><img src="images/click-me.png" width="14" height="14"/></a> `ratelimit.credentialID` | —| Regex for credential extraction|
 | <a href="#ratelimitlimitermappings"><img src="images/click-me.png" width="14" height="14"/></a> `ratelimit.limiterMappings` | `[]`| Rate-limit rules|
+
+### SPIFFE / JWT-SVID
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| <a href="#uaaspiffeinstance_identity_ca"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.spiffe.instance_identity_ca` | — (required)| Diego instance-identity CA PEM; enables the feature|
+| <a href="#uaaspiffetrust_domain"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.spiffe.trust_domain` | — (required)| SPIFFE trust domain|
+| <a href="#uaaspiffejwt_svid_ttl_seconds"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.spiffe.jwt_svid_ttl_seconds` | `3600`| JWT-SVID lifetime (seconds)|
+| <a href="#uaaspiffepop_freshness_seconds"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.spiffe.pop_freshness_seconds` | `60`| Proof-of-possession timestamp skew (seconds)|
+| <a href="#uaaspiffepop_enabled"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.spiffe.pop_enabled` | `true`| Require proof-of-possession (do not disable)|
 
 ### REST Template (HTTP Client)
 
@@ -2879,6 +2890,128 @@ ratelimit:
 ```
 
 [Back to table](#rate-limiting)
+
+---
+
+### `uaa.spiffe.instance_identity_ca`
+
+**Default:** — (required)
+**Source:** [`SpiffeProperties`](../server/src/main/java/org/cloudfoundry/identity/uaa/spiffe/SpiffeProperties.java)
+**Type:** `String` (PEM-encoded X.509 certificate)
+
+PEM of the Diego instance-identity CA. Instance certificates presented to
+`POST /jwt-svid/sign` are accepted only if they are signed by this CA.
+
+This property is the **feature gate**. Every SPIFFE bean is annotated
+`@ConditionalOnProperty(prefix = "uaa.spiffe", name = "instance-identity-ca")`, so
+unless it is set the entire feature — including the `/jwt-svid/sign` endpoint — is
+absent and the endpoint returns 404.
+
+Only a single certificate is read (the first PEM object in the value), so a chain
+issued by an intermediate is not supported: the instance certificate must be signed
+directly by this CA. An unparseable value fails startup.
+
+```yaml
+uaa:
+  spiffe:
+    instance_identity_ca: |
+      -----BEGIN CERTIFICATE-----
+      MIID...
+      -----END CERTIFICATE-----
+    trust_domain: cf.example.com
+```
+
+Related: [`uaa.spiffe.trust_domain`](#uaaspiffetrust_domain).
+
+[Back to table](#spiffe--jwt-svid)
+
+---
+
+### `uaa.spiffe.trust_domain`
+
+**Default:** — (required)
+**Source:** [`SpiffeProperties`](../server/src/main/java/org/cloudfoundry/identity/uaa/spiffe/SpiffeProperties.java)
+**Type:** `String`
+
+The SPIFFE trust domain that forms the authority of every issued SPIFFE ID, for
+example `cf.example.com` yielding
+`spiffe://cf.example.com/cf/org/<org>/space/<space>/app/<app>/process/<type>`.
+
+Validated at startup against the SPIFFE-ID specification: it must be non-empty, at
+most 255 characters, lowercase, and contain only `[a-z0-9.-_]`. A missing or
+non-conformant value fails startup.
+
+This property is **not** itself the feature gate — only
+[`uaa.spiffe.instance_identity_ca`](#uaaspiffeinstance_identity_ca) is — which is
+precisely why the startup check exists. Without it, enabling the feature while
+omitting the trust domain would issue every workload on the foundation an identity
+under `spiffe://null/`, a mistake that would surface only at a relying party.
+
+[Back to table](#spiffe--jwt-svid)
+
+---
+
+### `uaa.spiffe.jwt_svid_ttl_seconds`
+
+**Default:** `3600` (1 hour)
+**Source:** [`SpiffeProperties`](../server/src/main/java/org/cloudfoundry/identity/uaa/spiffe/SpiffeProperties.java)
+**Type:** `Long`
+
+Lifetime of an issued JWT-SVID, used to compute its `exp` claim.
+
+Consider lowering this for most deployments. A JWT-SVID is a bearer token, and the
+SPIFFE JWT-SVID specification recommends "an aggressive value for the `exp` claim"
+to limit the window in which a captured token can be replayed. SPIRE's own default
+JWT-SVID lifetime is 5 minutes, so the default here is roughly twelve times longer
+than the reference implementation's.
+
+[Back to table](#spiffe--jwt-svid)
+
+---
+
+### `uaa.spiffe.pop_freshness_seconds`
+
+**Default:** `60`
+**Source:** [`SpiffeProperties`](../server/src/main/java/org/cloudfoundry/identity/uaa/spiffe/SpiffeProperties.java)
+**Type:** `Integer`
+
+Maximum permitted skew between the `timestamp` field of a `/jwt-svid/sign` request
+and UAA's clock for the proof-of-possession signature to be accepted.
+
+The comparison is an absolute difference, so the value tolerates skew in both
+directions: the default accepts timestamps up to 60 seconds in the past _and_ 60
+seconds in the future. Within that window a captured proof-of-possession can be
+replayed, because no nonce or `jti` uniqueness is tracked, so a lower value narrows
+the replay window.
+
+Related: [`uaa.spiffe.pop_enabled`](#uaaspiffepop_enabled).
+
+[Back to table](#spiffe--jwt-svid)
+
+---
+
+### `uaa.spiffe.pop_enabled`
+
+**Default:** `true`
+**Source:** [`SpiffeProperties`](../server/src/main/java/org/cloudfoundry/identity/uaa/spiffe/SpiffeProperties.java)
+**Type:** `Boolean`
+
+Whether `/jwt-svid/sign` requires the caller to prove possession of the instance
+certificate's private key.
+
+**Do not set this to `false` outside local development.** Proof-of-possession is the
+only control that distinguishes a workload from anyone merely holding a copy of that
+workload's certificate — and a certificate is not a secret. It is sent in the clear
+during every TLS handshake and is forwarded by Gorouter in
+`X-Forwarded-Client-Cert` headers. With this disabled, any client bearing the
+`uaa.resource` authority can obtain a JWT-SVID for any workload on the foundation
+simply by presenting that workload's public certificate.
+
+UAA logs a warning at startup whenever this is `false`.
+
+Related: [`uaa.spiffe.pop_freshness_seconds`](#uaaspiffepop_freshness_seconds).
+
+[Back to table](#spiffe--jwt-svid)
 
 ---
 
