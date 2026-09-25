@@ -64,12 +64,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * on a deployment that has NOT enabled it ({@code uaa.mtls-enabled} absent/false, which is the default
  * for every existing UAA).
  *
- * <p>This matters because PR #3972 gates the feature asymmetrically. The security filter chain
+ * <p>This matters because the feature is gated asymmetrically. The security filter chain
  * ({@code mtlsTokenEndpointSecurity}) is {@code @ConditionalOnProperty("uaa.mtls-enabled")}, but
- * {@code UaaTokenEndpoint}'s {@code @RequestMapping} now lists {@code /oauth/mtls/token}
- * unconditionally, and both new servlet filters are registered unconditionally in
- * {@code SpringServletXmlFiltersConfiguration}. So with the feature off, the path still resolves to a
- * controller -- it just falls through to whichever chain matches next.
+ * {@code UaaTokenEndpoint}'s {@code @RequestMapping} lists {@code /oauth/mtls/token}
+ * unconditionally, so the path still resolves to a controller with the feature off. What keeps it
+ * from being served is {@link MtlsEndpointAvailabilityFilter}, which answers 404 before Spring
+ * Security sees the request -- making that filter, and its ordering, the whole gate.
  */
 @DefaultTestContext
 @TestPropertySource(properties = {"uaa.mtls-enabled=false"})
@@ -118,7 +118,7 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    @DisplayName("E1. PROBE -- with mTLS disabled, /oauth/mtls/token should not be a live endpoint")
+    @DisplayName("E1. with mTLS disabled, /oauth/mtls/token is not a live endpoint")
     void mtlsTokenEndpointIsNotServedWhenDisabled() throws Exception {
         String clientId = "mtlsoffe1" + generator.generate();
         setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
@@ -132,11 +132,11 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
                         .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS))
                 .andReturn();
 
-        // FAILS TODAY (403, "Could not verify the provided CSRF token because no token was found to
-        // compare."). That 403 is the uiSecurity catch-all's CsrfFilter answering, which proves the
-        // request reaches the browser login chain rather than not resolving: mtlsTokenEndpointSecurity
-        // is @ConditionalOnProperty, but UaaTokenEndpoint's @RequestMapping lists /oauth/mtls/token
-        // unconditionally. It fails closed here, but by accident rather than by gate.
+        // Answered by MtlsEndpointAvailabilityFilter. Before it existed this returned 403, "Could
+        // not verify the provided CSRF token because no token was found to compare." -- the
+        // uiSecurity catch-all's CsrfFilter, which showed the request was reaching the browser login
+        // chain rather than not resolving at all. It failed closed, but by accident rather than by
+        // gate; E5 covers the same guard in a non-default zone.
         assertThat(result.getResponse().getStatus())
                 .as("a disabled feature's endpoint must not resolve at all. Actual: %s",
                         MtlsTokenEndpointHardeningMockMvcTests.outcome(result))
@@ -214,10 +214,10 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
                         .content(JsonUtils.writeValueAsString(client)))
                 .andReturn();
 
-        // FAILS TODAY (400, "token-endpoint-auth-method is not supported; configure tls-client-auth-ca
-        // to enable mTLS for client_id=..."). That is a new, unconditional rejection of a key this PR
-        // did not introduce and does not use, applied to every client create/update. Any deployment
-        // already setting it -- silently ignored before -- can no longer create or update those clients.
+        // This previously returned 400, "token-endpoint-auth-method is not supported; configure
+        // tls-client-auth-ca to enable mTLS for client_id=..." -- an unconditional rejection of a key
+        // this feature neither introduced nor uses, applied to every client create/update, which
+        // would have bricked any deployment already setting it (silently ignored before).
         assertThat(result.getResponse().getStatus())
                 .as("an unrelated additionalInformation key must not block client creation. Actual: %s",
                         MtlsTokenEndpointHardeningMockMvcTests.outcome(result))
