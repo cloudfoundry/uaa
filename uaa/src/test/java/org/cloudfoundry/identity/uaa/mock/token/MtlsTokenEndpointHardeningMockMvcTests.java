@@ -90,6 +90,16 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
 
     private static final String MTLS_PATH = "/oauth/mtls/token";
 
+    /**
+     * Bootstrapped with {@code uaa.resource} authority and a secret, so it can authenticate to
+     * /introspect and /check_token via client_secret_basic -- both require {@code uaa.resource}
+     * on the CALLING client, unrelated to whichever client the token being inspected belongs to.
+     * Reused rather than declared per-test because it is the resource-server side of the call,
+     * not the thing under test.
+     */
+    private static final String INTROSPECTING_CLIENT_ID = "oauth_showcase_password_grant";
+    private static final String INTROSPECTING_CLIENT_SECRET = "secret";
+
     @Qualifier(SPRING_SECURITY_FILTER_CHAIN)
     @Autowired
     FilterChainProxy securityFilterChain;
@@ -671,6 +681,165 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     // ------------------------------------------------------------------------------------
+    // Group F -- RFC 8705 section 3.2: cnf in token introspection
+    // ------------------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("F. RFC 8705 section 3.2 -- cnf in token introspection")
+    class CertificateBoundTokenIntrospection {
+
+        // Section 3.1 puts cnf.x5t#S256 directly in the JWT, where a resource server that
+        // decodes the token itself can already see it -- that case needs no help from this
+        // endpoint. Section 3.2 is the case that actually needs introspection: an opaque access
+        // token, where the resource server has no JWT to decode and must ask UAA for the
+        // certificate-binding metainformation instead. Both endpoints (/introspect per RFC 7662,
+        // and the legacy /check_token) are covered, for both token formats, so a regression in
+        // either the opaque-token storage path or either endpoint's response assembly is caught.
+
+        @Test
+        @DisplayName("F1. a JWT-format mTLS token's cnf is visible via /introspect")
+        void jwtFormatTokenCnfViaIntrospect() throws Exception {
+            String clientId = mtlsClient("f1", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=f1-app"), false);
+            X509Certificate cert = leafSignedByCa("CN=f1-app");
+
+            MvcResult issued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
+                    .param("token_format", "jwt"));
+            assertThat(issued.getResponse().getStatus()).as("Actual: %s", outcome(issued)).isEqualTo(200);
+            String expectedThumbprint = cnfThumbprintOf(claimsOf(issued));
+
+            Map<String, Object> introspection = introspect(accessTokenOf(issued));
+
+            assertThat(introspection.get("active")).isEqualTo(true);
+            assertThat(cnfThumbprintOf(introspection))
+                    .as("Actual introspection response: %s", introspection)
+                    .isEqualTo(expectedThumbprint);
+        }
+
+        @Test
+        @DisplayName("F2. a JWT-format mTLS token's cnf is visible via /check_token")
+        void jwtFormatTokenCnfViaCheckToken() throws Exception {
+            String clientId = mtlsClient("f2", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=f2-app"), false);
+            X509Certificate cert = leafSignedByCa("CN=f2-app");
+
+            MvcResult issued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
+                    .param("token_format", "jwt"));
+            String expectedThumbprint = cnfThumbprintOf(claimsOf(issued));
+
+            Map<String, Object> checked = checkToken(accessTokenOf(issued));
+
+            assertThat(cnfThumbprintOf(checked))
+                    .as("Actual check_token response: %s", checked)
+                    .isEqualTo(expectedThumbprint);
+        }
+
+        @Test
+        @DisplayName("F3. an OPAQUE-format mTLS token's cnf is visible via /introspect")
+        void opaqueFormatTokenCnfViaIntrospect() throws Exception {
+            String clientId = mtlsClient("f3", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=f3-app"), false);
+            X509Certificate cert = leafSignedByCa("CN=f3-app");
+
+            // The expected thumbprint is a pure function of the certificate, so a JWT-format
+            // request presenting the SAME certificate establishes the expected value
+            // independently of whichever code path builds the opaque token's stored
+            // representation.
+            MvcResult jwtIssued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
+                    .param("token_format", "jwt"));
+            String expectedThumbprint = cnfThumbprintOf(claimsOf(jwtIssued));
+
+            MvcResult opaqueIssued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
+                    .param("token_format", "opaque"));
+            assertThat(opaqueIssued.getResponse().getStatus())
+                    .as("Actual: %s", outcome(opaqueIssued)).isEqualTo(200);
+
+            Map<String, Object> introspection = introspect(accessTokenOf(opaqueIssued));
+
+            assertThat(introspection.get("active")).isEqualTo(true);
+            assertThat(cnfThumbprintOf(introspection))
+                    .as("Actual introspection response: %s", introspection)
+                    .isEqualTo(expectedThumbprint);
+        }
+
+        @Test
+        @DisplayName("F4. an OPAQUE-format mTLS token's cnf is visible via /check_token")
+        void opaqueFormatTokenCnfViaCheckToken() throws Exception {
+            String clientId = mtlsClient("f4", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=f4-app"), false);
+            X509Certificate cert = leafSignedByCa("CN=f4-app");
+
+            MvcResult jwtIssued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
+                    .param("token_format", "jwt"));
+            String expectedThumbprint = cnfThumbprintOf(claimsOf(jwtIssued));
+
+            MvcResult opaqueIssued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
+                    .param("token_format", "opaque"));
+
+            Map<String, Object> checked = checkToken(accessTokenOf(opaqueIssued));
+
+            assertThat(cnfThumbprintOf(checked))
+                    .as("Actual check_token response: %s", checked)
+                    .isEqualTo(expectedThumbprint);
+        }
+
+        @Test
+        @DisplayName("F5. an ordinary (non-mTLS) client_credentials token carries no cnf")
+        void ordinaryClientCredentialsTokenHasNoCnf() throws Exception {
+            // Contrast case: cnf must be specific to certificate-bound tokens, not a side effect
+            // of introspection itself or of the client_credentials grant in general.
+            String clientId = "plaincc" + generator.generate();
+            setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    true, null, null, -1, IdentityZone.getUaa(), Map.of());
+
+            MvcResult issued = perform(post("/oauth/token")
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_FORM_URLENCODED)
+                    .header("Authorization", basic(clientId, SECRET))
+                    .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS));
+            assertThat(issued.getResponse().getStatus()).as("Actual: %s", outcome(issued)).isEqualTo(200);
+
+            Map<String, Object> introspection = introspect(accessTokenOf(issued));
+
+            assertThat(introspection.get("active")).isEqualTo(true);
+            assertThat(introspection)
+                    .as("Actual introspection response: %s", introspection)
+                    .doesNotContainKey("cnf");
+        }
+
+        private Map<String, Object> introspect(String token) throws Exception {
+            MvcResult result = perform(post("/introspect")
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_FORM_URLENCODED)
+                    .header("Authorization", basic(INTROSPECTING_CLIENT_ID, INTROSPECTING_CLIENT_SECRET))
+                    .param("token", token));
+            assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(200);
+            return JsonUtils.readValue(result.getResponse().getContentAsString(),
+                    new TypeReference<Map<String, Object>>() {});
+        }
+
+        private Map<String, Object> checkToken(String token) throws Exception {
+            MvcResult result = perform(post("/check_token")
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_FORM_URLENCODED)
+                    .header("Authorization", basic(INTROSPECTING_CLIENT_ID, INTROSPECTING_CLIENT_SECRET))
+                    .param("token", token));
+            assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(200);
+            return JsonUtils.readValue(result.getResponse().getContentAsString(),
+                    new TypeReference<Map<String, Object>>() {});
+        }
+
+        @SuppressWarnings("unchecked")
+        private String cnfThumbprintOf(Map<String, Object> claimsOrResponse) {
+            Object cnf = claimsOrResponse.get("cnf");
+            assertThat(cnf).as("Actual: %s", claimsOrResponse).isInstanceOf(Map.class);
+            return (String) ((Map<String, Object>) cnf).get("x5t#S256");
+        }
+
+        private String accessTokenOf(MvcResult result) throws Exception {
+            Map<String, Object> body = JsonUtils.readValue(result.getResponse().getContentAsString(),
+                    new TypeReference<Map<String, Object>>() {});
+            return (String) body.get("access_token");
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------------------------
 
@@ -755,8 +924,16 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     static String outcome(MvcResult result) throws Exception {
         String content = result.getResponse().getContentAsString();
         String detail = (content == null || content.isBlank()) ? "<empty body>" : content;
+        // An opaque-format response also has an "access_token" key, but its value is a lookup
+        // handle, not a JWT -- claimsOf() would throw trying to decode it. Since this method
+        // exists purely to build assertion-failure messages, that throw must not itself become
+        // the failure, masking whatever the assertion actually found.
         if (content != null && content.contains("\"access_token\"")) {
-            detail = "token issued with claims " + claimsOf(result);
+            try {
+                detail = "token issued with claims " + claimsOf(result);
+            } catch (Exception e) {
+                detail = "token issued (opaque, undecodable as JWT): " + content;
+            }
         }
         return "status=" + result.getResponse().getStatus() + ", " + detail;
     }
