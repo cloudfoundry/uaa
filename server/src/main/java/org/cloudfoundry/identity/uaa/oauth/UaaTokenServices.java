@@ -139,7 +139,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             CLIENT_ID, CID, AZP, REVOCABLE,
             GRANT_TYPE, USER_ID, ORIGIN, USER_NAME,
             EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
-            EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD
+            EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD,
+            // granted_scopes belongs to the refresh token only: it records the full consented set,
+            // while an access token's `scope` may deliberately be a narrower subset the caller asked
+            // for. Copying it onto the access token discloses the full set to a recipient that was
+            // intentionally given reduced authority. getAdditionalRootClaims() tries to drop it, but
+            // does so after the copy loop, so the removal there never took effect -- filtering it
+            // here is what actually enforces the invariant.
+            GRANTED_SCOPES
     );
     private static final long MILLIS_PER_SECOND = 1000L;
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
@@ -556,8 +563,21 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.put(JTI, token.getAdditionalInformation().get(JTI));
         claims.putAll(token.getAdditionalInformation());
 
+        // Apply enhancer-supplied claims that are NOT one of UAA's own protected/reserved claim
+        // names (NON_ADDITIONAL_ROOT_CLAIMS) now, before any UAA-owned default below is set -- so
+        // the corresponding claims.put(...) calls below always win over an enhancer's value for
+        // the same reserved claim name (e.g. scope, client_id, authorities, iss, grant_type). This
+        // closes a gap where a client-configurable enhancer (e.g. certificate-derived mTLS claim
+        // mappings) could otherwise overwrite any UAA-owned/protected claim. sub and aud are the
+        // two explicitly-supported late overrides (e.g. mTLS cert-identity templates rendering
+        // their own sub/aud) and are re-applied after all defaults below, once it is safe for them
+        // to win.
         if (additionalRootClaims != null) {
-            claims.putAll(additionalRootClaims);
+            additionalRootClaims.forEach((key, value) -> {
+                if (!NON_ADDITIONAL_ROOT_CLAIMS.contains(key)) {
+                    claims.put(key, value);
+                }
+            });
         }
 
         claims.put(SUB, clientId);
@@ -589,6 +609,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         claims.put(AUD, UaaStringUtils.getValuesOrDefaultValue(resourceIds, clientId));
+
+        // Re-apply only the two explicitly-supported late overrides (e.g. mTLS cert-identity
+        // templates rendering their own sub/aud). Every other claim name in additionalRootClaims
+        // was already rejected above (see NON_ADDITIONAL_ROOT_CLAIMS) and must not win here either.
+        if (additionalRootClaims != null) {
+            if (additionalRootClaims.containsKey(SUB)) {
+                claims.put(SUB, additionalRootClaims.get(SUB));
+            }
+            if (additionalRootClaims.containsKey(AUD)) {
+                claims.put(AUD, additionalRootClaims.get(AUD));
+            }
+        }
 
         for (String excludedClaim : getExcludedClaims()) {
             claims.remove(excludedClaim);
