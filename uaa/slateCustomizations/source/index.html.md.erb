@@ -992,6 +992,61 @@ _Error Codes_
 |------------|--------------------------------------------------------------------------------------------------------|
 | 401        | Unauthorized - Unregistered client or incorrect client secret                                          |
 
+# JWT-SVID
+
+UAA can act as a [SPIFFE](https://spiffe.io/docs/latest/spiffe-about/overview/) identity server for
+Cloud Foundry workloads, issuing
+[JWT-SVIDs](https://github.com/spiffe/spiffe/blob/main/standards/JWT-SVID.md) that an app instance
+can present to any OIDC-aware relying party -- for example AWS, GCP or Azure workload identity
+federation -- without holding a long-lived secret.
+
+Cloud Foundry already gives every app instance a short-lived X.509 certificate (`instance.crt` /
+`instance.key`) issued by the Diego instance-identity CA. A SPIFFE Agent exchanges that certificate
+for a UAA-signed JWT-SVID whose `sub` is the workload's SPIFFE ID:
+
+`spiffe://<trust-domain>/cf/org/<org_guid>/space/<space_guid>/app/<app_guid>/process/<process_type>`
+
+<aside class="notice">
+This endpoint is inactive unless <code>uaa.spiffe.instance_identity_ca</code> is configured. See the
+<a href="https://github.com/cloudfoundry/uaa/blob/develop/docs/UAA-SPIFFE-JWT-SVID.md">JWT-SVID feature documentation</a>
+for the full trust model and configuration reference.
+</aside>
+
+## Sign a JWT-SVID
+
+Two independent identities are involved, and it is worth keeping them apart. The *caller* is the
+SPIFFE Agent, which authenticates with ordinary HTTP Basic client credentials and must hold the
+`uaa.resource` authority. The *subject* is the workload, which is attested separately by the
+instance certificate in the request body plus a proof-of-possession signature demonstrating that
+the caller holds the matching private key. The agent is not authorized to mint identities by
+virtue of its own credentials alone.
+
+<%= render('JwtSvidEndpointDocs/signJwtSvid/curl-request.md') %>
+
+<%= render('JwtSvidEndpointDocs/signJwtSvid/http-request.md') %>
+
+_Request Headers_
+
+<%= render('JwtSvidEndpointDocs/signJwtSvid/request-headers.md') %>
+
+_Request Fields_
+
+<%= render('JwtSvidEndpointDocs/signJwtSvid/request-fields.md') %>
+
+<%= render('JwtSvidEndpointDocs/signJwtSvid/http-response.md') %>
+
+_Response Fields_
+
+<%= render('JwtSvidEndpointDocs/signJwtSvid/response-fields.md') %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                                       |
+|------------|-------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Unreadable certificate PEM, missing/duplicated `organization:`/`space:`/`app:` OU attributes, a certificate field that is not valid in a SPIFFE ID path, an invalid `process_type`, or a blank, over-long or control-character-bearing `audience` |
+| 401        | Unauthorized - Unregistered client, incorrect client secret, an instance certificate that is expired, not yet valid, self-issued or not issued by the configured CA, or a proof-of-possession signature that is invalid or stale |
+| 403        | Forbidden - The authenticated client does not hold the `uaa.resource` authority                                   |
+
 # Session Management
 
 ## Logout.do
