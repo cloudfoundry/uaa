@@ -575,9 +575,11 @@ class ClientAdminEndpointsValidatorTests {
 
     @Test
     void validateTlsClientAuthClaimConfig_acceptsValidNativeClaimMappings() {
+        // pattern is only meaningful on subject_ou (TlsClientAuthentication.extractClaimMappingValues
+        // applies it exclusively there); a capturing pattern here exercises that path.
         Map<String, Object> info = Map.of(
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
-                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid", "pattern", "^(.+)$"))
+                List.of(Map.of("field", "subject_ou", "claim", "cf_instance_guid", "pattern", "^(.+)$"))
         );
 
         assertThatNoException().isThrownBy(() ->
@@ -592,11 +594,55 @@ class ClientAdminEndpointsValidatorTests {
         // string) handle identical input equivalently.
         Map<String, Object> info = Map.of(
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
-                "[{\"field\":\"subject_cn\",\"claim\":\"cf_instance_guid\",\"pattern\":\"^(.+)$\"}]"
+                "[{\"field\":\"subject_ou\",\"claim\":\"cf_instance_guid\",\"pattern\":\"^(.+)$\"}]"
         );
 
         assertThatNoException().isThrownBy(() ->
                 ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"));
+    }
+
+    @Test
+    @DisplayName("COPILOT REVIEW -- a pattern on subject_cn is rejected, since it is silently ignored at runtime")
+    void validateTlsClientAuthClaimConfig_rejectsPatternOnSubjectCn() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "cf_instance_guid", "pattern", "^(.+)$"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("subject_cn")
+                .hasMessageContaining("pattern");
+    }
+
+    @Test
+    @DisplayName("COPILOT REVIEW -- a pattern on subject_o is rejected, since it is silently ignored at runtime")
+    void validateTlsClientAuthClaimConfig_rejectsPatternOnSubjectO() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_o", "claim", "cf_org_name", "pattern", "^(.+)$"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("subject_o")
+                .hasMessageContaining("pattern");
+    }
+
+    @Test
+    @DisplayName("COPILOT REVIEW -- a subject_ou pattern with no capturing group is rejected, since it would "
+            + "never produce a value")
+    void validateTlsClientAuthClaimConfig_rejectsCaptureGrouplessOuPattern() {
+        Map<String, Object> info = Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                // Matches "space:..." but captures nothing -- matchFirstOu's `m.group(1)` path
+                // (guarded by m.groupCount() >= 1) would never be reached.
+                List.of(Map.of("field", "subject_ou", "claim", "space_guid", "pattern", "^space:.+$"))
+        );
+
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(info, "client-id"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("capturing group");
     }
 
     @Test
