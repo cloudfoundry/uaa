@@ -523,12 +523,37 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
             String pattern = mapping.getPattern();
             if (pattern != null && !pattern.isBlank()) {
+                // TlsClientAuthentication.extractClaimMappingValues applies a pattern only when
+                // field == "subject_ou" (the switch's subject_cn/subject_o arms use the raw
+                // value, ignoring mapping.getPattern() entirely) -- a pattern configured on
+                // subject_cn/subject_o here would validate as syntactically fine and then be
+                // silently ignored at token-issuance time, so the accepted config would not
+                // produce what it appears to declare. Reject it instead.
+                if (!"subject_ou".equals(field)) {
+                    throw new InvalidClientDetailsException(
+                            "tls-client-auth-claim-mappings entry for client_id=" + clientId
+                                    + " sets 'pattern' on field '" + field + "', but pattern is only applied "
+                                    + "to subject_ou -- a subject_cn/subject_o pattern would be silently "
+                                    + "ignored, and the claim would take the field's raw value instead.");
+                }
+                Pattern compiled;
                 try {
-                    Pattern.compile(pattern);
+                    compiled = Pattern.compile(pattern);
                 } catch (PatternSyntaxException e) {
                     throw new InvalidClientDetailsException(
                             "tls-client-auth-claim-mappings entry has an invalid pattern '" + pattern
                                     + "' for client_id=" + clientId + ": " + e.getMessage(), e);
+                }
+                // matchFirstOu only returns a value via m.group(1), guarded by
+                // m.groupCount() >= 1 -- a pattern with no capturing group matches (or not) but
+                // never yields a value, so the mapping's claim would never appear in the token,
+                // even though the configuration looks like it should produce one.
+                if (compiled.matcher("").groupCount() < 1) {
+                    throw new InvalidClientDetailsException(
+                            "tls-client-auth-claim-mappings entry for client_id=" + clientId
+                                    + " has pattern '" + pattern + "' with no capturing group -- "
+                                    + "subject_ou extraction only returns a value from a captured group, "
+                                    + "so this pattern would never produce the claim '" + claim + "'.");
                 }
             }
             if (TlsClientAuthConfiguration.isReservedClaimName(claim)) {
