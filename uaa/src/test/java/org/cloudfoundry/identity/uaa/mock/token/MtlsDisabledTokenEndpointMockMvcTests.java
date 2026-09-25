@@ -14,6 +14,9 @@ import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsEndpointAvailabilityFilter;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -24,12 +27,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.io.StringWriter;
@@ -69,6 +76,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
 
     private static final String MTLS_PATH = "/oauth/mtls/token";
+    private static final String DISCOVERY_PATH = "/.well-known/openid-configuration";
 
     @Qualifier(SPRING_SECURITY_FILTER_CHAIN)
     @Autowired
@@ -165,7 +173,7 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     @DisplayName("E3. OIDC discovery does not advertise tls_client_auth or mtls_endpoint_aliases when disabled")
     void discoveryDoesNotAdvertiseMtlsWhenDisabled() throws Exception {
-        MvcResult result = mockMvc.perform(get("/.well-known/openid-configuration")
+        MvcResult result = mockMvc.perform(get(DISCOVERY_PATH)
                         .accept(APPLICATION_JSON))
                 .andReturn();
 
@@ -214,6 +222,91 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
                 .as("an unrelated additionalInformation key must not block client creation. Actual: %s",
                         MtlsTokenEndpointHardeningMockMvcTests.outcome(result))
                 .isEqualTo(201);
+    }
+
+    /**
+     * The disabled-feature guard has to hold in every identity zone, through both ways a zone can be
+     * addressed. {@link MtlsEndpointAvailabilityFilter} decides by matching
+     * {@code getServletPath()} against {@code /oauth/mtls/token}, and in zone-path mode that path is
+     * only correct once {@link ZonePathContextRewritingFilter} has stripped the
+     * {@code /z/{subdomain}} prefix -- which is why the filter is registered at order -290, behind
+     * the rewriting filter. Should that ordering ever be disturbed, the guard stops matching and
+     * fails <em>open</em>: the endpoint of a feature the operator never enabled becomes reachable,
+     * but only via the zone-path form, which no other test covers.
+     */
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    @EnabledIfZonePathsEnabled
+    @DisplayName("E5. with mTLS disabled, /oauth/mtls/token is not served in a non-default zone either")
+    void mtlsTokenEndpointIsNotServedInAnyZoneWhenDisabled(ZoneResolutionMode mode) throws Exception {
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(
+                generator.generate().toLowerCase(), mockMvc, webApplicationContext,
+                IdentityZone.getUaaZoneId());
+        String clientId = "mtlsoffe5" + generator.generate();
+        setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
+                false, null, null, -1, zone, Map.of());
+
+        MvcResult result = mockMvc.perform(withServletPath(
+                        mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.POST, MTLS_PATH),
+                        mode, zone.getSubdomain(), MTLS_PATH)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED)
+                        .header("Authorization", basic(clientId, SECRET))
+                        .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus())
+                .as("a feature the deployment never enabled must not be reachable in any zone, by any "
+                        + "addressing mode. Actual: %s",
+                        MtlsTokenEndpointHardeningMockMvcTests.outcome(result))
+                .isEqualTo(404);
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    @EnabledIfZonePathsEnabled
+    @DisplayName("E6. with mTLS disabled, a zone's discovery document advertises no mTLS support")
+    void zoneDiscoveryDoesNotAdvertiseMtlsWhenDisabled(ZoneResolutionMode mode) throws Exception {
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(
+                generator.generate().toLowerCase(), mockMvc, webApplicationContext,
+                IdentityZone.getUaaZoneId());
+
+        MvcResult result = mockMvc.perform(withServletPath(
+                        mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, DISCOVERY_PATH),
+                        mode, zone.getSubdomain(), DISCOVERY_PATH)
+                        .accept(APPLICATION_JSON))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        Map<String, Object> discovery = JsonUtils.readValue(
+                result.getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {});
+
+        assertThat((List<String>) discovery.get("token_endpoint_auth_methods_supported"))
+                .as("Body: %s", discovery)
+                .doesNotContain("tls_client_auth");
+        assertThat(discovery)
+                .as("Body: %s", discovery)
+                .doesNotContainKey("mtls_endpoint_aliases");
+        assertThat(discovery.get("tls_client_certificate_bound_access_tokens"))
+                .as("RFC 8705 section 3.3 metadata defaults to false, and must stay false per zone "
+                        + "when the deployment has not enabled mTLS. Body: %s", discovery)
+                .isEqualTo(false);
+    }
+
+    /**
+     * MockMvc requires the request URI to decompose into contextPath + servletPath, and in zone-path
+     * mode the URI still carries its {@code /z/{subdomain}} prefix at build time -- it is
+     * {@link ZonePathContextRewritingFilter} that splits the two at request time. So the servlet path
+     * may only be pre-set when no such prefix is present. Leaving it unset elsewhere would be worse
+     * than cosmetic here: the availability filter keys off the servlet path, so a wrongly-built
+     * request could produce the expected 404 for entirely the wrong reason.
+     */
+    private static MockHttpServletRequestBuilder withServletPath(MockHttpServletRequestBuilder builder,
+                                                                 ZoneResolutionMode mode,
+                                                                 String subdomain, String path) {
+        boolean zonePathPrefixPresent =
+                mode == ZoneResolutionMode.ZONE_PATH && subdomain != null && !subdomain.isBlank();
+        return zonePathPrefixPresent ? builder : builder.servletPath(mode.getServletPath(subdomain, path));
     }
 
     private static String basic(String clientId, String secret) {
