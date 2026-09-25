@@ -71,9 +71,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * {@code invalid_scope} raised inside the grant, and hid the fact that certificate authentication had
  * already succeeded.
  *
- * <p>Tests whose display name begins with {@code FINDING} currently fail. They assert the security
- * property that ought to hold; the failure is the product not holding it, and the comment above each
- * assertion records the observed behaviour. They are not to be "fixed" by relaxing the assertion.
+ * <p>Several of these began as failing probes of security findings and are deliberately written with
+ * two acceptable outcomes: either the request is refused -- in which case the refusal must be for
+ * the right reason rather than an incidental one -- or the strong security property holds. Every one
+ * is now satisfied, by refusals added later on this branch; the comment above each assertion records
+ * the refusal that satisfies it. They are not to be "fixed" by relaxing the assertion.
  *
  * <p>The MockMvc chain is rebuilt in {@link #setUpMtlsMockMvc()} to include
  * {@link RawPeerCertificateCaptureFilter}, which is registered in
@@ -199,7 +201,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
-        @DisplayName("A3. FINDING -- an ordinary secret client is served by the mTLS token endpoint")
+        @DisplayName("A3. an ordinary secret client is refused by the mTLS token endpoint")
         void ordinarySecretClientAtMtlsEndpoint() throws Exception {
             // No tls-client-auth-ca at all. Ordinary client_secret_basic. No certificate.
             String clientId = "mtlsprobea3" + generator.generate();
@@ -214,8 +216,10 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS));
 
             // The property does not prescribe WHICH fix: refusing the request and serving only
-            // certificate-authenticated clients both satisfy it. FAILS TODAY because neither holds --
-            // the request is served, and the token records no mTLS authentication.
+            // certificate-authenticated clients both satisfy it. Satisfied by the refusal -- 401
+            // invalid_client, "/oauth/mtls/token requires a client configured with
+            // tls-client-auth-ca" -- so the endpoint no longer serves clients it cannot
+            // certificate-authenticate.
             if (result.getResponse().getStatus() != 200) {
                 assertThat(denial(result).error())
                         .as("if the endpoint refuses a non-mTLS client it must refuse cleanly")
@@ -256,7 +260,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     class GrantTypes {
 
         @Test
-        @DisplayName("B1. FINDING -- password grant at the mTLS endpoint mints a user token bound to the app's certificate")
+        @DisplayName("B1. the mTLS endpoint refuses the password grant")
         void passwordGrantAtMtlsEndpoint() throws Exception {
             String username = "mtlsuser" + generator.generate();
             ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager,
@@ -281,10 +285,11 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .param("token_format", "jwt"));
 
             // Refusing the grant at this endpoint satisfies the property, and so does issuing a user
-            // token that is not certificate-bound. FAILS TODAY because the token is both: cnf.x5t#S256
-            // (RFC 8705 section 3 sender-constraint, "the presenter holds this certificate") sits
-            // alongside user_id/user_name/email from the password grant and app_id from the
-            // certificate. The returned refresh_token is also usable at this endpoint.
+            // token that is not certificate-bound. Satisfied by the refusal -- 400 invalid_grant,
+            // "the mTLS token endpoint only issues client_credentials tokens". Without it the token
+            // was both at once: cnf.x5t#S256 (RFC 8705 section 3 sender-constraint, "the presenter
+            // holds this certificate") alongside user_id/user_name/email from the password grant,
+            // which conflates "this app holds a key" with "this human authenticated".
             if (result.getResponse().getStatus() != 200) {
                 // Any clean client error is an acceptable refusal here -- invalid_grant for a grant
                 // type the endpoint does not serve, invalid_client for a credential problem. What is
@@ -401,7 +406,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
-        @DisplayName("C5. FINDING -- the same wrong-CA failure returns 500 when reached via Basic auth")
+        @DisplayName("C5. the same wrong-CA failure is denied identically when reached via Basic auth")
         void wrongCaViaBasicAuthWithEmptySecret() throws Exception {
             String clientId = mtlsClient("c5", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=c5-attacker"), false);
             X509Certificate rogueLeaf = signCert(new X500Name("CN=c5-attacker"), rogueCaSubject,
@@ -422,8 +427,8 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .requestAttr("jakarta.servlet.request.X509Certificate",
                             new X509Certificate[]{rogueLeaf}));
 
-            // FAILS TODAY (500, empty body, plus an ERROR "Uncaught Exception:" stack trace in the log).
-            // C1-C4 return a clean 401 only because
+            // Asserted unconditionally, and now holds. It previously returned 500 with an empty body
+            // and an "Uncaught Exception:" stack trace, because C1-C4 return a clean 401 only because
             // AbstractClientParametersAuthenticationFilter.performClientAuthentication wraps EVERY
             // exception in BadCredentialsException. ClientBasicAuthenticationFilter catches only
             // AuthenticationException, and InvalidClientDetailsException is a UaaException ->
@@ -480,7 +485,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
-        @DisplayName("D2. FINDING -- a sub template with no placeholders forges an arbitrary subject")
+        @DisplayName("D2. a sub template with no placeholders is refused at registration")
         void subTemplateWithoutPlaceholdersForgesSubject() throws Exception {
             String clientId = "mtlsd2" + generator.generate();
             // Created through the client-admin API, not written straight to the store, so that a fix
@@ -507,16 +512,19 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     leafSignedByCa("CN=d2-app")).param("token_format", "jwt"));
             assertThat(result.getResponse().getStatus()).isEqualTo(200);
 
-            // FAILS TODAY. ClientAdminEndpointsValidator.validateTemplatePlaceholders only checks that
-            // placeholders that ARE present are declared; it never requires one. So a constant template
-            // makes sub any fixed string a client admin chooses -- e.g. a real user's UUID.
+            // Satisfied by the early return above: registration is refused with 400 invalid_client,
+            // "tls-client-auth-sub-template ... must contain at least one {claim} placeholder".
+            // Validation used only to check that placeholders which ARE present are declared, never
+            // that one exists, so a constant template made sub any fixed string a client admin chose
+            // -- a real user's UUID, for instance. Kept as the fallback assertion in case the
+            // configuration is ever accepted again.
             assertThat(claimsOf(result).get("sub"))
                     .as("sub must stay derived from the authenticated client or its certificate")
                     .isEqualTo(clientId);
         }
 
         @Test
-        @DisplayName("D3. FINDING -- a claim mapping can forge authentication-context claims (amr/acr)")
+        @DisplayName("D3. a claim mapping onto amr/acr is refused at registration")
         void claimMappingCanForgeAuthenticationContextClaims() throws Exception {
             String clientId = "mtlsd3" + generator.generate();
             MvcResult created = createClientViaAdminApi(clientId, Map.of(
@@ -539,9 +547,10 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     leafSignedByCa("CN=mfa,O=urn:example:high")).param("token_format", "jwt"));
             assertThat(result.getResponse().getStatus()).isEqualTo(200);
 
-            // FAILS TODAY. NON_ADDITIONAL_ROOT_CLAIMS protects UAA's own claims but not the
-            // authentication-context claims downstream policy engines read, and
-            // ClientAdminEndpointsValidator applies no allowlist to claim NAMES.
+            // Satisfied by the early return above: registration is refused with 400 invalid_client,
+            // "... maps onto reserved claim 'amr'". NON_ADDITIONAL_ROOT_CLAIMS protected UAA's own
+            // claims but not the authentication-context claims downstream policy engines read.
+            // Kept as the fallback assertion in case such a mapping is ever accepted again.
             assertThat(claimsOf(result))
                     .as("a certificate subject field must not be able to assert how the caller authenticated")
                     .doesNotContainKeys("amr", "acr");
