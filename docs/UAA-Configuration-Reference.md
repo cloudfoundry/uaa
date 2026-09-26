@@ -1166,6 +1166,9 @@ Bootstrap client definitions loaded at startup. Each entry is keyed by client ID
 - `allowpublic` — Allow public (no secret) auth
 - `jwks` — Inline JWKS for private_key_jwt auth
 - `jwks_uri` — URI to fetch JWKS
+- `jwt_creds` — JSON string of federated private_key_jwt credentials (RFC 7523), each with
+  `iss`, either `sub` or `sub_pattern`, and an optional `aud`. See
+  [UAA-Client-Authentication.md](UAA-Client-Authentication.md) for subject patterns.
 - `name` — Display name
 
 [Back to table](#oauth-clients--users)

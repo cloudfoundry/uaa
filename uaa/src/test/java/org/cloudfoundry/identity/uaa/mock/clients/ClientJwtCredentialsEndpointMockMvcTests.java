@@ -4,16 +4,24 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import tools.jackson.core.type.TypeReference;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -193,6 +201,172 @@ class ClientJwtCredentialsEndpointMockMvcTests {
                 .getContentAsString();
         int n = body.split("\"jwt_creds\"").length - 1;
         assertThat(n).isOne();
+    }
+
+    @Test
+    void createWithSubjectPattern_getReturnsPattern() throws Exception {
+        String clientId = "jwt-pattern-" + UUID.randomUUID().toString().substring(0, 8);
+        String pattern = "project_path:myteam/" + clientId + ":ref_type:branch:ref:*";
+
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub_pattern\":\"" + pattern + "\"}]}")
+                .andExpect(status().isCreated());
+
+        ClientDetailsModification retrieved = getClient(clientId);
+        assertThat(retrieved.getClientJwtCredentials()).isNotEmpty();
+        assertThat(retrieved.getClientJwtCredentials().getFirst().isSubjectPattern()).isTrue();
+        assertThat(retrieved.getClientJwtCredentials().getFirst().getSubjectPattern()).isEqualTo(pattern);
+    }
+
+    @Test
+    void addAndDeleteSubjectPatternViaClientJwtEndpoint() throws Exception {
+        String clientId = "jwt-pattern-ep-" + UUID.randomUUID().toString().substring(0, 8);
+        String pattern = "project_path:myteam/" + clientId + ":ref_type:branch:ref:*";
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"exact-" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        ClientJwtChangeRequest add = new ClientJwtChangeRequest();
+        add.setClientId(clientId);
+        add.setIssuer(ISSUER);
+        add.setSubjectPattern(pattern);
+        add.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+        changeClientJwt(clientId, add).andExpect(status().isOk());
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(2);
+
+        ClientJwtChangeRequest delete = new ClientJwtChangeRequest();
+        delete.setClientId(clientId);
+        delete.setIssuer(ISSUER);
+        delete.setSubjectPattern(pattern);
+        delete.setChangeMode(ClientJwtChangeRequest.ChangeMode.DELETE);
+        changeClientJwt(clientId, delete).andExpect(status().isOk());
+
+        List<ClientJwtCredential> remaining = getClient(clientId).getClientJwtCredentials();
+        assertThat(remaining).hasSize(1);
+        assertThat(remaining.getFirst().isSubjectPattern()).isFalse();
+    }
+
+    @Test
+    void createWithInvalidSubjectPatternIsRejected() throws Exception {
+        // a bare wildcard would trust any subject the issuer asserts
+        createClientWithJwtConfig("jwt-bad-" + UUID.randomUUID().toString().substring(0, 8),
+                "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub_pattern\":\"*\"}]}")
+                .andExpect(status().isBadRequest());
+        // a pattern without a wildcard should be configured as sub instead
+        createClientWithJwtConfig("jwt-bad-" + UUID.randomUUID().toString().substring(0, 8),
+                "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub_pattern\":\"no-wildcard\"}]}")
+                .andExpect(status().isBadRequest());
+        // sub and sub_pattern are mutually exclusive
+        createClientWithJwtConfig("jwt-bad-" + UUID.randomUUID().toString().substring(0, 8),
+                "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"a\",\"sub_pattern\":\"b:*\"}]}")
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createWithMalformedClientJwtConfigIsRejected() throws Exception {
+        createClientWithJwtConfig("jwt-crt-bad-" + UUID.randomUUID().toString().substring(0, 8), "not-json")
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void restrictedUpdateWithMalformedClientJwtConfigIsRejected() throws Exception {
+        String clientId = "jwt-rst-bad-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(put("/oauth/clients/restricted/" + clientId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(clientWithJwtConfig(clientId, "not-json"))))
+                .andExpect(status().isBadRequest());
+
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
+    }
+
+    @Test
+    void updateWithMalformedClientJwtConfigIsRejected() throws Exception {
+        String clientId = "jwt-upd-bad-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        updateClientWithJwtConfig(clientId, "not-json").andExpect(status().isBadRequest());
+
+        // the stored configuration is untouched and still readable
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
+    }
+
+    @Test
+    void batchUpdateWithMalformedClientJwtConfigIsRejected() throws Exception {
+        String clientId = "jwt-tx-bad-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(put("/oauth/clients/tx")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(new UaaClientDetails[]{clientWithJwtConfig(clientId, "not-json")})))
+                .andExpect(status().isBadRequest());
+
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
+    }
+
+    @Test
+    void modifyUpdateWithMalformedClientJwtConfigIsRejected() throws Exception {
+        String clientId = "jwt-mod-bad-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        // built as raw JSON, because ClientDetailsModification parses client_jwt_config itself
+        Map<String, Object> modification = JsonUtils.readValue(
+                JsonUtils.writeValueAsString(clientWithJwtConfig(clientId, "not-json")), new TypeReference<>() {});
+        modification.put("action", ClientDetailsModification.UPDATE);
+        mockMvc.perform(post("/oauth/clients/tx/modify")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(List.of(modification))))
+                .andExpect(status().isBadRequest());
+
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    void blankClientJwtConfigIsTreatedAsNone(String blank) throws Exception {
+        String clientId = "jwt-blank-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, blank).andExpect(status().isCreated());
+        assertThat(getClient(clientId).getClientJwtCredentials()).isNullOrEmpty();
+
+        updateClientWithJwtConfig(clientId, blank).andExpect(status().isOk());
+        assertThat(getClient(clientId).getClientJwtCredentials()).isNullOrEmpty();
+    }
+
+    private ResultActions createClientWithJwtConfig(String clientId, String clientJwtConfig) throws Exception {
+        return mockMvc.perform(post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(clientWithJwtConfig(clientId, clientJwtConfig))));
+    }
+
+    private ResultActions updateClientWithJwtConfig(String clientId, String clientJwtConfig) throws Exception {
+        return mockMvc.perform(put("/oauth/clients/" + clientId)
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(clientWithJwtConfig(clientId, clientJwtConfig))));
+    }
+
+    private static UaaClientDetails clientWithJwtConfig(String clientId, String clientJwtConfig) {
+        UaaClientDetails client = new UaaClientDetails();
+        client.setClientId(clientId);
+        client.setClientSecret("secret");
+        client.setAuthorizedGrantTypes(List.of("client_credentials"));
+        client.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority("uaa.none")));
+        client.setClientJwtConfig(clientJwtConfig);
+        return client;
+    }
+
+    private ResultActions changeClientJwt(String clientId, ClientJwtChangeRequest request) throws Exception {
+        return mockMvc.perform(put("/oauth/clients/" + clientId + "/clientjwt")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request)));
     }
 
     private ClientDetailsModification getClient(String clientId) throws Exception {

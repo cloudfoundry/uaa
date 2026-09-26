@@ -3142,6 +3142,21 @@ Example::
       "jwks_uri": "http://localhost:8080/uaa/token_keys"
     }
 
+A federated credential (RFC 7523) is registered with an issuer and either a subject or a
+subject pattern. In a pattern, ``*`` matches one component and crosses neither ``:`` nor
+``/``; ``**`` crosses ``/`` but never ``:``, for a component such as a git ref that may
+contain a path::
+
+    PUT /oauth/clients/foo/clientjwt
+    {
+      "iss": "https://gitlab.example.com",
+      "sub_pattern": "project_path:myteam/deploy:ref_type:branch:ref:**",
+      "changeMode": "ADD"
+    }
+
+Deleting compares the subject verbatim, so a pattern removes the credential registered under
+that pattern and not the subjects it matches.
+
 
 Register Multiple Clients: ``POST /oauth/clients/tx``
 -----------------------------------------------------

@@ -248,6 +248,12 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         if (requestedGrantTypes.contains(GRANT_TYPE_IMPLICIT) && StringUtils.hasText(client.getClientSecret())) {
             throw new InvalidClientDetailsException("Implicit grant should not have a client_secret");
         }
+        // A client_jwt_config supplied directly is persisted as given, on create as well as on
+        // update, so reject a malformed one here rather than letting it fail when read back.
+        if (StringUtils.hasText(client.getClientJwtConfig())) {
+            ClientJwtConfiguration.readSuppliedValue(client.getClientJwtConfig());
+        }
+
         if (create) {
             clientSecretValidator.validate(client.getClientSecret());
 
@@ -263,7 +269,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
             }
-            
+
             // Fold jwt_creds and client_jwt_config from additional information into the persisted client_jwt_config string
             Object jwtCredsValue = client.getAdditionalInformation().get(ClientJwtConfiguration.JWT_CREDS);
             if (jwtCredsValue != null) {

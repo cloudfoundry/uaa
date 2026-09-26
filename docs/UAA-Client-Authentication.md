@@ -6,7 +6,7 @@ In [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-2.3.1) the password
 or better the process of checking its possession means the authentication process.
 
 The secrets can be passed to a server in different ways. It can happen through the HTTP header and/or the body. In the case that an Authorization header is used,
-the encoding of the secret needs to be done according to the RFC 6749. UAA fixed this behavior with https://github.com/cloudfoundry/uaa/issues/778.
+the encoding of the secret needs to be done according to the RFC 6749. UAA fixed this behavior with <https://github.com/cloudfoundry/uaa/issues/778>.
 The OIDC standard defines additional authentication mechanisms, see [section 9](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication).
 The usage of secrets via client_secret_basic and client_secret_post is straightforward to set up and to use, however, if system-to-system communication is
 in use, this can be a security problem because it will be hard to change secrets in running systems. The use of many secrets is not
@@ -17,10 +17,12 @@ standards define token-based authentication mechanisms for OAuth2 clients. They 
 * tls_client_auth [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705)
 
 ## New methods
+
 The new methods are based on asymmetric trust relation, so that the keys are divided into a private and a public one. The private key should never leave
 the original system, but only the public key should be exchanged.
 
 ### private_key_jwt (Partly finished)
+
 The standard private_key_jwt is similar to the existing JWT bearer flow, but JWT bearer is for user principle propagation, whereas private_key_jwt
 is used for client authentication only. The used technics are similar and therefore the trust model is similar. Both usages are specified in the same
 [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523.txt). The JWT bearer trust is based on parameters tokenKey and/or tokenKeyUrl parameter, part of the
@@ -29,7 +31,7 @@ of public keys, and this set can contain many keys because each key has its own 
 a dynamic token key URI. OIDC has defined the parameter jwks_uri for this already. The structure of the keys is defined with [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517).
 UAA provides its own jwks_uri with endpoint /token_keys. The content of this endpoint is [JWKS](https://datatracker.ietf.org/doc/html/rfc7517#section-5).
 
-The content of the JWT (parameter client_assertion) can be different. The standards define the difference. The [OIDC core standard](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication) 
+The content of the JWT (parameter client_assertion) can be different. The standards define the difference. The [OIDC core standard](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
  simplifies the structure so that issuer and subject are the client_id of the authenticated OAuth2 client. The key rotation is supported with
 jwks_uri, which retrieves the JWK. You can only have one JWKS_URI by the client. For the [RFC 7523 from OAuth2 standard](https://www.rfc-editor.org/info/rfc7523) the
 structure is more complex, but with seperated issuer and subject there can be more than one entry of federated credential.
@@ -45,11 +47,65 @@ The new parameter for federated Credentials in UAA clients is (Work in progress 
 
 * jwt_creds
 
+Each entry of `jwt_creds` describes one trusted combination of issuer and subject:
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `iss` | yes | The issuer of the client assertion. Always compared verbatim, because it selects the key set the assertion is verified against. |
+| `sub` | one of `sub` or `sub_pattern` | The subject of the client assertion, compared verbatim. |
+| `sub_pattern` | one of `sub` or `sub_pattern` | A subject pattern, see below. Mutually exclusive with `sub`. |
+| `aud` | no | The expected audience. Defaults to the token endpoint of the UAA. |
+
+#### Subject patterns
+
+Some issuers derive the subject from the context the token was requested in. GitLab, for
+example, issues `project_path:myteam/deploy:ref_type:branch:ref:main`, where the last component
+is the branch, and GitHub issues `repo:octo-org/octo-repo:environment:Production`. Configuring
+one credential per branch or environment does not scale and runs into the limit of ten
+credentials per client, so `sub_pattern` accepts a wildcard instead:
+
+```json
+[{"iss":"https://gitlab.example.com","sub_pattern":"project_path:myteam/deploy:ref_type:branch:ref:*"}]
+```
+
+Subjects are structured by two separators, `:` between the claim components and `/` inside a
+component that carries a path. A pattern has a wildcard for each:
+
+| Wildcard | Matches | Use for |
+| --- | --- | --- |
+| `*` | one component, crossing neither `:` nor `/` | a group, a project, an environment |
+| `**` | across `/` but never across `:` | a git ref, which may contain `/` |
+
+For the pattern above, `…:ref:main` is accepted and `…:ref:main:extra` is not. A branch such as
+`release/1.0` or `feature/nested` contains a `/`, so it needs `…:ref:**`. Every other character,
+including `.`, is matched literally, and the pattern always has to match the whole subject.
+
+The distinction matters where a component identifies who is calling. `repo:*:ref:refs/heads/main`
+admits one repository, because `*` cannot cross the `/` between organisation and repository;
+`repo:**:ref:refs/heads/main` would admit every repository of every organisation on that issuer.
+Prefer `*` and reach for `**` only where the component genuinely holds a path.
+
+A pattern must contain at least one wildcard and at least one component that is entirely
+literal, so `*`, `a*` and `*:*` are rejected: they would authorise most of what the issuer can
+assert. Patterns are limited to 256 characters and five wildcards. The same length limit applies
+to the subject being matched, so a pattern does not match an asserted subject longer than 256
+characters.
+
+Only the subject can be a pattern. The issuer is always compared verbatim, and a pattern only
+widens which subjects that one issuer may assert; the assertion is still rejected unless its
+signature verifies against the key set of that issuer.
+
+When deleting a credential, the subject is compared verbatim. Deleting `sub_pattern` removes the
+credential stored under that pattern and does not remove the credentials it would match.
+
 ### tls_client_auth (Planned Feature)
+
 Not yet defined a release date.
 
 ## Configs
+
 Here is a brief example of the `clients` section:
+
 ```yaml
 oauth:
   clients:
@@ -78,9 +134,11 @@ oauth:
           ]
         }
 ```
+
 The example configuration above with jwks_uri enables continuous trust to a running UAA.
 
 Here is a brief example of the oauth providers section, where UAA is acting as a client.
+
 ```yaml
 login:
   oauth:
@@ -99,12 +157,13 @@ login:
 The option jwtClientAuthentication creates during the proxy flow a client assertion which is based on OIDC private_key_jwt.
 
 ### Developer implementation
+
 As a developer, you should use the [UAA documentation](https://docs.cloudfoundry.org/api/uaa/version/77.18.0/index.html#token). There is a description
-about the new parameters client_assertion and client_assertion_type. In addition, you can check in the retrieved access_token tokens for the existence 
-of claim client_auth_method with value private_key_jwt, (client_auth_method=private_key). This claim should guarantee the used method of client 
-authentication. Tokens without this claim are authenticated with secrets. There might be use-cases where a stronger authentication mechanism is 
+about the new parameters client_assertion and client_assertion_type. In addition, you can check in the retrieved access_token tokens for the existence
+of claim client_auth_method with value private_key_jwt, (client_auth_method=private_key). This claim should guarantee the used method of client
+authentication. Tokens without this claim are authenticated with secrets. There might be use-cases where a stronger authentication mechanism is
 required.
 
 ### Production use
 
-The support of private_key_jwt (according to OIDC) for a production system is given with the end of Q4/2024. 
+The support of private_key_jwt (according to OIDC) for a production system is given with the end of Q4/2024.
