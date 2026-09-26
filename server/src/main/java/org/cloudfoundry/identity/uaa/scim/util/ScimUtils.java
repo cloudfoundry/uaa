@@ -101,8 +101,14 @@ public final class ScimUtils {
         if (!hasText(user.getUserName())) {
             throw new InvalidScimResourceException("A username must be provided.");
         }
+        if (user.getUserName().length() > 255) {
+            throw new InvalidScimResourceException("Username must be no more than 255 characters in length.");
+        }
         if (OriginKeys.UAA.equals(user.getOrigin()) && !usernamePattern.matcher(user.getUserName()).matches()) {
             throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
+        }
+        if (user.getOrigin() != null && user.getOrigin().length() > 36) {
+            throw new InvalidScimResourceException("Origin must be no more than 36 characters in length.");
         }
         if (user.getEmails() == null || user.getEmails().size() != 1) {
             throw new InvalidScimResourceException("Exactly one email must be provided.");
@@ -111,6 +117,34 @@ public final class ScimUtils {
             if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
                 throw new InvalidScimResourceException("An email must be provided.");
             }
+            if (email.getValue().length() > 255) {
+                throw new InvalidScimResourceException("Email must be no more than 255 characters in length.");
+            }
+        }
+        if (user.getGivenName() != null && user.getGivenName().length() > 255) {
+            throw new InvalidScimResourceException("Given name must be no more than 255 characters in length.");
+        }
+        if (user.getFamilyName() != null && user.getFamilyName().length() > 255) {
+            throw new InvalidScimResourceException("Family name must be no more than 255 characters in length.");
+        }
+        if (user.getPhoneNumbers() != null) {
+            for (ScimUser.PhoneNumber phoneNumber : user.getPhoneNumbers()) {
+                if (phoneNumber != null && phoneNumber.getValue() != null && phoneNumber.getValue().length() > 255) {
+                    throw new InvalidScimResourceException("Phone number must be no more than 255 characters in length.");
+                }
+            }
+        }
+        if (user.getExternalId() != null && user.getExternalId().length() > 255) {
+            throw new InvalidScimResourceException("External id must be no more than 255 characters in length.");
+        }
+        if (user.getSalt() != null && user.getSalt().length() > 36) {
+            throw new InvalidScimResourceException("Salt must be no more than 36 characters in length.");
+        }
+        if (user.getAliasId() != null && user.getAliasId().length() > 36) {
+            throw new InvalidScimResourceException("Alias id must be no more than 36 characters in length.");
+        }
+        if (user.getAliasZid() != null && user.getAliasZid().length() > 36) {
+            throw new InvalidScimResourceException("Alias zid must be no more than 36 characters in length.");
         }
     }
 }

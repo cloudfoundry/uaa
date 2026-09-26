@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
@@ -55,6 +57,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -86,8 +89,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -322,6 +323,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
         int version = getVersion(userId, etag);
         user.setVersion(version);
+
+        ScimUtils.validate(user);
 
         user.setZoneId(identityZoneManager.getCurrentIdentityZoneId());
 
@@ -631,6 +634,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException, InternalUserManagementDisabledException {
         logger.error("Unhandled exception in SCIM user endpoints. {}", t.getMessage());
+        logger.debug("Exception details:", t);
 
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
         if (t instanceof ScimException exception) {
@@ -650,11 +654,14 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 }
             }
         }
+
+        // redact database internals if applicable
+        if (t instanceof DataAccessException) {
+            e = new ScimException("A database error occurred.", e.getStatus());
+        }
+
         incrementErrorCounts(e);
-        // User can supply trace=true or just trace (unspecified) to get stack
-        // traces
-        boolean trace = request.getParameter("trace") != null && !"false".equals(request.getParameter("trace"));
-        return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e, trace, e.getExtraInfo()),
+        return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e, false, e.getExtraInfo()),
                 e.getStatus()), messageConverters);
     }
 
