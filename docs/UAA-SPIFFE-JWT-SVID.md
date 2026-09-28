@@ -190,6 +190,9 @@ Notes for operators:
 - **Rate limiting.** `/jwt-svid/sign` is covered only by UAA's default global limiter bucket. Both
   signature verification and JWT signing are CPU-bound; consider a dedicated limiter mapping. See
   [UAA-Rate-Limiting.md](UAA-Rate-Limiting.md).
+- **Auditing.** Every successful issuance publishes a `JwtSvidIssuedEvent`, giving a UAA audit
+  record of which agent client obtained which SPIFFE ID, for which audience, and when. Failed
+  attempts are not separately audited; they are observable only as the HTTP error response.
 - **Identity zones.** The SPIFFE configuration is global rather than per-zone, while the issued
   token's `iss` follows the zone the request arrives in.
 

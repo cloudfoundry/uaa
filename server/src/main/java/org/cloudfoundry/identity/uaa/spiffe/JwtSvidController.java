@@ -1,10 +1,13 @@
 package org.cloudfoundry.identity.uaa.spiffe;
 
+import org.cloudfoundry.identity.uaa.spiffe.event.JwtSvidIssuedEvent;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,19 +33,22 @@ public class JwtSvidController {
     private final JwtSvidSigner signer;
     private final SpiffeProperties properties;
     private final ApplicationEventPublisher eventPublisher;
+    private final IdentityZoneManager identityZoneManager;
 
     public JwtSvidController(CertificateOuParser ouParser,
                             InstanceIdentityVerifier identityVerifier,
                             ProofOfPossessionVerifier popVerifier,
                             JwtSvidSigner signer,
                             SpiffeProperties properties,
-                            ApplicationEventPublisher eventPublisher) {
+                            ApplicationEventPublisher eventPublisher,
+                            IdentityZoneManager identityZoneManager) {
         this.ouParser = ouParser;
         this.identityVerifier = identityVerifier;
         this.popVerifier = popVerifier;
         this.signer = signer;
         this.properties = properties;
         this.eventPublisher = eventPublisher;
+        this.identityZoneManager = identityZoneManager;
     }
 
     @PostMapping(value = "/jwt-svid/sign", consumes = "application/json", produces = "application/json")
@@ -61,6 +67,8 @@ public class JwtSvidController {
 
         JwtSvidSigner.JwtSvidResult result =
                 signer.sign(spiffeId, identity, request.processType(), request.audience());
+        eventPublisher.publishEvent(new JwtSvidIssuedEvent(result, request.audience(),
+                SecurityContextHolder.getContext().getAuthentication(), identityZoneManager.getCurrentIdentityZoneId()));
         return new JwtSvidResponse(result.svid(), result.spiffeId(), result.expiresAt());
     }
 

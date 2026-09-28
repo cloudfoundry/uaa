@@ -9,6 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.spiffe.event.JwtSvidIssuedEvent;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
@@ -40,6 +41,7 @@ class JwtSvidControllerTests {
     private final JwtSvidSigner signer = mock(JwtSvidSigner.class);
     private final SpiffeProperties props = new SpiffeProperties("example.org", "ca", 900L, 60, true);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final IdentityZoneManager identityZoneManager = mock(IdentityZoneManager.class);
 
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -53,8 +55,10 @@ class JwtSvidControllerTests {
 
     @BeforeEach
     void setUp() {
-        JwtSvidController controller =
-                new JwtSvidController(ouParser, identityVerifier, popVerifier, signer, props, eventPublisher);
+        when(identityZoneManager.isCurrentZoneUaa()).thenReturn(true);
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn("uaa");
+        JwtSvidController controller = new JwtSvidController(
+                ouParser, identityVerifier, popVerifier, signer, props, eventPublisher, identityZoneManager);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new JwtSvidController.ExceptionHandling())
                 .build();
