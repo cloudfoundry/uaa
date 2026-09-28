@@ -8,9 +8,13 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter.DEFAULT_ZONE_SUBDOMAIN_PATH;
@@ -28,10 +32,15 @@ public class ZoneContextPathSessionRequestWrapper extends HttpServletRequestWrap
 
     /**
      * Prefix for container session attribute names. Each context path has one attribute:
-     * {@code ATTRIBUTE_NAME_PREFIX + contextPathKey} (with "" mapped to "default").
+     * {@code ATTRIBUTE_NAME_PREFIX + hash(contextPathKey)} (with "" mapped to "default" before hashing).
+     * The context path is hashed to a fixed length rather than embedded verbatim because Spring
+     * Session JDBC caps {@code ATTRIBUTE_NAME} at 200 characters; some framework-owned session
+     * attribute names (e.g. Spring Security's SAML2 authentication request repository) are
+     * already over 100 characters on their own, so a long zone subdomain in the context path can
+     * push the combined key past the column limit and fail the write.
      */
-    public static final String ATTRIBUTE_NAME_PREFIX =
-            ZonePathHttpSession.class.getName() + ".";
+    public static final String ATTRIBUTE_NAME_PREFIX = "zoneSession.";
+    private static final HexFormat HEX = HexFormat.of();
     private final TimeService timeService;
     private ZonePathHttpSession cachedSession;
 
@@ -73,9 +82,23 @@ public class ZoneContextPathSessionRequestWrapper extends HttpServletRequestWrap
 
     /**
      * Attribute name on the container session for this context path. Empty context path uses "default".
+     * The context path is hashed (SHA-256, truncated) to a fixed-length suffix so the resulting
+     * attribute name stays well within Spring Session JDBC's 200-character column limit regardless
+     * of how long the zone subdomain in the context path is.
      */
     public static String attributeNameForContextPath(String contextPathKey) {
-        return ATTRIBUTE_NAME_PREFIX + (contextPathKey.isEmpty() ? DEFAULT_ZONE_SUBDOMAIN_PATH : contextPathKey);
+        String key = contextPathKey.isEmpty() ? DEFAULT_ZONE_SUBDOMAIN_PATH : contextPathKey;
+        return ATTRIBUTE_NAME_PREFIX + hashContextPathKey(key);
+    }
+
+    private static String hashContextPathKey(String key) {
+        byte[] hash;
+        try {
+            hash = MessageDigest.getInstance("SHA-256").digest(key.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+        return HEX.formatHex(hash, 0, 8);
     }
 
     @Override
