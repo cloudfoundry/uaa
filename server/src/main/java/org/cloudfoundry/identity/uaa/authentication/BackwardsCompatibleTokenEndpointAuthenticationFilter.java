@@ -251,7 +251,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             authResult = authenticationManager.authenticate(credentials);
 
             if (authResult != null && authResult.isAuthenticated() && authResult instanceof UaaAuthentication uaaAuthentication
-                    && SessionUtils.isPasswordChangeRequired(request.getSession())) {
+                    && SessionUtils.isPasswordChangeRequired(request.getSession(false))) {
                 throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
             }
 

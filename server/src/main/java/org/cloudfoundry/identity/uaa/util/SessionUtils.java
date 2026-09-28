@@ -43,6 +43,9 @@ public final class SessionUtils {
     }
 
     public static boolean isPasswordChangeRequired(HttpSession session) {
+        if (session == null) {
+            return false;
+        }
         Object passwordChangeRequired = session.getAttribute(PASSWORD_CHANGE_REQUIRED);
 
         if (passwordChangeRequired == null) {

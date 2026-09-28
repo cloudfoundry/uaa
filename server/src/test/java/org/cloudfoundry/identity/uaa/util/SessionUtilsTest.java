@@ -42,6 +42,11 @@ class SessionUtilsTest {
         assertThatThrownBy(() -> SessionUtils.isPasswordChangeRequired(mockHttpSession)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
     }
 
+    @Test
+    void isPasswordChangeRequiredIfSessionIsNull() {
+        assertThat(SessionUtils.isPasswordChangeRequired(null)).isFalse();
+    }
+
     @Nested
     class ConsumeSupersededState {
 

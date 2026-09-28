@@ -189,6 +189,29 @@ class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
+    void attemptPasswordAuthenticationDoesNotCreateSessionIfItDoesNotExist() throws Exception {
+        request.addParameter(GRANT_TYPE, "password");
+        request.addParameter("username", "marissa");
+        request.addParameter("password", "koala");
+        UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
+        when(uaaAuthentication.isAuthenticated()).thenReturn(true);
+        when(passwordAuthManager.authenticate(any())).thenReturn(uaaAuthentication);
+        AuthorizationRequest authorizationRequest = mock(AuthorizationRequest.class);
+        UaaAuthentication clientAuthentication = mock(UaaAuthentication.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(clientAuthentication.getDetails()).thenReturn(uaaAuthenticationDetails);
+        when(clientAuthentication.isAuthenticated()).thenReturn(true);
+        when((uaaAuthenticationDetails.getAuthenticationMethod())).thenReturn(CLIENT_AUTH_NONE);
+        when(requestFactory.createAuthorizationRequest(anyMap())).thenReturn(authorizationRequest);
+        SecurityContextHolder.getContext().setAuthentication(clientAuthentication);
+        assertThat(request.getSession(false)).isNull();
+        filter.doFilter(request, response, chain);
+        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+        verify(passwordAuthManager, times(1)).authenticate(any());
+        assertThat(request.getSession(false)).isNull();
+    }
+
+    @Test
     void attemptSamlAssertionAuthentication() throws Exception {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         request.addParameter("assertion", "saml-assertion-value-here");
