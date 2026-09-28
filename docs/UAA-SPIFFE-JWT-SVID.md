@@ -193,8 +193,10 @@ Notes for operators:
 - **Auditing.** Every successful issuance publishes a `JwtSvidIssuedEvent`, giving a UAA audit
   record of which agent client obtained which SPIFFE ID, for which audience, and when. Failed
   attempts are not separately audited; they are observable only as the HTTP error response.
-- **Identity zones.** The SPIFFE configuration is global rather than per-zone, while the issued
-  token's `iss` follows the zone the request arrives in.
+- **Identity zones.** The SPIFFE configuration (`uaa.spiffe.*`) is global rather than per-zone.
+  `POST /jwt-svid/sign` is restricted to the default identity zone; a request arriving via a
+  non-default zone's subdomain is refused with `404 Not Found`, so a single trust domain is never
+  served under differing issuers per zone.
 
 ## References
 

@@ -53,6 +53,9 @@ public class JwtSvidController {
 
     @PostMapping(value = "/jwt-svid/sign", consumes = "application/json", produces = "application/json")
     public JwtSvidResponse sign(@RequestBody JwtSvidRequest request) {
+        if (!identityZoneManager.isCurrentZoneUaa()) {
+            throw new ZoneNotSupportedException("JWT-SVID signing is only available in the default identity zone");
+        }
         validateRequest(request);
         X509Certificate certificate = parseCertificate(request.instanceCertificate());
         identityVerifier.verify(certificate);
