@@ -120,6 +120,18 @@ public class JwtSvidController {
     }
 
     /**
+     * {@code uaa.spiffe.*} configuration is global, but a request can arrive in any identity
+     * zone via subdomain routing. Reported as 404 rather than 403 so the endpoint's existence is
+     * not revealed outside the default zone.
+     */
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public static class ZoneNotSupportedException extends RuntimeException {
+        public ZoneNotSupportedException(String message) {
+            super(message);
+        }
+    }
+
+    /**
      * Maps verifier/parser failures to HTTP status codes.
      *
      * <p>Scoped to this controller on purpose. {@code @ControllerAdvice} is meta-annotated with

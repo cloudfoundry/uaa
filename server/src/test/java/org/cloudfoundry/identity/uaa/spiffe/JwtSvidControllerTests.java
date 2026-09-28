@@ -128,6 +128,25 @@ class JwtSvidControllerTests {
         }
     }
 
+    /**
+     * {@code uaa.spiffe.*} configuration is global, but the endpoint is reachable in any zone
+     * via subdomain routing. Restricted to the default zone -- see
+     * {@link JwtSvidController.ZoneNotSupportedException}.
+     */
+    @Nested
+    class ZoneRestriction {
+
+        @Test
+        void returns404WhenCalledFromNonDefaultZone() throws Exception {
+            when(identityZoneManager.isCurrentZoneUaa()).thenReturn(false);
+
+            mockMvc.perform(post("/jwt-svid/sign")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("c2ln")))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
     @Test
     void returns401WhenCertificateUntrusted() throws Exception {
         when(ouParser.parse(any())).thenReturn(new CfInstanceIdentity("o", "s", "a"));

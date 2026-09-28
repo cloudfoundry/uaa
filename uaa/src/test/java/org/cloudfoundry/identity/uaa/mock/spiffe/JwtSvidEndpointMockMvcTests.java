@@ -3,10 +3,13 @@ package org.cloudfoundry.identity.uaa.mock.spiffe;
 import tools.jackson.core.type.TypeReference;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.spiffe.SpiffeTestCerts;
 import org.cloudfoundry.identity.uaa.spiffe.SpiffeTestCerts.CertKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -472,6 +475,45 @@ class JwtSvidEndpointMockMvcTests extends AbstractTokenMockMvcTests {
             assertThat(result.getResponse().getContentAsString())
                     .as("a JWT-SVID bears no client ID, so it cannot resolve to an OAuth authorization")
                     .doesNotContain("\"active\":true");
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Group G -- identity zone restriction
+    // ------------------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("G. identity zone restriction")
+    class ZoneRestriction {
+
+        // uaa.spiffe.* configuration is global, but the endpoint is reachable in any zone via
+        // subdomain routing, and JwtSvidSigner takes the issuer from IdentityZoneHolder.get().
+        // The endpoint is restricted to the default zone so that issuer semantics stay simple.
+
+        @Test
+        @DisplayName("G1. a request from a non-default identity zone is refused as not found")
+        void requestFromNonDefaultZoneIsRefused() throws Exception {
+            String subdomain = generator.generate().toLowerCase();
+            IdentityZone otherZone = MockMvcUtils.createOtherIdentityZone(
+                    subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+            String otherZoneClientId = "spiffeagent" + generator.generate();
+            setUpClients(otherZoneClientId, "uaa.resource", "uaa.none", "client_credentials", true,
+                    null, null, 0, otherZone);
+
+            CertKey instance = SpiffeTestCerts.newInstanceCert(CA, "o", "s", "a");
+            long timestamp = Instant.now().getEpochSecond();
+            String spiffeId = spiffeIdOf(instance, "web");
+            String json = requestJson(SpiffeTestCerts.certificatePem(instance.certificate()), "web", AUDIENCE,
+                    timestamp, pop(instance.keyPair().getPrivate(), spiffeId, AUDIENCE, timestamp));
+
+            MvcResult result = mockMvc.perform(post(SIGN_PATH)
+                    .header("Host", subdomain + ".localhost")
+                    .header("Authorization", basic(otherZoneClientId, SECRET))
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(json)).andReturn();
+
+            assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(404);
         }
     }
 
