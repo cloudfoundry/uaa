@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.spiffe;
 
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -28,17 +29,20 @@ public class JwtSvidController {
     private final ProofOfPossessionVerifier popVerifier;
     private final JwtSvidSigner signer;
     private final SpiffeProperties properties;
+    private final ApplicationEventPublisher eventPublisher;
 
     public JwtSvidController(CertificateOuParser ouParser,
                             InstanceIdentityVerifier identityVerifier,
                             ProofOfPossessionVerifier popVerifier,
                             JwtSvidSigner signer,
-                            SpiffeProperties properties) {
+                            SpiffeProperties properties,
+                            ApplicationEventPublisher eventPublisher) {
         this.ouParser = ouParser;
         this.identityVerifier = identityVerifier;
         this.popVerifier = popVerifier;
         this.signer = signer;
         this.properties = properties;
+        this.eventPublisher = eventPublisher;
     }
 
     @PostMapping(value = "/jwt-svid/sign", consumes = "application/json", produces = "application/json")

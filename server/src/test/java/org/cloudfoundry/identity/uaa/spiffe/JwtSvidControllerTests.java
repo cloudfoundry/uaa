@@ -1,22 +1,32 @@
 package org.cloudfoundry.identity.uaa.spiffe;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.spiffe.event.JwtSvidIssuedEvent;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.security.cert.X509Certificate;
+import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -29,6 +39,7 @@ class JwtSvidControllerTests {
     private final ProofOfPossessionVerifier popVerifier = mock(ProofOfPossessionVerifier.class);
     private final JwtSvidSigner signer = mock(JwtSvidSigner.class);
     private final SpiffeProperties props = new SpiffeProperties("example.org", "ca", 900L, 60, true);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -43,10 +54,15 @@ class JwtSvidControllerTests {
     @BeforeEach
     void setUp() {
         JwtSvidController controller =
-                new JwtSvidController(ouParser, identityVerifier, popVerifier, signer, props);
+                new JwtSvidController(ouParser, identityVerifier, popVerifier, signer, props, eventPublisher);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new JwtSvidController.ExceptionHandling())
                 .build();
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     private String body(String popSignature) throws Exception {
@@ -71,6 +87,41 @@ class JwtSvidControllerTests {
                 .andExpect(jsonPath("$.svid").value("header.body.sig"))
                 .andExpect(jsonPath("$.spiffe_id").value(spiffeId))
                 .andExpect(jsonPath("$.expires_at").value(1900));
+    }
+
+    /**
+     * The endpoint mints a credential, so there must be a trail of which agent obtained which
+     * workload's identity, and when -- see {@link JwtSvidIssuedEvent}.
+     */
+    @Nested
+    class AuditEvents {
+
+        @Test
+        void publishesJwtSvidIssuedEventOnSuccess() throws Exception {
+            CfInstanceIdentity identity = new CfInstanceIdentity("org-1", "space-2", "app-3");
+            String spiffeId = "spiffe://example.org/cf/org/org-1/space/space-2/app/app-3/process/web";
+            when(ouParser.parse(any())).thenReturn(identity);
+            when(popVerifier.isValid(any(), eq(spiffeId), eq("https://api.example.com"), anyLong(), anyString()))
+                    .thenReturn(true);
+            when(signer.sign(eq(spiffeId), eq(identity), eq("web"), eq("https://api.example.com")))
+                    .thenReturn(new JwtSvidSigner.JwtSvidResult("header.body.sig", spiffeId, 1900L));
+            SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken("spiffeagent", "N/A", List.of()));
+
+            mockMvc.perform(post("/jwt-svid/sign")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("c2ln")))
+                    .andExpect(status().isOk());
+
+            ArgumentCaptor<JwtSvidIssuedEvent> captor = ArgumentCaptor.forClass(JwtSvidIssuedEvent.class);
+            verify(eventPublisher).publishEvent(captor.capture());
+            JwtSvidIssuedEvent event = captor.getValue();
+            assertThat(event.getAuditEvent().getType()).isEqualTo(AuditEventType.JwtSvidIssuedEvent);
+            assertThat(event.getAuditEvent().getPrincipalId()).isEqualTo("spiffeagent");
+            assertThat(event.getAuditEvent().getData())
+                    .contains(spiffeId)
+                    .contains("https://api.example.com");
+        }
     }
 
     @Test
