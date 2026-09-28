@@ -346,13 +346,25 @@ class ZoneContextPathSessionTests {
         @Test
         void attributeNameForContextPath_emptyUsesDefault() {
             assertThat(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath(""))
-                    .isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "default");
+                    .isEqualTo(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath(DEFAULT_ZONE_SUBDOMAIN_PATH));
         }
 
         @Test
         void attributeNameForContextPath_nonEmptyUsesPath() {
-            assertThat(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/zone1"))
-                    .isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "/uaa/z/zone1");
+            String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/zone1");
+            assertThat(attrName).startsWith(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX);
+            assertThat(attrName).isNotEqualTo(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/zone2"));
+        }
+
+        @Test
+        void attributeNameForContextPath_isBoundedInLength_regardlessOfContextPathLength() {
+            // Spring Session JDBC caps SPRING_SESSION_ATTRIBUTES.ATTRIBUTE_NAME at 200 chars; the
+            // context path (which embeds the zone subdomain) must be hashed to a fixed length so an
+            // arbitrarily long subdomain can never push a combined attribute key over that limit.
+            String longSubdomain = "a".repeat(300);
+            String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/" + longSubdomain);
+            int maxAttributeNameLength = ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX.length() + 16;
+            assertThat(attrName.length()).isEqualTo(maxAttributeNameLength);
         }
 
         /**
@@ -367,7 +379,7 @@ class ZoneContextPathSessionTests {
             session.setAttribute("user", "admin");
 
             String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa");
-            assertThat(attrName).isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "/uaa");
+            assertThat(attrName).startsWith(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX);
             assertThat(request.getSession(false).getAttribute(attrName + ZonePathHttpSession.ATTRIBUTE_KEY_DELIMITER + "user")).isEqualTo("admin");
         }
 
@@ -385,7 +397,6 @@ class ZoneContextPathSessionTests {
             session.setAttribute("user", "admin");
 
             String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa");
-            assertThat(attrName).isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "/uaa");
             assertThat(request.getSession(false).getAttribute(attrName + ZonePathHttpSession.ATTRIBUTE_KEY_DELIMITER + "user")).isEqualTo("admin");
         }
 
@@ -403,7 +414,7 @@ class ZoneContextPathSessionTests {
             session.setAttribute("user", "admin");
 
             String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("");
-            assertThat(attrName).isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "default");
+            assertThat(attrName).isEqualTo(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath(DEFAULT_ZONE_SUBDOMAIN_PATH));
             assertThat(request.getSession(false).getAttribute(attrName + ZonePathHttpSession.ATTRIBUTE_KEY_DELIMITER + "user")).isEqualTo("admin");
         }
 
