@@ -23,8 +23,8 @@ Start a fresh session on the new machine and point it at this document. That is 
 - **Branch:** `review/pr3792-fix` → **PR [#4076](https://github.com/cloudfoundry/uaa/pull/4076)**
 - **Pushed to:** `origin` (`git@github.com:fhanik/uaa`), fully up to date at time of writing
 - **Base:** `cloudfoundry/develop`
-- Working tree clean. All six analysis docs in `docs/PR 4076 Thoughts/` are committed, so they
-  travel with the branch.
+- Working tree clean. The analysis docs in `docs/PR 4076 Thoughts/` are committed, so they travel
+  with the branch — see the index in §11 for the ones relevant to this work.
 
 ### Remotes you will need to re-add on the new machine
 
@@ -191,10 +191,12 @@ export JAVA_HOME=/Users/fh012259/workspace/software/java/jdk-25.0.1.jdk/Contents
 - The mTLS tests rebuild MockMvc in `@BeforeEach` to add the zone filters, the raw certificate
   capture filter and the availability filter, because `@DefaultTestContext` does not include them.
   Order is load-bearing: zone rewriting must run before anything that reads `getServletPath()`.
-- `@ConditionalOnProperty`-gated beans can be switched on from a test via `@TestPropertySource`, or
-  via an `ApplicationContextInitializer` when the value must be computed at runtime (that is how
-  the SPIFFE tests inject a generated CA). Both spellings of a property resolve — Boot attaches
-  relaxed-binding resolution to the `Environment` — which I verified rather than assumed.
+- `@ConditionalOnProperty`-gated beans are switched on from a test with `@TestPropertySource`
+  (`uaa.mtls-enabled=true` on the hardening and zone suites, `=false` on the disabled suite). Where
+  the value has to be computed at runtime, an `ApplicationContextInitializer` works too, because it
+  runs before the context refreshes and therefore before condition evaluation. Either spelling of a
+  property resolves, kebab or snake — Boot attaches relaxed-binding resolution to the
+  `Environment` — which I verified rather than assumed.
 
 ## 9. Open items
 
@@ -223,53 +225,29 @@ Addressed by neither branch:
 - A dedicated rate-limiter mapping for `/oauth/mtls/token` (CPU-bound; currently in the default
   global 1000r/s bucket).
 
-## 10. The wider picture — three competing approaches
+## 10. The wider picture — this branch and the Service Accounts RFC
 
-Worth reading before proposing anything, because the three are not alternatives to each other in
-the way they first appear.
+Worth reading before proposing anything, because these two are not alternatives.
 
-| | #4076 (this branch) | #3968 (SPIFFE JWT-SVID) | Service Accounts RFC |
-|---|---|---|---|
-| Layer | UAA only | UAA only | CAPI + Diego + UAA + CLI + Gorouter + OSB |
-| Stable subject? | No — caller supplies one | Not needed (cert is request data) | **Yes — creates one** |
-| Who picks `aud` | Client-admin templates | The caller, freely | Curated targets |
-| Claims asserted by | Tenant claim mappings | Certificate OUs | The platform |
-| Status | Implemented, reviewed, hardened | Implemented, reviewed (branch `review/pr3968`) | Draft RFC |
+| | #4076 (this branch) | Service Accounts RFC (draft) |
+|---|---|---|
+| Layer | UAA only | CAPI + Diego + UAA + CLI + Gorouter + OSB |
+| Stable subject? | No — the caller must supply one | **Yes — it creates one** |
+| Who picks `aud` | Client-admin templates | Curated targets, app selects |
+| Claims asserted by | Tenant claim mappings | The platform |
+| Status | Implemented, reviewed, hardened | Draft RFC, eight open questions |
 
 The core tension: RFC 8705 §2.1.2 binds one client to one *fixed* certificate subject, but Diego
 re-mints certificates with a new instance GUID on every container replacement. #3972 wanted one
-client to cover a rotating population (which §2.1.2 cannot express — hence the hardening feeling
-constraining); #3968 sidesteps §2.1.2 by moving the certificate out of the transport-auth path; the
-Service Accounts RFC **removes the obstacle** by manufacturing a stable subject (a derived DNS SAN
-`<name>.svc.identity`) so §2.1.2 applies as written.
+client to cover a rotating population, which §2.1.2 cannot express — that is why the hardening in
+this branch felt constraining to its author. The Service Accounts RFC **removes the obstacle**
+instead of working around it, by manufacturing a subject that is stable across container
+replacement (a derived DNS SAN `<name>.svc.identity`) so §2.1.2 applies exactly as written.
 
 Note that the Service Accounts design **depends on** `tls_client_auth_san_dns`, which is exactly
-what this branch implements (§3). It consumes #4076 rather than replacing it.
-
-### `review/pr3968` — the SPIFFE branch, and a divergence to be aware of
-
-That work (squash of rkoster's 9 commits + end-to-end MockMvc tests + six security fixes + API and
-feature docs) is on `origin/review/pr3968`, **and the remote is ahead of what was local on the old
-machine**. Do not assume the local copy is current:
-
-- `origin/review/pr3968` = `6105a836e` — 12 commits the old local branch did not have
-- old local `review/pr3968` = `33ff44d0b` — 4 commits not on the remote (the same four, pre-rebase)
-
-The remote contains my four commits rebased onto a newer `develop` (`aff6f67bd`, `4c1c36a08`,
-`c4936c4a5`, `b0295d22a`), four upstream `develop` commits, **and two new red/green pairs that were
-not written in this session**:
-
-```text
-9f0ed0175 test(spiffe): add failing coverage for JWT-SVID issuance audit trail
-7333bbbab feat(spiffe): publish JwtSvidIssuedEvent on successful JWT-SVID issuance
-9a756352f test(spiffe): add failing coverage for default-zone-only JWT-SVID signing
-6105a836e feat(spiffe): reject JWT-SVID signing outside the default identity zone
-```
-
-Those close two of the twelve items `pr3968-security-review.md` records as "not changed" — the
-missing audit trail, and the unaddressed identity-zone semantics. **Read that review's §6 with this
-in mind: items 13 and 14 are now done.** On the new machine, just take the remote; the old local
-branch is superseded and can be discarded.
+what this branch implements (§3) — including the exact canonical DNS matching and no-wildcard rule
+the draft asks for. It consumes #4076 rather than replacing it, so nothing in that RFC is a reason
+to hold this branch.
 
 ## 11. Document index — `docs/PR 4076 Thoughts/`
 
@@ -279,7 +257,6 @@ branch is superseded and can be discarded.
 | `pr4075-comment-vs-our-branch.md` | rkoster's #4075 response vs this branch: what both fixed, the four gaps ported, the §2.1.2 gap on his side |
 | `cf-service-accounts-proposal-evaluation.md` | the Service Accounts RFC: how it works, what "stable subject" means, per-component work breakdown, risks |
 | `rfc8705-vs-workload-federation-discussion.md` | why rkoster felt constrained; how AWS/GCP/K8s federation compares; what the token is for |
-| `pr3968-security-review.md` | full security review of the SPIFFE JWT-SVID endpoint (6 fixed, 12 recorded) |
 | `rfc8705-feature-gaps.md` | RFC 8705 conformance gap analysis |
 | `pr3972-vs-pr3792-fix-comparison.md` | what this branch preserved, removed and fixed vs the original PR |
 
@@ -288,11 +265,13 @@ branch is superseded and can be discarded.
 - **Tests in one commit, fixes in the next.** Red/green split, with the red commit message stating
   what fails and why. This was asked for explicitly and is also what the #4075 review asked of
   rkoster.
-- **Verify, do not assert.** Several plausible-sounding findings turned out to be wrong when tested
-  — most notably a hypothesis that snake_case config silently disabled the SPIFFE feature (it does
-  not). Equally, six tests labelled `FINDING`/`FAILS TODAY` were actually passing, because later
-  commits on this branch had fixed them; the labels were stale and misleading. Instrument and read
-  the real response rather than inferring from a green suite.
+- **Verify, do not assert.** Plausible-sounding findings repeatedly turned out to be wrong once
+  tested. Seven tests labelled `FINDING` / `FAILS TODAY` were in fact passing, because later
+  commits on this branch had fixed them and only the labels were left behind — corrected in
+  `3a7776d21` after instrumenting the four dual-path ones and reading the real responses rather
+  than inferring from a green suite. Likewise the claim that our branch lacked dotted-claim
+  protection was wrong (`isReservedClaimName` already checks the root segment), while the CA
+  rotation gap was real. Check the code before writing either into a review.
 - **Do not push without being asked.** Filip authorizes it per round.
 - Run the full suite before declaring done; the SCIM 429 is a known exclusion.
 - Markdown: `npx markdownlint-cli2 --fix <file>`, and compare the error count before/after, since
