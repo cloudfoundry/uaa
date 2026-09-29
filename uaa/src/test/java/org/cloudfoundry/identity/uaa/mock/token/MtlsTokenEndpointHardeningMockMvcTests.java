@@ -397,7 +397,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                             + "distinctly from a certificate that simply did not validate")
                     .isEqualTo(new Denial(401, "invalid_client",
                             "tls_client_auth: CA configuration error: "
-                                    + "No PEM object found in tls-client-auth-ca"));
+                                    + "Not a PEM-encoded X.509 certificate."));
         }
 
         @Test

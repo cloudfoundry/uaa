@@ -1,12 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.bouncycastle.openssl.PEMParser;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.util.PemCertificateParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,7 +16,6 @@ import javax.naming.directory.Attribute;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import javax.security.auth.x500.X500Principal;
-import java.io.StringReader;
 import java.security.cert.CertPathValidator;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateFactory;
@@ -30,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -209,8 +206,8 @@ public class TlsClientAuthentication {
             return false;
         }
         try {
-            X509Certificate caCert = parsePemCertificate(trustedProxyCaPem);
-            Optional<X509Certificate> validated = validateCertPath(peerChain, caCert);
+            List<X509Certificate> caCerts = PemCertificateParser.parseCertificateChain(trustedProxyCaPem);
+            Optional<X509Certificate> validated = validateCertPath(peerChain, caCerts);
             if (validated.isPresent()) {
                 validateEndEntityConstraints(validated.get());
             }
@@ -332,8 +329,8 @@ public class TlsClientAuthentication {
         }
 
         try {
-            X509Certificate caCert = parsePemCertificate(config.getTrustedCaPem());
-            Optional<X509Certificate> validated = validateCertPath(chain, caCert);
+            List<X509Certificate> caCerts = PemCertificateParser.parseCertificateChain(config.getTrustedCaPem());
+            Optional<X509Certificate> validated = validateCertPath(chain, caCerts);
             if (validated.isPresent()) {
                 validateEndEntityConstraints(validated.get());
             }
@@ -397,18 +394,26 @@ public class TlsClientAuthentication {
     }
 
     /**
-     * Validates {@code chain} against {@code caCert} using PKIX path validation, without requiring any
-     * per-client {@link TlsClientAuthConfiguration}. Shared by {@link #validateClientCert} and
-     * {@link #isCertificateFromTrustedProxy}.
+     * Validates {@code chain} against the configured CA trust set using PKIX path validation, without
+     * requiring any per-client {@link TlsClientAuthConfiguration}. Shared by
+     * {@link #validateClientCert} and {@link #isCertificateFromTrustedProxy}.
+     *
+     * <p>Every certificate in the configured PEM becomes a trust anchor, which is what makes a CA
+     * rotation possible: during the overlap window an operator publishes the outgoing and incoming
+     * CA in one bundle, and certificates issued by either must validate. Anchoring only the first
+     * entry would accept the bundle at registration and then reject half the workloads.
      *
      * @return {@code Optional.of(chain[0])} when validation succeeds
-     * @throws CertPathValidatorException if the chain does not validate against {@code caCert}
-     * @throws Exception if {@code caCert} or the PKIX machinery is misconfigured
+     * @throws CertPathValidatorException if the chain does not validate against any configured anchor
+     * @throws Exception if the trust set or the PKIX machinery is misconfigured
      */
-    private static Optional<X509Certificate> validateCertPath(X509Certificate[] chain, X509Certificate caCert)
-            throws Exception {
-        TrustAnchor anchor = new TrustAnchor(caCert, null);
-        PKIXParameters params = new PKIXParameters(Set.of(anchor));
+    private static Optional<X509Certificate> validateCertPath(X509Certificate[] chain,
+            List<X509Certificate> caCerts) throws Exception {
+        Set<TrustAnchor> anchors = new HashSet<>();
+        for (X509Certificate caCert : caCerts) {
+            anchors.add(new TrustAnchor(caCert, null));
+        }
+        PKIXParameters params = new PKIXParameters(anchors);
         params.setRevocationEnabled(false);
 
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -420,20 +425,6 @@ public class TlsClientAuthentication {
         return Optional.of(chain[0]);
     }
 
-    private static X509Certificate parsePemCertificate(String pem) throws Exception {
-        try (PEMParser parser = new PEMParser(new StringReader(pem))) {
-            Object obj = parser.readObject();
-            if (!(obj instanceof X509CertificateHolder holder)) {
-                throw new IllegalArgumentException(
-                        obj == null
-                                ? "No PEM object found in tls-client-auth-ca"
-                                : "PEM object is not a certificate: " + obj.getClass().getSimpleName());
-            }
-            return new JcaX509CertificateConverter()
-                    .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
-                    .getCertificate(holder);
-        }
-    }
 
     /**
      * Parses an RFC 2253 DN string into its RDNs, ordered most-specific-first
