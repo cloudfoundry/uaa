@@ -99,6 +99,10 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
     @Autowired
     FilterRegistrationBean<MtlsEndpointAvailabilityFilter> mtlsEndpointAvailabilityFilterRegistration;
 
+    @Qualifier("clientCertificateMapperFilter")
+    @Autowired
+    FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilterRegistration;
+
     @BeforeEach
     void setUpMockMvcWithAvailabilityFilter() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
@@ -291,6 +295,20 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
                 .as("RFC 8705 section 3.3 metadata defaults to false, and must stay false per zone "
                         + "when the deployment has not enabled mTLS. Body: %s", discovery)
                 .isEqualTo(false);
+    }
+
+    @Test
+    @DisplayName("E7. with mTLS disabled, the buildpack certificate mapper filter is not registered")
+    void certificateMapperFilterIsNotRegisteredWhenDisabled() {
+        // The mapper exists to turn Gorouter's X-Forwarded-Client-Cert header into the servlet
+        // X509Certificate attribute, which is only meaningful for the mTLS endpoint. Registering it
+        // on a deployment that never enabled mTLS puts a third-party filter in every request's path
+        // for no purpose. It is also constructed reflectively from a package-private class, so
+        // building it unconditionally couples UAA's ability to start to that jar being present even
+        // for operators who will never use the feature.
+        assertThat(clientCertificateMapperFilterRegistration.isEnabled())
+                .as("the mapper filter must not be enabled when uaa.mtls-enabled is false")
+                .isFalse();
     }
 
     /**
