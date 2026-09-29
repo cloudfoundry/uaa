@@ -126,6 +126,11 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     private static X500Name rogueCaSubject;
     private static X509Certificate rogueCaCert;
 
+    /** A second *trusted* CA, for the old/new overlap bundle published during a CA rotation. */
+    private static KeyPair rotatedCaKeyPair;
+    private static X500Name rotatedCaSubject;
+    private static X509Certificate rotatedCaCert;
+
     @BeforeAll
     static void registerFipsProviderAndBuildCas() throws Exception {
         if (Security.getProvider(BouncyCastleFipsProvider.PROVIDER_NAME) == null) {
@@ -140,6 +145,11 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         rogueCaSubject = new X500Name("CN=Rogue mTLS CA");
         rogueCaCert = signCert(rogueCaSubject, rogueCaSubject, rogueCaKeyPair.getPublic(),
                 rogueCaKeyPair.getPrivate(), true, BigInteger.valueOf(1), 3_600_000L);
+
+        rotatedCaKeyPair = generateKeyPair();
+        rotatedCaSubject = new X500Name("CN=Rotated mTLS CA");
+        rotatedCaCert = signCert(rotatedCaSubject, rotatedCaSubject, rotatedCaKeyPair.getPublic(),
+                rotatedCaKeyPair.getPrivate(), true, BigInteger.valueOf(2), 3_600_000L);
     }
 
     @BeforeEach
@@ -849,8 +859,69 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     // ------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------
+    // Group G -- operational hardening ported from the #3972 follow-up round
+    // ------------------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("G. CA rotation")
+    class OperationalHardening {
+
+        // A platform CA has to be rotatable without an outage, which means publishing a bundle
+        // holding the outgoing and incoming CA together and letting certificates from either
+        // validate for the overlap window. Registration already accepts such a bundle --
+        // PemCertificateParser.parseCertificateChain reads every entry -- so the risk is the
+        // asymmetry: if authentication only anchors the first entry, an operator sees the rotation
+        // configured successfully and then watches half their workloads fail.
+
+        @Test
+        @DisplayName("G1. a two-CA rotation bundle accepts a certificate from the FIRST CA")
+        void rotationBundleAcceptsFirstCa() throws Exception {
+            String clientId = mtlsClient("g1", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    tlsConfig(caBundlePem(caCert, rotatedCaCert), "CN=g1-app"), false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=g1-app")));
+
+            assertThat(result.getResponse().getStatus())
+                    .as("Actual: %s", outcome(result)).isEqualTo(200);
+        }
+
+        @Test
+        @DisplayName("G2. a two-CA rotation bundle accepts a certificate from the SECOND CA")
+        void rotationBundleAcceptsSecondCa() throws Exception {
+            String clientId = mtlsClient("g2", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    tlsConfig(caBundlePem(caCert, rotatedCaCert), "CN=g2-app"), false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedBy(rotatedCaSubject, rotatedCaKeyPair, "CN=g2-app")));
+
+            assertThat(result.getResponse().getStatus())
+                    .as("every certificate in the trust bundle must be an anchor, otherwise a CA "
+                            + "rotation configured through tls-client-auth-ca silently trusts only the "
+                            + "first entry. Actual: %s", outcome(result))
+                    .isEqualTo(200);
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------------------------
+
+    /** Concatenated PEM, as an operator would publish an overlapping old/new CA bundle. */
+    private static String caBundlePem(X509Certificate... cas) throws Exception {
+        StringBuilder bundle = new StringBuilder();
+        for (X509Certificate ca : cas) {
+            bundle.append(toPem(ca));
+        }
+        return bundle.toString();
+    }
+
+    private static X509Certificate leafSignedBy(X500Name issuerSubject, KeyPair issuerKeys, String subjectDn)
+            throws Exception {
+        return signCert(x500(subjectDn), issuerSubject, generateKeyPair().getPublic(),
+                issuerKeys.getPrivate(), false, BigInteger.valueOf(System.nanoTime()), 3_600_000L);
+    }
 
     private String mtlsClient(String tag, String grantTypes, Map<String, Object> tlsConfig, boolean keepSecret) {
         String clientId = "mtls" + tag + generator.generate();
@@ -869,7 +940,12 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
      * certificate they intend to present.
      */
     private static Map<String, Object> tlsConfig(X509Certificate ca, String expectedSubjectDn) throws Exception {
-        return Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(ca),
+        return tlsConfig(toPem(ca), expectedSubjectDn);
+    }
+
+    /** Same, but taking the CA PEM directly so a multi-certificate bundle can be registered. */
+    private static Map<String, Object> tlsConfig(String caPem, String expectedSubjectDn) {
+        return Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, caPem,
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                 List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "app_id")),
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, expectedSubjectDn);
