@@ -97,7 +97,14 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
             IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(authenticationData.getOrigin(), IdentityZoneHolder.get().getId());
             LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);
             List<String> externalWhiteList = ldapIdentityProviderDefinition.getExternalGroupsWhitelist();
-            result = new ArrayList<>(retainAllMatches(getAuthoritiesAsNames(request.getAuthorities()), externalWhiteList));
+            Set<String> authorityNames = getAuthoritiesAsNames(request.getAuthorities());
+            if (externalWhiteList == null || externalWhiteList.isEmpty()) {
+                // no or empty allowlist configured on the IdP -> allow all groups, matching
+                // ExternalOAuthAuthenticationManager#filterOidcAuthorities's existing behavior for OIDC
+                result = new ArrayList<>(authorityNames);
+            } else {
+                result = new ArrayList<>(retainAllMatches(authorityNames, externalWhiteList));
+            }
         }
         return result;
     }

@@ -249,11 +249,12 @@ class LdapLoginAuthenticationManagerTests {
 
         final ExternalAuthenticationDetails authenticationData = ExternalAuthenticationDetails.builder().origin(origin).build();
 
+        // no allowlist configured on the IdP -> allow all groups (matches OIDC's equivalent behavior)
         definition.setExternalGroupsWhitelist(emptyList());
-        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder();
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2");
 
         definition.setExternalGroupsWhitelist(null);
-        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder();
+        assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2");
 
         definition.setExternalGroupsWhitelist(Collections.singletonList("ldap.role.1.a"));
         assertThat(am.getExternalUserAuthorities(authDetails, authenticationData)).containsExactlyInAnyOrder("ldap.role.1.a");
