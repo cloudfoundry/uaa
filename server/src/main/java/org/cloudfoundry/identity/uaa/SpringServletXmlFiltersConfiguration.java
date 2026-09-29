@@ -266,7 +266,20 @@ public class SpringServletXmlFiltersConfiguration {
     }
 
     @Bean
-    public FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilter() {
+    public FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilter(
+            @Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled) {
+        if (!mtlsEnabled) {
+            // The mapper only exists to turn Gorouter's X-Forwarded-Client-Cert header into the
+            // servlet X509Certificate attribute for /oauth/mtls/token, so with mTLS off it would be
+            // a third-party filter in every request's path for no purpose. Skipping construction
+            // also means a deployment that will never enable mTLS does not depend on the buildpack
+            // jar being present merely to start, since the class below is loaded reflectively and
+            // its absence is fatal.
+            FilterRegistrationBean<jakarta.servlet.Filter> disabled = new FilterRegistrationBean<>(
+                    (request, response, chain) -> chain.doFilter(request, response));
+            disabled.setEnabled(false);
+            return disabled;
+        }
         // ClientCertificateMapper is a package-private final class in
         // org.cloudfoundry.router.jakarta; its constructor is also package-private.
         // The library is designed for Spring Boot autoconfiguration or Servlet container
