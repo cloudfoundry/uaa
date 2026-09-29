@@ -388,7 +388,8 @@ public abstract class AbstractLdapMockMvcTest {
         assertThat(externalGroups)
                 .containsExactlyInAnyOrder("admins", "thirdmarissa");
 
-        //default whitelist
+        //default (empty) whitelist means "allow all groups" (see LdapLoginAuthenticationManager#getExternalUserAuthorities),
+        //not "allow none" - so the previously-whitelisted groups must still be present, plus whatever else the user belongs to
         def = provider.getConfig();
         def.setExternalGroupsWhitelist(emptyList());
         provider.setConfig(def);
@@ -398,7 +399,7 @@ public abstract class AbstractLdapMockMvcTest {
         assertThat(auth).isInstanceOf(UaaAuthentication.class);
         uaaAuth = (UaaAuthentication) auth;
         externalGroups = uaaAuth.getExternalGroups();
-        assertThat(externalGroups).isEmpty();
+        assertThat(externalGroups).contains("admins", "thirdmarissa");
 
         IdentityZoneHolder.clear();
     }
