@@ -43,7 +43,7 @@ class ClientCertificateMapperFilterTest {
     @Test
     void clientCertificateMapperFilter_registersClientCertificateMapperForMtlsEndpoint() {
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
-        FilterRegistrationBean<?> bean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> bean = config.clientCertificateMapperFilter(true);
         assertThat(bean.getFilter()).isInstanceOf(MtlsPathGuardedFilter.class);
         assertThat(((MtlsPathGuardedFilter) bean.getFilter()).getDelegate().getClass().getName())
                 .isEqualTo("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
@@ -56,7 +56,7 @@ class ClientCertificateMapperFilterTest {
     @Test
     void doesNotInvokeTheDelegateForUnrelatedPaths() throws Exception {
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/oauth/mtls/not-token");
@@ -89,7 +89,7 @@ class ClientCertificateMapperFilterTest {
         // .DEFAULT_FILTER_ORDER) -- through a real request carrying a real X-Forwarded-Client-Cert
         // header, and observes what the "security" filter actually sees.
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         AtomicReference<Object> certSeenBySecurityFilter = new AtomicReference<>();
         FilterRegistrationBean<Filter> securityFilterBean =
@@ -112,7 +112,7 @@ class ClientCertificateMapperFilterTest {
         // is *after* Spring Security's -100), the cert attribute is not yet populated when
         // Spring Security's filter runs.
         Filter clientCertificateMapper =
-                new SpringServletXmlFiltersConfiguration().clientCertificateMapperFilter().getFilter();
+                new SpringServletXmlFiltersConfiguration().clientCertificateMapperFilter(true).getFilter();
         FilterRegistrationBean<Filter> mapperBeanWithBuggyOrder = new FilterRegistrationBean<>(clientCertificateMapper);
         mapperBeanWithBuggyOrder.setOrder(10); // the old, buggy order
 
@@ -189,4 +189,21 @@ class ClientCertificateMapperFilterTest {
                 .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
                 .getCertificate(holder);
     }
+    /**
+     * With mTLS off the mapper is pointless -- it exists only to materialise
+     * X-Forwarded-Client-Cert for /oauth/mtls/token -- and constructing it is not free: the class is
+     * package-private and loaded reflectively, so an absent buildpack jar would otherwise stop UAA
+     * from starting even on deployments that never enable the feature.
+     */
+    @Test
+    void mapperFilterIsDisabledAndNotConstructedWhenMtlsIsOff() {
+        FilterRegistrationBean<?> bean = new SpringServletXmlFiltersConfiguration()
+                .clientCertificateMapperFilter(false);
+
+        assertThat(bean.isEnabled()).isFalse();
+        assertThat(bean.getFilter())
+                .as("must not be the buildpack mapper, nor a guard wrapping it")
+                .isNotInstanceOf(MtlsPathGuardedFilter.class);
+    }
+
 }

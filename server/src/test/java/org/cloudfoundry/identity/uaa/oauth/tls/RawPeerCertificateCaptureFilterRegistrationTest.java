@@ -43,7 +43,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
 
         FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         assertThat(captureBean.getFilter()).isInstanceOf(RawPeerCertificateCaptureFilter.class);
         // No addUrlPatterns(...): registered on the default (all-requests) pattern -- see
@@ -110,7 +110,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         // RAW_PEER_CERTIFICATE_ATTRIBUTE must retain the original, genuine peer certificate.
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
         FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         X509Certificate genuinePeerCert = generateSelfSignedCert("CN=gorouter");
         X509Certificate xfccDerivedCert = generateSelfSignedCert("CN=app-instance");
@@ -159,7 +159,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         // (checking only the standard attribute) correctly returns true, and there is no gap.
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
         FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         X509Certificate genuinePeerCert = generateSelfSignedCert("CN=app-instance");
 
@@ -196,7 +196,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         // have included them in the chain at all for the original /z/myzone/... request URI.
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
         FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         X509Certificate genuinePeerCert = generateSelfSignedCert("CN=gorouter");
         X509Certificate xfccDerivedCert = generateSelfSignedCert("CN=app-instance");
