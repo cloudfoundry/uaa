@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsEndpointAvailabilityFilter;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -60,6 +61,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.config.BeanIds.SPRING_SECURITY_FILTER_CHAIN;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 /**
@@ -118,6 +120,11 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     @Autowired
     FilterRegistrationBean<RawPeerCertificateCaptureFilter> rawPeerCertificateCaptureFilterRegistration;
 
+    /** Registered unconditionally in production, so the test chain includes it too. */
+    @Qualifier("mtlsEndpointAvailabilityFilter")
+    @Autowired
+    FilterRegistrationBean<MtlsEndpointAvailabilityFilter> mtlsEndpointAvailabilityFilterRegistration;
+
     private static KeyPair caKeyPair;
     private static X500Name caSubject;
     private static X509Certificate caCert;
@@ -158,6 +165,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                 .addFilter(zonePathFilterRegistration.getFilter())
                 .addFilter(zoneContextPathSessionFilterRegistration.getFilter())
                 .addFilter(rawPeerCertificateCaptureFilterRegistration.getFilter())
+                .addFilter(mtlsEndpointAvailabilityFilterRegistration.getFilter())
                 .addFilter(securityFilterChain)
                 .build();
         testClient = new TestClient(mockMvc);
@@ -864,7 +872,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     // ------------------------------------------------------------------------------------
 
     @Nested
-    @DisplayName("G. CA rotation")
+    @DisplayName("G. CA rotation and HTTP method")
     class OperationalHardening {
 
         // A platform CA has to be rotatable without an outage, which means publishing a bundle
@@ -901,6 +909,49 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                             + "rotation configured through tls-client-auth-ca silently trusts only the "
                             + "first entry. Actual: %s", outcome(result))
                     .isEqualTo(200);
+        }
+
+        @Test
+        @DisplayName("G3. the mTLS token endpoint refuses GET with 405 and Allow: POST")
+        void mtlsEndpointRefusesGet() throws Exception {
+            String clientId = mtlsClient("g3", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    tlsConfig(caCert, "CN=g3-app"), false);
+            X509Certificate leaf = leafSignedByCa("CN=g3-app");
+
+            MvcResult result = perform(get(MTLS_PATH)
+                    .accept(APPLICATION_JSON)
+                    .servletPath(MTLS_PATH)
+                    .param("client_id", clientId)
+                    .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS)
+                    .requestAttr("jakarta.servlet.request.X509Certificate", new X509Certificate[]{leaf}));
+
+            // A GET carries the request in the query string, where it is recorded by access logs and
+            // every proxy in front of UAA. /oauth/token keeps GET for backwards compatibility; this
+            // endpoint is new, so it has no such debt.
+            assertThat(result.getResponse().getStatus())
+                    .as("Actual: %s", outcome(result)).isEqualTo(405);
+            assertThat(result.getResponse().getHeader("Allow"))
+                    .as("a 405 must say what is allowed instead")
+                    .contains("POST");
+        }
+
+        @Test
+        @DisplayName("G4. the ordinary token endpoint still serves GET")
+        void ordinaryTokenEndpointStillServesGet() throws Exception {
+            // Guards the blast radius of G3: both paths are mapped by the same controller method,
+            // so restricting one must not restrict the other.
+            String clientId = "plaing4" + generator.generate();
+            setUpClients(clientId, "uaa.resource", "uaa.none", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    true, null, null, -1, IdentityZone.getUaa(), Map.of());
+
+            MvcResult result = perform(get("/oauth/token")
+                    .accept(APPLICATION_JSON)
+                    .servletPath("/oauth/token")
+                    .header("Authorization", basic(clientId, SECRET))
+                    .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS));
+
+            assertThat(result.getResponse().getStatus())
+                    .as("Actual: %s", outcome(result)).isNotEqualTo(405);
         }
     }
 
