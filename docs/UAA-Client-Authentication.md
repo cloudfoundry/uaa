@@ -273,3 +273,36 @@ required.
 ### Production use
 
 The support of private_key_jwt (according to OIDC) for a production system is given with the end of Q4/2024.
+
+## Operating tls_client_auth
+
+### Certificate revocation is not checked
+
+UAA validates a presented client certificate's chain against the configured CA and enforces its
+validity dates, but performs **no revocation checking**: PKIX validation runs with
+`setRevocationEnabled(false)`, so neither CRL distribution points nor OCSP responders are consulted.
+
+The practical consequence is that a stolen or mis-issued client certificate remains accepted until
+it expires. RFC 8705 treats revocation as a deployment decision rather than a requirement, and
+names it as the mitigation for certificate theft, so plan accordingly:
+
+* Keep certificate lifetimes short. Cloud Foundry's Diego instance-identity certificates are
+  already short-lived, which is what makes this acceptable for the workload-identity use case.
+* To cut off a compromised client immediately, remove `tls-client-auth-ca` from that client (or
+  delete the client), rather than relying on revoking the certificate.
+* Do not point `tls-client-auth-ca` at a long-lived, broadly-issuing CA and treat revocation as the
+  containment mechanism. It is not available.
+
+### Rotating the CA
+
+`tls-client-auth-ca` and `tls-client-auth-trusted-proxy-ca` accept **multiple concatenated
+PEM certificates**, and every certificate in the value is treated as an independent trust anchor.
+That is what makes a CA rotation possible without an outage:
+
+1. Set the value to the outgoing CA followed by the incoming CA. Certificates issued by either now
+   authenticate.
+2. Wait for every certificate issued by the outgoing CA to expire or be reissued.
+3. Set the value to the incoming CA alone.
+
+A malformed entry rejects the whole value at client create/update time, so a bundle either parses
+completely or is refused — UAA will not silently trust a subset of it.
