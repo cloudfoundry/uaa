@@ -72,12 +72,26 @@ assertions were restored in all four files, and the two MockMvc classes now addi
 `getMtlsEndpointAliases()` is **null** on a default deployment — a stronger guarantee than they had
 before, and the thing the previous edit had removed.
 
-The mTLS-enabled shape was never uncovered by this revert: it is asserted by
-`MtlsTokenEndpointHardeningMockMvcTests`, `MtlsTokenEndpointMockMvcZonePathTests` (including the
-zone-path form of the alias), `OpenIdConnectEndpointsTest`, and its absence when disabled by
-`MtlsDisabledTokenEndpointMockMvcTests` (E3/E6). A new model test,
-`theConstructorWithoutAnMtlsFlagAdvertisesNoMtlsSupport`, pins the restored default so it cannot
-drift again.
+**When mTLS *is* enabled, discovery must and does advertise it** — that is the other half of the
+guarantee, and reverting the default must not weaken it. Production is unaffected by the revert
+because `OpenIdConnectEndpoints:41` always passes the real flag. It is asserted at three levels:
+
+| Level | Test | Asserts |
+|---|---|---|
+| Model | `OpenIdConfigurationTests.tlsClientAuthIsIncludedWhenMtlsEnabled` | three-arg constructor with `true` includes `tls_client_auth` |
+| Controller | `OpenIdConnectEndpointsTest.mtlsAdvertisementsAreConsistentWhenMtlsEnabled` | `tls_client_auth` **and** `mtls_endpoint_aliases` **and** `tls_client_certificate_bound_access_tokens: true`, so the two gates cannot drift apart |
+| Over HTTP, default zone | `MtlsTokenEndpointHardeningMockMvcTests` **J1** (added by this audit) | all three, through the real filter chain |
+| Over HTTP, per zone | `MtlsTokenEndpointMockMvcZonePathTests` | `tls_client_auth` and the zone-path form of the alias |
+
+J1 was added because it was the one thing the revert genuinely did reduce: the default-zone,
+over-HTTP, mTLS-**enabled** positive assertion previously lived in the class that was switched to
+`uaa.mtls-enabled=true`. Reverting that class restored the default-config guarantee but left the
+enabled case covered only by the controller unit test and the per-zone class. J1 is the exact mirror
+of E3/E6 in `MtlsDisabledTokenEndpointMockMvcTests`, so both directions are now pinned at the same
+level: enabled advertises all three, disabled advertises none of them.
+
+A new model test, `theConstructorWithoutAnMtlsFlagAdvertisesNoMtlsSupport`, pins the restored default
+so it cannot drift again.
 
 Net effect on the wire: the discovery document gains exactly one field for a default deployment,
 `"tls_client_certificate_bound_access_tokens": false`. Additive, and RFC 8705 §3.3 defines the

@@ -1241,6 +1241,44 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     // ------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------
+    // Group J -- what OIDC discovery says when the feature IS enabled
+    // ------------------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("J. OIDC discovery when mTLS is enabled")
+    class DiscoveryMetadata {
+
+        @Test
+        @DisplayName("J1. discovery advertises tls_client_auth, the mTLS alias and cnf support")
+        @SuppressWarnings("unchecked")
+        void discoveryAdvertisesMtlsWhenEnabled() throws Exception {
+            MvcResult result = perform(get("/.well-known/openid-configuration")
+                    .servletPath("/.well-known/openid-configuration")
+                    .accept(APPLICATION_JSON));
+
+            assertThat(result.getResponse().getStatus()).isEqualTo(200);
+            Map<String, Object> discovery = JsonUtils.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {});
+
+            // The exact mirror of E3/E6 in MtlsDisabledTokenEndpointMockMvcTests, which assert these
+            // three are absent/false when the feature is off. An enabled endpoint that discovery does
+            // not advertise is undiscoverable: RFC 8705 section 5 is how a client is supposed to find
+            // the mTLS token endpoint, and section 3.3's metadata defaults to false when omitted, so
+            // silence tells a resource server the opposite of the truth.
+            assertThat((List<String>) discovery.get("token_endpoint_auth_methods_supported"))
+                    .as("Body: %s", discovery)
+                    .contains("tls_client_auth");
+            assertThat((Map<String, Object>) discovery.get("mtls_endpoint_aliases"))
+                    .as("Body: %s", discovery)
+                    .containsEntry("token_endpoint", "http://localhost/oauth/mtls/token");
+            assertThat(discovery.get("tls_client_certificate_bound_access_tokens"))
+                    .as("Body: %s", discovery)
+                    .isEqualTo(true);
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------------------------
 
