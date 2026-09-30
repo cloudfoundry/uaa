@@ -693,6 +693,11 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   If omitted or empty, all external groups are included at login time, equivalent to setting this to `["*"]`.
   Note this is purely a login-time behavior; an omitted/empty value is stored and returned as-is by
   `GET`/`POST`/`PUT /identity-providers`, it is not rewritten to `["*"]`.
+  If you want LDAP group membership to have no effect at all rather than restricting it, set
+  [`ldap.groups.file`](#ldap.groups.file) to `ldap/ldap-groups-null.xml` instead: that disables LDAP
+  group lookup entirely, so there are no external groups for this list to filter in the first place.
+  This field can only narrow down which already-retrieved groups are used, it cannot be used to
+  suppress group lookup itself.
 
 
 * <a name="ldap.attributeMappings">`ldap.attributeMappings`</a>
