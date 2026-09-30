@@ -11,9 +11,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * Enforces the two endpoint-level policies for {@code /oauth/mtls/token} that have to hold before any
- * authentication runs: it is absent on deployments that have not enabled RFC 8705 mutual-TLS client
- * authentication ({@code uaa.mtls-enabled}, false by default), and it accepts only POST.
+ * Enforces the three endpoint-level policies for {@code /oauth/mtls/token} that have to hold before
+ * any authentication runs: it is absent on deployments that have not enabled RFC 8705 mutual-TLS
+ * client authentication ({@code uaa.mtls-enabled}, false by default), it is exactly one path with
+ * nothing served beneath it, and it accepts only POST.
  *
  * <p>The feature is otherwise gated asymmetrically: {@code mtlsTokenEndpointSecurity} is
  * {@code @ConditionalOnProperty}, but {@code UaaTokenEndpoint}'s {@code @RequestMapping} lists the
@@ -38,8 +39,25 @@ import java.io.IOException;
  * this endpoint inherited GET in the first place. A GET carries the token request in the query
  * string, where access logs and every proxy in front of UAA record it.
  *
+ * <p>The exact-path rule exists because the endpoint's handler is not the only one Spring MVC maps
+ * beneath this prefix. {@code UaaTokenEndpoint} carries a type-level
+ * {@code @RequestMapping({"/oauth/token", "/oauth/mtls/token"})} and extends {@code TokenEndpoint},
+ * whose inherited {@code getAccessToken}/{@code postAccessToken} carry their own
+ * {@code @GetMapping("/oauth/token")}/{@code @PostMapping("/oauth/token")}; Spring registers
+ * inherited handler methods and combines them with the subclass's type-level patterns, so
+ * {@code /oauth/mtls/token/oauth/token} is a live mapping, and being literal it outranks
+ * {@code UaaTokenEndpoint}'s own {@code "**"} delegates. Those delegates are where
+ * {@code rejectNonWorkloadGrantAtMtlsEndpoint} and {@code enforceResourceIndicator} are called from,
+ * so a request routed to the inherited handler reached token issuance with neither the grant-type
+ * restriction nor the RFC 8707 allow-list applied -- while still authenticating as
+ * {@code tls_client_auth}, because every other component scopes itself by prefix. Refusing anything
+ * below the endpoint removes the whole class of routing bypass rather than the two known symptoms,
+ * and nothing legitimate is served beneath it: the alias sub-paths that exist under
+ * {@code /oauth/token} are for SAML bearer grants, which this endpoint does not issue.
+ *
  * <p>This filter only ever denies. It cannot grant access that would otherwise be refused: it is a
- * pass-through for POST once the feature is enabled, and every other path is untouched.
+ * pass-through for a POST to the exact path once the feature is enabled, and every other path is
+ * untouched.
  */
 public class MtlsEndpointAvailabilityFilter implements Filter {
 
@@ -63,6 +81,13 @@ public class MtlsEndpointAvailabilityFilter implements Filter {
         // Absence is checked first: a disabled endpoint must not disclose which methods it would
         // have accepted.
         if (!mtlsEnabled) {
+            httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        // The endpoint is exactly one path; a descendant is not a variant spelling of it but a
+        // different resource that does not exist. See the class javadoc for why serving one is a
+        // routing bypass rather than a cosmetic wrong answer.
+        if (!RawPeerCertificateCaptureFilter.MTLS_TOKEN_PATH.equals(httpRequest.getServletPath())) {
             httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
