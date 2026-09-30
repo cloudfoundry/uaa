@@ -222,10 +222,31 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                 uaaClient.getClientJwtConfiguration(), uaaClient.getUsername());
     }
 
+    /**
+     * True when the request is on the mTLS token endpoint, according to <em>either</em> reading of
+     * its path.
+     *
+     * <p>The container's decoded servlet path is what every other part of this feature matches on --
+     * the availability filter, the raw-peer capture filter, the certificate-mapper guard, the
+     * security matcher and Spring's own handler routing. {@code getRequestPath()} is derived from
+     * {@code getRequestURI()}, which per the servlet spec is raw and undecoded, so the two disagree
+     * for a percent-encoded spelling such as {@code /oauth/%6dtls/token}: everything else treats
+     * that as the mTLS endpoint while a raw-path check does not, silently disabling the restriction
+     * that this endpoint serves certificate-authenticated clients only.
+     *
+     * <p>Answering "either" rather than picking one is the fail-closed direction, because a
+     * {@code true} here only ever adds restrictions: it requires the client to be configured for
+     * {@code tls_client_auth} and forbids it from presenting credentials. So any spelling that any
+     * component might resolve to this endpoint gets the endpoint's rules. A genuine
+     * {@code /oauth/token} request matches neither reading and is unaffected.
+     */
     static boolean isTlsClientAuthPath(Object uaaAuthenticationDetails) {
         UaaAuthenticationDetails details = getUaaAuthenticationDetails(uaaAuthenticationDetails);
-        String path = details != null ? details.getRequestPath() : null;
-        return RawPeerCertificateCaptureFilter.isMtlsTokenPath(path);
+        if (details == null) {
+            return false;
+        }
+        return RawPeerCertificateCaptureFilter.isMtlsTokenPath(details.getServletPath())
+                || RawPeerCertificateCaptureFilter.isMtlsTokenPath(details.getRequestPath());
     }
 
     /**
