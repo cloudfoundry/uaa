@@ -94,8 +94,11 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
         assertThat(conf.getTokenAMR())
                 .containsExactly("client_secret_basic", "client_secret_post", "private_key_jwt");
         assertThat(conf.getMtlsEndpointAliases()).isNull();
-        // tls_client_certificate_bound_access_tokens has no accessor -- it is serialized straight
-        // from the field, so OpenIdConfiguration.json is what pins its default.
+        assertThat(conf.isTlsClientCertificateBoundAccessTokens())
+                .as("RFC 8705 section 3.3 metadata defaults to false when omitted, so claiming true "
+                        + "on a deployment that cannot issue bound tokens tells a resource server the "
+                        + "opposite of the truth")
+                .isFalse();
     }
 
     @Test
