@@ -83,8 +83,19 @@ public class OpenIdConfiguration {
     @JsonProperty("tls_client_certificate_bound_access_tokens")
     private boolean tlsClientCertificateBoundAccessTokens;
 
+    /**
+     * Builds the discovery document for a deployment that has <em>not</em> enabled mutual-TLS client
+     * authentication, which is the product default ({@code uaa.mtls-enabled:false}).
+     *
+     * <p>This overload predates RFC 8705 support and its output must keep matching what it produced
+     * then, since callers compiled against it cannot tell that a new capability exists. Defaulting to
+     * enabled would also be the wrong direction for a default: it would advertise
+     * {@code tls_client_auth} and set {@code tls_client_certificate_bound_access_tokens} on any code
+     * path that simply forgot to pass the flag, i.e. it would fail open. Pass the three-argument
+     * constructor explicitly to advertise mTLS.
+     */
     public OpenIdConfiguration(final String contextPath, final String issuer) {
-        this(contextPath, issuer, true);
+        this(contextPath, issuer, false);
     }
 
     public OpenIdConfiguration(final String contextPath, final String issuer, final boolean mtlsEnabled) {
