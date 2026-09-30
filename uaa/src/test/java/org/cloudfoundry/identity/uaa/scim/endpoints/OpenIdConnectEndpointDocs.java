@@ -3,21 +3,25 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.test.context.TestPropertySource;
 
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// mtls_endpoint_aliases is only present in the discovery document when uaa.mtls-enabled is true
-// (the default is false) -- enabled here so this documented field is genuinely present in the
-// response this test drives, rather than the endpoint silently omitting it.
-@TestPropertySource(properties = "uaa.mtls-enabled=true")
+/**
+ * Deliberately runs on the default {@code uaa.mtls-enabled=false}, so the published example
+ * discovery document is the one the great majority of deployments actually serve. The two RFC 8705
+ * fields are still documented below: {@code tls_client_certificate_bound_access_tokens} is always
+ * present (as {@code false} here), and {@code mtls_endpoint_aliases} is marked optional because the
+ * endpoint omits it entirely unless mTLS is enabled. Enabling mTLS here instead would document a
+ * response shape most readers would never see.
+ */
 class OpenIdConnectEndpointDocs extends EndpointDocs {
     @Test
     void getWellKnownOpenidConf() throws Exception {
@@ -41,8 +45,8 @@ class OpenIdConnectEndpointDocs extends EndpointDocs {
                 fieldWithPath("service_documentation").description("URL of a page containing human-readable information that developers might want or need to know when using the OpenID Provider."),
                 fieldWithPath("code_challenge_methods_supported").description("<small><mark>UAA 75.5.0</mark></small>JSON array containing a list of [PKCE](https://tools.ietf.org/html/rfc7636) code challenge methods supported by this authorization endpoint."),
                 fieldWithPath("ui_locales_supported").description("Languages and scripts supported for the user interface."),
-                fieldWithPath("mtls_endpoint_aliases.token_endpoint").description("mTLS-specific token endpoint alias for RFC 8705 mutual-TLS client authentication."),
-                fieldWithPath("tls_client_certificate_bound_access_tokens").description("Boolean value indicating server support for mutual-TLS client certificate-bound access tokens ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705#section-3.3)). True when `uaa.mtls-enabled` is set, in which case tokens issued at the mTLS token endpoint carry a `cnf.x5t#S256` confirmation claim.")
+                fieldWithPath("mtls_endpoint_aliases.token_endpoint").optional(null).type(STRING).description("mTLS-specific token endpoint alias for [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705#section-5) mutual-TLS client authentication. Present only when `uaa.mtls-enabled` is set; the whole `mtls_endpoint_aliases` object is omitted otherwise."),
+                fieldWithPath("tls_client_certificate_bound_access_tokens").description("Boolean value indicating server support for mutual-TLS client certificate-bound access tokens ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705#section-3.3)). Always present; `true` when `uaa.mtls-enabled` is set, in which case tokens issued at the mTLS token endpoint carry a `cnf.x5t#S256` confirmation claim, and `false` otherwise.")
         );
 
         mockMvc.perform(
