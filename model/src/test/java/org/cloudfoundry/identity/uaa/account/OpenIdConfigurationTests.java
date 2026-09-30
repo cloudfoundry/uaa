@@ -28,7 +28,7 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
         assertThat(defaultConfig.getIssuer()).isEqualTo("issuer");
         assertThat(defaultConfig.getAuthUrl()).isEqualTo("/uaa/oauth/authorize");
         assertThat(defaultConfig.getTokenUrl()).isEqualTo("/uaa/oauth/token");
-        assertThat(defaultConfig.getTokenAMR()).containsExactly(new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt", "tls_client_auth"});
+        assertThat(defaultConfig.getTokenAMR()).containsExactly(new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt"});
         assertThat(defaultConfig.getTokenEndpointAuthSigningValues()).containsExactly(new String[]{"RS256", "HS256"});
         assertThat(defaultConfig.getUserInfoUrl()).isEqualTo("/uaa/userinfo");
         assertThat(defaultConfig.getJwksUri()).isEqualTo("/uaa/token_keys");
@@ -81,10 +81,21 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
                 .containsEntry("token_endpoint", "https://uaa.example.com/oauth/mtls/token");
     }
 
+    /**
+     * The two-argument constructor predates RFC 8705 support, so its output must stay what it was
+     * before this feature existed -- a caller compiled against it cannot know a new capability was
+     * added, and advertising an authentication method the deployment has not enabled would be both a
+     * behaviour change and a fail-open default.
+     */
     @Test
-    void tlsClientAuthIsInSupportedAuthMethods() {
+    void theConstructorWithoutAnMtlsFlagAdvertisesNoMtlsSupport() {
         OpenIdConfiguration conf = new OpenIdConfiguration("/uaa", "https://uaa.example.com");
-        assertThat(conf.getTokenAMR()).contains("tls_client_auth");
+
+        assertThat(conf.getTokenAMR())
+                .containsExactly("client_secret_basic", "client_secret_post", "private_key_jwt");
+        assertThat(conf.getMtlsEndpointAliases()).isNull();
+        // tls_client_certificate_bound_access_tokens has no accessor -- it is serialized straight
+        // from the field, so OpenIdConfiguration.json is what pins its default.
     }
 
     @Test
