@@ -1398,7 +1398,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<String, Object> claimsOf(MvcResult result) throws Exception {
+    static Map<String, Object> claimsOf(MvcResult result) throws Exception {
         Map<String, Object> body = JsonUtils.readValue(
                 result.getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {});
         return JsonUtils.readValue(
