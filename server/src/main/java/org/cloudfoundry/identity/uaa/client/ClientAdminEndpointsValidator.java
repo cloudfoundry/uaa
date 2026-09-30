@@ -32,6 +32,8 @@ import org.springframework.util.StringUtils;
 
 import tools.jackson.core.type.TypeReference;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -617,6 +619,41 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
         }
 
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES)) {
+            if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)) {
+                throw new InvalidClientDetailsException(
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " and "
+                                + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES
+                                + " are mutually exclusive for client_id=" + clientId
+                                + ": two mechanisms for setting aud on one client is a footgun.");
+            }
+            List<String> allowedResources;
+            try {
+                Object rawAllowedResources =
+                        additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+                if (rawAllowedResources instanceof String allowedResourcesJson) {
+                    allowedResources = JsonUtils.readValue(allowedResourcesJson, new TypeReference<List<String>>() {});
+                } else {
+                    allowedResources = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(rawAllowedResources),
+                            new TypeReference<List<String>>() {});
+                }
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid " + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES
+                                + " for client_id=" + clientId + ": " + e.getMessage(), e);
+            }
+            if (allowedResources == null || allowedResources.isEmpty()) {
+                throw new InvalidClientDetailsException(
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES
+                                + " for client_id=" + clientId + " must not be empty.");
+            }
+            for (String resource : allowedResources) {
+                requireValidResourceIndicator(
+                        resource, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES, clientId);
+            }
+        }
+
         if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)) {
             Map<String, String> requiredClaims;
             try {
@@ -649,6 +686,37 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * RFC 8707 section 2: "the resource parameter... MUST be an absolute URI... MUST NOT include a
+     * fragment component." Applied to every {@code tls-client-auth-allowed-resources} entry at
+     * registration time, since a value that could never be sent as a valid {@code resource} request
+     * parameter would otherwise sit in the allow-list looking configured while matching nothing.
+     */
+    private static void requireValidResourceIndicator(String resource, String propertyName, String clientId) {
+        if (resource == null || resource.isBlank()) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " entry cannot be blank for client_id=" + clientId);
+        }
+        URI uri;
+        try {
+            uri = new URI(resource);
+        } catch (URISyntaxException e) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " entry '" + resource + "' for client_id=" + clientId
+                            + " is not a valid URI (RFC 8707 section 2): " + e.getMessage(), e);
+        }
+        if (!uri.isAbsolute()) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " entry '" + resource + "' for client_id=" + clientId
+                            + " must be an absolute URI (RFC 8707 section 2).");
+        }
+        if (uri.getFragment() != null) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " entry '" + resource + "' for client_id=" + clientId
+                            + " must not include a fragment component (RFC 8707 section 2).");
         }
     }
 
