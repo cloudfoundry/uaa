@@ -956,6 +956,90 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     // ------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------
+    // Group H -- RFC 8707 resource indicators
+    // ------------------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("H. RFC 8707 resource indicators")
+    class ResourceIndicators {
+
+        @Test
+        @DisplayName("H1. a non-absolute tls-client-auth-allowed-resources entry is refused at registration")
+        void allowedResourceMustBeAbsoluteUri() throws Exception {
+            String clientId = "mtlsh1" + generator.generate();
+            MvcResult created = createClientViaAdminApi(clientId, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=h1-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES, List.of("not-a-uri")));
+
+            assertThat(created.getResponse().getStatus())
+                    .as("a relative reference is not a valid RFC 8707 section 2 resource value. "
+                            + "Actual: %s", outcome(created))
+                    .isEqualTo(400);
+            assertThat(denial(created).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+        }
+
+        @Test
+        @DisplayName("H2. a tls-client-auth-allowed-resources entry with a fragment is refused at registration")
+        void allowedResourceMustNotHaveFragment() throws Exception {
+            String clientId = "mtlsh2" + generator.generate();
+            MvcResult created = createClientViaAdminApi(clientId, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=h2-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    List.of("https://api.example.com/billing#section")));
+
+            assertThat(created.getResponse().getStatus())
+                    .as("RFC 8707 section 2: the resource parameter MUST NOT include a fragment "
+                            + "component. Actual: %s", outcome(created))
+                    .isEqualTo(400);
+            assertThat(denial(created).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+        }
+
+        @Test
+        @DisplayName("H3. an empty tls-client-auth-allowed-resources list is refused at registration")
+        void allowedResourcesMustNotBeEmpty() throws Exception {
+            String clientId = "mtlsh3" + generator.generate();
+            MvcResult created = createClientViaAdminApi(clientId, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=h3-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES, List.of()));
+
+            assertThat(created.getResponse().getStatus())
+                    .as("an empty list authorizes nothing, which is indistinguishable from the key "
+                            + "being absent, except that it looks configured. Actual: %s", outcome(created))
+                    .isEqualTo(400);
+            assertThat(denial(created).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+        }
+
+        @Test
+        @DisplayName("H4. tls-client-auth-allowed-resources and tls-client-auth-aud-templates are mutually exclusive")
+        void allowedResourcesAndAudTemplatesAreMutuallyExclusive() throws Exception {
+            String clientId = "mtlsh4" + generator.generate();
+            MvcResult created = createClientViaAdminApi(clientId, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=h4-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, List.of(
+                            new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "app_id")),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, List.of("{app_id}.apps.internal"),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    List.of("https://api.example.com/billing")));
+
+            assertThat(created.getResponse().getStatus())
+                    .as("two mechanisms for setting aud on one client is a footgun. Actual: %s",
+                            outcome(created))
+                    .isEqualTo(400);
+            assertThat(denial(created).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES)
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------------------------
 
