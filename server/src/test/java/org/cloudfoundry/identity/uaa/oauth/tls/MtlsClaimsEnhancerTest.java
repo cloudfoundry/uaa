@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
@@ -23,6 +24,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -663,6 +665,111 @@ class MtlsClaimsEnhancerTest {
                 new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null,                  "cf_instance_guid")
             )
         );
+    }
+
+    /**
+     * The RFC 8707 allow-list is enforced in two places: primarily in
+     * {@code UaaTokenEndpoint.enforceResourceIndicator}, before the grant runs, and again here.
+     * These tests exercise the enhancer directly, i.e. with the endpoint check absent -- which is
+     * exactly the situation a routing bypass creates, and how one was actually reached before
+     * {@code MtlsEndpointAvailabilityFilter} started refusing paths below the endpoint.
+     */
+    @Test
+    void resourceOnTheAllowListBecomesAud() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAllowedResources(List.of("https://billing.apps.internal"));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting("instance-identity", "https://billing.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS));
+
+        assertThat(result).containsEntry("aud", List.of("https://billing.apps.internal"));
+    }
+
+    @Test
+    void resourceOffTheAllowListIsRefusedEvenWithoutTheEndpointCheck() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAllowedResources(List.of("https://billing.apps.internal"));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        // Must fail the token request outright rather than fall back to the default audience: a
+        // caller cannot tell a silently substituted aud from the one it asked for.
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting("instance-identity", "https://payments.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS)))
+                .isInstanceOf(InvalidTargetException.class);
+    }
+
+    @Test
+    void resourceIsRefusedWhenNoAllowListIsConfigured() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        // No allowed resources at all: an absent allow-list authorizes nothing, it does not mean
+        // "anything goes".
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(cfMappingsConfig());
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting("instance-identity", "https://billing.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS)))
+                .isInstanceOf(InvalidTargetException.class);
+    }
+
+    @Test
+    void resourceIsRefusedForANonWorkloadGrant() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAllowedResources(List.of("https://billing.apps.internal"));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        // Resource indicators are a property of the workload grant this endpoint serves. Honouring
+        // one on a user grant would aim a token carrying a user's identity at an audience the
+        // workload chose.
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting("instance-identity", "https://billing.apps.internal",
+                        "password")))
+                .isInstanceOf(InvalidTargetException.class);
+    }
+
+    private OAuth2Authentication mockAuthenticationRequesting(String clientId, String resource, String grantType) {
+        OAuth2Request request = mock(OAuth2Request.class);
+        when(request.getClientId()).thenReturn(clientId);
+        when(request.getExtensions())
+                .thenReturn(Map.of(CLIENT_AUTH_METHOD, ClientAuthentication.TLS_CLIENT_AUTH));
+        when(request.getRequestParameters())
+                .thenReturn(Map.of(TlsClientAuthConfiguration.RESOURCE_PARAMETER, resource));
+        when(request.getGrantType()).thenReturn(grantType);
+        OAuth2Authentication auth = mock(OAuth2Authentication.class);
+        when(auth.getOAuth2Request()).thenReturn(request);
+        return auth;
     }
 
     private OAuth2Authentication mockAuthentication(String clientId) {
