@@ -533,6 +533,10 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         X500Name leafSubject = new X500Name("CN=mtls-doc-client");
         X509Certificate leafCert = signCert(leafSubject, caSubject, leafKeyPair.getPublic(), caKeyPair.getPrivate(), false, BigInteger.valueOf(2));
 
+        // RFC 8707: the one resource this client is permitted to request. An absent or non-permitted
+        // value is refused as invalid_target, so the allow-list has to be registered to document it.
+        String permittedResource = "https://billing.apps.internal";
+
         String clientId = "mtlsdocclient" + generator.generate();
         setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
                 false, null, null, -1, IdentityZone.getUaa(),
@@ -543,7 +547,9 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                         TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=mtls-doc-client",
                         TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                         Collections.singletonList(new TlsClientAuthConfiguration.ClaimMapping(
-                                "subject_cn", null, "instance_guid"))));
+                                "subject_cn", null, "instance_guid")),
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                        Collections.singletonList(permittedResource)));
         clientDetailsService.updateClientSecret(clientId, null);
         assertThat(clientDetailsService.loadClientByClientId(clientId).getClientSecret()).isNull();
 
@@ -553,6 +559,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(CLIENT_ID, clientId)
                 .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
                 .param(REQUEST_TOKEN_FORMAT, JWT.getStringValue())
+                .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, permittedResource)
                 // RawPeerCertificateCaptureFilter.isMtlsTokenPath(...) matches on the *effective*
                 // servlet path (post-ZonePathContextRewritingFilter); MockMvc does not compute this
                 // itself from the request URI the way a real DispatcherServlet mapping would, so it
@@ -568,7 +575,14 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 mtlsClientIdParameter,
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
                 parameterWithName(REQUEST_TOKEN_FORMAT).optional("jwt").type(STRING)
-                        .description("Set to `jwt` to receive a JSON Web Token containing the mTLS certificate-derived claims and RFC 8705 confirmation claim.")
+                        .description("Set to `jwt` to receive a JSON Web Token containing the mTLS certificate-derived claims and RFC 8705 confirmation claim."),
+                parameterWithName(TlsClientAuthConfiguration.RESOURCE_PARAMETER).optional(null).type(STRING)
+                        .description("Optional. An [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) resource indicator "
+                                + "naming the target this token is for; it becomes the token's `aud` claim. Must be an "
+                                + "absolute URI without a fragment, and must be one of the values registered in the "
+                                + "client's `tls-client-auth-allowed-resources`. A value outside that list, more than one "
+                                + "`resource` parameter, or a client with no allow-list configured is refused with "
+                                + "`invalid_target`. Omit it to receive the client's default audience.")
         );
 
         Snippet responseFields = responseFields(
@@ -601,6 +615,11 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Map<String, Object> claims = JsonUtils.readValue(accessToken.getClaims(), Map.class);
         assertThat(claims).containsEntry("instance_guid", "mtls-doc-client");
+        // A single-element aud renders as a scalar string per RFC 7519 section 4.1.3.
+        assertThat(claims)
+                .as("the requested RFC 8707 resource must be what the token is actually audienced for, "
+                        + "otherwise the documented parameter would be decorative")
+                .containsEntry("aud", permittedResource);
         String expectedThumbprint = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(MessageDigest.getInstance("SHA-256").digest(leafCert.getEncoded()));
         assertThat((Map<String, Object>) claims.get("cnf"))
