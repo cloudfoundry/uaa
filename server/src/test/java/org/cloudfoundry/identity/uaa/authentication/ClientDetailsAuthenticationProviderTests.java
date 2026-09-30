@@ -77,6 +77,36 @@ class ClientDetailsAuthenticationProviderTests {
         assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(details)).isFalse();
     }
 
+    /**
+     * The tests above stub {@code getRequestPath()} directly; this one builds the details from a
+     * real request, because the defect is in which property of the request the path comes from.
+     *
+     * <p>Every other mTLS gate keys off {@code getServletPath()}, which the container has already
+     * decoded and normalised. {@code UaaAuthenticationDetails.getRequestPath()} is built from
+     * {@code getRequestURI()}, which per the servlet spec is the raw, undecoded URI. Tomcat decodes
+     * {@code %6d} to {@code m}, so a request for {@code /oauth/%6dtls/token} has servlet path
+     * {@code /oauth/mtls/token} -- the filters, the security matcher and Spring's handler routing
+     * all treat it as the mTLS endpoint -- while this gate sees the escape and decides the request
+     * is NOT on the mTLS path. That disagreement disables the check whose own javadoc says
+     * "Without this check the endpoint is an unrestricted alias of /oauth/token".
+     */
+    @Test
+    void tlsClientAuthPathFollowsTheDecodedServletPathNotTheRawUri() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/%6dtls/token");
+        request.setRequestURI("/oauth/%6dtls/token");
+        request.setServletPath("/oauth/mtls/token");
+
+        assertThat(RawPeerCertificateCaptureFilter.isMtlsTokenPath(request.getServletPath()))
+                .as("precondition: every other gate resolves this request to the mTLS endpoint")
+                .isTrue();
+
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(
+                new UaaAuthenticationDetails(request)))
+                .as("the client-authentication gate must resolve the path the same way the rest of "
+                        + "the mTLS machinery does, or it silently stops applying")
+                .isTrue();
+    }
+
     @Test
     void tlsConfigIsReadFromFlatAdditionalInfo() {
         Map<String, Object> additionalInfo = new HashMap<>();
