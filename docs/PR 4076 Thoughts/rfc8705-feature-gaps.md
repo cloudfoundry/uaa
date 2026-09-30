@@ -37,6 +37,18 @@ production code change. §3.2 is fully implemented.
 - **§5 `mtls_endpoint_aliases`**, **§3.1 `cnf.x5t#S256` on JWTs**, and **§3.2 `cnf` on token
   introspection** — all implemented (§3.2 confirmed by test, see correction above).
 
+## Adjacent: RFC 8707 resource indicators (a different RFC)
+
+Not an RFC 8705 item, but it now exists on this branch and belongs in the same mental map, because
+it is the other half of "what is this token for". `/oauth/mtls/token` accepts an RFC 8707 `resource`
+parameter, constrained to a per-client allow-list (`tls-client-auth-allowed-resources`), and the
+requested value becomes the token's `aud`; anything not permitted is `invalid_target`. Deliberately
+partial against RFC 8707: one `resource` value per request (the endpoint issues one token for one
+audience), no per-target scope restriction, and a flat list of URIs rather than richer target
+objects. See `docs/UAA-Client-Authentication.md`, and
+`cf-service-accounts-proposal-evaluation.md` §5.3 for what the Service Accounts design still wants
+on top.
+
 ## Bottom line
 
 For the one method UAA advertises, `tls_client_auth`, there is no remaining spec-level gap of
@@ -45,3 +57,8 @@ are both explicitly optional in the RFC and were reviewed and consciously accept
 else missing is a separate authentication method (§2.2 self-signed) or a separate feature (§4
 public-client cert binding) that this PR never set out to build. RFC conformance for
 `tls_client_auth` itself is complete.
+
+Note that conformance is not the same as correctness of the surrounding plumbing: the security
+review in `pr4076-security-review.md` found a routing bypass that left both endpoint-level guards
+unapplied on a URL one segment deeper, while every conformance-relevant behaviour above still held.
+Spec-complete and safe are separate claims.
