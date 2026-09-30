@@ -2731,6 +2731,12 @@ external groups are included at login time, equivalent to `["*"]`. This is a log
 behavior only; an omitted/empty value is stored and returned as-is by `GET`/`POST`/`PUT
 /identity-providers`, it is not rewritten to `["*"]`.
 
+If you want LDAP group membership to have no effect at all rather than restricting it, set
+[`ldap.groups.file`](#ldapgroupsfile) to `ldap/ldap-groups-null.xml` instead, that disables LDAP group
+lookup entirely, so there are no external groups for this list to filter in the first place. This
+field can only narrow down which already-retrieved groups are used, it cannot suppress group lookup
+itself.
+
 [Back to table](#ldap)
 
 ---
