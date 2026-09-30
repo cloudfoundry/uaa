@@ -1056,8 +1056,9 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
             assertThat(result.getResponse().getStatus())
                     .as("Actual: %s", outcome(result)).isEqualTo(200);
             assertThat(claimsOf(result).get("aud"))
-                    .as("the requested (and permitted) resource must become the token's audience")
-                    .isEqualTo(List.of("https://api.example.com/billing"));
+                    .as("the requested (and permitted) resource must become the token's audience -- "
+                            + "a single-element aud renders as a scalar string per RFC 7519 section 4.1.3")
+                    .isEqualTo("https://api.example.com/billing");
         }
 
         @Test
