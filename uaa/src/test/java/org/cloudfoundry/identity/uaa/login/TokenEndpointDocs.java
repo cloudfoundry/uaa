@@ -135,6 +135,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * {@code uaa.mtls-enabled=true} is set for the whole class because
+ * {@link #getTokenUsingClientCredentialGrantWithTlsClientAuth()} cannot document an endpoint the
+ * deployment has not enabled. That is a change to a pre-existing test's configuration, and it is
+ * load-bearing in a non-obvious way: enabling mTLS registers {@code MtlsClaimsEnhancer}, which makes
+ * {@code uaaTokenEnhancers} non-empty, and {@code UaaTokenServices} takes a different code path when
+ * that list is non-empty.
+ *
+ * <p>Checked rather than assumed: the generated snippets were captured with mTLS on and off and
+ * compared. Across all 29 other documented examples the response JSON key sets and every documented
+ * field/parameter table are identical; only randomised values (client ids, JWTs, timestamps) differ.
+ * So no other published example is affected. If a future change makes the enhancer contribute claims
+ * for non-{@code tls_client_auth} callers, that guarantee breaks and this example should move to its
+ * own docs class instead.
+ */
 @TestPropertySource(properties = {"login.entityBaseURL=", "uaa.mtls-enabled=true"})
 @ExtendWith(JUnitRestDocumentationExtension.class)
 class TokenEndpointDocs extends AbstractTokenMockMvcTests {

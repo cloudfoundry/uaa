@@ -40,6 +40,13 @@ Since the first version of this document the branch has gained, in order:
    *both* endpoint guards and one latent path-resolution defect. Both are fixed. Read
    `pr4076-security-review.md` before touching the endpoint's routing or the enhancer's `aud`
    handling — it records what was verified clean as well as what was broken.
+4. **A backwards-compatibility audit of every test change against `cloudfoundry/develop`**, on the
+   principle that a modified pre-existing test is the cheapest signal that behaviour changed. No
+   pre-existing test turned out to be deleted, renamed or disabled; the 20 removed lines are each
+   accounted for in `pr4076-backwards-compatibility-audit.md`. It did surface one genuine break —
+   the pre-RFC-8705 `OpenIdConfiguration(contextPath, issuer)` constructor had been changed to
+   default mTLS **on**, silently altering the discovery document for an unchanged signature and
+   failing open — now reverted to `false` and pinned by a new test.
 
 ### Remotes you will need to re-add on the new machine
 
@@ -340,6 +347,7 @@ to hold this branch.
 |---|---|
 | `SESSION-HANDOFF.md` | this file |
 | `pr4076-security-review.md` | **read this before touching the endpoint's routing or the enhancer's `aud` handling**: the three-reviewer security review of this branch — the HIGH descendant-path bypass, the path-resolution defect, what was left unfixed and why, and a long list of what was verified clean |
+| `pr4076-backwards-compatibility-audit.md` | every test change in this PR vs `cloudfoundry/develop`, and what each one implies: no pre-existing test deleted or renamed, the 20 removed lines accounted for one by one, the `OpenIdConfiguration` fail-open default that was found and reverted, and the list of intentional behaviour changes |
 | `pr4075-comment-vs-our-branch.md` | rkoster's #4075 response vs this branch: what both fixed, the four gaps ported, the §2.1.2 gap on his side |
 | `cf-service-accounts-proposal-evaluation.md` | the Service Accounts RFC: how it works, what "stable subject" means, per-component work breakdown, risks |
 | `rfc8705-vs-workload-federation-discussion.md` | why rkoster felt constrained; how AWS/GCP/K8s federation compares; what the token is for |
