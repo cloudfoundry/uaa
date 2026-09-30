@@ -843,8 +843,16 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         } else {
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
             jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
-                    .checkIssuer((!hasLength(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
-                    .checkAudience(config.getRelyingPartyId());
+                    .checkIssuer(!hasLength(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer());
+            if (enforceRelyingPartyAudience && hasText(config.getRelyingPartyId())) {
+                // same machine-to-machine exemption as the self-referencing branch above: an
+                // externally-issued token presented to the interactive callback
+                // (/login/callback/{origin}) must still be bound to this IdP's own relying party,
+                // but a JWT Bearer grant, password grant with an id_token, or token exchange
+                // deliberately presents a token minted for another client/purpose and already
+                // authenticates the calling client to /oauth/token directly.
+                jwtToken.checkAudience(config.getRelyingPartyId());
+            }
         }
         return jwtToken.checkExpiry();
     }
