@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenEnhancer;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -24,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 
 /**
  * A {@link UaaTokenEnhancer} that enriches access tokens with claims derived from the
@@ -176,15 +179,30 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             }
         }
 
-        // RFC 8707 resource indicator, if the request named one. UaaTokenEndpoint.
-        // enforceResourceIndicator already validated it against the client's
-        // tls-client-auth-allowed-resources before the grant ran -- this is the only path into the
-        // granter for /oauth/mtls/token, so nothing here needs to re-check the allow-list.
-        // Mutually exclusive with aud-templates by construction (ClientAdminEndpointsValidator
-        // refuses a client that configures both), so no run-time precedence question arises.
+        // RFC 8707 resource indicator, if the request named one.
+        //
+        // UaaTokenEndpoint.enforceResourceIndicator is the primary check. This used to trust it and
+        // project the value straight onto aud, on the reasoning that the controller was the only way
+        // into the granter for /oauth/mtls/token. That reasoning was wrong: Spring also mapped
+        // /oauth/mtls/token/oauth/token to TokenEndpoint's inherited handler, which reached token
+        // issuance with neither the grant-type restriction nor this allow-list applied. The routing
+        // hole is closed in MtlsEndpointAvailabilityFilter, but the allow-list is enforced here as
+        // well so that the guarantee does not depend on which handler a request is routed to.
+        //
+        // A resource that is not permitted fails the whole token request rather than quietly falling
+        // back to the default audience: an aud the caller did not ask for is indistinguishable, to
+        // that caller, from the one it did -- and the fail-closed choice matches the cnf computation
+        // below, which throws rather than issue an unbound token.
         String resource = authentication.getOAuth2Request().getRequestParameters()
                 .get(TlsClientAuthConfiguration.RESOURCE_PARAMETER);
         if (resource != null && !resource.isBlank()) {
+            List<String> allowedResources = config.getAllowedResources();
+            boolean workloadGrant = GRANT_TYPE_CLIENT_CREDENTIALS.equals(
+                    authentication.getOAuth2Request().getGrantType());
+            if (!workloadGrant || allowedResources == null || !allowedResources.contains(resource)) {
+                throw new InvalidTargetException(
+                        "client_id=" + clientId + " is not authorized to request the given resource");
+            }
             result.put("aud", List.of(resource));
         } else if (config.getAudTemplates() != null && !config.getAudTemplates().isEmpty()) {
             List<String> audList = new ArrayList<>();
@@ -304,11 +322,26 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                             new TypeReference<Map<String, String>>() {});
                 }
 
+                // Read for the RFC 8707 allow-list check in enhance(). Omitting it here would leave
+                // getAllowedResources() null for every JDBC-loaded client -- i.e. for almost every
+                // real one -- which for a fail-closed check means refusing resources the operator
+                // did in fact permit.
+                List<String> allowedResources = null;
+                Object rawAllowedResources = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+                if (rawAllowedResources instanceof String allowedResourcesJson) {
+                    allowedResources = JsonUtils.readValue(allowedResourcesJson, new TypeReference<List<String>>() {});
+                } else if (rawAllowedResources instanceof List<?> allowedResourcesList) {
+                    allowedResources = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(allowedResourcesList),
+                            new TypeReference<List<String>>() {});
+                }
+
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
                 cfg.setRequiredClaims(requiredClaims);
+                cfg.setAllowedResources(allowedResources);
                 return cfg;
             } catch (Exception e) {
                 return null;
