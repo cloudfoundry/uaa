@@ -1140,6 +1140,107 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     // ------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------
+    // Group I -- which handler actually serves paths BELOW /oauth/mtls/token
+    // ------------------------------------------------------------------------------------
+
+    /**
+     * {@code UaaTokenEndpoint} carries a type-level {@code @RequestMapping} listing both
+     * {@code /oauth/token} and {@code /oauth/mtls/token}, and extends {@code TokenEndpoint}, whose
+     * inherited {@code getAccessToken}/{@code postAccessToken} carry their own
+     * {@code @GetMapping("/oauth/token")}/{@code @PostMapping("/oauth/token")}. Spring MVC registers
+     * inherited handler methods and combines them with the subclass's type-level patterns, so
+     * {@code /oauth/mtls/token/oauth/token} is a registered mapping -- and being literal, it is more
+     * specific than this class's own {@code "**"} mappings.
+     *
+     * <p>That matters because both endpoint-level guards ({@code rejectNonWorkloadGrantAtMtlsEndpoint}
+     * and {@code enforceResourceIndicator}) are called from the {@code "**"} delegates, while every
+     * other part of the mTLS machinery keys off {@code isMtlsTokenPath}, which matches descendants by
+     * prefix. Certificate authentication therefore still succeeds on such a URL.
+     */
+    @Nested
+    @DisplayName("I. handler routing below the mTLS path")
+    class DescendantPathRouting {
+
+        @Test
+        @DisplayName("I1. a resource off the allow-list is refused on a path BELOW /oauth/mtls/token")
+        void resourceAllowListHoldsOnDescendantPath() throws Exception {
+            Map<String, Object> config = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=i1-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    List.of("https://api.example.com/billing"));
+            String clientId = mtlsClient("i1", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+            String descendant = MTLS_PATH + "/oauth/token";
+
+            MvcResult result = perform(post(descendant)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_FORM_URLENCODED)
+                    .servletPath(descendant)
+                    .param("client_id", clientId)
+                    .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS)
+                    .param("token_format", "jwt")
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://api.example.com/not-permitted")
+                    .requestAttr("jakarta.servlet.request.X509Certificate",
+                            new X509Certificate[]{leafSignedByCa("CN=i1-app")}));
+
+            if (result.getResponse().getStatus() != 200) {
+                assertThat(denial(result).status()).isBetween(400, 499);
+                return;
+            }
+            // The allow-list is the only control this feature adds. If a URL one segment deeper
+            // reaches token issuance without it, a workload can aim a certificate-bound token at any
+            // audience it names, which is precisely what the curation exists to prevent.
+            assertThat(claimsOf(result).get("aud"))
+                    .as("a path below the mTLS endpoint must not escape the RFC 8707 allow-list. "
+                            + "Actual: %s", outcome(result))
+                    .isNotEqualTo("https://api.example.com/not-permitted");
+        }
+
+        @Test
+        @DisplayName("I2. the password grant is refused on a path BELOW /oauth/mtls/token")
+        void grantRestrictionHoldsOnDescendantPath() throws Exception {
+            String username = "mtlsuser" + generator.generate();
+            ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager,
+                    jdbcScimGroupProvisioning, username, "uaa.user", OriginKeys.UAA,
+                    IdentityZone.getUaaZoneId());
+            assertThat(user).isNotNull();
+
+            String clientId = "mtlsi2" + generator.generate();
+            setUpClients(clientId, "uaa.resource", "uaa.user",
+                    "client_credentials,password,refresh_token",
+                    false, null, null, -1, IdentityZone.getUaa(), tlsConfig(caCert, "CN=i2-app"));
+            clientDetailsService.updateClientSecret(clientId, null);
+            String descendant = MTLS_PATH + "/oauth/token";
+
+            MvcResult result = perform(post(descendant)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_FORM_URLENCODED)
+                    .servletPath(descendant)
+                    .param("client_id", clientId)
+                    .param("grant_type", GRANT_TYPE_PASSWORD)
+                    .param("username", username)
+                    .param("password", SECRET)
+                    .param("scope", "uaa.user")
+                    .param("token_format", "jwt")
+                    .requestAttr("jakarta.servlet.request.X509Certificate",
+                            new X509Certificate[]{leafSignedByCa("CN=i2-app")}));
+
+            if (result.getResponse().getStatus() != 200) {
+                assertThat(denial(result).status()).isBetween(400, 499);
+                return;
+            }
+            // Same property B1 pins for the canonical path: a token must not be simultaneously
+            // certificate-bound and a user token.
+            Map<String, Object> claims = claimsOf(result);
+            assertThat(claims.containsKey("cnf") && claims.containsKey("user_id"))
+                    .as("a path below the mTLS endpoint must not escape the grant-type restriction. "
+                            + "Actual claims: %s", claims)
+                    .isFalse();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------------------------
 
