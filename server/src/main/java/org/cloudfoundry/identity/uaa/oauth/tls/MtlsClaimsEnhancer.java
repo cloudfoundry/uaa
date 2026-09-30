@@ -176,7 +176,17 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             }
         }
 
-        if (config.getAudTemplates() != null && !config.getAudTemplates().isEmpty()) {
+        // RFC 8707 resource indicator, if the request named one. UaaTokenEndpoint.
+        // enforceResourceIndicator already validated it against the client's
+        // tls-client-auth-allowed-resources before the grant ran -- this is the only path into the
+        // granter for /oauth/mtls/token, so nothing here needs to re-check the allow-list.
+        // Mutually exclusive with aud-templates by construction (ClientAdminEndpointsValidator
+        // refuses a client that configures both), so no run-time precedence question arises.
+        String resource = authentication.getOAuth2Request().getRequestParameters()
+                .get(TlsClientAuthConfiguration.RESOURCE_PARAMETER);
+        if (resource != null && !resource.isBlank()) {
+            result.put("aud", List.of(resource));
+        } else if (config.getAudTemplates() != null && !config.getAudTemplates().isEmpty()) {
             List<String> audList = new ArrayList<>();
             for (String tmpl : config.getAudTemplates()) {
                 // Legacy persisted clients can contain null entries created before validation.
