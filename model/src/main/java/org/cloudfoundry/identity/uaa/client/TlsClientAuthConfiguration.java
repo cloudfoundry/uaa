@@ -20,6 +20,18 @@ public class TlsClientAuthConfiguration {
     public static final String TLS_CLIENT_AUTH_REQUIRED_CLAIMS = "tls-client-auth-required-claims";
 
     /**
+     * RFC 8707 resource indicators: the exact {@code resource} values a client may request at the
+     * mTLS token endpoint. Mutually exclusive with {@link #TLS_CLIENT_AUTH_AUD_TEMPLATES} -- two
+     * mechanisms for setting {@code aud} on one client is a footgun -- and, unlike the templates,
+     * requires no certificate-derived value: the client names the resource itself, and this list is
+     * what the server is willing to believe it may ask for.
+     */
+    public static final String TLS_CLIENT_AUTH_ALLOWED_RESOURCES = "tls-client-auth-allowed-resources";
+
+    /** RFC 8707 section 2's token-request parameter name, distinct from the config keys above. */
+    public static final String RESOURCE_PARAMETER = "resource";
+
+    /**
      * RFC 8705 section 2.1.2 client registration metadata: the expected certificate subject value.
      *
      * <p>These use the IANA-registered parameter names verbatim (underscores, not UAA's usual
@@ -106,6 +118,9 @@ public class TlsClientAuthConfiguration {
     @JsonProperty(TLS_CLIENT_AUTH_REQUIRED_CLAIMS)
     private Map<String, String> requiredClaims;
 
+    @JsonProperty(TLS_CLIENT_AUTH_ALLOWED_RESOURCES)
+    private List<String> allowedResources;
+
     @JsonProperty(TLS_CLIENT_AUTH_SUBJECT_DN)
     private String subjectDn;
 
@@ -145,6 +160,9 @@ public class TlsClientAuthConfiguration {
 
     public Map<String, String> getRequiredClaims() { return requiredClaims; }
     public void setRequiredClaims(Map<String, String> requiredClaims) { this.requiredClaims = requiredClaims; }
+
+    public List<String> getAllowedResources() { return allowedResources; }
+    public void setAllowedResources(List<String> allowedResources) { this.allowedResources = allowedResources; }
 
     public String getSubjectDn() { return subjectDn; }
     public void setSubjectDn(String subjectDn) { this.subjectDn = subjectDn; }
@@ -196,13 +214,14 @@ public class TlsClientAuthConfiguration {
                Objects.equals(sanDns, that.sanDns) &&
                Objects.equals(sanUri, that.sanUri) &&
                Objects.equals(sanIp, that.sanIp) &&
-               Objects.equals(sanEmail, that.sanEmail);
+               Objects.equals(sanEmail, that.sanEmail) &&
+               Objects.equals(allowedResources, that.allowedResources);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates, trustedProxyCaPem,
-                requiredClaims, subjectDn, sanDns, sanUri, sanIp, sanEmail);
+                requiredClaims, subjectDn, sanDns, sanUri, sanIp, sanEmail, allowedResources);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {
