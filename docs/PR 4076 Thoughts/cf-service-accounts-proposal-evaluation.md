@@ -215,20 +215,39 @@ CAPI that does not exist today** (the arrow currently points the other way). Wor
 
 ### 5.3 Audience selection (RFC 8707 resource indicators)
 
-Confirmed absent today: UAA's token endpoint has **no** RFC 8707 `resource` parameter support. Work:
+**Update — the base of this is now implemented on `review/pr3792-fix`.** When this evaluation was
+written UAA had no `resource` parameter at all. It now has one at `/oauth/mtls/token`, governed by a
+per-client allow-list (`tls-client-auth-allowed-resources`), with `invalid_target` as the refusal.
+See `docs/UAA-Client-Authentication.md` and the "RFC 8707" commits listed in
+`SESSION-HANDOFF.md` §2.
 
-- Accept and validate a `resource` (or equivalent) parameter at `/oauth/mtls/token`.
-- Resolve it against the account's list of **authorized token targets**, each carrying an audience,
-  permitted scopes and a token profile. Reject anything not on the list — apps must not be able to
-  name arbitrary audiences or elevate scope.
-- Decide **where the target list lives**: written by CAPI into the managed client's
-  `additional_information`, or fetched from CAPI alongside the binding check. The first is simpler;
-  the second keeps one source of truth.
-- Populate `aud` from the selected target, and constrain granted scopes to that target's permitted
-  set. UAA today derives scopes from the client's `scope`/`authorities` with no per-audience notion.
-- Decide the interaction with the existing **`tls-client-auth-aud-templates`**. Two mechanisms for
-  setting `aud` on one client is a footgun; templates should almost certainly be refused on managed
-  clients.
+Already done:
+
+- ~~Accept and validate a `resource` parameter at `/oauth/mtls/token`.~~ Done, including RFC 8707 §2
+  syntax (absolute URI, no fragment), refusal of more than one `resource` value, and refusal on any
+  grant other than `client_credentials`.
+- ~~Reject anything not on the list — apps must not be able to name arbitrary audiences.~~ Done, and
+  enforced twice: at the endpoint before the grant, and again in `MtlsClaimsEnhancer`. The second
+  check is not redundant — a routing bypass defeated the first one, see
+  `pr4076-security-review.md` §1.
+- ~~Populate `aud` from the selected target.~~ Done.
+- ~~Decide the interaction with `tls-client-auth-aud-templates`.~~ Done: configuring both on one
+  client is refused at registration, so the footgun cannot be assembled.
+- ~~Decide where the target list lives.~~ Done for the non-managed case: the client's
+  `additionalInformation`, i.e. written by whoever administers the client.
+
+Still to do for *this* design specifically:
+
+- **Per-target permitted scopes.** The implemented allow-list constrains `aud` only. UAA still
+  derives scopes from the client's `scope`/`authorities` with no per-audience notion, so "elevate
+  scope" is not yet addressed — a client can request any of its own scopes for any permitted target.
+- **A richer target object.** The design wants each target to carry an audience *plus* permitted
+  scopes *plus* a token profile; the implemented key is a flat list of URI strings.
+- **Whether CAPI writes the list or UAA fetches it.** Still open, and now weighted by the fact that
+  the simpler option (CAPI writes into the managed client) is what the existing shape already
+  supports.
+- **Refusing tenant-authored `aud` mechanisms on managed clients.** Mutual exclusion exists, but
+  nothing yet distinguishes a managed client from an ordinary one — that depends on §5.1.
 
 ### 5.4 Platform-owned claims
 
