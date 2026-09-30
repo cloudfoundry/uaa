@@ -1037,6 +1037,105 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES)
                     .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
         }
+
+        @Test
+        @DisplayName("H5. a resource on the client's allow-list becomes the token's aud")
+        void allowedResourceBecomesAud() throws Exception {
+            Map<String, Object> config = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=h5-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    List.of("https://api.example.com/billing", "https://api.example.com/reporting"));
+            String clientId = mtlsClient("h5", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=h5-app"))
+                    .param("token_format", "jwt")
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://api.example.com/billing"));
+
+            assertThat(result.getResponse().getStatus())
+                    .as("Actual: %s", outcome(result)).isEqualTo(200);
+            assertThat(claimsOf(result).get("aud"))
+                    .as("the requested (and permitted) resource must become the token's audience")
+                    .isEqualTo(List.of("https://api.example.com/billing"));
+        }
+
+        @Test
+        @DisplayName("H6. a resource not on the client's allow-list is refused as invalid_target")
+        void resourceNotOnAllowListIsRefused() throws Exception {
+            Map<String, Object> config = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=h6-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    List.of("https://api.example.com/billing"));
+            String clientId = mtlsClient("h6", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=h6-app"))
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://api.example.com/reporting"));
+
+            assertThat(denial(result))
+                    .as("Actual: %s", outcome(result))
+                    .isEqualTo(new Denial(400, "invalid_target",
+                            "client_id=" + clientId + " is not authorized to request the given resource"));
+        }
+
+        @Test
+        @DisplayName("H7. a client with no tls-client-auth-allowed-resources cannot request any resource")
+        void noAllowListMeansNoResourceIsPermitted() throws Exception {
+            String clientId = mtlsClient("h7", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=h7-app"), false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=h7-app"))
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://api.example.com/billing"));
+
+            assertThat(denial(result))
+                    .as("without a curated allow-list, a client must not be able to name an arbitrary "
+                            + "audience for itself. Actual: %s", outcome(result))
+                    .isEqualTo(new Denial(400, "invalid_target",
+                            "client_id=" + clientId + " is not authorized to request the given resource"));
+        }
+
+        @Test
+        @DisplayName("H8. more than one resource parameter is refused as invalid_target")
+        void multipleResourceParametersAreRefused() throws Exception {
+            Map<String, Object> config = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=h8-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    List.of("https://api.example.com/billing", "https://api.example.com/reporting"));
+            String clientId = mtlsClient("h8", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=h8-app"))
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER,
+                            "https://api.example.com/billing", "https://api.example.com/reporting"));
+
+            assertThat(denial(result))
+                    .as("Actual: %s", outcome(result))
+                    .isEqualTo(new Denial(400, "invalid_target",
+                            "the mTLS token endpoint does not support more than one resource parameter"));
+        }
+
+        @Test
+        @DisplayName("H9. omitting resource is unaffected by an allow-list being configured")
+        void omittingResourceIsUnaffected() throws Exception {
+            Map<String, Object> config = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=h9-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    List.of("https://api.example.com/billing"));
+            String clientId = mtlsClient("h9", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=h9-app")));
+
+            // RFC 8707's resource parameter is optional. Guards the blast radius of H5-H8: a client
+            // that never asks for a specific resource must not be refused just because it happens to
+            // have an allow-list configured.
+            assertThat(result.getResponse().getStatus())
+                    .as("Actual: %s", outcome(result)).isEqualTo(200);
+        }
     }
 
     // ------------------------------------------------------------------------------------
