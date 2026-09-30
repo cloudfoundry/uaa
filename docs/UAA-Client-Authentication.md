@@ -178,6 +178,7 @@ present a certificate whose chain validates to the configured CA; no separate
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to JWT claim names. `subject_cn` and `subject_o` map their values directly; `pattern` is rejected for either, since it is applied only to `subject_ou`, where it must contain at least one capturing group -- a pattern that only matches without capturing (e.g. `space:.+` instead of `space:(.+)`) is rejected too, since it would never produce a value. Patterns are UAA administrator-controlled configuration and are evaluated on every mTLS authentication request; use efficient Java regular expressions and avoid patterns with catastrophic backtracking. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. At most 256 characters; must contain at least one `{claim}` placeholder; every placeholder must name a claim declared in `tls-client-auth-claim-mappings`. |
 | `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. Each entry is subject to the same constraints as `tls-client-auth-sub-template`: at most 256 characters, at least one `{claim}` placeholder, and every placeholder must name a declared claim. |
+| `tls-client-auth-allowed-resources` | no | List of exact [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) resource values (absolute URIs, no fragment) this client may request at token time via the `resource` request parameter -- see "RFC 8707 resource indicators" below. Mutually exclusive with `tls-client-auth-aud-templates`: two mechanisms for setting `aud` on one client is a footgun. Must be non-empty if present. |
 
 Example (Gorouter-fronted; a Cloud Foundry app instance identity certificate mapped to
 `cf_instance_guid`/`app_guid`/`space_guid`/`org_guid` claims):
@@ -207,6 +208,29 @@ they share and use `tls-client-auth-required-claims` to narrow it to an org, spa
 
 For the direct-connection topology described above, omit `tls-client-auth-trusted-proxy-ca`
 entirely rather than setting it -- configuring it at all switches this client to proxy-only.
+
+#### RFC 8707 resource indicators
+
+A client configured with `tls-client-auth-allowed-resources` may pass a `resource` parameter to
+`/oauth/mtls/token`:
+
+```yaml
+tls-client-auth-allowed-resources:
+  - https://billing.apps.internal
+  - https://reporting.apps.internal
+```
+
+```text
+POST /oauth/mtls/token
+grant_type=client_credentials&resource=https://billing.apps.internal
+```
+
+The requested value replaces the token's `aud` claim, letting one client obtain tokens scoped to
+whichever of several permitted targets a given request needs. Without a configured allow-list a
+client cannot request any resource -- an absent list authorizes nothing, it does not fall back to
+an unrestricted `aud`. Requesting a value outside the list, requesting more than one resource in
+the same call, or a value that is not an absolute URI without a fragment (per the RFC) is refused
+as `invalid_target`, and no token is issued.
 
 ## Configs
 
