@@ -327,6 +327,65 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
         return zonePathPrefixPresent ? builder : builder.servletPath(mode.getServletPath(subdomain, path));
     }
 
+    /**
+     * The realistic way a deployment ends up with mTLS clients while the feature is off: they were
+     * registered when it was on, and an operator has since turned it off. E2 stops the admin API
+     * creating such a client now, but it cannot un-persist the ones already in the database --
+     * {@code setUpClients} writes straight to the store, which is what one of those rows looks like.
+     *
+     * <p>The property under test is not "this client still works" but the opposite: with the feature
+     * off, nothing may obtain a certificate-bound token. {@code TlsClientAuthentication} is an
+     * ungated {@code @Component}, so what keeps it unreachable is the endpoint 404 plus
+     * {@code ClientDetailsAuthenticationProvider} refusing {@code tls_client_auth} off the mTLS path
+     * -- and this pins that, rather than trusting the two to keep agreeing.
+     */
+    @Test
+    @DisplayName("E8. a client whose mTLS config predates the flag being turned off cannot get a bound token")
+    void alreadyPersistedMtlsClientCannotObtainABoundTokenWhenDisabled() throws Exception {
+        String clientId = "mtlsoffe8" + generator.generate();
+        setUpClients(clientId, "uaa.resource", "uaa.resource", GRANT_TYPE_CLIENT_CREDENTIALS,
+                false, null, null, -1, IdentityZone.getUaa(),
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, selfSignedCaPem(),
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=e8-app"));
+
+        MvcResult atMtlsPath = mockMvc.perform(post(MTLS_PATH)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED)
+                        .servletPath(MTLS_PATH)
+                        .param("client_id", clientId)
+                        .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS))
+                .andReturn();
+        assertThat(atMtlsPath.getResponse().getStatus())
+                .as("the endpoint stays absent regardless of what is already configured. Actual: %s",
+                        MtlsTokenEndpointHardeningMockMvcTests.outcome(atMtlsPath))
+                .isEqualTo(404);
+
+        MvcResult atTokenPath = mockMvc.perform(post("/oauth/token")
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED)
+                        .servletPath("/oauth/token")
+                        .header("Authorization", basic(clientId, SECRET))
+                        .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS)
+                        .param("token_format", "jwt"))
+                .andReturn();
+
+        if (atTokenPath.getResponse().getStatus() != 200) {
+            assertThat(MtlsTokenEndpointHardeningMockMvcTests.denial(atTokenPath).status())
+                    .as("refusing the client is an acceptable outcome, but it must be a clean client "
+                            + "error. Actual: %s", MtlsTokenEndpointHardeningMockMvcTests.outcome(atTokenPath))
+                    .isBetween(400, 499);
+            return;
+        }
+        Map<String, Object> claims = MtlsTokenEndpointHardeningMockMvcTests.claimsOf(atTokenPath);
+        assertThat(claims)
+                .as("with the feature off, no token may claim a certificate binding. Actual: %s", claims)
+                .doesNotContainKey("cnf");
+        assertThat(claims.get("client_auth_method"))
+                .as("the certificate played no part in this authentication, so the token must not say "
+                        + "it did. Actual: %s", claims)
+                .isNotEqualTo("tls_client_auth");
+    }
+
     private static String basic(String clientId, String secret) {
         return "Basic " + Base64.getEncoder().encodeToString(
                 (clientId + ":" + secret).getBytes(StandardCharsets.UTF_8));

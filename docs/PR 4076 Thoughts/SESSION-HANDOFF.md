@@ -348,6 +348,7 @@ to hold this branch.
 | `SESSION-HANDOFF.md` | this file |
 | `pr4076-security-review.md` | **read this before touching the endpoint's routing or the enhancer's `aud` handling**: the three-reviewer security review of this branch — the HIGH descendant-path bypass, the path-resolution defect, what was left unfixed and why, and a long list of what was verified clean |
 | `pr4076-backwards-compatibility-audit.md` | every test change in this PR vs `cloudfoundry/develop`, and what each one implies: no pre-existing test deleted or renamed, the 20 removed lines accounted for one by one, the `OpenIdConfiguration` fail-open default that was found and reverted, and the list of intentional behaviour changes |
+| `pr4076-mtls-enabled-flag-audit.md` | whether `uaa.mtls-enabled` gates the whole feature: the two-different-parsers defect that let `=1` half-enable it, the three components deliberately left ungated and why each is safe, and the complete gating inventory |
 | `pr4075-comment-vs-our-branch.md` | rkoster's #4075 response vs this branch: what both fixed, the four gaps ported, the §2.1.2 gap on his side |
 | `cf-service-accounts-proposal-evaluation.md` | the Service Accounts RFC: how it works, what "stable subject" means, per-component work breakdown, risks |
 | `rfc8705-vs-workload-federation-discussion.md` | why rkoster felt constrained; how AWS/GCP/K8s federation compares; what the token is for |
