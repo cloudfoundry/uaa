@@ -499,56 +499,74 @@ class UaaTokenServicesTests {
         }
 
         @Test
-        @DisplayName("SECURITY FINDING -- a narrowed access token must not disclose the full granted_scopes set")
+        @DisplayName("a narrowed access token must not disclose the full granted_scopes set")
         void refreshWithNarrowedScopeMustNotLeakGrantedScopesIntoTheAccessToken() {
             assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
-            // The refresh token is minted for the FULL consented scope set...
-            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
-                    GRANT_TYPE_AUTHORIZATION_CODE,
-                    Sets.newHashSet("openid", "user_attributes"),
-                    null,
-                    "",
-                    Sets.newHashSet(""),
-                    "jku_test",
-                    false,
-                    new Date(),
-                    null,
-                    Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE)
-            );
-            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
-            assertThat(refreshToken).isNotNull();
-            OAuth2Authentication authentication = mock(OAuth2Authentication.class);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            OAuth2Request auth2Request = mock(OAuth2Request.class);
-            when(authentication.getOAuth2Request()).thenReturn(auth2Request);
-            when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+            // The leak only exists where the enhancer list is non-empty (see below), and stock UAA with
+            // the flag off has no enhancer, so register one for the duration of the test. Without it
+            // this test would pass whether or not GRANTED_SCOPES is filtered.
+            tokenServices.setUaaTokenEnhancers(List.of(new UaaTokenEnhancer() {
+                @Override
+                public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                    return Map.of();
+                }
 
-            // ...but this exchange deliberately narrows the access token down to "openid" only,
-            // which is what a caller does when delegating a reduced-authority token onwards.
-            OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(
-                    this.refreshToken.getValue(),
-                    new TokenRequest(new HashMap<>(), "jku_test",
-                            Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
+                @Override
+                public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                    return new HashMap<>();
+                }
+            }));
+            try {
+                // The refresh token is minted for the FULL consented scope set...
+                RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                        GRANT_TYPE_AUTHORIZATION_CODE,
+                        Sets.newHashSet("openid", "user_attributes"),
+                        null,
+                        "",
+                        Sets.newHashSet(""),
+                        "jku_test",
+                        false,
+                        new Date(),
+                        null,
+                        Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE)
+                );
+                UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+                refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+                assertThat(refreshToken).isNotNull();
+                OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                OAuth2Request auth2Request = mock(OAuth2Request.class);
+                when(authentication.getOAuth2Request()).thenReturn(auth2Request);
+                when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
 
-            assertThat(refreshedToken).isNotNull();
-            Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class);
-            assertThat(claims).containsEntry(ClaimConstants.SCOPE, Lists.newArrayList("openid"));
+                // ...but this exchange deliberately narrows the access token down to "openid" only,
+                // which is what a caller does when delegating a reduced-authority token onwards.
+                OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(
+                        this.refreshToken.getValue(),
+                        new TokenRequest(new HashMap<>(), "jku_test",
+                                Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
 
-            // FAILS ON THIS BRANCH. UaaTokenServices states the invariant itself at the
-            // `refreshTokenClaims.remove(GRANTED_SCOPES)` call: "granted_scopes claim should not be
-            // present in an access token". That removal runs AFTER the copy loop in
-            // getAdditionalRootClaims(), so it never had any effect -- but the whole block is
-            // guarded by `if (!uaaTokenEnhancers.isEmpty())` and, until this PR, no production
-            // UaaTokenEnhancer bean existed, so the block was dead code in every deployment.
-            // This PR registers MtlsClaimsEnhancer as an unconditional @Component (no
-            // @ConditionalOnProperty("uaa.mtls-enabled")), which makes the list non-empty in EVERY
-            // deployment -- mTLS enabled or not -- and switches the leak on. The narrowed token now
-            // carries granted_scopes=[openid, user_attributes], disclosing the user's full consented
-            // scope set to a recipient that was deliberately given reduced authority.
-            assertThat(claims)
-                    .as("a deliberately narrowed access token must not carry the full granted scope set")
-                    .doesNotContainKey(ClaimConstants.GRANTED_SCOPES);
+                assertThat(refreshedToken).isNotNull();
+                Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class);
+                assertThat(claims).containsEntry(ClaimConstants.SCOPE, Lists.newArrayList("openid"));
+
+                // UaaTokenServices states the invariant itself at the `refreshTokenClaims.remove(
+                // GRANTED_SCOPES)` call: "granted_scopes claim should not be present in an access
+                // token". That removal runs AFTER the copy loop in getAdditionalRootClaims(), so on its
+                // own it has no effect; GRANTED_SCOPES being in NON_ADDITIONAL_ROOT_CLAIMS is what keeps
+                // it out of the copy.
+                //
+                // The whole block is guarded by `if (!uaaTokenEnhancers.isEmpty())`, and stock UAA
+                // registers no UaaTokenEnhancer unless uaa.mtls-enabled is on (MtlsClaimsEnhancer is
+                // flag-gated), so without this filter enabling mTLS -- or registering any enhancer --
+                // would copy granted_scopes=[openid, user_attributes] onto the narrowed token, disclosing
+                // the user's full consented scope set to a recipient deliberately given reduced authority.
+                assertThat(claims)
+                        .as("a deliberately narrowed access token must not carry the full granted scope set")
+                        .doesNotContainKey(ClaimConstants.GRANTED_SCOPES);
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
         }
 
         /**
