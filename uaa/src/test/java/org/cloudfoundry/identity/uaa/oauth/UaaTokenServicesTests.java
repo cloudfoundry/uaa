@@ -1139,10 +1139,9 @@ class UaaTokenServicesTests {
      *
      * <ul>
      *   <li>enabling mTLS adds an enhancer next to theirs without disturbing theirs, and</li>
-     *   <li>the protected-claim filtering that arrived with the mTLS work applies to <em>every</em>
-     *       enhancer's output, not only the mTLS one. It is triggered by the list being non-empty, so
-     *       it is live for a deployment that has its own enhancer even with {@code uaa.mtls-enabled}
-     *       off.</li>
+     *   <li>enabling mTLS does not change what any <em>other</em> enhancer can do: a third-party
+     *       enhancer is not restricted by this feature, and its output is applied exactly as it was
+     *       before it. Enhancers are responsible for their own claims.</li>
      * </ul>
      */
     @Nested
@@ -1198,7 +1197,7 @@ class UaaTokenServicesTests {
         @DisplayName("an mTLS-style contribution and another enhancer's custom claims all reach the token, in either list order")
         void claimsFromBothEnhancersCoexistInEitherOrder() {
             UaaTokenEnhancer mtlsLike = enhancerReturning(Map.of(
-                    "cnf", Map.of("x5t#S256", "thumbprint"), "cf.app", "app-guid", "sub", "mtls-sub"));
+                    "cnf", Map.of("x5t#S256", "thumbprint"), "cf.app", "app-guid"));
             UaaTokenEnhancer other = enhancerReturning(Map.of("tenant", "acme"));
 
             for (List<UaaTokenEnhancer> order : List.of(List.of(other, mtlsLike), List.of(mtlsLike, other))) {
@@ -1207,7 +1206,6 @@ class UaaTokenServicesTests {
                 assertThat(claims)
                         .containsEntry("tenant", "acme")
                         .containsEntry("cf.app", "app-guid")
-                        .containsEntry("sub", "mtls-sub")
                         .containsKey("cnf");
             }
         }
@@ -1223,41 +1221,34 @@ class UaaTokenServicesTests {
         }
 
         @Test
-        @DisplayName("claims UAA owns are dropped from ANY enhancer, including ones UAA does not set for this grant")
-        void protectedClaimsAreDroppedFromAnyEnhancerEvenWhenUaaDoesNotSetThemForTheGrant() {
-            // A client_credentials token has no user, so UAA itself never sets these. Before the mTLS
-            // work an enhancer's value for them survived into the token; now it is dropped.
-            Map<String, Object> forged = new HashMap<>();
-            forged.put("user_id", "forged-user-id");
-            forged.put("user_name", "forged-user");
-            forged.put("email", "forged@example.com");
-            forged.put("origin", "forged-origin");
-            forged.put("auth_time", 1L);
-            forged.put("jti", "forged-jti");
-            forged.put("rev_sig", "forged-rev-sig");
-            forged.put("tenant", "acme");
+        @DisplayName("a third-party enhancer is not restricted: claims UAA does not set for the grant survive")
+        void claimsUaaDoesNotSetForTheGrantSurviveFromAnotherEnhancer() {
+            // A client_credentials token has no user, so UAA itself never sets these. They are the
+            // enhancer's own business: it keeps them, exactly as it did before the mTLS work.
+            Map<String, Object> own = new HashMap<>();
+            own.put("user_id", "enhancer-user-id");
+            own.put("user_name", "enhancer-user");
+            own.put("email", "enhancer@example.com");
+            own.put("origin", "enhancer-origin");
+            own.put("auth_time", 1);
+            own.put("tenant", "acme");
 
-            Map<String, Object> claims = clientCredentialsTokenClaims(enhancerReturning(forged));
+            Map<String, Object> claims = clientCredentialsTokenClaims(enhancerReturning(own));
 
-            assertThat(claims).containsEntry("tenant", "acme");
-            forged.forEach((name, value) -> {
-                if (!"tenant".equals(name)) {
-                    assertThat(claims.get(name)).as("enhancer-supplied %s", name).isNotEqualTo(value);
-                }
-            });
+            own.forEach((name, value) -> assertThat(claims).as("enhancer-supplied %s", name).containsEntry(name, value));
         }
 
         @Test
-        @DisplayName("sub and aud from ANY enhancer now win over UAA's defaults")
-        void subAndAudFromAnyEnhancerWin() {
+        @DisplayName("a third-party enhancer's sub and aud do not displace UAA's, as before")
+        void subAndAudFromAnotherEnhancerDoNotWin() {
             Map<String, Object> claims = clientCredentialsTokenClaims(
                     enhancerReturning(Map.of("sub", "other-sub", "aud", List.of("other-aud"))));
 
-            assertThat(claims).containsEntry("sub", "other-sub");
+            assertThat(claims).containsEntry("sub", clientId);
             Object aud = claims.get("aud");
-            assertThat(aud instanceof String s ? List.of(s) : aud)
+            assertThat(aud instanceof String str ? List.of(str) : aud)
                     .asInstanceOf(InstanceOfAssertFactories.list(Object.class))
-                    .containsExactly("other-aud");
+                    .doesNotContain("other-aud");
         }
     }
 
