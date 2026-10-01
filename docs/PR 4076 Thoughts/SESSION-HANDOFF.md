@@ -292,28 +292,26 @@ export JAVA_HOME=/Users/fhanik/workspace/software/java/jdk-25.0.1.jdk/Contents/H
 
 On this branch:
 
-- **Read `pr4076-develop-merge-evaluation.md` first if you are picking this up fresh.** It is a full,
-  independent evaluation of the branch against `cloudfoundry/develop` on the three merge criteria
-  (backwards compatibility, security, feature gating), done after this handoff was last updated. It
-  confirms the gating holds and finds no new vulnerability, and raises two items that are **not**
-  gated by `uaa.mtls-enabled` (see the enhancer-list qualifier below) and therefore ship beyond the opt-in feature:
-  - **M1** — `granted_scopes` stops appearing on access tokens issued via `grant_type=refresh_token`,
-    because `GRANTED_SCOPES` was added to `NON_ADDITIONAL_ROOT_CLAIMS`, which the pre-existing
-    `getAdditionalRootClaims` has always consulted. Correct behaviour, but a wire-visible change on
-    the refresh path of any deployment that registers a token enhancer (stock UAA with the flag off has none, so is
-    unaffected); kept by decision (put it in the PR description). **M3**, the wider form — the output of *every*
-    enhancer being filtered and `sub`/`aud` from any enhancer winning — was **fixed**: third-party enhancers are
-    unrestricted again and the mTLS enhancer opts in to a late `sub`/`aud` via
-    `UaaTokenEnhancer.getLateOverrideClaims()`. Pinned by
-    `UaaTokenServicesTests.WhenMtlsClaimsEnhancerSharesTheEnhancerList`.
-  - **M2** — `UaaAuthenticationDetails` gained a field and declares no `serialVersionUID`, so
-    Spring-Session-JDBC rows written by the previous UAA version fail to deserialize after an
-    upgrade. Fix is `transient` on the new field, or pin the UID to develop's value.
-  Plus four low-severity items (L1-L4). L1 (a javadoc asserting an invariant the security review
-  disproved) and the comment half of L2/L3 have since been **fixed**; what remains open is that
-  `UaaClientDetails.tlsClientAuthConfiguration` is dead in production (L3) and that the claim-mapping
-  `pattern` has no complexity bound (L4). The evaluation also records that the `granted_scopes` regression
-  test was vacuous in the default configuration and has been made to register an enhancer.
+- **Read `pr4076-develop-merge-evaluation.md` first if you are picking this up fresh.** It is a full, independent
+evaluation of the branch against `cloudfoundry/develop` on the three merge criteria (backwards compatibility,
+security, feature gating), done after this handoff was last updated. It confirms the gating holds and finds no new
+vulnerability, and raises two items that are **not** gated by `uaa.mtls-enabled` (see the enhancer-list qualifier
+below) and therefore ship beyond the opt-in feature: - **M1** — `granted_scopes` stops appearing on access tokens
+issued via `grant_type=refresh_token`, because `GRANTED_SCOPES` was added to `NON_ADDITIONAL_ROOT_CLAIMS`, which the
+pre-existing `getAdditionalRootClaims` has always consulted. Correct behaviour, but a wire-visible change on the
+refresh path of any deployment that registers a token enhancer (stock UAA with the flag off has none, so is
+unaffected); kept by decision (put it in the PR description). **M3**, the wider form — the output of *every* enhancer
+being filtered and `sub`/`aud` from any enhancer winning — was **fixed**: third-party enhancers are unrestricted again
+and the mTLS enhancer opts in to a late `sub`/`aud` via `UaaTokenEnhancer.getLateOverrideClaims()`. Pinned by
+`UaaTokenServicesTests.WhenMtlsClaimsEnhancerSharesTheEnhancerList`. - **M2** — `UaaAuthenticationDetails` gained a
+field and declares no `serialVersionUID`, so Spring-Session-JDBC rows written by the previous UAA version fail to
+deserialize after an upgrade. Fix is `transient` on the new field, or pin the UID to develop's value. Plus four
+low-severity items (L1-L4). L1 (a javadoc asserting an invariant the security review disproved) and the comment half
+of L2/L3 have since been **fixed**; what remains open is that `UaaClientDetails.tlsClientAuthConfiguration` is dead in
+production (L3). L4 (the claim-mapping `pattern` had no complexity bound — a regex-backtracking DoS reachable by
+whoever can register a client with its own CA) is **fixed**: step budget, 256-character OU cap, compiled-pattern
+cache. The evaluation also records that the `granted_scopes` regression test was vacuous in the default configuration
+and has been made to register an enhancer.
 - Nothing blocking. Branch is green and pushed.
 - **Decide what `cnf` should do on token refresh.** `UaaTokenServices.refreshAccessToken` copies
   `cnf` forward from the refresh token's claims (it is absent from `NON_ADDITIONAL_ROOT_CLAIMS`)

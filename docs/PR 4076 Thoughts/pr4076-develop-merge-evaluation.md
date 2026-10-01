@@ -219,18 +219,36 @@ have been corrected to say `additionalInformation` is the path that matters. The
 pure in-request cache), or populate it on the JDBC load path so the fast path is real. Doing neither
 leaves two comments in the tree that describe behaviour that does not exist.
 
-### L4 — the claim-mapping `pattern` has no complexity bound, while templates do
+### L4 — the claim-mapping `pattern` had no complexity bound, while templates do — FIXED
 
-**Severity: low / informational.**
+**Severity as found: low / informational. Re-rated: medium for multi-zone deployments, low otherwise.**
 
-`ClientAdminEndpointsValidator` bounds `tls-client-auth-sub-template` /
-`-aud-templates` at `MAX_TEMPLATE_LENGTH = 256` specifically to cap regex work on operator data, and
-mirrors the bound in `MtlsClaimsEnhancer` for the bootstrap path. `tls-client-auth-claim-mappings`
-`pattern` gets neither bound: it is compile-checked and required to have a capturing group, but a
-syntactically valid catastrophic-backtracking pattern (`(a+)+b`) is accepted and then
-`Pattern.compile`d and matched against certificate OU values on **every token request**
-(`TlsClientAuthentication.matchFirstOu`). Operator-supplied, so this is an availability footgun
-rather than an attack surface — but it is inconsistent with the bound deliberately added next to it.
+`ClientAdminEndpointsValidator` bounds `tls-client-auth-sub-template` / `-aud-templates` at
+`MAX_TEMPLATE_LENGTH = 256` to cap regex work on operator data. `tls-client-auth-claim-mappings` `pattern` had no
+such bound: it was checked to compile and to have a capture group, and was then run against certificate OU values on
+every token request (`TlsClientAuthentication.matchFirstOu`).
+
+**Why it was worse than first written.** Whoever can register a client with `tls-client-auth-ca` also chooses the
+certificates the pattern is matched against: they set their own CA, issue themselves a certificate with a crafted OU,
+bind the subject to it, and pass PKIX validation against that CA. In a multi-zone deployment that is a zone admin,
+not the platform operator. Java's regex engine has no timeout and cannot be interrupted, so a hung match pins a
+Tomcat thread at full CPU, and the rate limiter counts requests, not how long they run. This was reasoned from the
+code, not reproduced end to end.
+
+**Measured (JDK 25.0.3), shapes the validator accepted:** `((a+)+)+b` — 0.44 s at 24 characters, over 3 s at 28;
+`(.*a){12}b` — 0.88 s at 28, over 3 s at 32. **Correction:** this finding originally gave `(a+)+b` as the example;
+current JDKs optimise that shape (and `(a|aa)+b`, `(a*)*b`, `(x+x+)+y`), so it is not dangerous.
+
+**Fixed** in `0b6137f52` (red `3ac2c5993`):
+
+1. the OU is wrapped in a `CharSequence` allowing 100 000 `charAt` calls — the engine reads its input only through
+   `charAt`, so this bounds the work whatever the pattern is; an exceeded budget abandons the mapping (no claim, a
+   warning logged), and a `required-claims` constraint depending on it refuses authentication;
+2. an OU longer than 256 characters is not matched (real instance identities are under 60);
+3. each distinct pattern is compiled once in a bounded (256) access-ordered cache instead of on every request.
+
+Only (1) is a security measure — 28 characters is already enough to hang, so (2) alone would not be. A mapping with no
+`pattern` is unchanged.
 
 ### L5 — the `granted_scopes` regression test was vacuous in the default configuration — FIXED
 
