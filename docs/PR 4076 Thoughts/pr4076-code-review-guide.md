@@ -2,15 +2,16 @@
 
 Pull request: <https://github.com/cloudfoundry/uaa/pull/4076> ·
 **base: `cloudfoundry/develop`** (diff taken from merge-base `6cc037111`, the tip of develop that the
-branch forked from) · head: `review/pr3792-fix` at `1b5b51b68`+ ·
-overall: 94 files, +13 935 / −53, of which docs are excluded below.
+branch forked from) · head: `review/pr3792-fix` ·
+excluding documentation: 86 files changed, 11982 additions, 46 deletions.
 
 ## How to read this
 
 - Every file and line reference is a link into the **PR's "Files changed" tab** (`#diff-<hash>` anchors,
   `R<n>` = line *n* on the new side). They open the file's diff and scroll to the range.
   GitHub collapses large diffs — if an anchor lands on a collapsed file, click *Load diff*.
-- The links assume the PR head contains the latest push (`1b5b51b68`). Line anchors move if the branch is rebased.
+- The links assume the PR head contains the latest push. Line anchors move if the branch is rebased or new commits are
+  added.
 - **Flag column** (`uaa.mtls-enabled`, default `false`):
 
 | Mark | Meaning |
@@ -384,7 +385,7 @@ Grouped by module; within a module, ordered roughly by how much a reviewer shoul
 | [libs.versions.toml](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-697f70cdd88ba88fe77eebda60c7e143f6ad1286bca75017421e93ad84fb87df) | adds `java-buildpack-client-certificate-mapper-jakarta` 2.0.1 and `spring-boot-tomcat` aliases | 🔧 (mapper jar is on the classpath for everyone but only *loaded* when the flag is on; `ClientCertificateMapperAutoConfigurationExclusionTest` guards against it self-registering) |
 | [build.gradle.kts](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-47495b8210e183f2123b5dff215155b67df753098bad1d54c4770ed4003a488d) | `implementation` of both (the Tomcat customizer needs `spring-boot-tomcat`; the filter needs the mapper) | 🔧 (mapper jar is on the classpath for everyone but only *loaded* when the flag is on; `ClientCertificateMapperAutoConfigurationExclusionTest` guards against it self-registering) |
 | [build.gradle.kts](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-9d2ae3b93599fbbac3205659f2b54d1be9042a19e42d577896330ee048817241) | `testImplementation(bouncyCastlePkixFips)` for cert generation in docs/MockMvc tests | 🔧 (mapper jar is on the classpath for everyone but only *loaded* when the flag is on; `ClientCertificateMapperAutoConfigurationExclusionTest` guards against it self-registering) |
-| [index.html.md.erb](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-23e5e0a12a08795e817f8d11ed8dc3d77877a3938f49812f41c038efcd68c7d2) | API-docs: new `mtls_endpoint_aliases` / `tls_client_certificate_bound_access_tokens` rows and the mTLS token-endpoint section | 🔧 (mapper jar is on the classpath for everyone but only *loaded* when the flag is on; `ClientCertificateMapperAutoConfigurationExclusionTest` guards against it self-registering) |
+| [index.html.md.erb](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-23e5e0a12a08795e817f8d11ed8dc3d77877a3938f49812f41c038efcd68c7d2) | API-docs source: the mTLS token-endpoint section (curl example, request parameters, response fields) and sub-sections on certificate-bound tokens (`cnf`, who enforces it), registering a client, and the endpoint's error responses | 🔧 (mapper jar is on the classpath for everyone but only *loaded* when the flag is on; `ClientCertificateMapperAutoConfigurationExclusionTest` guards against it self-registering) |
 
 ---
 
@@ -416,6 +417,18 @@ changed. Across the PR, **no pre-existing `@Test`/`@ParameterizedTest`/`@Nested`
 | [ClientAdminBootstrapTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-c6602a1f1670a61412d43894163f97e0b475941c0a19d1209edaaf7decb9293a) ([L112](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-c6602a1f1670a61412d43894163f97e0b475941c0a19d1209edaaf7decb9293aR112), [L135](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-c6602a1f1670a61412d43894163f97e0b475941c0a19d1209edaaf7decb9293aR135-R136), [L156](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-c6602a1f1670a61412d43894163f97e0b475941c0a19d1209edaaf7decb9293aR156-R157), [L193](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-c6602a1f1670a61412d43894163f97e0b475941c0a19d1209edaaf7decb9293aR193), [L404](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-c6602a1f1670a61412d43894163f97e0b475941c0a19d1209edaaf7decb9293aR404), [L493](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-c6602a1f1670a61412d43894163f97e0b475941c0a19d1209edaaf7decb9293aR493)) | 5 ctor call sites get `false`; `@BeforeEach` registers `BouncyCastleFipsProvider` (the new tests parse real PEMs) | same; (rest additive → §4a) |
 | [ClientAdminBootstrapProdEncoderTest.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-b76c1782dd3a583a8c075a71b6f0a8ee24b4e324b4e44c97482ce838d2d62951) ([L88](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-b76c1782dd3a583a8c075a71b6f0a8ee24b4e324b4e44c97482ce838d2d62951R88-R89)) | trailing `, false` argument (integration-test source set) | same |
 | [ZoneEndpointsClientDetailsValidatorTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-6e25927aca2a878c84efa4e72ef8c8f4ea7efc8997dbbafaaf5a9a1d2ded3906) ([L72](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-6e25927aca2a878c84efa4e72ef8c8f4ea7efc8997dbbafaaf5a9a1d2ded3906R72-R80)) | `@InjectMocks` removed in favour of explicit construction with the flag; BC FIPS provider registered | `ZoneEndpointsClientDetailsValidator` ctor gained `mtlsEnabled` (Mockito can't pick the primitive) |
+
+### 2.3 Documentation classes: field descriptors added, no assertion changed
+
+These are REST-docs classes (run by `docsTestRestDocs`, which feeds the slate API docs). Each only gains optional
+field descriptors; the requests, responses and assertions are untouched, and the descriptors are optional so the
+strict field checks still pass.
+
+| Class | Added | Why |
+|---|---|---|
+| [ClientAdminEndpointDocs.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-25f42b3769ea26f93a2b705899875c0e7dc2d22fe7417bca66f36566cecfa136) ([L6](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-25f42b3769ea26f93a2b705899875c0e7dc2d22fe7417bca66f36566cecfa136R6), [L73-96](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-25f42b3769ea26f93a2b705899875c0e7dc2d22fe7417bca66f36566cecfa136R73-R96)) | the 14 `tls-client-auth-*` / `tls_client_auth_*` client keys, to `idempotentFields` (so create, update, get, list and tx all show them) | client registration is where an operator meets these keys; the private_key_jwt equivalent was already documented here |
+| [IntrospectTokenEndpointDocs.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-e3f36122b3f1ebdbcebddf09d84da29c296409984fa25deef494de00d4ae692b) ([L18](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-e3f36122b3f1ebdbcebddf09d84da29c296409984fa25deef494de00d4ae692bR18), [L76-77](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-e3f36122b3f1ebdbcebddf09d84da29c296409984fa25deef494de00d4ae692bR76-R77)) | optional `cnf` (RFC 8705 section 3.2) and `client_auth_method` response fields | introspection returns the confirmation claim for a bound token; a resource server needs to know |
+| [CheckTokenEndpointDocs.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-fac299ae1784a2f336f0f8529571c34ad12ca0dad4c2b4cc29aefbc437e93120) ([L20](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-fac299ae1784a2f336f0f8529571c34ad12ca0dad4c2b4cc29aefbc437e93120R20), [L71-72](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-fac299ae1784a2f336f0f8529571c34ad12ca0dad4c2b4cc29aefbc437e93120R71-R72)) | the same two optional response fields | `/check_token` returns them too |
 
 Source-compat note: these ctor changes remove the old public signatures (no deprecated overloads). Internal
 Spring-wired classes, but anyone constructing them by hand must add the argument.
@@ -667,10 +680,10 @@ Counts are `@Test`/`@ParameterizedTest` annotations in the file. Ordered unit �
 | [BCJSSEUtilTest.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-bb34891b49b3f952376413259a5fce0839a8e7782e55a83ba3cf6d3f691a06ed) | 1 | Enabled protocols exclude `SSLv2Hello`, include TLS 1.3. |
 | [BCJSSESSLContextTest.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-a44445fdaf5b5616901c9b1878e7c0a7bf759306b26aadf1ab3b4377a14e76f4) | 2 | TLS 1.2/1.3 from BCJSSE; clear error when provider missing. |
 | [MtlsClientAuthTomcatCustomizerIntegrationTest.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-ee382ba0e14bea9129814a36bf87b80dff532271d911cf0d2095ee2b19811a99) | 6 | Real embedded Tomcat: unauthenticated cert accepted & requested, TLS 1.2/1.3 negotiated, BCJSSE actually serving, nothing requested when off. |
-| [MtlsDisabledTokenEndpointMockMvcTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-648bfdfb2c79e8d8f39bb8166d9073ba0492e30d947bc4a044fe288ce250d754) | 9 | **The off-switch suite:** endpoint 404 (default zone and both zone-addressing modes), registration API rejects TLS config, discovery advertises nothing, mapper filter not registered, a previously-persisted mTLS client cannot obtain a bound token (E8). |
+| [MtlsDisabledTokenEndpointMockMvcTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-648bfdfb2c79e8d8f39bb8166d9073ba0492e30d947bc4a044fe288ce250d754) | 8 | **The off-switch suite:** endpoint 404 (default zone and both zone-addressing modes), registration API rejects TLS config, discovery advertises nothing, mapper filter not registered, a previously-persisted mTLS client cannot obtain a bound token (E8). |
 | [MtlsFlagConsistencyMockMvcTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-bf34ff944d36ec588a2ba3f93271b3febc3d697662ed800f973665433f1ca8bd) | 1 | `uaa.mtls-enabled=1` must not half-enable the feature. |
-| [MtlsTokenEndpointHardeningMockMvcTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-f5282431e505c64daf04b36d03bcf4f6e45f8f52ee6d0075c94ea4309b1ed2c8) | 40 | End-to-end security matrix in nested groups: credential confusion, grant types, validation failures, claim mapping/forgery, cert↔client binding (§2.1.2), `cnf` via introspect/check_token (JWT+opaque), CA rotation, POST-only, RFC 8707 resources, descendant-path routing bypass, discovery when on. |
-| [MtlsTokenEndpointMockMvcZonePathTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-5a46b5bfa04e95c07cda09dc0e4b2a64eb929f5a93d5e6abb6a269c66f875cfe) | 8 | Zone isolation in both zone-addressing modes: own-zone issuance and issuer, cross-zone clients unusable, per-zone CA for the same client id, zone-specific alias. |
+| [MtlsTokenEndpointHardeningMockMvcTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-f5282431e505c64daf04b36d03bcf4f6e45f8f52ee6d0075c94ea4309b1ed2c8) | 39 | End-to-end security matrix in nested groups: credential confusion, grant types, validation failures, claim mapping/forgery, cert↔client binding (§2.1.2), `cnf` via introspect/check_token (JWT+opaque), CA rotation, POST-only, RFC 8707 resources, descendant-path routing bypass, discovery when on. |
+| [MtlsTokenEndpointMockMvcZonePathTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-5a46b5bfa04e95c07cda09dc0e4b2a64eb929f5a93d5e6abb6a269c66f875cfe) | 7 | Zone isolation in both zone-addressing modes: own-zone issuance and issuer, cross-zone clients unusable, per-zone CA for the same client id, zone-specific alias. |
 
 ---
 
