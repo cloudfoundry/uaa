@@ -285,11 +285,14 @@ On this branch:
   independent evaluation of the branch against `cloudfoundry/develop` on the three merge criteria
   (backwards compatibility, security, feature gating), done after this handoff was last updated. It
   confirms the gating holds and finds no new vulnerability, and raises two items that are **not**
-  gated by `uaa.mtls-enabled` and therefore ship to every deployment:
+  gated by `uaa.mtls-enabled` (see the enhancer-list qualifier below) and therefore ship beyond the opt-in feature:
   - **M1** — `granted_scopes` stops appearing on access tokens issued via `grant_type=refresh_token`,
     because `GRANTED_SCOPES` was added to `NON_ADDITIONAL_ROOT_CLAIMS`, which the pre-existing
     `getAdditionalRootClaims` has always consulted. Correct behaviour, but a wire-visible change on
-    the busiest non-mTLS path in UAA; decide whether it goes in the PR description or its own PR.
+    the refresh path of any deployment that registers a token enhancer (stock UAA with the flag off has none, so is
+    unaffected); decide whether it goes in the PR description or its own PR. **M3** is the wider form: the
+    output of *every* enhancer is now filtered against protected claim names and `sub`/`aud` from any enhancer
+    win — pinned by `UaaTokenServicesTests.WhenMtlsClaimsEnhancerSharesTheEnhancerList`.
   - **M2** — `UaaAuthenticationDetails` gained a field and declares no `serialVersionUID`, so
     Spring-Session-JDBC rows written by the previous UAA version fail to deserialize after an
     upgrade. Fix is `transient` on the new field, or pin the UID to develop's value.
