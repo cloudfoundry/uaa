@@ -17,7 +17,7 @@ import org.apache.tomcat.util.net.jsse.JSSEUtil;
  * A {@link JSSEUtil} that builds the connector's {@link SSLContext} from the FIPS Bouncy Castle JSSE
  * provider (BCJSSE) via {@link BCJSSESSLContext}, and declares that TLS 1.3 renegotiable
  * (post-handshake-requestable) client authentication is available -- which is precisely what JSSE
- * cannot do (the reason the connector previously pinned {@code all,-TLSv1.3}).
+ * cannot do (the reason a SunJSSE-based connector would have to pin {@code all,-TLSv1.3}).
  *
  * <p>{@code getImplementedProtocols()}/{@code getImplementedCiphers()} are overridden to source from
  * BCJSSE's own {@code getSupportedSSLParameters()} rather than {@link JSSEUtil}'s private

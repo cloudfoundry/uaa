@@ -523,7 +523,7 @@ class MtlsClaimsEnhancerTest {
 
     @Test
     void enhanceReturnsEmptyWhenClientAuthenticatedViaClientSecretInsteadOfTlsClientAuth() throws Exception {
-        // Reproduces PR review concern (MtlsClaimsEnhancer.java:76): a client with both a
+        // A client with both a
         // client_secret AND tls-client-auth-ca configured could hit /oauth/mtls/token, present a
         // harvested/unvalidated certificate (via the mapped X509Certificate attribute), but
         // authenticate with the secret instead -- bypassing validateTlsClientAuth entirely.
@@ -578,7 +578,7 @@ class MtlsClaimsEnhancerTest {
 
     @Test
     void enhancePropagatesExceptionWhenClientDetailsLookupFails() throws Exception {
-        // PR review concern (MtlsClaimsEnhancer.java:94): a transient failure loading client
+        // A transient failure loading client
         // details (e.g. a database error) must fail the whole token request closed, not be
         // swallowed into an incomplete/degraded token missing identity + cnf claims.
         X509Certificate cert = mockCfCert();
@@ -597,7 +597,7 @@ class MtlsClaimsEnhancerTest {
 
     @Test
     void enhanceThrowsWhenCertEncodingFailsInsteadOfSilentlyDroppingCnfClaim() throws Exception {
-        // PR review concern (MtlsClaimsEnhancer.java:135): a failure to DER-encode the cert or
+        // A failure to DER-encode the cert or
         // compute its SHA-256 digest must fail the whole token request closed, not silently
         // downgrade a certificate-bound (RFC 8705 sec:3.1) token into an unbound bearer token by
         // dropping the cnf claim.

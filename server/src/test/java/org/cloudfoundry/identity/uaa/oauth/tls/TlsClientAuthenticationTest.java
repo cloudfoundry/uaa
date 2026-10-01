@@ -209,7 +209,7 @@ class TlsClientAuthenticationTest {
 
     @Test
     void validateClientCertSucceedsWhenChainIncludesTrustAnchor() throws Exception {
-        // Reproduces the reviewer's concern (PR #3972 discussion on TlsClientAuthentication.java:113):
+        // Scenario:
         // some proxies/clients forward the full chain including the trust anchor / root CA itself.
         // RFC 5280 section 6.1 excludes trailing self-issued certificates from path validation
         // accounting, and the JDK's PKIX CertPathValidator correctly implements this, so no
@@ -762,7 +762,7 @@ class TlsClientAuthenticationTest {
 
     @Test
     void getCertificateChainFromRequestReturnsNullWhenClientCertificateMapperSilentlyFailedToParseXfcc() throws Exception {
-        // Reproduces the reviewer's concern (PR #3972 discussion on TlsClientAuthentication.java:138):
+        // Scenario:
         // a trusted proxy (e.g. the Gorouter) sends a well-formed mTLS connection whose own
         // certificate validates against tls-client-auth-trusted-proxy-ca, and a nonblank (but
         // malformed) X-Forwarded-Client-Cert header. ClientCertificateMapper fails to parse the
