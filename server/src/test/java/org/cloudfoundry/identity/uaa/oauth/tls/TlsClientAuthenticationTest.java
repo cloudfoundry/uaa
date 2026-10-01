@@ -140,6 +140,30 @@ class TlsClientAuthenticationTest {
     }
 
     @Test
+    void aCompiledClaimMappingPatternIsReusedRatherThanRecompiledOnEveryRequest() {
+        assertThat(service.compiledPattern("^app:(.+)$")).isSameAs(service.compiledPattern("^app:(.+)$"));
+    }
+
+    @Test
+    void theCompiledPatternCacheIsBoundedAndKeepsWorkingPastItsLimit() {
+        for (int i = 0; i < TlsClientAuthentication.MAX_CACHED_PATTERNS * 2; i++) {
+            assertThat(service.compiledPattern("^app" + i + ":(.+)$").matcher("app" + i + ":x").matches()).isTrue();
+        }
+
+        assertThat(service.patternCacheSize()).isEqualTo(TlsClientAuthentication.MAX_CACHED_PATTERNS);
+    }
+
+    @Test
+    void aPatternThatDoesNotCompileStillThrowsAndIsNotCached() {
+        int before = service.patternCacheSize();
+
+        assertThatThrownBy(() -> service.compiledPattern("(unclosed"))
+                .isInstanceOf(java.util.regex.PatternSyntaxException.class);
+
+        assertThat(service.patternCacheSize()).isEqualTo(before);
+    }
+
+    @Test
     void extractClaimMappingValuesExtractsEveryOuFromMultiValuedRdn() throws Exception {
         KeyPair kp = generateKeyPair();
         X500Name subject = new X500Name("CN=instance-guid,OU=organization:org-guid+OU=space:space-guid+OU=app:app-guid");

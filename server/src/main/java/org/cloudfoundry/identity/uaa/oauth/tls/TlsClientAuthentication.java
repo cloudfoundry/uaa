@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +48,32 @@ public class TlsClientAuthentication {
     private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthentication.class);
 
     private static final String XFCC_HEADER = "X-Forwarded-Client-Cert";
+
+    /**
+     * Longest OU value a claim-mapping {@code pattern} will be matched against. A real instance identity
+     * ({@code organization:<guid>}, {@code space:<guid>}, {@code app:<guid>}) is under 60 characters; anything
+     * past this is not handed to a regex at all, which also bounds the work an adversarial pattern can do.
+     */
+    static final int MAX_OU_LENGTH_FOR_PATTERN = 256;
+
+    /**
+     * Upper bound on the number of characters the regex engine may read while matching one OU. Linear patterns
+     * on a value of up to {@link #MAX_OU_LENGTH_FOR_PATTERN} characters use a few hundred; a pattern that backtracks
+     * exponentially exceeds this within milliseconds and is abandoned. Java's regex engine has no timeout and
+     * cannot be interrupted, so counting reads is the only bound that works whatever the pattern looks like.
+     */
+    static final int MAX_REGEX_STEPS = 100_000;
+
+    /** Compiled claim-mapping patterns kept; one per distinct pattern in use, so well above any real deployment. */
+    static final int MAX_CACHED_PATTERNS = 256;
+
+    private final Map<String, Pattern> patternCache = Collections.synchronizedMap(
+            new LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Pattern> eldest) {
+                    return size() > MAX_CACHED_PATTERNS;
+                }
+            });
 
     /**
      * Returns {@code true} when any certificate is present on the current request under the
@@ -515,18 +542,102 @@ public class TlsClientAuthentication {
      * When {@code patternStr} is null or blank, returns the first collected OU value verbatim;
      * selection among repeated AVAs follows collected/provider order. Use a pattern to select a
      * specific value.
+     *
+     * <p>The pattern is operator-supplied and the OU comes from a certificate the client's own CA may have
+     * issued, so a match is bounded two ways: an OU longer than {@link #MAX_OU_LENGTH_FOR_PATTERN} is not
+     * matched, and a match that reads more than {@link #MAX_REGEX_STEPS} characters is abandoned. Either way
+     * the mapping yields no claim -- which, for a claim that {@code tls-client-auth-required-claims} depends
+     * on, means authentication is refused.
      */
-    private static String matchFirstOu(List<String> ous, String patternStr) {
+    private String matchFirstOu(List<String> ous, String patternStr) {
         if (patternStr == null || patternStr.isBlank()) {
             return ous.isEmpty() ? null : ous.get(0);
         }
-        Pattern pat = Pattern.compile(patternStr);
+        Pattern pat = compiledPattern(patternStr);
         for (String ou : ous) {
-            Matcher m = pat.matcher(ou);
-            if (m.matches() && m.groupCount() >= 1) {
-                return m.group(1);
+            if (ou.length() > MAX_OU_LENGTH_FOR_PATTERN) {
+                logger.debug("claim-mapping pattern skipped an OU of {} characters (limit {})",
+                        ou.length(), MAX_OU_LENGTH_FOR_PATTERN);
+                continue;
+            }
+            try {
+                Matcher m = pat.matcher(new StepBudgetCharSequence(ou, MAX_REGEX_STEPS));
+                if (m.matches() && m.groupCount() >= 1) {
+                    return m.group(1);
+                }
+            } catch (RegexStepBudgetExceededException e) {
+                logger.warn("claim-mapping pattern '{}' was abandoned after reading more than {} characters; "
+                        + "the mapping yields no claim", abbreviate(patternStr), MAX_REGEX_STEPS);
+                return null;
             }
         }
         return null;
+    }
+
+    /**
+     * The compiled form of {@code patternStr}, compiled once per distinct pattern rather than on every token
+     * request. A pattern that does not compile is not cached and throws as before.
+     */
+    Pattern compiledPattern(String patternStr) {
+        Pattern cached = patternCache.get(patternStr);
+        if (cached == null) {
+            cached = Pattern.compile(patternStr);
+            patternCache.put(patternStr, cached);
+        }
+        return cached;
+    }
+
+    int patternCacheSize() {
+        return patternCache.size();
+    }
+
+    private static String abbreviate(String value) {
+        return value.length() <= 100 ? value : value.substring(0, 100) + "...";
+    }
+
+    /** Thrown from inside the regex engine to abandon a match that is reading too much. */
+    private static final class RegexStepBudgetExceededException extends RuntimeException {
+        RegexStepBudgetExceededException() {
+            super(null, null, false, false);
+        }
+    }
+
+    /**
+     * A {@link CharSequence} that allows a bounded number of {@code charAt} calls. The regex engine reads its
+     * input only through {@code charAt}, so counting them bounds the work whatever the pattern is.
+     * {@code subSequence} and {@code toString} -- used to read a captured group after a successful match --
+     * are not counted.
+     */
+    private static final class StepBudgetCharSequence implements CharSequence {
+        private final String value;
+        private int remaining;
+
+        StepBudgetCharSequence(String value, int budget) {
+            this.value = value;
+            this.remaining = budget;
+        }
+
+        @Override
+        public int length() {
+            return value.length();
+        }
+
+        @Override
+        public char charAt(int index) {
+            if (--remaining < 0) {
+                throw new RegexStepBudgetExceededException();
+            }
+            return value.charAt(index);
+        }
+
+        @Override
+        public CharSequence subSequence(int start, int end) {
+            return value.substring(start, end);
+        }
+
+        @Override
+        public String toString() {
+            return value;
+        }
     }
 }
