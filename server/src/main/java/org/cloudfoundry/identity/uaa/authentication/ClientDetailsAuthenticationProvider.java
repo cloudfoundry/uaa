@@ -364,7 +364,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                 cfg.setSanEmail(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL));
                 return cfg;
             } catch (Exception e) {
-                return null;
+                // The client does set tls-client-auth-ca, so it is mTLS-only. Returning null here would make it an
+                // ordinary client that could authenticate with its client_secret and obtain an unbound token --
+                // the opposite of what its registration says. The registration validators reject configuration
+                // that cannot be read, so this only guards stored data that bypassed them.
+                throw new BadCredentialsException(
+                        "tls_client_auth: the client's tls-client-auth configuration cannot be read", e);
             }
         }
         return null;

@@ -131,15 +131,20 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         if (config == null) {
             config = loadTlsConfig(clientDetails.getAdditionalInformation());
         }
+        // This request authenticated as tls_client_auth, so the client has a configuration and a
+        // certificate. Failing to find either now must not quietly produce a token without cnf: that
+        // would be a bearer token issued to a request that proved possession of a certificate.
         if (!TlsClientAuthConfiguration.isConfigured(config)) {
-            return new HashMap<>();
+            throw new IllegalStateException("client_id=" + clientId + " authenticated with tls_client_auth but its "
+                    + "tls-client-auth configuration cannot be resolved; refusing to issue an unbound token");
         }
 
         // Now do the real, per-client trust decision: only a certificate validated against *this
         // client's* tls-client-auth-trusted-proxy-ca is used from here on.
         X509Certificate cert = tlsClientAuthentication.getCertificateFromRequest(config);
         if (cert == null) {
-            return new HashMap<>();
+            throw new IllegalStateException("client_id=" + clientId + " authenticated with tls_client_auth but no "
+                    + "client certificate can be resolved for this request; refusing to issue an unbound token");
         }
 
         // PHASE 1 — extract cert subject fields into vars (keyed by claim name)
