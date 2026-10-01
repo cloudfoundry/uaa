@@ -576,6 +576,43 @@ class MtlsClaimsEnhancerTest {
         assertThat(result).isEmpty();
     }
 
+    /**
+     * By the time the enhancer runs, the request has authenticated as {@code tls_client_auth}. If the enhancer then
+     * cannot resolve the client's configuration -- it reads {@code additionalInformation} itself, and parses keys such as
+     * {@code tls-client-auth-allowed-resources} that the authentication step does not -- returning an empty map would
+     * issue a token with no {@code cnf}, i.e. an unbound token for a certificate-authenticated request. Same rule as the
+     * {@code cnf} computation below it: fail the token request.
+     */
+    @Test
+    void enhanceFailsClosedWhenTheConfigurationCannotBeReadInsteadOfIssuingAnUnboundToken() throws Exception {
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setAdditionalInformation(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES, "{not json"));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("instance-identity");
+    }
+
+    @Test
+    void enhanceFailsClosedWhenNoCertificateCanBeResolvedForAClientThatAuthenticatedWithOne() throws Exception {
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(null);
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity")))
+                .as("a request that authenticated with a certificate must not get an unbound token")
+                .isInstanceOf(IllegalStateException.class);
+    }
+
     @Test
     void enhancePropagatesExceptionWhenClientDetailsLookupFails() throws Exception {
         // A transient failure loading client
