@@ -140,7 +140,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
 
     @Test
     void standardAttributeAndRawAttributeBothHoldTheGenuinePeerCertForADirectConnection() throws Exception {
-        // Regression test for a PR review concern: TlsClientAuthentication.hasCertificateFromRequest()
+        // Regression test: TlsClientAuthentication.hasCertificateFromRequest()
         // (used as a cheap early exit by ClientDetailsAuthenticationProvider and MtlsClaimsEnhancer
         // before calling getCertificateChainFromRequest(config)) only inspects the standard
         // jakarta.servlet.request.X509Certificate attribute, never RAW_PEER_CERTIFICATE_ATTRIBUTE.

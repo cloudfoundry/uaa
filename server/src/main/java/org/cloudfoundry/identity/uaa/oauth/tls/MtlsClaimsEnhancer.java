@@ -122,8 +122,11 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         String clientId = authentication.getOAuth2Request().getClientId();
         UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-        // Check the typed field first (set directly on in-memory / admin-API clients);
-        // fall back to additionalInformation for JDBC-loaded clients.
+        // The typed field if one is set, otherwise the flat configuration in additionalInformation.
+        // Clients loaded from the database carry it in additionalInformation, so that is the path
+        // that matters in practice.
+        // The client lookup above is deliberately unguarded: a failure propagates and fails the
+        // whole token request (see enhancePropagatesExceptionWhenClientDetailsLookupFails).
         TlsClientAuthConfiguration config = clientDetails.getTlsClientAuthConfiguration();
         if (config == null) {
             config = loadTlsConfig(clientDetails.getAdditionalInformation());
@@ -154,7 +157,7 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             if (TlsClientAuthConfiguration.isReservedClaimName(key)) {
                 continue;
             }
-            // Only a single dot level is supported (spec: UAA-RFC8705-001 configurable-token-shape).
+            // Only a single dot level is supported.
             // A key like "cf.app.id" would produce parent="cf", child="app.id" (not deeper nesting).
             int dotIdx = key.indexOf('.');
             if (dotIdx > 0 && dotIdx < key.length() - 1) {
@@ -179,7 +182,7 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             // and SHA-256 is a guaranteed JCE algorithm, so this is practically impossible. If it
             // ever happens, we must not silently issue an unbound bearer token in place of a
             // certificate-bound (RFC 8705 §3.1) one -- fail the whole token request instead (same
-            // fail-closed philosophy as the client-details lookup failure above).
+            // fail-closed choice as an unguarded client-details lookup failure above).
             throw new IllegalStateException(
                     "Failed to compute cnf.x5t#S256 confirmation claim for client_id="
                             + clientId + ": " + e.getMessage(), e);
@@ -195,13 +198,12 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
         // RFC 8707 resource indicator, if the request named one.
         //
-        // UaaTokenEndpoint.enforceResourceIndicator is the primary check. This used to trust it and
-        // project the value straight onto aud, on the reasoning that the controller was the only way
-        // into the granter for /oauth/mtls/token. That reasoning was wrong: Spring also mapped
-        // /oauth/mtls/token/oauth/token to TokenEndpoint's inherited handler, which reached token
-        // issuance with neither the grant-type restriction nor this allow-list applied. The routing
-        // hole is closed in MtlsEndpointAvailabilityFilter, but the allow-list is enforced here as
-        // well so that the guarantee does not depend on which handler a request is routed to.
+        // UaaTokenEndpoint.enforceResourceIndicator is the primary check, but the allow-list is
+        // enforced here as well so that the guarantee does not depend on which handler a request was
+        // routed to. The controller is not the only way into the granter: Spring also maps
+        // /oauth/mtls/token/oauth/token to TokenEndpoint's inherited handler, which reaches token
+        // issuance without the controller's grant-type restriction or allow-list. MtlsEndpointAvailabilityFilter
+        // refuses that route, and this check means the guarantee does not rest on that alone.
         //
         // A resource that is not permitted fails the whole token request rather than quietly falling
         // back to the default audience: an aud the caller did not ask for is indistinguishable, to

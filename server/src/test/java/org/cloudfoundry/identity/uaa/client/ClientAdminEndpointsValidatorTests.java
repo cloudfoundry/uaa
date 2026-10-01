@@ -602,7 +602,7 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    @DisplayName("COPILOT REVIEW -- a pattern on subject_cn is rejected, since it is silently ignored at runtime")
+    @DisplayName("a pattern on subject_cn is rejected, since it is silently ignored at runtime")
     void validateTlsClientAuthClaimConfig_rejectsPatternOnSubjectCn() {
         Map<String, Object> info = Map.of(
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
@@ -616,7 +616,7 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    @DisplayName("COPILOT REVIEW -- a pattern on subject_o is rejected, since it is silently ignored at runtime")
+    @DisplayName("a pattern on subject_o is rejected, since it is silently ignored at runtime")
     void validateTlsClientAuthClaimConfig_rejectsPatternOnSubjectO() {
         Map<String, Object> info = Map.of(
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
@@ -630,7 +630,7 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    @DisplayName("COPILOT REVIEW -- a subject_ou pattern with no capturing group is rejected, since it would "
+    @DisplayName("a subject_ou pattern with no capturing group is rejected, since it would "
             + "never produce a value")
     void validateTlsClientAuthClaimConfig_rejectsCaptureGrouplessOuPattern() {
         Map<String, Object> info = Map.of(

@@ -65,19 +65,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 /**
- * Adversarial MockMvc coverage for the RFC 8705 mTLS token endpoint introduced by PR #3972.
+ * Adversarial MockMvc coverage for the RFC 8705 mTLS token endpoint.
  *
  * <p>Every refusal is asserted as a whole {@link Denial} -- HTTP status, OAuth error code and error
  * description together -- so that a test cannot go green on a 401 that happened for an unrelated
- * reason. That is not pedantry: an earlier version of B1 asserted only "not 200", passed on an
- * {@code invalid_scope} raised inside the grant, and hid the fact that certificate authentication had
- * already succeeded.
+ * reason. That is not pedantry: asserting only "not 200" would pass on an {@code invalid_scope} raised
+ * inside the grant and hide the fact that certificate authentication had already succeeded.
  *
  * <p>Several of these began as failing probes of security findings and are deliberately written with
  * two acceptable outcomes: either the request is refused -- in which case the refusal must be for
  * the right reason rather than an incidental one -- or the strong security property holds. Every one
- * is now satisfied, by refusals added later on this branch; the comment above each assertion records
- * the refusal that satisfies it. They are not to be "fixed" by relaxing the assertion.
+ * is satisfied by one of the feature's refusals; the comment above each assertion records the refusal
+ * that satisfies it. They are not to be "fixed" by relaxing the assertion.
  *
  * <p>The MockMvc chain is rebuilt in {@link #setUpMtlsMockMvc()} to include
  * {@link RawPeerCertificateCaptureFilter}, which is registered in
@@ -236,7 +235,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
             // The property does not prescribe WHICH fix: refusing the request and serving only
             // certificate-authenticated clients both satisfy it. Satisfied by the refusal -- 401
             // invalid_client, "/oauth/mtls/token requires a client configured with
-            // tls-client-auth-ca" -- so the endpoint no longer serves clients it cannot
+            // tls-client-auth-ca" -- so the endpoint serves only clients it can
             // certificate-authenticate.
             if (result.getResponse().getStatus() != 200) {
                 assertThat(denial(result).error())
@@ -445,12 +444,12 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .requestAttr("jakarta.servlet.request.X509Certificate",
                             new X509Certificate[]{rogueLeaf}));
 
-            // Asserted unconditionally, and now holds. It previously returned 500 with an empty body
-            // and an "Uncaught Exception:" stack trace, because C1-C4 return a clean 401 only because
+            // Asserted unconditionally. C1-C4 return a clean 401 only because
             // AbstractClientParametersAuthenticationFilter.performClientAuthentication wraps EVERY
             // exception in BadCredentialsException. ClientBasicAuthenticationFilter catches only
             // AuthenticationException, and InvalidClientDetailsException is a UaaException ->
-            // OAuth2Exception -> RuntimeException, so here it escapes the security chain.
+            // OAuth2Exception -> RuntimeException, so unless ClientDetailsAuthenticationProvider
+            // converts it, it escapes the security chain as a 500 with an empty body.
             assertThat(denial(result))
                     .as("the same certificate and the same client must be denied identically however "
                             + "the client_id reached UAA. Actual: %s", outcome(result))

@@ -218,10 +218,9 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
                         .content(JsonUtils.writeValueAsString(client)))
                 .andReturn();
 
-        // This previously returned 400, "token-endpoint-auth-method is not supported; configure
-        // tls-client-auth-ca to enable mTLS for client_id=..." -- an unconditional rejection of a key
-        // this feature neither introduced nor uses, applied to every client create/update, which
-        // would have bricked any deployment already setting it (silently ignored before).
+        // Rejecting "token-endpoint-auth-method" here -- a key this feature neither introduces nor
+        // uses -- would apply to every client create/update and brick any deployment that already
+        // sets it (it is silently ignored on develop).
         assertThat(result.getResponse().getStatus())
                 .as("an unrelated additionalInformation key must not block client creation. Actual: %s",
                         MtlsTokenEndpointHardeningMockMvcTests.outcome(result))
