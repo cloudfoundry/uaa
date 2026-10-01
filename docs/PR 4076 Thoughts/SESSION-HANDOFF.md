@@ -66,9 +66,9 @@ git fetch --no-tags rkoster feat/rfc8705-mtls-client-auth
 
 ## 2. Commits on the branch (newest first)
 
-**Caution on SHAs:** something on this machine rewrites commits on push (see §7), and it has now
-happened twice — the batched pair below was deliberately split, and the RFC 8707 commits were
-rewritten again, losing their `Co-Authored-By` trailers. Match commits by subject line, not SHA.
+**Caution on SHAs:** this branch's history has been rewritten more than once — the batched commit
+pair below was deliberately split into red/green pairs, and the whole range was later rebased to
+strip AI co-author trailers (see §7). Match commits by subject line, not SHA.
 
 | SHA | What it is |
 |---|---|
@@ -242,12 +242,15 @@ export JAVA_HOME=/Users/fhanik/workspace/software/java/jdk-25.0.1.jdk/Contents/H
 - **Jackson 3.** `develop` has migrated: use `tools.jackson.core.type.TypeReference`, not
   `com.fasterxml.jackson.core.type.TypeReference`.
 - **Never stage `.agent/`** — it is untracked noise that shows up in every `git status`.
-- **Something on the machine rewrites commits.** Mid-session a process rebased the branch and
-  stripped `Co-Authored-By: Claude` trailers from three commits. Trees were byte-identical and
-  rkoster's authorship on the squash was preserved, so nothing was lost, but SHAs changed under me.
-  Worth knowing before you conclude you have lost work. **It happened again** on the RFC 8707
-  commits: all five lost their trailers on push while their trees stayed intact. Do not chase this
-  as data loss; match commits by subject line.
+- **AI co-author trailers are not wanted on this branch, and commits get rewritten to remove them.**
+  Earlier notes here described this as "something on the machine rewrites commits" and treated the
+  disappearing trailers as a mystery — that was wrong, and chasing it wastes time. It is
+  intentional: Filip asked for every such trailer to be stripped, and the whole range from the
+  CA-rotation commit onward was rebased to do it. Do not add them back; commit without one.
+  The side effect is real though — rewriting at that depth gives **every** commit above the oldest
+  edited one a new SHA, including commits authored by others. Trees stay byte-identical and
+  rkoster's authorship on the squashed import is preserved, so nothing is lost; if SHAs have moved
+  under you, that is why, and it is not data loss.
 - **`git reset --hard` is blocked by this session's permissions.** When a branch pointer needs to
   move and the working tree already matches the target (e.g. after rebuilding history with an
   identical tree), `git update-ref refs/heads/<branch> <sha>` does the same job without the blocked
