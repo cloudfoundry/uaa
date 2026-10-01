@@ -29,6 +29,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.mock;
 
 class TlsClientAuthenticationTest {
@@ -77,6 +79,64 @@ class TlsClientAuthenticationTest {
         assertThat(vars).containsEntry("cf_instance_guid", "instance-guid");
         assertThat(vars).containsEntry("app_guid", "app-guid-123");
         assertThat(vars).containsEntry("org_name", "Cloud Foundry");
+    }
+
+    /**
+     * A claim mapping's {@code pattern} is operator-supplied regex run against an OU value taken from the
+     * presented certificate, and whoever registers a client with its own {@code tls-client-auth-ca} also
+     * chooses the certificates it will be matched against. Java's regex engine has no timeout and is not
+     * interruptible, so a pattern with nested quantifiers turns a short OU into a thread that never comes back.
+     * (Plain {@code (a+)+b} is not enough on a current JDK -- it is optimised -- but these shapes are
+     * still exponential.)
+     */
+    @Test
+    void aPatternThatBacktracksCatastrophicallyIsGivenUpOnQuicklyAndOnlyLosesItsOwnClaim() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid,OU=" + "a".repeat(28) + "c");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "((a+)+)+b", "evil"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "(.*a){12}b", "evil2"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "cf_instance_guid")
+        ));
+
+        Map<String, String> vars = assertTimeoutPreemptively(Duration.ofSeconds(2),
+                () -> service.extractClaimMappingValues(cert, config));
+
+        assertThat(vars)
+                .as("a mapping whose match was abandoned yields no claim, the other mappings are unaffected")
+                .containsExactly(Map.entry("cf_instance_guid", "instance-guid"));
+    }
+
+    @Test
+    void anOuLongerThanTheCapIsNotMatchedAgainstAPattern() throws Exception {
+        KeyPair kp = generateKeyPair();
+        String atTheCap = "app:" + "x".repeat(256 - "app:".length());
+        String overTheCap = "app:" + "x".repeat(257 - "app:".length());
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "app_guid")));
+
+        X500Name atCapSubject = new X500Name("CN=a,OU=" + atTheCap);
+        X500Name overCapSubject = new X500Name("CN=a,OU=" + overTheCap);
+        X509Certificate atCap = signCert(atCapSubject, atCapSubject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+        X509Certificate overCap = signCert(overCapSubject, overCapSubject, kp.getPublic(), kp.getPrivate(), false, BigInteger.TWO);
+
+        assertThat(service.extractClaimMappingValues(atCap, config)).containsKey("app_guid");
+        assertThat(service.extractClaimMappingValues(overCap, config))
+                .as("an OU over 256 characters is not a real instance identity and is not handed to a regex")
+                .doesNotContainKey("app_guid");
+    }
+
+    @Test
+    void aMappingWithoutAPatternStillReturnsTheFirstOuWhateverItsLength() throws Exception {
+        KeyPair kp = generateKeyPair();
+        String longOu = "o".repeat(300);
+        X500Name subject = new X500Name("CN=a,OU=" + longOu);
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", null, "ou")));
+
+        assertThat(service.extractClaimMappingValues(cert, config)).containsEntry("ou", longOu);
     }
 
     @Test
