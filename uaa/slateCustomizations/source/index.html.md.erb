@@ -304,6 +304,37 @@ _Response Fields_
 
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/response-fields.md') %>
 
+#### Certificate-bound tokens
+
+A token issued here is bound to the client certificate ([RFC 8705 section 3](https://www.rfc-editor.org/rfc/rfc8705#section-3)).
+It carries `cnf` with `x5t#S256`, the base64url (no padding) SHA-256 thumbprint of the certificate's DER encoding, and
+`client_auth_method: tls_client_auth`. Only `client_credentials` is issued and no refresh token is returned.
+
+**UAA does not enforce the binding.** A resource server must compute the thumbprint of the certificate presented on its
+own TLS connection and require it to equal `cnf.x5t#S256`; otherwise the token is an ordinary bearer token. The `cnf`
+claim is also returned unchanged by [Introspect Token](#introspect-token) and [Check Token](#check-token).
+
+#### Registering a client for mutual TLS
+
+Set `tls-client-auth-ca` together with exactly one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`,
+`tls_client_auth_san_uri`, `tls_client_auth_san_ip` or `tls_client_auth_san_email` when creating or updating a
+client (see Clients, Create). The full list of `tls-client-auth-*` keys, with their descriptions, is in the client request fields. A client that
+sets `tls-client-auth-ca` authenticates only at `/oauth/mtls/token` and cannot also use a `client_secret`. These keys are
+rejected unless the deployment sets `uaa.mtls-enabled`.
+
+#### Errors from `/oauth/mtls/token`
+
+Status | Meaning
+------ | -------
+`404` | the feature is disabled, or the path is below `/oauth/mtls/token`
+`405` (`Allow: POST`) | any method other than `POST`
+`401` `invalid_client` | no certificate, a certificate that is not the one registered for the client, one that does not chain to `tls-client-auth-ca` (including expired, or a CA certificate used as the leaf), unsatisfied `tls-client-auth-required-claims`, a `client_secret` or Basic credentials sent for an mTLS-only client, or a client with no `tls-client-auth-ca` calling this endpoint
+`400` `invalid_grant` | any grant other than `client_credentials`
+`400` `invalid_target` | `resource` is outside the client's allow-list, repeated, not an absolute URI without a fragment, or the client has no allow-list
+
+See [UAA Client Authentication](https://github.com/cloudfoundry/uaa/blob/develop/docs/UAA-Client-Authentication.md#error-responses-at-oauthmtlstoken)
+for the exact messages and the upgrade notes.
+
 ## Password Grant
 
 ### Form Authentication

@@ -232,6 +232,92 @@ an unrestricted `aud`. Requesting a value outside the list, requesting more than
 the same call, or a value that is not an absolute URI without a fragment (per the RFC) is refused
 as `invalid_target`, and no token is issued.
 
+#### Registering a `tls_client_auth` client
+
+A client opts in by setting `tls-client-auth-ca` together with exactly one of the five subject parameters
+(`tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`,
+`tls_client_auth_san_email`). The same keys are accepted by every registration path, and every path enforces the same
+rules:
+
+| Path | Notes |
+|---|---|
+| Client admin API (`POST`/`PUT /oauth/clients`) | The keys are top-level JSON properties of the client. The field reference is generated from the API docs. |
+| Zone client API (`/identity-zones/{id}/clients`) | A client with a non-blank `tls-client-auth-ca` may omit `client_secret`; a supplied secret is still checked against the zone's secret policy. |
+| `oauth.clients` bootstrap (BOSH / `uaa.yml`) | Validated at startup with the same rules; an invalid mTLS client prevents the bootstrap from completing. |
+
+With `uaa.mtls-enabled` off, a request carrying `tls-client-auth-ca` or `tls-client-auth-trusted-proxy-ca` is rejected
+with `400` ("require uaa.mtls-enabled to be true"). A client that sets `tls-client-auth-ca` authenticates **only** at
+`/oauth/mtls/token` and may not combine the certificate with a `client_secret`, so it cannot also be used at
+`/oauth/token`.
+
+#### Certificate-bound access tokens
+
+A token issued at `/oauth/mtls/token` is bound to the client certificate it was requested with
+([RFC 8705 section 3](https://www.rfc-editor.org/rfc/rfc8705#section-3)). Besides the usual claims it carries:
+
+| Claim | Value |
+|---|---|
+| `cnf` | `{"x5t#S256": "<thumbprint>"}` — the base64url (no padding) SHA-256 of the DER encoding of the client certificate |
+| `client_auth_method` | `tls_client_auth` |
+| `sub`, `aud` | the client id and its default audience, unless `tls-client-auth-sub-template`, `tls-client-auth-aud-templates` or an allowed `resource` replace them |
+| mapped claims | one per `tls-client-auth-claim-mappings` entry; a dotted claim name such as `cf.app` becomes a nested object |
+
+Only `client_credentials` is issued here, and no refresh token is returned. Discovery advertises the capability as
+`tls_client_certificate_bound_access_tokens: true`.
+
+**Binding is enforced by the resource server, not by UAA.** UAA stamps `cnf` but does not itself check it on its own
+protected endpoints. A resource server that wants the binding to mean anything must, for every request, compute the
+thumbprint of the certificate presented on *its* TLS connection and require it to equal `cnf.x5t#S256`; without that
+check the token is an ordinary bearer token. To compute the thumbprint by hand:
+
+```bash
+openssl x509 -in client-cert.pem -outform DER | openssl dgst -sha256 -binary \
+  | openssl base64 -A | tr '+/' '-_' | tr -d '='
+```
+
+A resource that cannot see the client's certificate can ask UAA instead: both `POST /introspect` and `POST
+/check_token` return the token's `cnf` claim unchanged, for JWT and opaque tokens alike (RFC 8705 section 3.2). The
+resource server still has to compare it with the certificate it saw.
+
+#### Error responses at `/oauth/mtls/token`
+
+| Status | When | Body |
+|---|---|---|
+| `404` | `uaa.mtls-enabled` is off, or the path is anything below `/oauth/mtls/token` | no OAuth error body |
+| `405` with `Allow: POST` | any method other than `POST`, including `GET` | no OAuth error body |
+| `401` `invalid_client` | no certificate was presented, the certificate is not the one registered for the client, it does not chain to `tls-client-auth-ca` (including expired, or a CA certificate used as the leaf), or `tls-client-auth-required-claims` is not satisfied | `tls_client_auth: certificate validation failed`, or `tls_client_auth: certificate chain validation failed: <reason>` |
+| `401` `invalid_client` | the client's `tls-client-auth-ca` cannot be parsed | `tls_client_auth: CA configuration error: <reason>` |
+| `401` `invalid_client` | a `client_secret` or Basic credentials were sent for a client that has `tls-client-auth-ca` | `tls_client_auth: configured clients must authenticate at /oauth/mtls/token without client credentials` |
+| `401` `invalid_client` | a client with no `tls-client-auth-ca` calls this endpoint | `tls_client_auth: /oauth/mtls/token requires a client configured with tls-client-auth-ca` |
+| `401` `invalid_client` | the client has `tls-client-auth-ca` but not exactly one subject parameter (a client stored before the check existed) | `tls_client_auth: client is configured with tls-client-auth-ca but does not register exactly one certificate subject value…` |
+| `400` `invalid_grant` | any grant other than `client_credentials` | `the mTLS token endpoint only issues client_credentials tokens` |
+| `400` `invalid_target` | `resource` is not in the client's allow-list, is repeated, is not an absolute URI without a fragment, or the client has no allow-list | e.g. `client_id=<id> is not authorized to request the given resource` |
+
+Descriptions never echo submitted values such as the grant type or the resource. A missing certificate, a certificate
+with the wrong subject and an unsatisfied `tls-client-auth-required-claims` all return the same message, so a caller
+cannot probe which part of the registration it missed.
+
+#### Compatibility and upgrade notes
+
+`uaa.mtls-enabled` defaults to `false`. With it off the feature does nothing observable, with these exceptions:
+
+* OIDC discovery gains one field, `tls_client_certificate_bound_access_tokens`, always present and `false` when the
+  feature is off. RFC 8705 section 3.3 treats an omitted value as `false`, so its meaning is unchanged.
+* **Deployments that register their own `UaaTokenEnhancer` beans** (stock UAA registers none unless this feature is on)
+  see one change regardless of the flag: an access token issued by a *refresh* no longer carries the
+  `granted_scopes` claim. That claim records the full consented scope set and belongs on the refresh token only; copying
+  it onto an access token whose `scope` was deliberately narrowed disclosed more than the caller was given.
+* The classes `ClientAdminEndpointsValidator`, `ClientAdminBootstrap`, `ClientDetailsAuthenticationProvider` and
+  `ZoneEndpointsClientDetailsValidator` gained constructor parameters and lost their previous signatures. They are
+  Spring-wired internals; only code that constructs them by hand needs the extra argument.
+
+**Token enhancers.** With the feature on, `MtlsClaimsEnhancer` joins any other `UaaTokenEnhancer` in one shared list. It
+adds nothing to a request that was not authenticated with `tls_client_auth` and does not restrict or alter another
+enhancer's claims, which are applied exactly as before. If two enhancers emit the same custom claim the later one in
+the list wins, and `MtlsClaimsEnhancer` declares no order. `UaaTokenEnhancer` has a new `default` method,
+`getLateOverrideClaims()`, returning an empty set; an enhancer that needs a claim such as `sub` or `aud` to survive
+UAA's own defaults can opt in by returning its name. Existing implementations compile and behave unchanged.
+
 ## Configs
 
 Here is a brief example of the `clients` section:
