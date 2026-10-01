@@ -17,17 +17,14 @@ overall: 94 files, +13 935 / −53, of which docs are excluded below.
 |---|---|
 | ✅ **Gated** | does nothing observable when the flag is off |
 | ⚪ **Inert** | not flag-gated, but cannot act unless something only the flag enables is present (e.g. path that 404s, a config key that can't be registered) |
-| ⚠️ **Un-gated change** | behaviour changes without `uaa.mtls-enabled` being on — either for every deployment, or (where stated) for every deployment that registers any token enhancer. Review these hardest |
+| ⚠️ **Un-gated change** | behaviour changes without `uaa.mtls-enabled` being on — for every deployment, or (where stated) only for deployments that register a token enhancer. Review these hardest |
 | 🔧 **Build/plumbing** | no runtime behaviour of its own |
 
-Summary of the ⚠️ items (details in §1): **M1/M3** `granted_scopes` dropped from refresh-issued access tokens, the
-output of *every* token enhancer filtered against UAA's protected claims, and `sub`/`aud` from any enhancer now
-winning —
-all triggered by the enhancer list being non-empty, so live for any deployment with its own enhancers even with the flag
-off, but not for stock UAA ([UaaTokenServices](#uaatokenservices)); **M2** `UaaAuthenticationDetails` gains a field
-and has no
-`serialVersionUID` ([UaaAuthenticationDetails](#uaaauthenticationdetails)); **widened
-`UAA_SUPPORTED_METHODS`** ([ClientAuthentication](#clientauthentication)) — contained by an external-IdP split;
+Summary of the ⚠️ items (details in §1): **M1** `granted_scopes` is no longer copied from a refresh token onto the
+refreshed access token — only for deployments that register a token enhancer (stock UAA with the flag off has none), but
+then regardless of the flag ([UaaTokenServices](#uaatokenservices)); **M2** `UaaAuthenticationDetails` gains a field and
+has no `serialVersionUID` ([UaaAuthenticationDetails](#uaaauthenticationdetails)); **widened `UAA_SUPPORTED_METHODS`**
+([ClientAuthentication](#clientauthentication)) — contained by an external-IdP split;
 `tls-client-auth-ca` is now an interpreted `additionalInformation` key
 ([ClientDetailsAuthenticationProvider](#clientdetailsauthenticationprovider)).
 Fuller reasoning: `docs/PR 4076 Thoughts/pr4076-develop-merge-evaluation.md`.
@@ -44,27 +41,39 @@ Grouped by module; within a module, ordered roughly by how much a reviewer shoul
 
 `server/src/main/java/org/cloudfoundry/identity/uaa/oauth/UaaTokenServices.java`
 
-| [whole file](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228) | [NON_ADDITIONAL_ROOT_CLAIMS](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228R142-R149) | [enhancer claims filter](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228R566-R580) | [sub/aud re-apply](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228R613-R624) |
-|---|---|---|---|
+| [whole file](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228) | [NON_ADDITIONAL_ROOT_CLAIMS](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228R142-R149) | [lateOverrideClaims into createJWTAccessToken](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228R494-R495) | [late overrides applied](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228R604-R607) | [collect opt-ins from each enhancer](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-64c7c7e80abc3949a99f6a2b958afe7dbdc19686d8dbd249724f8be94e954228R680-R692) |
+|---|---|---|---|---|
 
-- **What changed:** (1) `GRANTED_SCOPES` added to `NON_ADDITIONAL_ROOT_CLAIMS`. (2) In `createJWTToken`,
-  enhancer-supplied claims are now applied *before* UAA's own defaults and skip every protected claim name, then
-  `sub`/`aud` alone are re-applied at the end.
+- **What changed:** (1) `GRANTED_SCOPES` added to `NON_ADDITIONAL_ROOT_CLAIMS`. (2) Enhancer output is applied to the
+  access token **exactly as on develop** — before UAA's defaults, which take precedence for the claims UAA sets. (3)
+  New: after its defaults, UAA applies the claims an enhancer both *named* in `getLateOverrideClaims()` and *returned*
+  (`lateOverrideClaims`, threaded through `createCompositeToken` / `createJWTAccessToken`; the refresh path passes an
+  empty map).
 - **Why:** (1) A refresh must not copy the full consented-scope set onto a deliberately narrowed access token; the old
-  `refreshTokenClaims.remove(GRANTED_SCOPES)` ran after the copy loop and never worked. (2) `MtlsClaimsEnhancer`
-  output is certificate-derived and client-configurable, so it must not be able to overwrite `scope`, `client_id`,
-  `iss`, `authorities`… ; only `sub`/`aud` are meant to be overridable.
-- **Flag:** ⚠️ **Gated by the enhancer list, not by the flag (M1, M3).** Both changes only take effect when
-  `uaaTokenEnhancers` is non-empty. For stock UAA that means `MtlsClaimsEnhancer` is a bean, i.e. flag on — so stock
-  UAA with the flag off is untouched. **But the list is shared:** a deployment that registers its own
-  `UaaTokenEnhancer` beans (e.g. a distribution with closed-source enhancers) gets these changes with the flag off.
-  (1) M1: `NON_ADDITIONAL_ROOT_CLAIMS` is also read by the pre-existing `getAdditionalRootClaims`, which copies
-  refresh-token claims only when the list is non-empty → refreshed access tokens stop carrying `granted_scopes`. (2)
-  M3: the output of *every* enhancer is now filtered — `jti`, `iss`, `scope`, `client_id`, `authorities`,
-  `user_id`/`user_name`/`email`/`origin`/`auth_time`, `rev_sig`, `revocable`, `grant_type` are dropped even where UAA
-  does not set them for that grant, while `sub`/`aud` (previously overwritten and so ignored) now win on every grant.
-  Custom claim names are unaffected. `MtlsClaimsEnhancer` itself returns nothing unless the request authenticated with
-  `tls_client_auth`, and the later enhancer in the list wins a collision (it has no `@Order`).
+  `refreshTokenClaims.remove(GRANTED_SCOPES)` ran after the copy loop and never worked. (3) `MtlsClaimsEnhancer`'s
+  certificate-identity `sub`/`aud` must survive UAA's defaults. It is an opt-in so that no *other* enhancer is
+  restricted or changed: a third-party enhancer is responsible for its own output. (An earlier version of this PR
+  instead filtered protected claim names out of every enhancer's output and let any enhancer's `sub`/`aud` win; that
+  was reverted — see `pr4076-develop-merge-evaluation.md` M3.)
+- **Flag:** (1) ⚠️ **Not gated by the flag, gated by the enhancer list (M1).** `getAdditionalRootClaims` copies
+  refresh-token claims only when `uaaTokenEnhancers` is non-empty, so refreshed access tokens stop carrying
+  `granted_scopes` for any deployment that registers a token enhancer — flag or no flag; stock UAA with the flag off
+  has none and is unaffected. Kept by decision; belongs in the PR description. (2)/(3) ✅ no change for any enhancer
+  that does not opt in, and nothing in the tree opts in except `MtlsClaimsEnhancer` (flag-gated).
+
+#### UaaTokenEnhancer
+
+`server/src/main/java/org/cloudfoundry/identity/uaa/oauth/UaaTokenEnhancer.java`
+
+| [whole file](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-f94b6876ed5bf296dd7c4e0ab3b1ee72527fe7e408f08745d81017e2bc4a3e39) | [getLateOverrideClaims](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-f94b6876ed5bf296dd7c4e0ab3b1ee72527fe7e408f08745d81017e2bc4a3e39R15-R27) |
+|---|---|
+
+- **What changed:** New `default Set<String> getLateOverrideClaims()` returning an empty set, with javadoc.
+- **Why:** The explicit opt-in that lets one enhancer (the mTLS one) keep claims like `sub`/`aud` past UAA's defaults
+  without changing what any other enhancer can do.
+- **Flag:** ✅ **Source- and behaviour-compatible.** A `default` method: existing implementations (including
+  closed-source ones) compile unchanged and get the empty set, i.e. exactly the previous behaviour. Only a *new*
+  abstract method would have broken them.
 
 #### ClientDetailsAuthenticationProvider
 
@@ -421,7 +430,7 @@ All new, so the diff is the whole file. Flag column as in the legend.
 |---|---|---|---|
 | server | [TlsClientAuthentication.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-5b2a9141bd4167c7b204f9adf5d14c31de185da11b6ac91e11af28bc78fe56be) | `@Component`. PKIX validation of a client chain against the per-client CA (all PEMs in a bundle are anchors → CA rotation), end-entity constraints (not a CA, KeyUsage digitalSignature, EKU clientAuth/any), trusted-proxy validation for XFCC, claim-mapping extraction (CN/OU/O, escaped commas, multi-valued RDNs), required-claims check, and selection of the right chain per trust model (direct vs proxy-only). Revocation is off (`setRevocationEnabled(false)`). | ⚪ |
 | server | [TlsClientAuthSubjectMatcher.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-373a0e3501b26d21a2828c853d05e46f8ae21d40209931a1240d83f95ef763c1) | RFC 8705 §2.1.2 exact binding: `tls_client_auth_subject_dn` (LdapName compare, order-significant), `…_san_dns/uri/ip/email` (typed SAN match; IP compared in binary form). Fails closed unless exactly one binding is configured. This is the headline security fix over #3972. | ⚪ |
-| server | [MtlsClaimsEnhancer.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-f41c46fe99944974a318a87fb57fd471f2f74b7112b96b55a67543609b2bfb80) | `UaaTokenEnhancer`. For `tls_client_auth` requests only: certificate-derived claims (dot-notation nesting, reserved names skipped), `cnf.x5t#S256`, `sub`/`aud` templates, and the RFC 8707 `resource` → `aud` (re-checked against the allow-list even though the endpoint already did). Fails closed if `cnf` cannot be computed. **L2:** unguarded `(UaaClientDetails)` cast and a comment referring to handling that isn't there. | ✅ `@Conditional(MtlsEnabledCondition)` (via the bean definition) |
+| server | [MtlsClaimsEnhancer.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-f41c46fe99944974a318a87fb57fd471f2f74b7112b96b55a67543609b2bfb80) | `UaaTokenEnhancer`. For `tls_client_auth` requests only: certificate-derived claims (dot-notation nesting, reserved names skipped), `cnf.x5t#S256`, `sub`/`aud` templates, and the RFC 8707 `resource` → `aud` (re-checked against the allow-list even though the endpoint already did). Fails closed if `cnf` cannot be computed. Overrides `getLateOverrideClaims()` to return `{sub, aud}` — its only opt-in past UAA's defaults. **L2:** unguarded `(UaaClientDetails)` cast and a comment referring to handling that isn't there. | ✅ `@Conditional(MtlsEnabledCondition)` (via the bean definition) |
 | server | [MtlsEnabledCondition.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-7ac690bd7c194500041de0857725634bd1a6eb85c9cbf25322ee9d1ee906cbcc) | Spring `Condition` reading `uaa.mtls-enabled` via `Environment.getProperty(.., Boolean.class, false)` so `1/yes/on` mean the same as for `@Value boolean` injection — prevents a half-enabled feature. | ✅ is the gate |
 | server | [MtlsEndpointAvailabilityFilter.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-ea1929ca11d1a80e9a840c0c3814f6f88412f774a247022c19c5eda0004c8f37) | Order −290. Off → 404; any path below `/oauth/mtls/token` → 404 (closes the `/oauth/mtls/token/oauth/token` routing bypass); non-POST → 405 + `Allow: POST`. Only ever denies. | ✅ |
 | server | [RawPeerCertificateCaptureFilter.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-db53724b287c0f558de0f4ccfa2604d3762e817ee52a7b630cba3b3c33169ac0) | Order −300. Copies the genuine handshake peer cert into a private attribute before the mapper overwrites the standard one; exposes `isMtlsTokenPath` used across the feature (prefix semantics). | ⚪ ungated, harmless |
@@ -613,25 +622,28 @@ Tests:
 
 **[UaaTokenServicesTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299e)**
 
-Three groups: **M1** — refresh with a narrowed scope must not leak `granted_scopes`; the enhancer contract —
-`sub`/`aud` override, protected claims cannot be overridden, custom claims still apply; and **M3 / coexistence**
-(`WhenMtlsClaimsEnhancerSharesTheEnhancerList`, added after the first version of this guide) — the real
-`MtlsClaimsEnhancer` is inert for non-mTLS requests, claims from several enhancers coexist in either order, later
-enhancer wins a collision, protected claims are dropped from *any* enhancer, and `sub`/`aud` from any enhancer win.
-Against develop's `UaaTokenServices` the coexistence, protected-claims and `sub`/`aud` tests fail; the inert and
-collision tests pass.
+Three groups: **M1** — refresh with a narrowed scope must not leak `granted_scopes`; the enhancer contract — an
+opted-in enhancer's `sub`/`aud` win, protected claims cannot be overridden, custom claims still apply; and
+**coexistence** (`WhenMtlsClaimsEnhancerSharesTheEnhancerList`) — the real `MtlsClaimsEnhancer` is inert for non-mTLS
+requests and opts in to `sub`/`aud` only, claims from several enhancers coexist in either order, the later enhancer
+wins a collision, and **another enhancer is unrestricted**: claims UAA does not set for the grant survive, and its
+`sub`/`aud` do not displace UAA's, exactly as on develop. These two were committed red (`448d872a9`) and fail on the
+branch without `3383975fe`.
 
 Tests:
 
 - [`refreshWithNarrowedScopeMustNotLeakGrantedScopesIntoTheAccessToken`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR503)
 - [`enhancerSubAndAudClaimsWinOverUaaDefaults`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR991)
-- [`enhancerCannotOverrideProtectedClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1041)
-- [`enhancerCanStillAddCustomClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1100)
-- [`mtlsEnhancerIsInertForARequestThatIsNotTlsClientAuth`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1182)
-- [`claimsFromBothEnhancersCoexistInEitherOrder`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1199)
-- [`laterEnhancerWinsACustomClaimCollision`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1217)
-- [`protectedClaimsAreDroppedFromAnyEnhancerEvenWhenUaaDoesNotSetThemForTheGrant`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1227)
-- [`subAndAudFromAnyEnhancerWin`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1252)
+- [`enhancerCannotOverrideProtectedClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1046)
+- [`enhancerCanStillAddCustomClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1105)
+- [`mtlsEnhancerIsInertForARequestThatIsNotTlsClientAuth`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1186)
+- [`claimsFromBothEnhancersCoexistInEitherOrder`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1203)
+- [`laterEnhancerWinsACustomClaimCollision`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1220)
+- [`claimsUaaDoesNotSetForTheGrantSurviveFromAnotherEnhancer`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1230)
+- [`subAndAudFromAnotherEnhancerDoNotWin`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1248)
+- [`mtlsEnhancerOptsInToSubAndAudOnly`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1261)
+- [`anEnhancerDoesNotOptInByDefault`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1269)
+- [`optInAppliesOnlyTheNamedClaimsThatWereReturned`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1275)
 
 ### 4b. New test files
 
