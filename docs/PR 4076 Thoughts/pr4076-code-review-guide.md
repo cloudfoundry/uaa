@@ -17,11 +17,15 @@ overall: 94 files, +13 935 / −53, of which docs are excluded below.
 |---|---|
 | ✅ **Gated** | does nothing observable when the flag is off |
 | ⚪ **Inert** | not flag-gated, but cannot act unless something only the flag enables is present (e.g. path that 404s, a config key that can't be registered) |
-| ⚠️ **Un-gated change** | behaviour changes for **every** deployment — review these hardest |
+| ⚠️ **Un-gated change** | behaviour changes without `uaa.mtls-enabled` being on — either for every deployment, or (where stated) for every deployment that registers any token enhancer. Review these hardest |
 | 🔧 **Build/plumbing** | no runtime behaviour of its own |
 
-Summary of the ⚠️ items (details in §1): **M1** `granted_scopes` dropped from refresh-issued access tokens
-([UaaTokenServices](#uaatokenservices)); **M2** `UaaAuthenticationDetails` gains a field and has no
+Summary of the ⚠️ items (details in §1): **M1/M3** `granted_scopes` dropped from refresh-issued access tokens, the
+output of *every* token enhancer filtered against UAA's protected claims, and `sub`/`aud` from any enhancer now
+winning —
+all triggered by the enhancer list being non-empty, so live for any deployment with its own enhancers even with the flag
+off, but not for stock UAA ([UaaTokenServices](#uaatokenservices)); **M2** `UaaAuthenticationDetails` gains a field
+and has no
 `serialVersionUID` ([UaaAuthenticationDetails](#uaaauthenticationdetails)); **widened
 `UAA_SUPPORTED_METHODS`** ([ClientAuthentication](#clientauthentication)) — contained by an external-IdP split;
 `tls-client-auth-ca` is now an interpreted `additionalInformation` key
@@ -50,11 +54,17 @@ Grouped by module; within a module, ordered roughly by how much a reviewer shoul
   `refreshTokenClaims.remove(GRANTED_SCOPES)` ran after the copy loop and never worked. (2) `MtlsClaimsEnhancer`
   output is certificate-derived and client-configurable, so it must not be able to overwrite `scope`, `client_id`,
   `iss`, `authorities`… ; only `sub`/`aud` are meant to be overridable.
-- **Flag:** (1) ⚠️ **Un-gated (M1).** `NON_ADDITIONAL_ROOT_CLAIMS` is also read by the pre-existing
-  `getAdditionalRootClaims`, which every `grant_type=refresh_token` call goes through → refreshed access tokens stop
-  carrying `granted_scopes` on every deployment. Correct behaviour, but a signed-token change on the busiest non-mTLS
-  path. (2) ✅ Gated: the loop only sees entries when `uaaTokenEnhancers` is non-empty, i.e. when `MtlsClaimsEnhancer`
-  is a bean (flag on).
+- **Flag:** ⚠️ **Gated by the enhancer list, not by the flag (M1, M3).** Both changes only take effect when
+  `uaaTokenEnhancers` is non-empty. For stock UAA that means `MtlsClaimsEnhancer` is a bean, i.e. flag on — so stock
+  UAA with the flag off is untouched. **But the list is shared:** a deployment that registers its own
+  `UaaTokenEnhancer` beans (e.g. a distribution with closed-source enhancers) gets these changes with the flag off.
+  (1) M1: `NON_ADDITIONAL_ROOT_CLAIMS` is also read by the pre-existing `getAdditionalRootClaims`, which copies
+  refresh-token claims only when the list is non-empty → refreshed access tokens stop carrying `granted_scopes`. (2)
+  M3: the output of *every* enhancer is now filtered — `jti`, `iss`, `scope`, `client_id`, `authorities`,
+  `user_id`/`user_name`/`email`/`origin`/`auth_time`, `rev_sig`, `revocable`, `grant_type` are dropped even where UAA
+  does not set them for that grant, while `sub`/`aud` (previously overwritten and so ignored) now win on every grant.
+  Custom claim names are unaffected. `MtlsClaimsEnhancer` itself returns nothing unless the request authenticated with
+  `tls_client_auth`, and the later enhancer in the list wins a collision (it has no `@Order`).
 
 #### ClientDetailsAuthenticationProvider
 
@@ -603,16 +613,25 @@ Tests:
 
 **[UaaTokenServicesTests.java](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299e)**
 
-Two groups: **M1** — refresh with a narrowed scope must not leak `granted_scopes` (this is the test that proves the
-un-gated change); and the enhancer contract — `sub`/`aud` override, protected claims cannot be overridden, custom
-claims still apply.
+Three groups: **M1** — refresh with a narrowed scope must not leak `granted_scopes`; the enhancer contract —
+`sub`/`aud` override, protected claims cannot be overridden, custom claims still apply; and **M3 / coexistence**
+(`WhenMtlsClaimsEnhancerSharesTheEnhancerList`, added after the first version of this guide) — the real
+`MtlsClaimsEnhancer` is inert for non-mTLS requests, claims from several enhancers coexist in either order, later
+enhancer wins a collision, protected claims are dropped from *any* enhancer, and `sub`/`aud` from any enhancer win.
+Against develop's `UaaTokenServices` the coexistence, protected-claims and `sub`/`aud` tests fail; the inert and
+collision tests pass.
 
 Tests:
 
-- [`refreshWithNarrowedScopeMustNotLeakGrantedScopesIntoTheAccessToken`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR501)
-- [`enhancerSubAndAudClaimsWinOverUaaDefaults`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR989)
-- [`enhancerCannotOverrideProtectedClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1039)
-- [`enhancerCanStillAddCustomClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1098)
+- [`refreshWithNarrowedScopeMustNotLeakGrantedScopesIntoTheAccessToken`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR503)
+- [`enhancerSubAndAudClaimsWinOverUaaDefaults`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR991)
+- [`enhancerCannotOverrideProtectedClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1041)
+- [`enhancerCanStillAddCustomClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1100)
+- [`mtlsEnhancerIsInertForARequestThatIsNotTlsClientAuth`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1182)
+- [`claimsFromBothEnhancersCoexistInEitherOrder`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1199)
+- [`laterEnhancerWinsACustomClaimCollision`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1217)
+- [`protectedClaimsAreDroppedFromAnyEnhancerEvenWhenUaaDoesNotSetThemForTheGrant`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1227)
+- [`subAndAudFromAnyEnhancerWin`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1252)
 
 ### 4b. New test files
 
