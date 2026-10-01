@@ -250,6 +250,24 @@ current JDKs optimise that shape (and `(a|aa)+b`, `(a*)*b`, `(x+x+)+y`), so it i
 Only (1) is a security measure — 28 characters is already enough to hang, so (2) alone would not be. A mapping with no
 `pattern` is unchanged.
 
+### L6 — unreadable stored configuration downgraded an mTLS client to an unbound token — FIXED
+
+**Severity: low (reachable only for stored data that bypassed the registration validators).**
+
+Found while checking Copilot's review summary ("malformed configuration handling"); see
+`pr4076-copilot-review-status.md`. Three paths ended in a token that was not certificate-bound for a client that was
+meant to be mTLS-only, or for a request that had just authenticated with a certificate:
+
+1. `ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration` swallowed a parse error and returned `null`, so a
+   client with `tls-client-auth-ca` and, say, non-JSON claim mappings was treated as ordinary and could authenticate with
+   its `client_secret` at `/oauth/token`;
+2. `MtlsClaimsEnhancer` re-reads the configuration itself (including keys the authentication step does not parse) and
+   returned an empty map when it could not, issuing a token with no `cnf`;
+3. the same when no certificate could be resolved.
+
+Fixed in `3ac2a4581` (red `d3dc83ea4`): the provider refuses the client, and the enhancer fails the token request, which
+is the choice the `cnf` computation already made. Verified by three tests that failed before the change.
+
 ### L5 — the `granted_scopes` regression test was vacuous in the default configuration — FIXED
 
 **Severity: low (test quality).**

@@ -382,6 +382,7 @@ to hold this branch.
 | `SESSION-HANDOFF.md` | this file |
 | `pr4076-develop-merge-evaluation.md` | **start here for the merge decision**: independent evaluation against `cloudfoundry/develop` on backwards compatibility, security and gating; findings M1-M3 and L1-L5 with their status |
 | `pr4076-code-review-guide.md` | four-section reviewer's map (changed production files with their relationship to the flag, changed existing tests, new production files, new tests), with links into the PR diff |
+| `pr4076-copilot-review-status.md` | every Copilot finding on the PR checked against the code, with where it is handled, the test that pins it, and suggested thread replies |
 | `pr4076-pr-description.md` | paste-ready PR description, including the changes that reach deployments without the flag |
 | `pr3968-security-review.md` | security review of the related SPIFFE JWT-SVID PR #3968 |
 | `pr4076-security-review.md` | **read this before touching the endpoint's routing or the enhancer's `aud` handling**: the three-reviewer security review of this branch — the HIGH descendant-path bypass, the path-resolution defect, what was left unfixed and why, and a long list of what was verified clean |
