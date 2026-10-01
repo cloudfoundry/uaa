@@ -93,7 +93,7 @@ class MtlsClientAuthTomcatCustomizerIntegrationTest {
     }
 
     /**
-     * Regression test for a real-deployment finding (Task 14 end-to-end verification): even with
+     * Regression test for a problem observed on a real deployment: even with
      * {@code certificateVerification=optionalNoCA}, Tomcat/JSSE still populates the
      * {@code CertificateRequest}'s "certificate_authorities" field from the connector's trust store --
      * which, absent any explicit trust store configuration, falls back to the JVM's default

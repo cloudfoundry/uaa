@@ -12,7 +12,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  * {@code @ConditionalOnProperty(name = "uaa.mtls-enabled", havingValue = "true")} compares the raw
  * value to the literal string {@code "true"}, while a {@code boolean} injection point is converted by
  * the environment's conversion service, which also accepts {@code 1}, {@code yes} and {@code on}. So
- * {@code uaa.mtls-enabled=1} used to switch on the seven {@code @Value}-gated components -- the
+ * a plain {@code @ConditionalOnProperty} would let {@code uaa.mtls-enabled=1} switch on the seven {@code @Value}-gated components -- the
  * availability filter, the certificate-mapper filter, both client validators, the bootstrap, the
  * Tomcat connector customizer and the discovery endpoint -- while leaving the two
  * {@code @ConditionalOnProperty} ones off: {@link MtlsClaimsEnhancer}, which stamps the RFC 8705

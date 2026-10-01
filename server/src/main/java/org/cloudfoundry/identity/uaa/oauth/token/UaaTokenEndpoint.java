@@ -137,10 +137,12 @@ public class UaaTokenEndpoint extends TokenEndpoint {
      * tls-client-auth-sub-template}/{@code -aud-templates}. Runs before the grant, so an
      * unauthorized or malformed resource never reaches token issuance.
      *
-     * <p>{@code MtlsClaimsEnhancer} trusts that any {@code resource} value surviving to token
-     * issuance was already validated here -- this is the only path into the granter for {@code
-     * /oauth/mtls/token}, so that invariant holds without a second, redundant allow-list check at
-     * claim-enhancement time.
+     * <p>This is the primary check, not the only one. {@code MtlsClaimsEnhancer} re-checks the
+     * allow-list (and the grant type) itself rather than trusting that a {@code resource} value
+     * reaching token issuance was validated here: a request can reach the granter without passing
+     * through these delegates (Spring also maps the inherited {@code TokenEndpoint} handlers beneath
+     * the type-level paths), and {@code MtlsEndpointAvailabilityFilter} closing that route should not
+     * be what the guarantee depends on. That second check is deliberate -- not redundant.
      */
     private void enforceResourceIndicator(HttpServletRequest request, Principal principal) {
         if (request == null || !RawPeerCertificateCaptureFilter.isMtlsTokenPath(request.getServletPath())) {
@@ -187,10 +189,10 @@ public class UaaTokenEndpoint extends TokenEndpoint {
     }
 
     /**
-     * The client's {@code tls-client-auth-allowed-resources}, checking the typed field first (set
-     * directly on in-memory / admin-API clients) and falling back to {@code additionalInformation}
-     * for JDBC-loaded clients -- same two-step lookup {@code MtlsClaimsEnhancer} uses for the rest of
-     * this configuration. Returns an empty list (authorizing nothing) rather than throwing when the
+     * The client's {@code tls-client-auth-allowed-resources}: the typed field if one is set, otherwise
+     * {@code additionalInformation} -- the same two-step lookup {@code MtlsClaimsEnhancer} uses for the
+     * rest of this configuration. Clients loaded from the database carry their configuration in
+     * {@code additionalInformation}, so that is the path that matters in practice. Returns an empty list (authorizing nothing) rather than throwing when the
      * client cannot be loaded or the value cannot be parsed, so a lookup failure fails closed.
      */
     private List<String> allowedResourcesFor(String clientId) {
