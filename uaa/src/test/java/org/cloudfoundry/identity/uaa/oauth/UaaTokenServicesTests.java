@@ -987,12 +987,17 @@ class UaaTokenServicesTests {
     class WhenTokenEnhancerOverridesSubAndAud {
 
         @Test
-        @DisplayName("enhancer sub and aud claims win over UAA defaults")
+        @DisplayName("an enhancer that opts in has its sub and aud win over UAA defaults")
         void enhancerSubAndAudClaimsWinOverUaaDefaults() {
             UaaTokenEnhancer testEnhancer = new UaaTokenEnhancer() {
                 @Override
                 public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
                     return Map.of();
+                }
+
+                @Override
+                public Set<String> getLateOverrideClaims() {
+                    return Set.of("sub", "aud");
                 }
 
                 @Override
@@ -1249,6 +1254,53 @@ class UaaTokenServicesTests {
             assertThat(aud instanceof String str ? List.of(str) : aud)
                     .asInstanceOf(InstanceOfAssertFactories.list(Object.class))
                     .doesNotContain("other-aud");
+        }
+
+        @Test
+        @DisplayName("the real MtlsClaimsEnhancer opts in to sub and aud and to nothing else")
+        void mtlsEnhancerOptsInToSubAndAudOnly() {
+            UaaTokenEnhancer mtls = new MtlsClaimsEnhancer(mock(TlsClientAuthentication.class), jdbcClientDetailsService);
+
+            assertThat(mtls.getLateOverrideClaims()).containsExactlyInAnyOrder("sub", "aud");
+        }
+
+        @Test
+        @DisplayName("an enhancer that does not opt in has no late overrides, whatever it emits")
+        void anEnhancerDoesNotOptInByDefault() {
+            assertThat(enhancerReturning(Map.of("sub", "x")).getLateOverrideClaims()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("opting in applies only the named claims, and only when the enhancer actually returned them")
+        void optInAppliesOnlyTheNamedClaimsThatWereReturned() {
+            UaaTokenEnhancer optedIn = new UaaTokenEnhancer() {
+                @Override
+                public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                    return Map.of();
+                }
+
+                @Override
+                public Set<String> getLateOverrideClaims() {
+                    return Set.of("sub", "aud");
+                }
+
+                @Override
+                public Map<String, Object> enhance(Map<String, Object> accumulated, OAuth2Authentication authentication) {
+                    // returns sub, but not aud; and a protected claim it did NOT opt in for
+                    return Map.of("sub", "opted-in-sub", "scope", List.of("uaa.admin"));
+                }
+            };
+
+            Map<String, Object> claims = clientCredentialsTokenClaims(optedIn);
+
+            assertThat(claims).containsEntry("sub", "opted-in-sub");
+            Object aud = claims.get("aud");
+            assertThat(aud instanceof String str ? List.of(str) : aud)
+                    .asInstanceOf(InstanceOfAssertFactories.list(Object.class))
+                    .containsExactly(clientId);
+            assertThat(claims.get("scope"))
+                    .asInstanceOf(InstanceOfAssertFactories.list(Object.class))
+                    .doesNotContain("uaa.admin");
         }
     }
 
