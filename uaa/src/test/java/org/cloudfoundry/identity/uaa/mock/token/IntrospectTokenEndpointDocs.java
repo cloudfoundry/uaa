@@ -15,6 +15,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
 import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
+import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -72,6 +73,8 @@ class IntrospectTokenEndpointDocs extends EndpointDocs {
                 fieldWithPath("zid").description("Zone ID"),
                 fieldWithPath("rev_sig").description("Revocation Signature - token revocation hash salted with at least client ID and client secret, and optionally various user values."),
                 fieldWithPath("origin").type(STRING).description("Only applicable for user tokens").optional(),
+                fieldWithPath("cnf").type(OBJECT).description("[RFC 8705 section 3.2](https://www.rfc-editor.org/rfc/rfc8705#section-3.2) confirmation claim. Present only for a token issued at `/oauth/mtls/token`, which is bound to the client certificate it was requested with: `cnf.x5t#S256` is the base64url-encoded SHA-256 thumbprint of that certificate's DER encoding. A resource server that wants the binding to mean anything must compare it with the certificate presented on its own TLS connection.").optional(),
+                fieldWithPath("client_auth_method").type(STRING).description("How the client authenticated when the token was issued, for example `tls_client_auth`. Present only on tokens that record it.").optional(),
                 fieldWithPath("revocable").type(BOOLEAN).description("Set to true if this token is revocable").optional()
         );
 
