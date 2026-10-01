@@ -34,7 +34,7 @@ Every non-test, non-doc file in the diff was read in full (≈2,700 lines of pro
 |---|---|
 | Feature gating (`uaa.mtls-enabled`) | **Holds.** With the flag off, the endpoint 404s before any security chain, the Tomcat connector is untouched, the claims enhancer and the mTLS filter chain beans are absent, discovery advertises nothing, and all four client-registration paths refuse the config keys. Independently re-derived; matches the flag audit's inventory. |
 | Security of the feature when on | **Sound, with the residual items already recorded** in `pr4076-security-review.md` §3 and `SESSION-HANDOFF.md` §9. No new vulnerability found in this pass. |
-| Backwards compatibility | **Two un-gated, wire-visible changes are not recorded anywhere** — findings **M1** and **M3** below, both triggered by *any* token enhancer being registered rather than by the flag. One upgrade-time hazard not previously considered — **M2**. Everything else is additive or already documented. |
+| Backwards compatibility | **One un-gated, wire-visible change is not recorded anywhere** — finding **M1** below, triggered by *any* token enhancer being registered rather than by the flag. (A second, **M3**, was found and has since been fixed.) One upgrade-time hazard not previously considered — **M2**. Everything else is additive or already documented. |
 
 The merge-blocking question is therefore narrow: M1 and M2 are the only two items that affect a
 deployment which never turns the feature on.
@@ -51,7 +51,8 @@ Severity: medium (compatibility), positive (security).**
 > `if (!uaaTokenEnhancers.isEmpty())`, and the only `UaaTokenEnhancer` in the main tree is
 > `MtlsClaimsEnhancer` (flag-gated). So stock UAA with the flag off never copied `granted_scopes` and is
 > unaffected. It **does** affect any deployment that registers its own enhancer — e.g. a distribution with
-> additional closed-source enhancers — regardless of the flag. See also **M3**.
+> additional closed-source enhancers — regardless of the flag. (The wider enhancer-output change found while
+> following this through, **M3**, has been fixed; this one stays by decision.)
 
 `UaaTokenServices.NON_ADDITIONAL_ROOT_CLAIMS` gains `GRANTED_SCOPES`
 (`server/.../oauth/UaaTokenServices.java:143`). That set is consulted in two places, and only one of
@@ -128,44 +129,43 @@ The second is the better long-term fix; the first is one keyword. Note this is a
 condition* this branch happens to trip, not something the branch invented — the class has never had
 a `serialVersionUID` — which is an argument for fixing it properly here.
 
-### M3 — every token enhancer's output is now filtered, and `sub`/`aud` from any enhancer now win
+### M3 — every token enhancer's output was filtered, and `sub`/`aud` from any enhancer won — RESOLVED
 
-**Not gated by `uaa.mtls-enabled` — gated by whether *any* `UaaTokenEnhancer` bean exists. Severity: medium
-(compatibility) for a deployment with its own enhancers; none for stock UAA with the flag off.**
+**Status: fixed in `3383975fe` (red `448d872a9`).** Kept here because the original behaviour is what a reviewer of
+the earlier commits will have seen, and because the contract it settles is worth stating.
 
-The new handling in `createJWTAccessToken` (`UaaTokenServices.java:566-574` and `613-624`) was written to stop
-the certificate-derived mTLS claims overwriting UAA-owned claims, but it is applied to the merged output of
-**all** enhancers, because the enhancer list is one shared list. Behaviour for an enhancer's output, develop vs
-this branch:
+**What it was.** The handling added to `createJWTAccessToken` for the mTLS enhancer's benefit was applied to the
+merged output of **all** enhancers, because the enhancer list is one shared list. For a deployment with its own
+enhancers — gated by that list being non-empty, not by `uaa.mtls-enabled` — it dropped UAA's protected claim names
+from their output (`jti`, `user_name`, `email`, `auth_time`, `authorities`, … including ones UAA does not set for the
+grant, which used to survive) and made their `sub`/`aud` win (which used to be overwritten and therefore ignored).
 
-| Claim the enhancer emits | develop | this branch |
-|---|---|---|
-| `sub` | overwritten by `clientId` / `user.getId()`, so ignored | **wins**, on every grant including user tokens |
-| `aud` | always overwritten, so ignored | **wins** |
-| `jti` | could override the generated id | dropped |
-| `iss`, `zid`, `iat`, `exp`, `scope`, `client_id`, `cid`, `azp` | overwritten (`iss`/`zid` only when an endpoint exists) | dropped |
-| `authorities` | survived on non-`client_credentials` grants | dropped |
-| `user_id`, `user_name`, `email`, `origin`, `auth_time` | survived wherever UAA did not set them, e.g. a `client_credentials` token | dropped |
-| `revocable`, `rev_sig`, `grant_type` | survived wherever UAA did not set them | dropped |
+**The decision.** A third-party enhancer has to be free to do its own thing and is responsible for what it emits;
+enabling mTLS must not change what it can do. So the mTLS work gets no say over other enhancers' output.
 
-Two directions of change: claims that used to be silently ignored (`sub`, `aud`) now take effect, and claims
-that used to survive by accident of UAA not setting them are now dropped. An enhancer that emits any of these
-names changes the tokens it contributes to; one that emits only custom claim names is untouched.
+**What changed.**
 
-Coexistence otherwise holds. The enhancers are collected into one list and each result is `putAll`-ed into a
-shared map, so adding `MtlsClaimsEnhancer` loses none of the others. It returns an empty map unless the request
-authenticated with `tls_client_auth`, so it contributes nothing to ordinary traffic. On a collision the later
-enhancer in the list wins, and `MtlsClaimsEnhancer` has no `@Order`, so its position relative to other enhancers
-follows bean registration order unless they declare one.
+- `createJWTAccessToken` is back to develop's handling for every enhancer: claims applied before UAA's defaults;
+  UAA's defaults take precedence for the claims it sets itself.
+- The one thing the mTLS enhancer needs — its certificate-identity `sub`/`aud` surviving those defaults — is an
+  explicit **opt-in**: `UaaTokenEnhancer.getLateOverrideClaims()`, a `default` method returning an empty set, so
+  existing implementations compile and behave unchanged. `MtlsClaimsEnhancer` returns `{sub, aud}`;
+  `UaaTokenServices` applies, after its defaults, only the claims an enhancer both **named and returned**.
+- The drop-list was redundant for mTLS to begin with: `MtlsClaimsEnhancer` already skips every reserved claim name
+  itself and the registration validators reject them up front.
 
-**Verified, not inferred:** `UaaTokenServicesTests.WhenMtlsClaimsEnhancerSharesTheEnhancerList` (5 tests, commit
-`9c5a4dbf1`). Run against develop's `UaaTokenServices`, the coexistence, protected-claims and `sub`/`aud`
-tests fail and the inert-enhancer and collision tests pass — i.e. the first three describe the change and the
-other two describe pre-existing behaviour.
+**Verified.** The flipped tests pass against develop's `UaaTokenServices` and failed on the branch before the fix;
+1825 tests across the server and uaa `oauth` and mTLS MockMvc suites pass after it.
 
-**Action:** record in the compatibility audit's §3 table; state in the PR description that a deployment with its
-own token enhancers should check them for the claim names above; consider whether `sub`/`aud` from arbitrary
-enhancers winning is intended or whether that late override should be limited to the mTLS enhancer.
+**Still true, and not a defect:** enhancers coexist in one list and each result is `putAll`-ed into a shared map,
+so adding `MtlsClaimsEnhancer` loses none of the others; it returns an empty map unless the request authenticated
+with `tls_client_auth`. On a collision on a custom claim name the later enhancer in the list wins, and
+`MtlsClaimsEnhancer` has no `@Order`, so its position relative to other enhancers follows bean registration order
+unless they declare one.
+
+**Still deliberate (M1):** `GRANTED_SCOPES` remains in `NON_ADDITIONAL_ROOT_CLAIMS`. That filters what UAA copies
+from a *refresh token*, not what an enhancer emits, and it fixes a real leak. It remains a visible change for any
+deployment with enhancers, so it still needs to be in the PR description.
 
 ### L1 — `UaaTokenEndpoint.enforceResourceIndicator`'s javadoc asserts an invariant that was disproved
 
@@ -320,7 +320,7 @@ to produce.
 
 What should not merge silently is **M1** — a change to the claims of refresh-issued access tokens on
 every deployment that registers a token enhancer, currently undocumented in the PR and in the compatibility
-audit — **M3**, the wider form of the same change — and **M2**, an
+audit — and **M2**, an
 upgrade-time session-deserialization break that is one keyword away from being fixed. Both are
 independent of the feature flag, which is exactly why they need to be stated rather than carried in
 on the feature's coat-tails.

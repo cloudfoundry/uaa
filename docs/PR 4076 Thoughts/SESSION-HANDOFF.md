@@ -290,9 +290,11 @@ On this branch:
     because `GRANTED_SCOPES` was added to `NON_ADDITIONAL_ROOT_CLAIMS`, which the pre-existing
     `getAdditionalRootClaims` has always consulted. Correct behaviour, but a wire-visible change on
     the refresh path of any deployment that registers a token enhancer (stock UAA with the flag off has none, so is
-    unaffected); decide whether it goes in the PR description or its own PR. **M3** is the wider form: the
-    output of *every* enhancer is now filtered against protected claim names and `sub`/`aud` from any enhancer
-    win — pinned by `UaaTokenServicesTests.WhenMtlsClaimsEnhancerSharesTheEnhancerList`.
+    unaffected); kept by decision (put it in the PR description). **M3**, the wider form — the output of *every*
+    enhancer being filtered and `sub`/`aud` from any enhancer winning — was **fixed**: third-party enhancers are
+    unrestricted again and the mTLS enhancer opts in to a late `sub`/`aud` via
+    `UaaTokenEnhancer.getLateOverrideClaims()`. Pinned by
+    `UaaTokenServicesTests.WhenMtlsClaimsEnhancerSharesTheEnhancerList`.
   - **M2** — `UaaAuthenticationDetails` gained a field and declares no `serialVersionUID`, so
     Spring-Session-JDBC rows written by the previous UAA version fail to deserialize after an
     upgrade. Fix is `transient` on the new field, or pin the UID to develop's value.
