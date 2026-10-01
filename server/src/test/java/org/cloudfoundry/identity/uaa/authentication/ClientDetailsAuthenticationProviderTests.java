@@ -17,6 +17,8 @@ import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -105,6 +108,33 @@ class ClientDetailsAuthenticationProviderTests {
                 .as("the client-authentication gate must resolve the path the same way the rest of "
                         + "the mTLS machinery does, or it silently stops applying")
                 .isTrue();
+    }
+
+    /**
+     * A client that has {@code tls-client-auth-ca} is mTLS-only. If its configuration cannot be read (a claim-mappings
+     * value that is not JSON, say, in a row written before validation existed or straight to the database), treating it
+     * as an ordinary client would let it fall through to {@code client_secret} authentication and obtain an
+     * <em>unbound</em> token -- the opposite of what its registration says. It must be refused.
+     */
+    @Test
+    void aClientWhoseTlsConfigurationCannotBeReadIsRefusedRatherThanTreatedAsAnOrdinaryClient() {
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.matches(any(), any())).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), encoder, mock(JwtClientAuthentication.class),
+                mock(TlsClientAuthentication.class));
+        UaaClient client = new UaaClient("broken-client", "secret", List.of(), Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, "this is not json"), null);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
+        request.setServletPath("/oauth/token");
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("broken-client", "secret");
+        authentication.setDetails(new UaaAuthenticationDetails(request));
+
+        assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                .as("a client with tls-client-auth-ca must never authenticate with a secret, readable or not")
+                .isInstanceOf(BadCredentialsException.class);
     }
 
     @Test
