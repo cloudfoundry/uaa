@@ -1,6 +1,6 @@
 # Security review — PR #4076, the mTLS feature as it now stands
 
-Reviewed on `review/pr3792-fix` at `ec02e642e` (the RFC 8707 work had just landed and had never been
+Reviewed on `review/pr3792-fix` at `923f39fd3` (the RFC 8707 work had just landed and had never been
 reviewed by anyone). Three independent reviewers were run over separate slices so they could not
 converge on each other's assumptions:
 
@@ -14,7 +14,7 @@ inferred from reading alone is labelled as such.
 
 ## 1. HIGH — both endpoint guards were bypassable one path segment deeper
 
-**Confirmed by test, then fixed.** `147929d23` (red) → `117a8c436` (green).
+**Confirmed by test, then fixed.** `562fcbb76` (red) → `4abcd68e3` (green).
 
 `UaaTokenEndpoint` carries a type-level `@RequestMapping({"/oauth/token", "/oauth/mtls/token"})` and
 extends `TokenEndpoint`, whose inherited `getAccessToken`/`postAccessToken` carry their own
@@ -72,7 +72,7 @@ handler ranking:
 
 ## 2. LOW, latent — the client-auth gate read a different path than every other gate
 
-**Confirmed at unit level, then fixed.** `04c510e31` (red) → `2874f28d9` (green).
+**Confirmed at unit level, then fixed.** `ce7645f33` (red) → `50f9590b9` (green).
 
 Every mTLS gate keys off `HttpServletRequest.getServletPath()`, which the container has already
 decoded and normalised. `ClientDetailsAuthenticationProvider.isTlsClientAuthPath` instead keyed off
@@ -141,7 +141,7 @@ so it is recorded rather than rated.
 The negative results are the more useful half of this review, because several are exactly the
 plausible-sounding findings that would otherwise be re-litigated every round.
 
-**RFC 8707 surface**
+### RFC 8707 surface
 
 - **Parameter smuggling between the two views of the request.** `enforceResourceIndicator` validates
   `request.getParameterValues("resource")` while the enhancer reads
@@ -162,7 +162,7 @@ plausible-sounding findings that would otherwise be re-litigated every round.
   `aud` but do not authorize on it. The impact of finding 1 was therefore scoped to downstream
   RFC 8705/8707 resource servers.
 
-**Certificate authentication**
+### Certificate authentication
 
 - **Subject matching.** DN comparison canonicalises both sides through `LdapName`: RDN order is
   significant, RDN count must match, multi-valued AVAs are sorted before comparison, and escaped
@@ -193,7 +193,7 @@ plausible-sounding findings that would otherwise be re-litigated every round.
 - **Fail-open walk.** Every `catch`, null check and boolean helper in `TlsClientAuthentication` and
   `TlsClientAuthSubjectMatcher` was walked; all failure outcomes deny. No fail-open branch found.
 
-**Claims, registration, multi-tenancy**
+### Claims, registration, multi-tenancy
 
 - `RESERVED_CLAIM_NAMES` covers what `UaaTokenServices` protects plus the reachable authentication-
   context set; `isReservedClaimName`'s root-segment check is the right shape for the enhancer's

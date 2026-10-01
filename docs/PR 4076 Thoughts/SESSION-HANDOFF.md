@@ -1,7 +1,11 @@
 # Session handoff — PR #4076 (RFC 8705 mTLS client authentication)
 
 Written 2026-09-29 at the end of a long working session, for picking this up cold on another
-machine. Everything below is verified against the repo at the time of writing, not recalled.
+machine. Everything below was verified against the repo at the time of writing, not recalled.
+
+**Updated 2026-10-01.** §1, §2, §7 and §9 have been brought up to date. §6's test counts and machine
+details are as of 2026-09-29 and were not re-run in full since; the work after that date was verified with
+targeted suites, named in the documents that describe it.
 
 ## 0. Can you resume the actual session elsewhere? No
 
@@ -21,9 +25,8 @@ Start a fresh session on the new machine and point it at this document. That is 
 ## 1. Where things stand
 
 - **Branch:** `review/pr3792-fix` → **PR [#4076](https://github.com/cloudfoundry/uaa/pull/4076)**
-- **Pushed to:** `origin` (`git@github.com:fhanik/uaa`). Everything up to `ec02e642e` is pushed; the
-  four security-fix commits above it (`147929d23`..`2874f28d9`) were **not pushed** at time of
-  writing.
+- **Pushed to:** `origin` (`git@github.com:fhanik/uaa`). As of 2026-10-01 everything on the branch is
+  pushed; check `git status -sb` for anything newer.
 - **Base:** `cloudfoundry/develop`
 - Working tree clean. The analysis docs in `docs/PR 4076 Thoughts/` are committed, so they travel
   with the branch — see the index in §11 for the ones relevant to this work.
@@ -72,26 +75,32 @@ strip AI co-author trailers (see §7). Match commits by subject line, not SHA.
 
 | SHA | What it is |
 |---|---|
-| `2874f28d9` | **fix** (green): resolve the mTLS client-auth gate from the decoded servlet path |
-| `04c510e31` | **test** (red): the client-auth gate reads a different path than every other gate |
-| `117a8c436` | **fix** (green): serve nothing below `/oauth/mtls/token`; enforce the allow-list in the enhancer |
-| `147929d23` | **test** (red): paths below `/oauth/mtls/token` bypass both endpoint guards — **the HIGH finding** |
-| `eca4010d9` | docs: cover the RFC 8707 `resource` parameter in the mTLS API docs (restdocs) |
-| `ec02e642e` | docs: `tls-client-auth-allowed-resources` and the `resource` parameter |
-| `64ab95f75` | **fix** (green): enforce and honor the RFC 8707 `resource` parameter |
-| `9f3659a61` | **test** (red): the `resource` parameter is silently ignored |
-| `bb90e8a43` | **fix** (green): validate `tls-client-auth-allowed-resources` at registration |
-| `7925c1495` | **test** (red): the resource allow-list has no registration validation |
-| `fd53af205` | your commit: scope the session handoff to the mTLS work only |
-| `7c9dc131d` | your commit: add this session handoff |
-| `5e4039cc7` | your commit: three analysis docs into `docs/PR 4076 Thoughts/` |
-| `e233d4bdd` | docs: revocation behaviour and CA rotation |
-| `0d8e4726e` | **fix** (green): skip constructing the buildpack mapper when mTLS is off |
-| `ab8ffb19b` | **test** (red): the mapper is registered when mTLS is off |
-| `ad861ddd8` | **fix** (green): make the mTLS endpoint POST-only |
-| `24728b996` | **test** (red): the mTLS endpoint serves GET |
-| `1f720544c` | **fix** (green): trust every certificate in a `tls-client-auth-ca` rotation bundle |
-| `f65011bb9` | **test** (red): a rotation bundle silently trusts only the first certificate |
+| `3383975fe` | **fix** (green): third-party token enhancers are unrestricted again; mTLS opts in to a late `sub`/`aud` via `UaaTokenEnhancer.getLateOverrideClaims()` |
+| `448d872a9` | **test** (red): a third-party token enhancer must not be restricted by the mTLS work |
+| `9c5a4dbf1` | **test**: pin how `MtlsClaimsEnhancer` coexists with other token enhancers |
+| `a361df928` | **fix**: make `uaa.mtls-enabled` mean one thing, so the feature cannot half-enable (`MtlsEnabledCondition`) |
+| `19a14a894` | **test**: pin that discovery DOES advertise mTLS when the feature is enabled |
+| `3f455e1e7` | **fix**: stop the pre-RFC-8705 `OpenIdConfiguration` constructor advertising mTLS |
+| `50f9590b9` | **fix** (green): resolve the mTLS client-auth gate from the decoded servlet path |
+| `ce7645f33` | **test** (red): the client-auth gate reads a different path than every other gate |
+| `4abcd68e3` | **fix** (green): serve nothing below `/oauth/mtls/token`; enforce the allow-list in the enhancer |
+| `562fcbb76` | **test** (red): paths below `/oauth/mtls/token` bypass both endpoint guards — **the HIGH finding** |
+| `199883a87` | docs: cover the RFC 8707 `resource` parameter in the mTLS API docs (restdocs) |
+| `923f39fd3` | docs: `tls-client-auth-allowed-resources` and the `resource` parameter |
+| `6b899f1d3` | **fix** (green): enforce and honor the RFC 8707 `resource` parameter |
+| `e172f3ed5` | **test** (red): the `resource` parameter is silently ignored |
+| `8b929a462` | **fix** (green): validate `tls-client-auth-allowed-resources` at registration |
+| `0fd331d5b` | **test** (red): the resource allow-list has no registration validation |
+| `f3b174a87` | your commit: scope the session handoff to the mTLS work only |
+| `a4d0f65ad` | your commit: add this session handoff |
+| `d8c156f1f` | your commit: three analysis docs into `docs/PR 4076 Thoughts/` |
+| `69992c32b` | docs: revocation behaviour and CA rotation |
+| `b2c1e7025` | **fix** (green): skip constructing the buildpack mapper when mTLS is off |
+| `80e3e7b36` | **test** (red): the mapper is registered when mTLS is off |
+| `43986e4a5` | **fix** (green): make the mTLS endpoint POST-only |
+| `ce005b89e` | **test** (red): the mTLS endpoint serves GET |
+| `41d0f7208` | **fix** (green): trust every certificate in a `tls-client-auth-ca` rotation bundle |
+| `637754986` | **test** (red): a rotation bundle silently trusts only the first certificate |
 | `3a7776d21` | **fix**: correct stale `FINDING` / `FAILS TODAY` markers on tests that now pass |
 | `54a9ae4de` | **test**: identity-zone isolation, both addressing modes |
 | `dfc657805` | your commit: "musings about the intent of the original PR #3972" |
@@ -139,7 +148,8 @@ Full analysis: `pr4075-comment-vs-our-branch.md`. Summary of that comparison:
 - **Seven findings both branches fixed** (grant-type restriction, consistent 401s, endpoint no
   longer an alias of `/oauth/token`, placeholder-less `sub` templates, `amr`/`acr` claim mappings
   including dotted names, 404 when disabled, `token-endpoint-auth-method` as inert metadata).
-- **Four gaps of ours, now ported** in `9d398066c` + `62ade2c12` — see §5.
+- **Four gaps of ours, now ported** (CA rotation `637754986`/`41d0f7208`, POST-only `ce005b89e`/`43986e4a5`,
+  mapper gating `80e3e7b36`/`b2c1e7025`, expired certs) — see §5.
 - **Ours that he lacks:** §2.1.2 subject binding (§3 above), zone isolation, §3.2 verification, and
   a red/green commit split (he declined this explicitly: "tests and production changes are
   committed together").
@@ -232,10 +242,11 @@ export JAVA_HOME=/Users/fhanik/workspace/software/java/jdk-25.0.1.jdk/Contents/H
   what `uaa/slate/.ruby-version` and the README ask for, plus bundler 2.7.1. Nothing to install.
   Note `/opt/homebrew/opt/ruby/bin` sits *ahead* of `~/.rbenv/shims` on `PATH` but is empty, so
   rbenv's ruby is what actually resolves.
-- **`npx` does not exist on this machine and the npm registry 403s** (it points at an internal
-  Artifactory mirror), so `npx markdownlint-cli2` cannot be run and the markdown lint rule in
-  `CLAUDE.md` cannot be satisfied here. Markdown edits since then are unlinted; re-run the check
-  where the tool is available.
+- **Markdown lint.** `npx markdownlint-cli2` does not work here (the npm registry is an internal
+  Artifactory mirror that 403s it). `markdownlint-cli2` is installed via Homebrew at
+  `/opt/homebrew/bin/markdownlint-cli2`; run it **from the repository root** so it picks up
+  `.markdownlint.json` (120-column limit) — run from a subdirectory it applies the 80-column default and
+  reports hundreds of false errors.
 - **Stop the gradle daemon after changing PATH** (`./gradlew --stop`). A daemon keeps the PATH it
   started with; this caused a bogus `generateDocs` ruby/gem failure earlier in the session.
 - **`timeout` is not installed** (no GNU coreutils); use a background PID plus `kill` instead.
@@ -298,10 +309,12 @@ On this branch:
   - **M2** — `UaaAuthenticationDetails` gained a field and declares no `serialVersionUID`, so
     Spring-Session-JDBC rows written by the previous UAA version fail to deserialize after an
     upgrade. Fix is `transient` on the new field, or pin the UID to develop's value.
-  Plus four low-severity items (L1-L4) — two stale code comments that assert invariants the security
-  review disproved, an unguarded cast, and a field that is dead in production. None fixed; all
-  documented only, per the review's remit.
-- Nothing blocking. Branch is green; the four security-fix commits are **not yet pushed**.
+  Plus four low-severity items (L1-L4). L1 (a javadoc asserting an invariant the security review
+  disproved) and the comment half of L2/L3 have since been **fixed**; what remains open is that
+  `UaaClientDetails.tlsClientAuthConfiguration` is dead in production (L3) and that the claim-mapping
+  `pattern` has no complexity bound (L4). The evaluation also records that the `granted_scopes` regression
+  test was vacuous in the default configuration and has been made to register an enhancer.
+- Nothing blocking. Branch is green and pushed.
 - **Decide what `cnf` should do on token refresh.** `UaaTokenServices.refreshAccessToken` copies
   `cnf` forward from the refresh token's claims (it is absent from `NON_ADDITIONAL_ROOT_CLAIMS`)
   without re-checking any presented certificate, so a refreshed token claims a binding the presenter
