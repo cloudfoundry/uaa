@@ -72,11 +72,11 @@ enforces the intent that line was written for — so **refreshed access tokens s
 `granted_scopes`** the moment this merges, for every deployment that has at least one token enhancer
 (flag or no flag).
 
-That is the right behaviour (a deliberately narrowed access token should not disclose the full
-consented set, and the new test `UaaTokenServicesTests:500` pins it). The problem is that it is a
-change to the content of a signed token on the refresh path of every enhancer-using deployment, shipped
-by a PR whose stated scope is an opt-in feature. Any resource server reading `granted_scopes` off an
-access token obtained via the refresh grant will stop finding it.
+That is the right behaviour (a deliberately narrowed access token should not disclose the full consented set, and the
+test `UaaTokenServicesTests.refreshWithNarrowedScopeMustNotLeakGrantedScopesIntoTheAccessToken` pins it). The problem
+is that it is a change to the content of a signed token on the refresh path of every enhancer-using deployment,
+shipped by a PR whose stated scope is an opt-in feature. Any resource server reading `granted_scopes` off an access
+token obtained via the refresh grant will stop finding it.
 
 **Action:** add it to §3 of `pr4076-backwards-compatibility-audit.md` ("intentional behaviour
 changes"), where it currently does not appear, and call it out in the PR description — it is the one
@@ -167,40 +167,30 @@ unless they declare one.
 from a *refresh token*, not what an enhancer emits, and it fixes a real leak. It remains a visible change for any
 deployment with enhancers, so it still needs to be in the PR description.
 
-### L1 — `UaaTokenEndpoint.enforceResourceIndicator`'s javadoc asserts an invariant that was disproved
+### L1 — `UaaTokenEndpoint.enforceResourceIndicator`'s javadoc asserted an invariant that was disproved — FIXED
 
-**Severity: low, but it is load-bearing documentation in security-critical code.**
+**Severity: low, but it was load-bearing documentation in security-critical code.**
 
-The javadoc at `server/.../oauth/token/UaaTokenEndpoint.java` still reads:
+The javadoc said `MtlsClaimsEnhancer` trusts that any `resource` value reaching token issuance was already
+validated by the controller, because it is the only path into the granter. That is the reasoning
+`pr4076-security-review.md` §1 recorded as wrong (Spring also mapped `/oauth/mtls/token/oauth/token` to the
+inherited handler), and it was an invitation to delete the enhancer's allow-list check as "redundant".
+Rewritten to say the enhancer's re-check is deliberate and why; the matching comment in `MtlsClaimsEnhancer`
+now states present facts instead of the history.
 
-> `MtlsClaimsEnhancer` trusts that any `resource` value surviving to token issuance was already
-> validated here — this is the only path into the granter for `/oauth/mtls/token`, so that invariant
-> holds without a second, redundant allow-list check at claim-enhancement time.
-
-That is precisely the reasoning `pr4076-security-review.md` §1 recorded as **wrong** (Spring also
-mapped `/oauth/mtls/token/oauth/token` to the inherited handler), and `MtlsClaimsEnhancer` now
-carries a comment saying the opposite and does re-check the allow-list. A future maintainer reading
-only this javadoc has an explicit invitation to delete the enhancer's check as "redundant".
-
-**Action:** rewrite the paragraph to say the enhancer re-checks deliberately, and why.
-
-### L2 — `MtlsClaimsEnhancer` casts the loaded client unguarded, and its comment claims handling that is absent
+### L2 — `MtlsClaimsEnhancer`'s client lookup is unguarded — comment corrected; cast remains
 
 **Severity: low.**
 
-`MtlsClaimsEnhancer.enhance` does
-`UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);`
-with no `instanceof` and no `try`. A few lines later a comment refers to "the client-details lookup
-failure above" following a "fail-closed philosophy" — there is no such handling above; a
-`NoSuchClientException` or any other `ClientDetails` implementation becomes a 500 out of token
-issuance. `UaaTokenEndpoint.allowedResourcesFor` does the same lookup *defensively*
-(`client instanceof UaaClientDetails`, `catch (Exception e) { return List.of(); }`), so the two
-call sites disagree about whether this lookup can fail.
+An earlier version of this finding said a comment referred to lookup-failure handling that did not exist. That
+was wrong: the lookup is deliberately unguarded so that a failure propagates and fails the whole token request,
+and `enhancePropagatesExceptionWhenClientDetailsLookupFails` pins it. The comment now says so.
 
-Unreachable in practice (the client authenticated moments earlier, and UAA's JDBC service returns
-`UaaClientDetails`), so this is consistency and comment accuracy, not a live defect.
+What does remain is the bare `(UaaClientDetails)` cast, which would throw `ClassCastException` for any other
+`ClientDetails` implementation, where `UaaTokenEndpoint.allowedResourcesFor` checks `instanceof`. Unreachable
+in practice (UAA's JDBC service returns `UaaClientDetails`), so consistency only.
 
-### L3 — `UaaClientDetails.tlsClientAuthConfiguration`: dead in production, wrong comment, serialization landmine
+### L3 — `UaaClientDetails.tlsClientAuthConfiguration`: dead in production, serialization landmine (comments corrected)
 
 **Severity: low.**
 
@@ -222,6 +212,9 @@ Three separate small problems in one field:
   `additionalInformation`. A DB-loaded client and a setter-built client with identical configuration
   compare unequal.
 
+**Comments** that described the typed field as the primary path (in `MtlsClaimsEnhancer` and `UaaTokenEndpoint`)
+have been corrected to say `additionalInformation` is the path that matters. The field itself is unchanged.
+
 **Action:** either make the field `transient` and drop it from `equals`/`hashCode` (keeping it as a
 pure in-request cache), or populate it on the JDBC load path so the fast path is real. Doing neither
 leaves two comments in the tree that describe behaviour that does not exist.
@@ -238,6 +231,17 @@ syntactically valid catastrophic-backtracking pattern (`(a+)+b`) is accepted and
 `Pattern.compile`d and matched against certificate OU values on **every token request**
 (`TlsClientAuthentication.matchFirstOu`). Operator-supplied, so this is an availability footgun
 rather than an attack surface — but it is inconsistent with the bound deliberately added next to it.
+
+### L5 — the `granted_scopes` regression test was vacuous in the default configuration — FIXED
+
+**Severity: low (test quality).**
+
+`UaaTokenServicesTests.refreshWithNarrowedScopeMustNotLeakGrantedScopesIntoTheAccessToken` ran with no token
+enhancer registered, so the guarded copy block was never reached and the test passed **whether or not**
+`GRANTED_SCOPES` was filtered. Confirmed by removing the filter: the test stayed green. It now registers an enhancer
+for the duration of the test; with the filter removed it fails, with the filter it passes. Its comment, which still
+claimed `MtlsClaimsEnhancer` was an unconditional `@Component` that switches the leak on in every deployment, now
+describes the real condition.
 
 ## 3. Independently re-verified, no issue found
 

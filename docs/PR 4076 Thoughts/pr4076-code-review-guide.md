@@ -633,17 +633,17 @@ branch without `3383975fe`.
 Tests:
 
 - [`refreshWithNarrowedScopeMustNotLeakGrantedScopesIntoTheAccessToken`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR503)
-- [`enhancerSubAndAudClaimsWinOverUaaDefaults`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR991)
-- [`enhancerCannotOverrideProtectedClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1046)
-- [`enhancerCanStillAddCustomClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1105)
-- [`mtlsEnhancerIsInertForARequestThatIsNotTlsClientAuth`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1186)
-- [`claimsFromBothEnhancersCoexistInEitherOrder`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1203)
-- [`laterEnhancerWinsACustomClaimCollision`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1220)
-- [`claimsUaaDoesNotSetForTheGrantSurviveFromAnotherEnhancer`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1230)
-- [`subAndAudFromAnotherEnhancerDoNotWin`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1248)
-- [`mtlsEnhancerOptsInToSubAndAudOnly`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1261)
-- [`anEnhancerDoesNotOptInByDefault`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1269)
-- [`optInAppliesOnlyTheNamedClaimsThatWereReturned`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1275)
+- [`enhancerSubAndAudClaimsWinOverUaaDefaults`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1009)
+- [`enhancerCannotOverrideProtectedClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1064)
+- [`enhancerCanStillAddCustomClaims`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1123)
+- [`mtlsEnhancerIsInertForARequestThatIsNotTlsClientAuth`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1204)
+- [`claimsFromBothEnhancersCoexistInEitherOrder`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1221)
+- [`laterEnhancerWinsACustomClaimCollision`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1238)
+- [`claimsUaaDoesNotSetForTheGrantSurviveFromAnotherEnhancer`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1248)
+- [`subAndAudFromAnotherEnhancerDoNotWin`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1266)
+- [`mtlsEnhancerOptsInToSubAndAudOnly`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1279)
+- [`anEnhancerDoesNotOptInByDefault`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1287)
+- [`optInAppliesOnlyTheNamedClaimsThatWereReturned`](https://github.com/cloudfoundry/uaa/pull/4076/files#diff-1c3e223365efca985eb7ad3224f4535e10159f6a17d3ac0cff368a2bbaaf299eR1293)
 
 ### 4b. New test files
 
