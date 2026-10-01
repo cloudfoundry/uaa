@@ -23,6 +23,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,6 +76,17 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                                ClientDetailsService clientDetailsService) {
         this.tlsClientAuthentication = tlsClientAuthentication;
         this.clientDetailsService = clientDetailsService;
+    }
+
+    /**
+     * The certificate-identity {@code sub} and {@code aud} (from {@code tls-client-auth-sub-template},
+     * {@code tls-client-auth-aud-templates} and the RFC 8707 {@code resource} parameter) are the point of this
+     * enhancer, so they must survive UAA's own defaults. Nothing else this enhancer returns needs to: every other
+     * name is either a custom claim or is rejected as reserved before it is ever returned.
+     */
+    @Override
+    public Set<String> getLateOverrideClaims() {
+        return Set.of("sub", "aud");
     }
 
     /**
