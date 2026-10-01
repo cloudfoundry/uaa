@@ -281,6 +281,21 @@ export JAVA_HOME=/Users/fhanik/workspace/software/java/jdk-25.0.1.jdk/Contents/H
 
 On this branch:
 
+- **Read `pr4076-develop-merge-evaluation.md` first if you are picking this up fresh.** It is a full,
+  independent evaluation of the branch against `cloudfoundry/develop` on the three merge criteria
+  (backwards compatibility, security, feature gating), done after this handoff was last updated. It
+  confirms the gating holds and finds no new vulnerability, and raises two items that are **not**
+  gated by `uaa.mtls-enabled` and therefore ship to every deployment:
+  - **M1** — `granted_scopes` stops appearing on access tokens issued via `grant_type=refresh_token`,
+    because `GRANTED_SCOPES` was added to `NON_ADDITIONAL_ROOT_CLAIMS`, which the pre-existing
+    `getAdditionalRootClaims` has always consulted. Correct behaviour, but a wire-visible change on
+    the busiest non-mTLS path in UAA; decide whether it goes in the PR description or its own PR.
+  - **M2** — `UaaAuthenticationDetails` gained a field and declares no `serialVersionUID`, so
+    Spring-Session-JDBC rows written by the previous UAA version fail to deserialize after an
+    upgrade. Fix is `transient` on the new field, or pin the UID to develop's value.
+  Plus four low-severity items (L1-L4) — two stale code comments that assert invariants the security
+  review disproved, an unguarded cast, and a field that is dead in production. None fixed; all
+  documented only, per the review's remit.
 - Nothing blocking. Branch is green; the four security-fix commits are **not yet pushed**.
 - **Decide what `cnf` should do on token refresh.** `UaaTokenServices.refreshAccessToken` copies
   `cnf` forward from the refresh token's claims (it is absent from `NON_ADDITIONAL_ROOT_CLAIMS`)
