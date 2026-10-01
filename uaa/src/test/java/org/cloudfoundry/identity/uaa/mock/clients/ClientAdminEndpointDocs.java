@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.mock.clients;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
@@ -69,6 +70,30 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
             fieldWithPath(ClientConstants.CREATED_WITH).optional(null).type(STRING).description("What scope the bearer token had when client was created"),
             fieldWithPath(ClientConstants.APPROVALS_DELETED).optional(null).type(BOOLEAN).description("Were the approvals deleted for the client, and an audit event sent"),
             fieldWithPath(ClientConstants.REQUIRED_USER_GROUPS).optional(null).type(ARRAY).description("A list of group names. If a user doesn't belong to all the required groups, the user will not be authenticated and no tokens will be issued to this client for that user. If this field is not set, authentication and token issuance will proceed normally."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA).optional(null).type(STRING)
+                    .description("PEM of the CA (or a bundle, for CA rotation) that client certificates must chain to, for [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705) `tls_client_auth` mutual-TLS client authentication at `/oauth/mtls/token`. A client that sets it authenticates **only** with a certificate and must also register exactly one of the five subject parameters below. Accepted only when the deployment sets `uaa.mtls-enabled`; see [UAA Client Authentication](https://github.com/cloudfoundry/uaa/blob/develop/docs/UAA-Client-Authentication.md#tls_client_auth-rfc-8705)."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN).optional(null).type(STRING)
+                    .description("RFC 8705 section 2.1.2: the certificate subject DN this client's certificate must carry (RFC 4514 form, order-significant, attribute-type and spacing insensitive). A client with `tls-client-auth-ca` must set **exactly one** of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`, `tls_client_auth_san_email`; chain validation alone only proves who issued the certificate, not that it belongs to this client."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS).optional(null).type(STRING)
+                    .description("RFC 8705 section 2.1.2: the dNSName subjectAltName the certificate must carry (case-insensitive). One of the five subject parameters; see `tls_client_auth_subject_dn`."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI).optional(null).type(STRING)
+                    .description("RFC 8705 section 2.1.2: the uniformResourceIdentifier subjectAltName the certificate must carry (exact match). One of the five subject parameters; see `tls_client_auth_subject_dn`."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP).optional(null).type(STRING)
+                    .description("RFC 8705 section 2.1.2: the iPAddress subjectAltName the certificate must carry (compared in binary form, so equivalent spellings of an address match). One of the five subject parameters; see `tls_client_auth_subject_dn`."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL).optional(null).type(STRING)
+                    .description("RFC 8705 section 2.1.2: the rfc822Name subjectAltName the certificate must carry (exact match). One of the five subject parameters; see `tls_client_auth_subject_dn`."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA).optional(null).type(STRING)
+                    .description("PEM of the CA the TLS peer (for example a Gorouter) must chain to for the `X-Forwarded-Client-Cert` header to be trusted. Setting it makes this client proxy-only; leaving it unset makes the client direct-connection-only. The two are mutually exclusive per client."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS).optional(null).type(Arrays.asList(ARRAY, STRING))
+                    .description("List (or JSON string of a list) of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to claims in the issued token. `pattern` applies only to `subject_ou` and must contain a capture group; reserved claim names are rejected. A pattern is matched against OU values of at most 256 characters and abandoned if it reads more than 100 000 characters, in which case that mapping yields no claim."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE).optional(null).type(STRING)
+                    .description("Template for the token's `sub` claim, with `{claim}` placeholders that must name claims declared in `tls-client-auth-claim-mappings`. At least one placeholder is required; at most 256 characters."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES).optional(null).type(Arrays.asList(ARRAY, STRING))
+                    .description("Templates for the token's `aud` claim, with the same placeholder rules as `tls-client-auth-sub-template`. Mutually exclusive with `tls-client-auth-allowed-resources`."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS).optional(null).type(Arrays.asList(OBJECT, STRING))
+                    .description("Map of claim name to the exact value that claim must have, extracted from the certificate via `tls-client-auth-claim-mappings`; authentication is refused otherwise. Scopes a client to, for example, one org, space or app. A UAA extension, not a substitute for a subject parameter."),
+            fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES).optional(null).type(Arrays.asList(ARRAY, STRING))
+                    .description("List of exact [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) resource values (absolute URIs, no fragment) this client may request with the `resource` parameter at `/oauth/mtls/token`; the requested value becomes the token's `aud`. An absent list authorizes nothing. Mutually exclusive with `tls-client-auth-aud-templates`."),
             fieldWithPath("client_jwt_config").optional(null).type(STRING)
                     .description("**Preferred (top-level).** JSON string of the client's JWT trust for `private_key_jwt` client authentication, using the `ClientJwtConfiguration` shape: optional `jwks` (JWK set), `jwks_uri` (per OpenID `jwks_uri` semantics), and/or `jwt_creds` (array of `iss`/`sub`/`aud` objects for federated RFC 7523). Stored in the `client_jwt_config` column, merged on create/update, and re-read for token validation. For new work, set trust only here, not in duplicate legacy fields."),
             fieldWithPath("jwt_creds").optional(null).type(ARRAY)
