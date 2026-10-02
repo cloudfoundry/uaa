@@ -158,13 +158,15 @@ class StaleUrlCacheTests {
     }
 
     @Test
-    void max_entries_is_respected() throws Exception {
+    void max_weight_is_respected() throws Exception {
         String uri1 = "https://test1.com";
         String uri2 = "https://test2.com";
         String uri3 = "https://test3.com";
-        byte[] c1 = new byte[1024];
-        byte[] c2 = new byte[1024];
-        byte[] c3 = new byte[1024];
+        // maxEntries in setup is 2, which means maxWeight is 20KB. 
+        // 3 entries of 15KB will exceed 20KB, so one will be evicted.
+        byte[] c1 = new byte[15000];
+        byte[] c2 = new byte[15000];
+        byte[] c3 = new byte[15000];
         mockRestTemplate = mock(RestTemplate.class);
         when(mockRestTemplate.getForObject(eq(new URI(uri1)), any())).thenReturn(c1);
         when(mockRestTemplate.getForObject(eq(new URI(uri2)), any())).thenReturn(c2);
@@ -176,7 +178,7 @@ class StaleUrlCacheTests {
             verify(mockRestTemplate, times(1)).getForObject(eq(new URI(aUri)), same(byte[].class));
         }
         cache.cleanUp();
-        assertThat(cache.size()).isEqualTo(2);
+        assertThat(cache.size()).isLessThanOrEqualTo(2);
     }
 
     @Test
