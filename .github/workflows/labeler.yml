@@ -1,6 +1,9 @@
 name: labeler
 
-on: [pull_request]
+# pull_request_target is required so PRs from forks get a token that can write labels.
+# This is safe only because the job never checks out or executes code from the PR;
+# the labeler reads the PR size through the GitHub API. Do not add a checkout step here.
+on: [pull_request_target]
 
 jobs:
   labeler:
