@@ -127,6 +127,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#oauthclientallowpublic"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.allowpublic` | `[]`| Clients allowed to authenticate without a client secret (PKCE S256)|
 | <a href="#oauthuserauthorities"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.user.authorities` | (see details)| Default authorities for new users|
 | <a href="#clientmaxcount"><img src="images/click-me.png" width="14" height="14"/></a> `clientMaxCount` | `500`| Max clients returned by list endpoint|
+| <a href="#uaamtls-enabled"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.mtls-enabled` | `false`| Enables RFC 8705 mutual-TLS client authentication|
 
 ### Password Policy
 
@@ -1248,6 +1249,52 @@ Default authorities (group memberships) automatically assigned to every new user
 
 Maximum number of clients returned in a single list/search response from the
 client admin API (`/oauth/clients`).
+
+[Back to table](#oauth-clients--users)
+
+---
+
+### `uaa.mtls-enabled`
+
+**Default:** `false`
+**Source:** `@Value("${uaa.mtls-enabled:false}")` in [`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java), [`SpringServletXmlFiltersConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlFiltersConfiguration.java), [`ClientAdminBootstrap`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminBootstrap.java), [`ZoneEndpointsClientDetailsValidator`](../server/src/main/java/org/cloudfoundry/identity/uaa/zone/ZoneEndpointsClientDetailsValidator.java), [`OpenIdConnectEndpoints`](../server/src/main/java/org/cloudfoundry/identity/uaa/account/OpenIdConnectEndpoints.java), [`MtlsClientAuthTomcatCustomizer`](../server/src/main/java/org/cloudfoundry/identity/uaa/web/tomcat/MtlsClientAuthTomcatCustomizer.java); and, for the beans that are conditional rather than parameterised, [`MtlsEnabledCondition`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/tls/MtlsEnabledCondition.java)
+**Type:** `boolean`
+
+Master switch enabling RFC 8705 mutual-TLS client authentication (`tls_client_auth`)
+deployment-wide. This is **connector-wide**: it affects every TLS connection to this UAA
+instance, not just requests to the mTLS token endpoint (`/oauth/mtls/token`).
+[`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
+also uses this value to wire
+[`ClientAdminEndpointsValidator`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminEndpointsValidator.java)'s
+`mtlsEnabled` constructor argument.
+
+When `true`, the embedded Tomcat connector is reconfigured to request a client certificate
+during every TLS handshake (`certificateVerification=optionalNoCA`), without validating it
+against any CA at the transport layer -- the trust decision is deferred entirely to per-client
+application logic (see [`docs/UAA-Client-Authentication.md`](UAA-Client-Authentication.md) for
+the per-client `tls-client-auth-*` properties). Enabling this also switches the connector to the
+FIPS BouncyCastle JSSE provider, required for TLS 1.3 client-certificate support (OpenJDK's JSSE
+does not implement server-side TLS 1.3 post-handshake client-certificate requests).
+
+When `false` (the default), no client certificate is requested at the TLS layer at all, any
+client configured with a `tls-client-auth-ca` property fails validation at creation/update time,
+`/oauth/mtls/token` (and everything below it) answers `404`, and OIDC discovery advertises no
+`tls_client_auth` and no `mtls_endpoint_aliases`.
+
+The value is read the same way everywhere -- `true`, `1`, `yes` and `on` all enable it -- so the
+feature cannot be half-enabled by an unusual spelling.
+
+**Token enhancers.** Enabling this registers `MtlsClaimsEnhancer` in the same list as any other
+`UaaTokenEnhancer` a deployment provides. It adds nothing to a request that was not authenticated with
+`tls_client_auth`, and it does not restrict or alter any other enhancer: claims from other enhancers are
+applied exactly as they were before. The one thing it asks for is that its certificate-derived `sub`
+and `aud` survive UAA's defaults, which it does through the opt-in
+`UaaTokenEnhancer.getLateOverrideClaims()` (empty by default). If two enhancers emit the same custom
+claim, the later one in the list wins; `MtlsClaimsEnhancer` has no explicit order.
+
+```yaml
+uaa.mtls-enabled: true
+```
 
 [Back to table](#oauth-clients--users)
 

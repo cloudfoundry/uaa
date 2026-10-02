@@ -88,6 +88,10 @@ class OpenIdConnectEndpointsMockMvcZonePathTests {
             assertThat(openIdConfiguration.isClaimsParameterSupported()).isFalse();
             assertThat(openIdConfiguration.getServiceDocumentation()).isEqualTo("http://docs.cloudfoundry.org/api/uaa/");
             assertThat(openIdConfiguration.getUiLocalesSupported()).containsExactly(new String[]{"en-US"});
+            // This class pins the zone discovery document for a DEFAULT deployment, so it stays on
+            // the default uaa.mtls-enabled=false. The mTLS-enabled zone shape, including the
+            // zone-path form of the alias, is asserted by MtlsTokenEndpointMockMvcZonePathTests.
+            assertThat(openIdConfiguration.getMtlsEndpointAliases()).isNull();
         }
     }
 

@@ -29,6 +29,8 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UserManagedAuthzApprovalHandler;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsEnabledCondition;
+import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
@@ -52,6 +54,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
@@ -461,6 +464,45 @@ class OauthEndpointSecurityConfiguration {
                 .build();
 
         return new UaaFilterChain(chain, "externalOAuthCallbackEndpointSecurity");
+    }
+
+    /**
+     * Security filter chain for the mTLS token endpoint ({@code /oauth/mtls/token}).
+     *
+     * <p>The {@code ClientCertificateMapper} servlet filter (registered separately) converts the
+     * {@code X-Forwarded-Client-Cert} header set by the Gorouter into a
+     * {@code jakarta.servlet.request.X509Certificate} request attribute before this chain runs.
+     * CSRF is disabled because this is a stateless machine-to-machine API endpoint.
+     */
+    @Bean
+    // MtlsEnabledCondition rather than @ConditionalOnProperty: it reads the flag exactly as the
+    // feature's @Value-injected gates do, so a value such as "1" cannot leave this chain absent
+    // while the endpoint itself is served. See MtlsEnabledCondition.
+    @Conditional(MtlsEnabledCondition.class)
+    @Order(FilterChainOrder.OAUTH_11)
+    UaaFilterChain mtlsTokenEndpointSecurity(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher(RawPeerCertificateCaptureFilter.MTLS_TOKEN_PATH,
+                        RawPeerCertificateCaptureFilter.MTLS_TOKEN_PATH + "/**")
+                .authenticationManager(clientAuthenticationManager)
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/**").access(anyOf().fullyAuthenticated());
+                    auth.anyRequest().denyAll();
+                })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(getClientParameterAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(tokenEndpointAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
+                                .accessDeniedHandler(oauthAccessDeniedHandler)
+                )
+                .securityContext(sc -> sc.requireExplicitSave(false))
+                .build();
+
+        return new UaaFilterChain(chain, "mtlsTokenEndpointSecurity");
     }
 
     @Bean

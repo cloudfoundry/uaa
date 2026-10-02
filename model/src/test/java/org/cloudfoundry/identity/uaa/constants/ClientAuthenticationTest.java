@@ -7,6 +7,7 @@ import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.CLIEN
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.CLIENT_SECRET_POST;
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.NONE;
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.PRIVATE_KEY_JWT;
+import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.TLS_CLIENT_AUTH;
 
 class ClientAuthenticationTest {
 
@@ -22,6 +23,15 @@ class ClientAuthenticationTest {
     void isMethodSupported() {
         assertThat(ClientAuthentication.isMethodSupported(CLIENT_SECRET_POST)).isTrue();
         assertThat(ClientAuthentication.isMethodSupported("foo")).isFalse();
+    }
+
+    @Test
+    void externalOAuthMethodsSupportStandardMethodsButNotTlsClientAuth() {
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(CLIENT_SECRET_BASIC)).isTrue();
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(CLIENT_SECRET_POST)).isTrue();
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(PRIVATE_KEY_JWT)).isTrue();
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(NONE)).isTrue();
+        assertThat(ClientAuthentication.isExternalOAuthMethodSupported(TLS_CLIENT_AUTH)).isFalse();
     }
 
     @Test
@@ -77,5 +87,62 @@ class ClientAuthenticationTest {
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, null)).isFalse();
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, CLIENT_SECRET_BASIC)).isFalse();
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, NONE)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsARecognisedMethod() {
+        assertThat(ClientAuthentication.isMethodSupported(TLS_CLIENT_AUTH)).isTrue();
+    }
+
+    @Test
+    void tlsClientAuthDoesNotRequireASecret() {
+        assertThat(ClientAuthentication.secretNeeded(TLS_CLIENT_AUTH)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsCalculatedWhenHasCaConfig() {
+        String method = ClientAuthentication.getCalculatedMethod(null, false, false, true);
+        assertThat(method).isEqualTo(TLS_CLIENT_AUTH);
+    }
+
+    @Test
+    void tlsClientAuthIsValidMethodWhenHasCaConfig() {
+        assertThat(ClientAuthentication.isValidMethod(
+                TLS_CLIENT_AUTH, false, false, true)).isTrue();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWithoutCaConfig() {
+        assertThat(ClientAuthentication.isValidMethod(
+                ClientAuthentication.TLS_CLIENT_AUTH, false, false, false)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWhenHasSecret() {
+        assertThat(ClientAuthentication.isValidMethod(
+                ClientAuthentication.TLS_CLIENT_AUTH, true, false, true)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWhenHasKeyConfig() {
+        assertThat(ClientAuthentication.isValidMethod(
+                ClientAuthentication.TLS_CLIENT_AUTH, false, true, true)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsValidMethodWhenHasCaConfigAndMethodUnset() {
+        // method left null (unset), matching how getCalculatedMethod derives tls_client_auth
+        // from CA config alone -- see tlsClientAuthIsCalculatedWhenHasCaConfig above.
+        assertThat(ClientAuthentication.isValidMethod(null, false, false, true)).isTrue();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWhenMethodUnsetAndHasSecretAndCaConfig() {
+        assertThat(ClientAuthentication.isValidMethod(null, true, false, true)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsInvalidWhenMethodUnsetAndHasKeyConfigAndCaConfig() {
+        assertThat(ClientAuthentication.isValidMethod(null, false, true, true)).isFalse();
     }
 }
