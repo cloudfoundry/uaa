@@ -256,6 +256,50 @@ class ClientJwtConfigurationTest {
     }
 
     @Test
+    void patternAndExactCredentialOfSameTextCoexist() {
+        String text = "project_path:myteam/deploy:ref_type:branch:ref:*";
+        ClientJwtCredential exact = new ClientJwtCredential(text, "issuer1", null);
+        ClientJwtCredential pattern = new ClientJwtCredential(null, "issuer1", null, text);
+        ClientJwtConfiguration config = new ClientJwtConfiguration(List.of(exact));
+        config.addJwtCredentials(List.of(pattern));
+        assertThat(config.getClientJwtCredentials()).hasSize(2);
+    }
+
+    @Test
+    void configDeleteFederatedSubjectPattern() {
+        String text = "project_path:myteam/deploy:ref_type:branch:ref:*";
+        ClientJwtCredential exact = new ClientJwtCredential(text, "issuer1", null);
+        ClientJwtCredential pattern = new ClientJwtCredential(null, "issuer1", null, text);
+
+        // deleting the pattern leaves the exact credential of the same text in place
+        assertThat(ClientJwtConfiguration.delete(new ClientJwtConfiguration(List.of(exact, pattern)),
+                new ClientJwtConfiguration(List.of(pattern))))
+                .isEqualTo(new ClientJwtConfiguration(List.of(exact)));
+
+        // and the other way around
+        assertThat(ClientJwtConfiguration.delete(new ClientJwtConfiguration(List.of(exact, pattern)),
+                new ClientJwtConfiguration(List.of(exact))))
+                .isEqualTo(new ClientJwtConfiguration(List.of(pattern)));
+    }
+
+    @Test
+    void configDeleteFederatedPatternDoesNotDeleteWhatItMatches() {
+        ClientJwtCredential matched = new ClientJwtCredential("project_path:myteam/deploy:ref_type:branch:ref:main", "issuer1", null);
+        ClientJwtCredential pattern = new ClientJwtCredential(null, "issuer1", null, "project_path:myteam/deploy:ref_type:branch:ref:*");
+        ClientJwtConfiguration existing = new ClientJwtConfiguration(List.of(matched));
+        // deletion compares the subject text verbatim, it does not evaluate the pattern
+        assertThat(ClientJwtConfiguration.delete(existing, new ClientJwtConfiguration(List.of(pattern)))).isEqualTo(existing);
+    }
+
+    @Test
+    void configDeleteAllSentinelAlsoRemovesPatternCredentials() {
+        ClientJwtCredential pattern = new ClientJwtCredential(null, "issuer1", null, "repo:myteam/deploy:ref:*");
+        ClientJwtCredential exact = new ClientJwtCredential("subject1", "issuer1", null);
+        assertThat(ClientJwtConfiguration.delete(new ClientJwtConfiguration(List.of(exact, pattern)),
+                new ClientJwtConfiguration(List.of(new ClientJwtCredential("*", "*", null))))).isNull();
+    }
+
+    @Test
     void configDeleteMixedJwtConfiguration() {
         ClientJwtCredential existingKey1 = new ClientJwtCredential("subject1", "issuer1", "audience1");
         ClientJwtCredential existingKey2 = new ClientJwtCredential("subject2", "issuer2", "audience2");
