@@ -299,6 +299,30 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
+    void getExternalAuthenticationDetails_whenExplicitOriginAndExternalAudienceDoesNotMatchRelyingParty_throws() {
+        Map<String, Object> header = map(
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
+                entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
+        );
+        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, OIDC_PROVIDER_TOKEN_SIGNING_KEY, DEFAULT_UAA_URL).getSigner();
+        Map<String, Object> claims = map(
+                entry(EMAIL, "someuser@google.com"),
+                entry(ISS, oidcConfig.getIssuer()),
+                entry(AUD, "some-other-client-not-this-relying-party"),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis() / 1000L)) + 60),
+                entry(SUB, "abc-def-asdf")
+        );
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+
+        // explicit origin = interactive callback: the audience must match this IdP's relying party
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        assertThatThrownBy(() -> authManager.getExternalAuthenticationDetails(oidcAuthentication))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("Some parties were not in the token audience");
+    }
+
+    @Test
     void getExternalAuthenticationDetails_whenUaaToken_doesNotThrowWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
@@ -1208,6 +1232,42 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThatThrownBy(() -> manager.verifySubjectToken("subject-token"))
                 .isInstanceOf(InvalidTokenException.class)
                 .hasCauseInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void verifySubjectToken_whenExternalIssuerTokenAudienceDoesNotMatchRelyingParty_stillVerifies() {
+        // Same machine-to-machine exemption as the self-referencing (this-UAA-issued) branch:
+        // a token-exchange subject_token from a genuinely external issuer must not be rejected
+        // just because it wasn't minted with this IdP's relyingPartyId as its audience - that
+        // binding exists for the *interactive* login callback (see
+        // getExternalAuthenticationDetails_doesNotThrowWhenIdTokenIsValid, which uses a matching
+        // "uaa-relying-party" audience), not for a caller that already authenticated itself to
+        // /oauth/token directly and is deliberately presenting a token minted for someone else.
+        final ExternalOAuthAuthenticationManager manager = new ExternalOAuthAuthenticationManager(
+                identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(),
+                tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher, false) {
+            @Override
+            public IdentityProvider resolveOriginProvider(String idToken) {
+                return provider;
+            }
+        };
+
+        Map<String, Object> header = map(
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
+                entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
+        );
+        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, OIDC_PROVIDER_TOKEN_SIGNING_KEY, DEFAULT_UAA_URL).getSigner();
+        Map<String, Object> claims = map(
+                entry(ISS, oidcConfig.getIssuer()),
+                entry(AUD, "some-other-client-not-this-relying-party"),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis() / 1000L)) + 60),
+                entry(SUB, "abc-def-asdf")
+        );
+        String subjectToken = UaaTokenUtils.constructToken(header, claims, signer);
+
+        JWTClaimsSet result = manager.verifySubjectToken(subjectToken);
+
+        assertThat(result.getSubject()).isEqualTo("abc-def-asdf");
     }
 
     private static void assertAuthorizationHeaderIsSetAndStartsWithBasic(final HttpHeaders headers) {

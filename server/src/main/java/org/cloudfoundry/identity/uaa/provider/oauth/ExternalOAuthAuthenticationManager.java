@@ -267,11 +267,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         final ExternalOAuthCodeToken codeToken = (ExternalOAuthCodeToken) authentication;
 
         // When the caller supplies an explicit origin (interactive browser callback: /login/callback/{origin}),
-        // bind the presented id_token to that IdP's relying party (audience).
-        // When origin is omitted (JWT Bearer/password-grant token exchange), we still validate audience for
-        // external IdPs, but skip the relying-party audience binding for self-referencing (UAA-issued) tokens
-        // to allow the intended token-chaining behavior.
-        // minted for other clients in the same zone/origin - so it is exempt from that binding.
+        // bind the presented id_token to that IdP's relying party (audience), for both self-referencing
+        // (UAA-issued) and external issuers.
+        // When origin is omitted (JWT Bearer/password-grant token exchange), the relying-party audience binding
+        // is skipped for both: the token was minted for another client/purpose and the calling client has
+        // already authenticated to /oauth/token directly.
         final boolean enforceRelyingPartyAudience = hasLength(codeToken.getOrigin());
 
         IdentityProvider provider = null;
@@ -843,8 +843,16 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         } else {
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
             jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
-                    .checkIssuer((!hasLength(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
-                    .checkAudience(config.getRelyingPartyId());
+                    .checkIssuer(!hasLength(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer());
+            if (enforceRelyingPartyAudience && hasText(config.getRelyingPartyId())) {
+                // same machine-to-machine exemption as the self-referencing branch above: an
+                // externally-issued token presented to the interactive callback
+                // (/login/callback/{origin}) must still be bound to this IdP's own relying party,
+                // but a JWT Bearer grant, password grant with an id_token, or token exchange
+                // deliberately presents a token minted for another client/purpose and already
+                // authenticates the calling client to /oauth/token directly.
+                jwtToken.checkAudience(config.getRelyingPartyId());
+            }
         }
         return jwtToken.checkExpiry();
     }
