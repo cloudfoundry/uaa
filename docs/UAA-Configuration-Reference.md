@@ -292,6 +292,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#ldapbasereferral"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.referral` | —| LDAP referral handling|
 | <a href="#ldapsslskipverification"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.ssl.skipverification` | `false`| Skip LDAP SSL verification|
 | <a href="#ldapsslcacertificates"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.ssl.caCertificates` | —| PEM-encoded CA certificates to trust for LDAPS connections|
+| <a href="#ldapexternalgroupswhitelist"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.externalGroupsWhitelist` | — (all groups at login)| Whitelist of LDAP groups to include in the ID token/userinfo|
 | <a href="#ldapgroupsfile"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.file` | —| LDAP groups configuration file|
 | <a href="#ldapgroupssearchbase"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.searchBase` | —| LDAP group search base|
 | <a href="#ldapgroupsgroupsearchfilter"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.groupSearchFilter` | —| Group membership filter|
@@ -2713,6 +2714,28 @@ chain is signed by a private/internal certificate authority and importing it int
 truststore is not desired. Each entry may contain a single certificate or multiple concatenated
 PEM certificates (e.g. a full chain); use multiple entries to supply independent trust anchors,
 such as during a CA rotation. Ignored if `ldap.ssl.skipverification` is `true`.
+
+[Back to table](#ldap)
+
+---
+
+### `ldap.externalGroupsWhitelist`
+
+**Default:** — (not set); treated as `["*"]` (all groups) at login time
+**Source:** [`LdapUtils`](../server/src/main/java/org/cloudfoundry/identity/uaa/util/LdapUtils.java), [`LdapLoginAuthenticationManager`](../server/src/main/java/org/cloudfoundry/identity/uaa/authentication/manager/LdapLoginAuthenticationManager.java)
+**Type:** `List<String>`
+
+List of external LDAP group names (or wildcard patterns, e.g. `admin.*`) to include in the
+ID token/`/userinfo` response when the `roles` scope is requested. If omitted or empty, all
+external groups are included at login time, equivalent to `["*"]`. This is a login-time
+behavior only; an omitted/empty value is stored and returned as-is by `GET`/`POST`/`PUT
+/identity-providers`, it is not rewritten to `["*"]`.
+
+If you want LDAP group membership to have no effect at all rather than restricting it, set
+[`ldap.groups.file`](#ldapgroupsfile) to `ldap/ldap-groups-null.xml` instead, that disables LDAP group
+lookup entirely, so there are no external groups for this list to filter in the first place. This
+field can only narrow down which already-retrieved groups are used, it cannot suppress group lookup
+itself.
 
 [Back to table](#ldap)
 

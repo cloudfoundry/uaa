@@ -388,7 +388,8 @@ public abstract class AbstractLdapMockMvcTest {
         assertThat(externalGroups)
                 .containsExactlyInAnyOrder("admins", "thirdmarissa");
 
-        //default whitelist
+        //default (empty) whitelist means "allow all groups" (see LdapLoginAuthenticationManager#getExternalUserAuthorities),
+        //not "allow none" - so the previously-whitelisted groups must still be present, plus whatever else the user belongs to
         def = provider.getConfig();
         def.setExternalGroupsWhitelist(emptyList());
         provider.setConfig(def);
@@ -398,7 +399,26 @@ public abstract class AbstractLdapMockMvcTest {
         assertThat(auth).isInstanceOf(UaaAuthentication.class);
         uaaAuth = (UaaAuthentication) auth;
         externalGroups = uaaAuth.getExternalGroups();
-        assertThat(externalGroups).isEmpty();
+        assertThat(externalGroups).contains("admins", "thirdmarissa");
+
+        IdentityZoneHolder.clear();
+    }
+
+    @Test
+    void no_groups_profile_never_populates_external_groups() throws Exception {
+        // "no-groups" (ldap.groups.profile_type / ldap.groups.file=ldap-groups-null.xml) is the correct
+        // way to disable LDAP group mapping entirely - unlike an empty externalGroupsWhitelist (see
+        // external_groups_whitelist() above), which now means "allow all", this profile never populates
+        // any LDAP group authorities in the first place, so there is nothing for a whitelist to filter
+        assumeTrue("ldap-groups-null.xml".equals(ldapGroup));
+        AuthenticationManager manager = getWebApplicationContext().getBean(DynamicZoneAwareAuthenticationManager.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3", "ldap3");
+
+        IdentityZoneHolder.set(zone.getZone().getIdentityZone());
+        Authentication auth = manager.authenticate(token);
+        assertThat(auth).isInstanceOf(UaaAuthentication.class);
+        UaaAuthentication uaaAuth = (UaaAuthentication) auth;
+        assertThat(uaaAuth.getExternalGroups()).isEmpty();
 
         IdentityZoneHolder.clear();
     }
