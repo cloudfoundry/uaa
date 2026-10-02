@@ -299,6 +299,30 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
+    void getExternalAuthenticationDetails_whenExplicitOriginAndExternalAudienceDoesNotMatchRelyingParty_throws() {
+        Map<String, Object> header = map(
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
+                entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
+        );
+        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, OIDC_PROVIDER_TOKEN_SIGNING_KEY, DEFAULT_UAA_URL).getSigner();
+        Map<String, Object> claims = map(
+                entry(EMAIL, "someuser@google.com"),
+                entry(ISS, oidcConfig.getIssuer()),
+                entry(AUD, "some-other-client-not-this-relying-party"),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis() / 1000L)) + 60),
+                entry(SUB, "abc-def-asdf")
+        );
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+
+        // explicit origin = interactive callback: the audience must match this IdP's relying party
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        assertThatThrownBy(() -> authManager.getExternalAuthenticationDetails(oidcAuthentication))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("Some parties were not in the token audience");
+    }
+
+    @Test
     void getExternalAuthenticationDetails_whenUaaToken_doesNotThrowWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
