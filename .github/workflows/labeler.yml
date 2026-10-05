@@ -12,7 +12,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: codelytv/pr-size-labeler@v1.11.1
+      - uses: codelytv/pr-size-labeler@v1.12.0
         with:
           xs_label: 'size/xs'
           xs_max_size: '10'
