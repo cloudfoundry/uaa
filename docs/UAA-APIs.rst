@@ -1392,7 +1392,7 @@ Fields            *Available Fields* ::
                     skipSSLVerification         boolean                 Optional Set to true if you wish to skip SSL certificate verification
                     emailDomain                 List<String>            Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
                     attributeMappings           Map<String, Object>     Optional List of UAA attributes mapped to attributes from LDAP. Currently we support mapping given_name, family_name, email, phone_number and external_groups.
-                    externalGroupsWhitelist     List<String>            Optional List of external groups (`DN` distinguished names`) that can be included in the ID Token if the `roles` scope is requested. See `UAA-LDAP.md UAA-LDAP.md`_ for more information
+                    externalGroupsWhitelist     List<String>            Optional List of external groups (`DN` distinguished names`) that can be included in the ID Token if the `roles` scope is requested. Empty or omitted means all groups are included; this is applied at login time and the stored value is returned as-is. To disable group lookup, use `ldap/ldap-groups-null.xml` as the group file. See `UAA-LDAP.md UAA-LDAP.md`_ for more information
                     providerDescription         String                  Optional Human readable name/description of this provider
 
 Curl Example      POST (Creating a SAML provider)::
