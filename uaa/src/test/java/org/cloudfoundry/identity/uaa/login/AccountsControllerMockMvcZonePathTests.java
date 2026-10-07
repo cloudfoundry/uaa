@@ -349,12 +349,12 @@ class AccountsControllerMockMvcZonePathTests {
 
     @Test
     void creatingAnAccountWithClientRedirect() throws Exception {
-        createAccount("http://redirect.uri/client");
+        createAccount("http://redirect.uri/client", "http://redirect.uri/client");
     }
 
     @Test
     void creatingAnAccountWithFallbackClientRedirect() throws Exception {
-        createAccount(null);
+        createAccount("http://redirect.uri/fallback", null);
     }
 
     @Test
@@ -642,7 +642,7 @@ class AccountsControllerMockMvcZonePathTests {
         return MockMvcUtils.createClient(mockMvc, adminToken, clientDetails);
     }
 
-    private void createAccount(String redirectUri) throws Exception {
+    private void createAccount(String expectedRedirectUri, String redirectUri) throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
@@ -662,7 +662,8 @@ class AccountsControllerMockMvcZonePathTests {
         assertThat(message.getContentString()).contains("Cloud Foundry");
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 
-        confirmAccountAndSetPassword(ZoneResolutionMode.SUBDOMAIN, "", "test" + generator.counter.get(), userEmail);
+        String afterReset = confirmAccountAndSetPassword(ZoneResolutionMode.SUBDOMAIN, "", "test" + generator.counter.get(), userEmail);
+        assertThat(afterReset).isEqualTo("/login?success=password_reset&form_redirect_uri=" + expectedRedirectUri);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -682,7 +683,7 @@ class AccountsControllerMockMvcZonePathTests {
      * that flow (zone-resolution aware), confirming the account via {@code /verify_user} and setting
      * the password to {@link #USER_PASSWORD} so the account can then be used to log in.
      */
-    private void confirmAccountAndSetPassword(ZoneResolutionMode mode, String subdomain, String activationCode, String email) throws Exception {
+    private String confirmAccountAndSetPassword(ZoneResolutionMode mode, String subdomain, String activationCode, String email) throws Exception {
         MvcResult verifyResult = mockMvc.perform(mode.createRequestBuilder(subdomain != null ? subdomain : "", HttpMethod.GET, "/verify_user")
                         .param("code", activationCode))
                 .andExpect(status().isFound())
@@ -696,13 +697,17 @@ class AccountsControllerMockMvcZonePathTests {
                 .contains("force_change=true");
         String resetCode = UriComponentsBuilder.fromUriString(location).build().getQueryParams().getFirst("code");
 
-        mockMvc.perform(mode.createRequestBuilder(subdomain != null ? subdomain : "", HttpMethod.POST, "/reset_password.do")
+        // Returns the post-reset redirect so callers can assert the carried signup redirect.
+        return mockMvc.perform(mode.createRequestBuilder(subdomain != null ? subdomain : "", HttpMethod.POST, "/reset_password.do")
                         .with(cookieCsrf())
                         .param("code", resetCode)
                         .param("email", email)
                         .param("password", USER_PASSWORD)
                         .param("password_confirmation", USER_PASSWORD))
-                .andExpect(status().isFound());
+                .andExpect(status().isFound())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
     }
 
     private ResultActions loginWithAccount(String subdomain) throws Exception {

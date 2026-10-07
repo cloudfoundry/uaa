@@ -111,6 +111,40 @@ class CreateAccountIT {
     }
 
     @Test
+    void confirmationDoesNotActivateTheRegistrationFormPassword() throws Exception {
+        String registrationPassword = SECRET;
+        String ownerPassword = "0wnerPass";
+
+        int receivedEmailSize = greenMail.getReceivedMessages().length;
+        String userEmail = startCreateUserFlow(registrationPassword);
+
+        greenMail.waitForIncomingEmail(5000, receivedEmailSize + 1);
+        MimeMessage message = greenMail.getReceivedMessages()[receivedEmailSize];
+        String link = testClient.extractLink(GreenMailUtil.getBody(message));
+
+        webDriver.get(link);
+        // Confirmation requires the owner to establish their own password through the link.
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Reset Password");
+        webDriver.findElement(By.name("password")).sendKeys(ownerPassword);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(ownerPassword);
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
+
+        // The password typed on the registration form must not grant access.
+        webDriver.get(baseUrl + "/login");
+        webDriver.findElement(By.name("username")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys(registrationPassword);
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
+        assertThat(webDriver.findElement(By.className("alert-error")).getText()).contains("Provided credentials are invalid. Please try again.");
+
+        // Only the password the owner set through the link works.
+        webDriver.get(baseUrl + "/login");
+        webDriver.findElement(By.name("username")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys(ownerPassword);
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
+    }
+
+    @Test
     void clientInitiatedSignup() throws Exception {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
         webDriver.get(baseUrl + "/create_account?client_id=app");

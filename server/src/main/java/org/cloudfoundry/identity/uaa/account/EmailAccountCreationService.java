@@ -138,11 +138,13 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         String clientId = data.get("client_id");
         String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
+        // Resolve the signup redirect (honouring the client's signup_redirect_url fallback) so it is
+        // preserved across the reset flow and applied once the owner has set their password.
         String redirectLocation = getRedirect(clientId, redirectUri);
 
         // Issue an ownership-bound, single-use code so the owner sets their password through the
         // same reset flow used for password recovery (no previous password is required).
-        ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(user.getUserName(), clientId, redirectUri);
+        ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(user.getUserName(), clientId, redirectLocation);
 
         AccountCreationResponse response = new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
         response.setPasswordResetCode(forgotPasswordInfo.getResetPasswordCode().getCode());

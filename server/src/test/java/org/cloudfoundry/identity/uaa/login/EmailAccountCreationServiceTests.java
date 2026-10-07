@@ -52,6 +52,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -265,6 +266,29 @@ class EmailAccountCreationServiceTests {
         assertThat(accountCreation.getUserId()).isEqualTo("newly-created-user-id");
 
         assertThat(accountCreation.getUserId()).isNotNull();
+    }
+
+    @Test
+    void completeActivationDiscardsRegistrationPasswordAndRequiresPasswordReset() {
+        setUpForSuccess("");
+        when(mockCodeStore.retrieveCode("the_secret_code", currentIdentityZoneId)).thenReturn(code);
+        when(mockScimUserProvisioning.retrieve(anyString(), eq(currentIdentityZoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(currentIdentityZoneId))).thenReturn(user);
+        when(mockClientDetailsService.loadClientByClientId(anyString(), anyString())).thenReturn(mockClientDetails);
+
+        AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
+
+        // The password supplied on the registration form must be discarded (replaced with a value
+        // that is not it), so it can never be used to authenticate once the account is confirmed.
+        ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
+        verify(mockScimUserProvisioning).changePassword(eq("newly-created-user-id"), isNull(), passwordCaptor.capture(), eq(currentIdentityZoneId));
+        assertThat(passwordCaptor.getValue()).isNotEqualTo("password");
+
+        // The account must require a password change, and an ownership-bound reset code must be
+        // issued so the confirming owner can set their own password through the link.
+        verify(mockScimUserProvisioning).updatePasswordChangeRequired("newly-created-user-id", true, currentIdentityZoneId);
+        verify(mockResetPasswordService).forgotPassword(eq("user@example.com"), anyString(), anyString());
+        assertThat(accountCreation.getPasswordResetCode()).isEqualTo("reset_password_code");
     }
 
     @Test
