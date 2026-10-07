@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -54,6 +55,7 @@ import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRAT
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
@@ -279,14 +281,18 @@ class EmailAccountCreationServiceTests {
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
 
         // The password supplied on the registration form must be discarded (replaced with a value
-        // that is not it), so it can never be used to authenticate once the account is confirmed.
+        // that is not it) and the change-required flag set while the account is still unverified,
+        // and the account must be verified last. Verifying first would briefly leave the account
+        // verified while still accepting the registration password.
         ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
-        verify(mockScimUserProvisioning).changePassword(eq("newly-created-user-id"), isNull(), passwordCaptor.capture(), eq(currentIdentityZoneId));
+        InOrder inOrder = inOrder(mockScimUserProvisioning);
+        inOrder.verify(mockScimUserProvisioning).changePassword(eq("newly-created-user-id"), isNull(), passwordCaptor.capture(), eq(currentIdentityZoneId));
+        inOrder.verify(mockScimUserProvisioning).updatePasswordChangeRequired("newly-created-user-id", true, currentIdentityZoneId);
+        inOrder.verify(mockScimUserProvisioning).verifyUser(eq("newly-created-user-id"), anyInt(), eq(currentIdentityZoneId));
         assertThat(passwordCaptor.getValue()).isNotEqualTo("password");
 
-        // The account must require a password change, and an ownership-bound reset code must be
-        // issued so the confirming owner can set their own password through the link.
-        verify(mockScimUserProvisioning).updatePasswordChangeRequired("newly-created-user-id", true, currentIdentityZoneId);
+        // An ownership-bound reset code must be issued so the confirming owner can set their own
+        // password through the link.
         verify(mockResetPasswordService).forgotPassword(eq("user@example.com"), anyString(), anyString());
         assertThat(accountCreation.getPasswordResetCode()).isEqualTo("reset_password_code");
     }

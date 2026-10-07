@@ -127,14 +127,17 @@ public class EmailAccountCreationService implements AccountCreationService {
         });
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), zoneId);
-        user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), zoneId);
 
         // Confirming the activation link proves ownership of the email address, but it does not
         // prove that the person confirming is the one who chose the password on the registration
         // form. Discard the registration password so it can never authenticate, and require the
         // confirming owner to establish their own password through the ownership-proving link.
+        // Replace the password and set the flag while the account is still unverified, then verify
+        // it last: these are separate updates, so verifying first would briefly leave the account
+        // verified while still holding the registration password, which a concurrent login could use.
         scimUserProvisioning.changePassword(user.getId(), null, new AlphanumericRandomValueStringGenerator(40).generate(), zoneId);
         scimUserProvisioning.updatePasswordChangeRequired(user.getId(), true, zoneId);
+        user = scimUserProvisioning.verifyUser(user.getId(), -1, zoneId);
 
         String clientId = data.get("client_id");
         String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
