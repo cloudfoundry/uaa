@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.login;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
+import org.cloudfoundry.identity.uaa.account.ForgotPasswordInfo;
+import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -72,6 +74,7 @@ class EmailAccountCreationServiceTests {
     private MultitenantClientServices mockClientDetailsService;
     private ClientDetails mockClientDetails;
     private PasswordValidator mockPasswordValidator;
+    private ResetPasswordService mockResetPasswordService;
     private IdentityZoneManager mockIdentityZoneManager;
     private ScimUser user;
     private ExpiringCode code;
@@ -91,6 +94,7 @@ class EmailAccountCreationServiceTests {
         mockClientDetailsService = mock(MultitenantClientServices.class);
         mockClientDetails = mock(ClientDetails.class);
         mockPasswordValidator = mock(PasswordValidator.class);
+        mockResetPasswordService = mock(ResetPasswordService.class);
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         emailAccountCreationService = initEmailAccountCreationService();
 
@@ -104,6 +108,10 @@ class EmailAccountCreationServiceTests {
         currentIdentityZoneId = "zoneId" + randomValueStringGenerator.generate();
 
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
+
+        ExpiringCode resetCode = new ExpiringCode("reset_password_code", new Timestamp(System.currentTimeMillis()), "{}", "forgot_password_for_id:newly-created-user-id");
+        when(mockResetPasswordService.forgotPassword(anyString(), any(), any()))
+                .thenReturn(new ForgotPasswordInfo("newly-created-user-id", "user@example.com", resetCode));
     }
 
     private EmailAccountCreationService initEmailAccountCreationService() {
@@ -114,6 +122,7 @@ class EmailAccountCreationServiceTests {
                 mockScimUserProvisioning,
                 mockClientDetailsService,
                 mockPasswordValidator,
+                mockResetPasswordService,
                 mockIdentityZoneManager
         );
     }

@@ -124,12 +124,10 @@ public class AccountsController {
             return "accounts/link_prompt";
         }
 
-        String redirectLocation = accountCreation.getRedirectLocation();
-        String res = "redirect:/login?success=verify_success";
-        if (!redirectLocation.equals(accountCreationService.getDefaultRedirect())) {
-            res += "&form_redirect_uri=" + redirectLocation;
-        }
-        return res;
+        // Confirmation establishes email ownership but leaves the account without a usable
+        // password. Send the owner to the reset-password page to set their own password; any
+        // client redirect is carried by the reset code and applied once the password is set.
+        return "redirect:/reset_password?code=" + accountCreation.getPasswordResetCode() + "&force_change=true";
     }
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {

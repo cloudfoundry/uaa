@@ -19,6 +19,8 @@ public interface AccountCreationService {
         private String email;
         @JsonProperty("redirect_location")
         private String redirectLocation;
+        @JsonProperty("password_reset_code")
+        private String passwordResetCode;
 
         public AccountCreationResponse(String userId, String username, String email, String redirectLocation) {
             this.userId = userId;
@@ -49,6 +51,14 @@ public interface AccountCreationService {
 
         public String getEmail() {
             return email;
+        }
+
+        public String getPasswordResetCode() {
+            return passwordResetCode;
+        }
+
+        public void setPasswordResetCode(String passwordResetCode) {
+            this.passwordResetCode = passwordResetCode;
         }
     }
 }
