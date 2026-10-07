@@ -31,6 +31,8 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -53,12 +55,14 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class JwtClientAuthenticationTest {
 
     private static final String KEY_ID = "tokenKeyId";
+    private static final String EXTERNAL_ISSUER = "http://external-issuer";
     private static final String INVALID_CLIENT_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjYmEyZmRlN2ZkYTg0YzMzYTdkZDQ5MWVmMzljZWY5NiIsImF1ZCI6WyJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIl0sInN1YiI6ImlkZW50aXR5IiwiaXNzIjoic29tZVRoaW5nIn0.HLXpsPJw0SvF8DcGmmifzJJLxX4hmfwILAtAFedk48c";
     private static final String INVALID_CLIENT_ALG = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRva2VuS2V5SWQiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2OTU4NDEyMDYsImp0aSI6ImRhMzdjYzFjMjkzOTQzMWE4YjUzZTI5MmZiMjYxMDZhIiwiYXVkIjpbImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC91YWEvb2F1dGgvdG9rZW4iXSwic3ViIjoiaWRlbnRpdHkiLCJpc3MiOiJpZGVudGl0eSIsImlhdCI6MTY5NTg0MDc4NiwicmV2b2NhYmxlIjpmYWxzZX0.gFYuUjzupzeKNK2Uq3Ijp0rDIcJfI80wl3Pt5MSypPM";
 
@@ -530,6 +534,127 @@ class JwtClientAuthenticationTest {
     }
 
     @Test
+    void clientJwtFederatedSubjectPatternAcceptsMatchingSubject() throws Exception {
+        String pattern = "project_path:myteam/deploy:ref_type:branch:ref:*";
+        ClientJwtCredential credential = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience", pattern);
+        // the branch the pipeline happens to run on, which is not the configured text
+        assertThat(validateFederatedAssertion(credential, "project_path:myteam/deploy:ref_type:branch:ref:main", EXTERNAL_ISSUER)).isTrue();
+    }
+
+    @Test
+    void clientJwtFederatedSubjectPatternAcceptsBranchContainingSlashAndDot() throws Exception {
+        // a branch may contain '/', which only '**' crosses
+        ClientJwtCredential credential = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience",
+                "project_path:myteam/deploy:ref_type:branch:ref:**");
+        assertThat(validateFederatedAssertion(credential, "project_path:myteam/deploy:ref_type:branch:ref:release/1.0", EXTERNAL_ISSUER)).isTrue();
+    }
+
+    @Test
+    void clientJwtFederatedSingleWildcardDoesNotCrossPathSeparator() throws Exception {
+        // a single '*' in the repository slot must not take in a nested subgroup
+        ClientJwtCredential credential = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience",
+                "project_path:myteam/*:ref_type:branch:ref:**");
+        assertThatThrownBy(() -> validateFederatedAssertion(credential,
+                "project_path:myteam/sub/evil:ref_type:branch:ref:main", EXTERNAL_ISSUER))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Wrong client_assertion");
+    }
+
+    @Test
+    void clientJwtFederatedSubjectPatternRejectsNonMatchingSubject() throws Exception {
+        ClientJwtCredential credential = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience",
+                "project_path:myteam/deploy:ref_type:branch:ref:*");
+        assertThatThrownBy(() -> validateFederatedAssertion(credential, "project_path:otherteam/deploy:ref_type:branch:ref:main", EXTERNAL_ISSUER))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Wrong client_assertion");
+    }
+
+    @Test
+    void clientJwtFederatedSubjectPatternDoesNotCrossClaimSeparator() throws Exception {
+        ClientJwtCredential credential = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience",
+                "project_path:myteam/deploy:ref_type:branch:ref:*");
+        assertThatThrownBy(() -> validateFederatedAssertion(credential, "project_path:myteam/deploy:ref_type:branch:ref:main:extra", EXTERNAL_ISSUER))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Wrong client_assertion");
+    }
+
+    @Test
+    void clientJwtFederatedSubjectPatternIsScopedToItsIssuer() throws Exception {
+        // the subject would match, but the assertion comes from a different issuer
+        ClientJwtCredential credential = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience", "repo:myteam/deploy:ref:*");
+        assertThatThrownBy(() -> validateFederatedAssertion(credential, "repo:myteam/deploy:ref:main", "http://other-issuer"))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Wrong client_assertion");
+    }
+
+    @Test
+    void clientJwtFederatedSubjectPatternStillRequiresResolvableKey() throws Exception {
+        jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
+        mockKeyInfoService(KEY_ID, JwtHelperX5tTest.CERTIFICATE_1, JwtHelperX5tTest.SIGNING_KEY_1);
+        ClientJwtCredential credential = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience", "repo:myteam/deploy:ref:*");
+        mockOIDCDefinition("repo:myteam/deploy:ref:main", EXTERNAL_ISSUER, "audience");
+        String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
+        when(externalOAuthAuthenticationManager.idTokenWasIssuedByTheUaa(EXTERNAL_ISSUER)).thenReturn(false);
+        when(externalOAuthAuthenticationManager.retrieveRegisteredIdentityProviderByIssuer(EXTERNAL_ISSUER)).thenThrow(new IncorrectResultSizeDataAccessException(0));
+        // a key set that does not contain the kid the assertion was signed with, so the
+        // assertion is untrusted even though the subject matches the pattern
+        when(externalOAuthAuthenticationManager.getTokenKeyFromOAuth(any()))
+                .thenReturn(JsonWebKeyHelper.deserialize(new JWKSet(JWK.parse(mockJWKMap("otherKeyId", JwtHelperX5tTest.SIGNING_KEY_1))).toString()));
+        assertThatThrownBy(() -> jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, clientAssertion),
+                getMockedClientJwtConfiguration(credential), "extern_client_id"))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Untrusted client_assertion");
+    }
+
+    @Test
+    void clientJwtFederatedExactAndPatternCredentialsCoexist() throws Exception {
+        ClientJwtCredential exact = new ClientJwtCredential("service-account", EXTERNAL_ISSUER, "audience");
+        ClientJwtCredential pattern = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience", "repo:myteam/deploy:ref:*");
+        ClientJwtConfiguration configuration = new ClientJwtConfiguration(List.of(exact, pattern));
+        assertThat(validateFederatedAssertion(configuration, "service-account", EXTERNAL_ISSUER)).isTrue();
+        assertThat(validateFederatedAssertion(configuration, "repo:myteam/deploy:ref:main", EXTERNAL_ISSUER)).isTrue();
+        assertThatThrownBy(() -> validateFederatedAssertion(configuration, "someone-else", EXTERNAL_ISSUER))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Wrong client_assertion");
+    }
+
+    // An exact credential and a pattern that also matches its subject may both be configured.
+    // The stored order is not stable, so selection must not depend on it.
+    @ParameterizedTest(name = "exact first: {0}")
+    @ValueSource(booleans = {true, false})
+    void clientJwtFederatedExactCredentialWinsOverOverlappingPattern(boolean exactFirst) throws Exception {
+        ClientJwtCredential exact = new ClientJwtCredential("repo:myteam/deploy:ref:main", EXTERNAL_ISSUER, "audience");
+        ClientJwtCredential pattern = new ClientJwtCredential(null, EXTERNAL_ISSUER, "audience", "repo:myteam/deploy:ref:*");
+        List<ClientJwtCredential> order = exactFirst ? List.of(exact, pattern) : List.of(pattern, exact);
+
+        assertThat(validateFederatedAssertion(new ClientJwtConfiguration(order),
+                "repo:myteam/deploy:ref:main", EXTERNAL_ISSUER)).isTrue();
+        // and the subject only the pattern covers still works
+        assertThat(validateFederatedAssertion(new ClientJwtConfiguration(order),
+                "repo:myteam/deploy:ref:other", EXTERNAL_ISSUER)).isTrue();
+    }
+
+    private boolean validateFederatedAssertion(ClientJwtCredential credential, String assertedSubject, String assertionIssuer) throws Exception {
+        return validateFederatedAssertion(getMockedClientJwtConfiguration(credential), assertedSubject, assertionIssuer);
+    }
+
+    private boolean validateFederatedAssertion(ClientJwtConfiguration clientJwtConfiguration, String assertedSubject, String assertionIssuer) throws Exception {
+        jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
+        mockKeyInfoService(KEY_ID, JwtHelperX5tTest.CERTIFICATE_1, JwtHelperX5tTest.SIGNING_KEY_1);
+        mockOIDCDefinition(assertedSubject, assertionIssuer, "audience");
+        String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
+        when(externalOAuthAuthenticationManager.idTokenWasIssuedByTheUaa(assertionIssuer)).thenReturn(false);
+        // doThrow, so that a test may drive this helper more than once without the stubbing
+        // itself raising the exception on the second pass
+        doThrow(new IncorrectResultSizeDataAccessException(0)).when(externalOAuthAuthenticationManager)
+                .retrieveRegisteredIdentityProviderByIssuer(assertionIssuer);
+        when(externalOAuthAuthenticationManager.getTokenKeyFromOAuth(any()))
+                .thenReturn(JsonWebKeyHelper.deserialize(new JWKSet(JWK.parse(mockJWKMap(KEY_ID, JwtHelperX5tTest.SIGNING_KEY_1))).toString()));
+        return jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, clientAssertion),
+                clientJwtConfiguration, "extern_client_id");
+    }
+
+    @Test
     void clientJwtFederatedCreateAndValidateWrongIdPAndWrongIssuer() throws Exception {
         // Given
         IdentityProvider idp = new IdentityProvider();
@@ -725,5 +850,23 @@ class JwtClientAuthenticationTest {
 
     private static ClientJwtConfiguration getMockedClientJwtConfiguration(ClientJwtCredential credential) {
         return new ClientJwtConfiguration(List.of(credential));
+    }
+
+    /**
+     * Sets the claims of the assertion that will be created, independently of the credential the
+     * client is configured with. Needed for subject patterns, where the asserted subject is by
+     * definition not the configured text.
+     */
+    private void mockOIDCDefinition(String subject, String assertionIssuer, String audience) throws MalformedURLException {
+        config = new OIDCIdentityProviderDefinition();
+        config.setTokenUrl(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
+        config.setRelyingPartyId("identity");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("sub", subject);
+        claims.put("iss", assertionIssuer);
+        if (audience != null) {
+            claims.put("aud", audience);
+        }
+        config.setJwtClientAuthentication(claims);
     }
 }
