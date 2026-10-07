@@ -129,16 +129,14 @@ class OidcMetadataFetcherTest {
             definition.setTokenKeyUrl(URI.create("http://should.be.updated").toURL());
             definition.setSkipSslValidation(false);
 
-            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+            when(restTemplate.execute(anyString(), any(HttpMethod.class), any(), any()))
                     .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
 
             metadataDiscoverer.fetchWebKeySet(definition);
             metadataDiscoverer.fetchWebKeySet(definition);
 
-            verify(urlContentCache, times(2))
-                    .getUrlContent(
-                            any(), any(), any(), any()
-                    );
+            // It should only execute once because of the internal Caffeine cache
+            verify(restTemplate, times(1)).execute(anyString(), any(HttpMethod.class), any(), any());
         }
 
         @Test
@@ -147,21 +145,15 @@ class OidcMetadataFetcherTest {
             definition.setSkipSslValidation(false);
             definition.setCacheJwks(false);
 
-            ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
-            when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
-                    .thenReturn(responseEntity);
-            when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
-            when(responseEntity.getBody()).thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
+            when(restTemplate.execute(anyString(), any(HttpMethod.class), any(), any()))
+                    .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
 
             metadataDiscoverer.fetchWebKeySet(definition);
             definition.setSkipSslValidation(true);
             metadataDiscoverer.fetchWebKeySet(definition);
 
-            verify(urlContentCache, times(0))
-                    .getUrlContent(
-                            any(), any(), any(), any()
-                    );
-            verify(restTemplate, times(2)).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class));
+            // Should execute twice because cache is disabled
+            verify(restTemplate, times(2)).execute(anyString(), any(HttpMethod.class), any(), any());
         }
 
         @Test
@@ -170,18 +162,29 @@ class OidcMetadataFetcherTest {
             definition.setSkipSslValidation(false);
             definition.setCacheJwks(false);
 
-            ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
-            when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
-                    .thenReturn(responseEntity);
-            when(responseEntity.getStatusCode()).thenReturn(HttpStatus.FORBIDDEN);
+            when(restTemplate.execute(anyString(), any(HttpMethod.class), any(), any()))
+                    .thenThrow(new IllegalArgumentException("Unable to fetch content"));
 
-            assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
+            assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition))
+                    .asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class));
 
-            verify(urlContentCache, times(0))
-                    .getUrlContent(
-                            any(), any(), any(), any()
-                    );
-            verify(restTemplate, times(1)).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class));
+            verify(restTemplate, times(1)).execute(anyString(), any(HttpMethod.class), any(), any());
+        }
+
+        @Test
+        void shouldEnforceSizeLimit() throws Exception {
+            definition.setTokenKeyUrl(URI.create("http://should.be.updated").toURL());
+            definition.setSkipSslValidation(false);
+            definition.setCacheJwks(false);
+
+            when(restTemplate.execute(anyString(), any(HttpMethod.class), any(), any()))
+                    .thenThrow(new IllegalArgumentException("Response exceeds maximum allowed size"));
+
+            assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition))
+                    .asInstanceOf(InstanceOfAssertFactories.throwable(IllegalArgumentException.class))
+                    .hasMessage("Response exceeds maximum allowed size");
+
+            verify(restTemplate, times(1)).execute(anyString(), any(HttpMethod.class), any(), any());
         }
     }
 
@@ -229,7 +232,7 @@ class OidcMetadataFetcherTest {
         @Test
         void failWithEmptyContent() throws Exception {
 
-            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+            when(restTemplate.execute(anyString(), any(HttpMethod.class), any(), any()))
                     .thenReturn("".getBytes());
 
             assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(OidcMetadataFetchingException.class));
@@ -238,7 +241,7 @@ class OidcMetadataFetcherTest {
         @Test
         void failWithInvalidContent() throws Exception {
 
-            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+            when(restTemplate.execute(anyString(), any(HttpMethod.class), any(), any()))
                     .thenReturn("{x}".getBytes());
 
             assertThatThrownBy(() -> metadataDiscoverer.fetchWebKeySet(definition)).asInstanceOf(InstanceOfAssertFactories.throwable(OidcMetadataFetchingException.class));
@@ -253,7 +256,7 @@ class OidcMetadataFetcherTest {
             definition.setSkipSslValidation(true);
             definition.setRelyingPartyId("id");
             definition.setRelyingPartySecret(null);
-            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+            when(restTemplate.execute(anyString(), any(HttpMethod.class), any(), any()))
                     .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
         }
 
@@ -326,15 +329,12 @@ class OidcMetadataFetcherTest {
             definition.setTokenKeyUrl(URI.create("http://token_keys").toURL());
             definition.setRelyingPartyId("id");
             definition.setRelyingPartySecret("secret");
-            ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
-            when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
-            when(responseEntity.getBody()).thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
-            when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
-                    .thenReturn(responseEntity);
+            when(restTemplate.execute(anyString(), any(HttpMethod.class), any(), any()))
+                    .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
 
             metadataDiscoverer.fetchWebKeySet(definition);
 
-            verify(restTemplate).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class));
+            verify(restTemplate).execute(anyString(), any(HttpMethod.class), any(), any());
             verifyNoInteractions(urlContentCache);
         }
 

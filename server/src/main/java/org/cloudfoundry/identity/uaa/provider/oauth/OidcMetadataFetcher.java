@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -22,15 +24,22 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import tools.jackson.core.JacksonException;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import static java.util.Optional.ofNullable;
 
 public class OidcMetadataFetcher {
     private static final ObjectMapper OBJECT_MAPPER = new JsonMapper();
+    private static final int MAX_JWKS_RESPONSE_SIZE = 1024 * 1024; // 1MB limit for JWKS
 
     private final UrlContentCache contentCache;
     private final RestTemplate trustingRestTemplate;
@@ -38,6 +47,16 @@ public class OidcMetadataFetcher {
     private final RestTemplate safeRestTemplate;
     private final IdpOutboundTrustCache trustCache;
     private final RestTemplateConfig restTemplateConfig;
+
+    private final LoadingCache<String, JsonWebKeySet<JsonWebKey>> clientJwksCache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(10))
+            .maximumSize(10_000)
+            .build(this::fetchAndParseClientJwks);
+
+    private final LoadingCache<JwksRequest, JsonWebKeySet<JsonWebKey>> idpJwksCache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(10))
+            .maximumSize(10_000)
+            .build(this::fetchAndParseIdpJwks);
 
     public OidcMetadataFetcher(UrlContentCache contentCache,
             RestTemplate trustingRestTemplate,
@@ -83,7 +102,56 @@ public class OidcMetadataFetcher {
         if (tokenKeyUrl == null || !org.springframework.util.StringUtils.hasText(tokenKeyUrl.toString())) {
             return new JsonWebKeySet<>(Collections.emptyList());
         }
-        byte[] rawContents = getJsonBody(tokenKeyUrl.toString(), config, config.isCacheJwks(), getClientAuthHeader(config));
+
+        RestTemplate restTemplate = resolveRestTemplate(config);
+        String authHeader = getClientAuthHeader(config);
+        JwksRequest request = new JwksRequest(tokenKeyUrl.toString(), restTemplate, authHeader);
+
+        if (config.isCacheJwks() && !hasCustomTrust(config)) {
+            try {
+                return idpJwksCache.get(request);
+            } catch (Exception e) {
+                if (e.getCause() instanceof OidcMetadataFetchingException) {
+                    throw (OidcMetadataFetchingException) e.getCause();
+                }
+                throw new OidcMetadataFetchingException("Unable to fetch verification keys", e);
+            }
+        } else {
+            return fetchAndParseIdpJwks(request);
+        }
+    }
+
+    public JsonWebKeySet<JsonWebKey> fetchWebKeySet(ClientJwtConfiguration clientJwtConfiguration) throws OidcMetadataFetchingException {
+        if (clientJwtConfiguration.getJwkSet() != null) {
+            return clientJwtConfiguration.getJwkSet();
+        } else if (clientJwtConfiguration.getJwksUri() != null) {
+            String jwksUri = clientJwtConfiguration.getJwksUri();
+            try {
+                return clientJwksCache.get(jwksUri);
+            } catch (Exception e) {
+                if (e.getCause() instanceof OidcMetadataFetchingException) {
+                    throw (OidcMetadataFetchingException) e.getCause();
+                }
+                throw new OidcMetadataFetchingException("Unable to fetch verification keys", e);
+            }
+        }
+        throw new OidcMetadataFetchingException("Unable to fetch verification keys");
+    }
+
+    private JsonWebKeySet<JsonWebKey> fetchAndParseClientJwks(String jwksUri) throws OidcMetadataFetchingException {
+        RestTemplate template = isLocalhost(jwksUri) ? nonTrustingRestTemplate : safeRestTemplate;
+        byte[] rawContents = getResponseWithLimit(jwksUri, template, HttpMethod.GET, jsonRequestEntity(null), MAX_JWKS_RESPONSE_SIZE);
+        if (rawContents != null && rawContents.length > 0) {
+            ClientJwtConfiguration clientKeys = ClientJwtConfiguration.parse(null, new String(rawContents, StandardCharsets.UTF_8));
+            if (clientKeys != null && clientKeys.getJwkSet() != null) {
+                return clientKeys.getJwkSet();
+            }
+        }
+        throw new OidcMetadataFetchingException("Unable to fetch verification keys");
+    }
+
+    private JsonWebKeySet<JsonWebKey> fetchAndParseIdpJwks(JwksRequest request) throws OidcMetadataFetchingException {
+        byte[] rawContents = getResponseWithLimit(request.uri, request.template, HttpMethod.GET, jsonRequestEntity(request.authorizationValue), MAX_JWKS_RESPONSE_SIZE);
         if (rawContents == null || rawContents.length == 0) {
             throw new OidcMetadataFetchingException("Unable to fetch verification keys");
         }
@@ -94,42 +162,37 @@ public class OidcMetadataFetcher {
         }
     }
 
-    public JsonWebKeySet<JsonWebKey> fetchWebKeySet(ClientJwtConfiguration clientJwtConfiguration) throws OidcMetadataFetchingException {
-        if (clientJwtConfiguration.getJwkSet() != null) {
-            return clientJwtConfiguration.getJwkSet();
-        } else if (clientJwtConfiguration.getJwksUri() != null) {
-            String jwksUri = clientJwtConfiguration.getJwksUri();
-            // Client JWKS (private_key_jwt) is a different trust boundary than the IdP's own endpoints --
-            // it relies on the client's own public infra, not the private-CA IdP -- so it intentionally
-            // never consults caCertificates. localhost is allowed via nonTrustingRestTemplate (local/test
-            // scenarios); everything else goes through safeRestTemplate for SSRF protection.
-            RestTemplate template = isLocalhost(jwksUri) ? nonTrustingRestTemplate : safeRestTemplate;
-            byte[] rawContents = getJsonBody(jwksUri, template, true, null);
-            if (rawContents != null && rawContents.length > 0) {
-                ClientJwtConfiguration clientKeys = ClientJwtConfiguration.parse(null, new String(rawContents, StandardCharsets.UTF_8));
-                if (clientKeys != null && clientKeys.getJwkSet() != null) {
-                    return clientKeys.getJwkSet();
-                }
-            }
-        }
-        throw new OidcMetadataFetchingException("Unable to fetch verification keys");
-    }
-
-    private byte[] getJsonBody(String uri, AbstractExternalOAuthIdentityProviderDefinition<?> config, boolean isCached, String authorizationValue) {
-        HttpEntity<Object> tokenKeyRequest = jsonRequestEntity(authorizationValue);
-        RestTemplate restTemplate = resolveRestTemplate(config);
-        if (isCached && !hasCustomTrust(config)) {
-            return contentCache.getUrlContent(uri, restTemplate, HttpMethod.GET, tokenKeyRequest);
-        }
-        return getResponse(uri, restTemplate, HttpMethod.GET, tokenKeyRequest);
-    }
-
-    private byte[] getJsonBody(String uri, RestTemplate restTemplate, boolean isCached, String authorizationValue) {
-        HttpEntity<Object> tokenKeyRequest = jsonRequestEntity(authorizationValue);
-        if (isCached) {
-            return contentCache.getUrlContent(uri, restTemplate, HttpMethod.GET, tokenKeyRequest);
-        }
-        return getResponse(uri, restTemplate, HttpMethod.GET, tokenKeyRequest);
+    private byte[] getResponseWithLimit(String uri, RestTemplate restTemplate, HttpMethod method, HttpEntity<Object> header, int maxSize) {
+        return restTemplate.execute(uri, method,
+                request -> {
+                    if (header != null) {
+                        header.getHeaders().forEach((k, v) -> request.getHeaders().put(k, v));
+                    }
+                },
+                response -> {
+                    if (response.getStatusCode() == HttpStatus.OK) {
+                        long contentLength = response.getHeaders().getContentLength();
+                        if (contentLength > maxSize) {
+                            throw new IllegalArgumentException("Response exceeds maximum allowed size");
+                        }
+                        InputStream is = response.getBody();
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        byte[] buffer = new byte[8192];
+                        int read;
+                        int total = 0;
+                        while ((read = is.read(buffer)) != -1) {
+                            total += read;
+                            if (total > maxSize) {
+                                throw new IllegalArgumentException("Response exceeds maximum allowed size");
+                            }
+                            baos.write(buffer, 0, read);
+                        }
+                        return baos.toByteArray();
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Unable to fetch content, status:" + HttpStatus.resolve(response.getStatusCode().value()).getReasonPhrase());
+                    }
+                });
     }
 
     private static HttpEntity<Object> jsonRequestEntity(String authorizationValue) {
@@ -139,16 +202,6 @@ public class OidcMetadataFetcher {
         }
         headers.add("Accept", "application/json,application/jwk-set+json");
         return new HttpEntity<>(null, headers);
-    }
-
-    private byte[] getResponse(String uri, RestTemplate restTemplate, HttpMethod method, HttpEntity<Object> header) {
-        ResponseEntity<byte[]> responseEntity = restTemplate.exchange(uri, method, header, byte[].class);
-        if (responseEntity.getStatusCode() == HttpStatus.OK) {
-            return responseEntity.getBody();
-        } else {
-            throw new IllegalArgumentException(
-                    "Unable to fetch content, status:" + HttpStatus.resolve(responseEntity.getStatusCode().value()).getReasonPhrase());
-        }
     }
 
     private static boolean isLocalhost(String uri) {
@@ -194,16 +247,6 @@ public class OidcMetadataFetcher {
         return !config.isSkipSslValidation() && config.getCaCertificates() != null && !config.getCaCertificates().isEmpty();
     }
 
-    /**
-     * OidcMetadataFetcher's callers (ExternalOAuthProviderConfigurator, JwtClientAuthentication,
-     * ExternalOAuthLogoutSuccessHandler, ExternalOAuthAuthenticationManager) only ever hand this class the
-     * IdP's config object, not the owning IdentityProvider entity/id -- so the cache identity key is
-     * derived from stable, already-available config content instead. This is safe regardless of
-     * uniqueness: IdpOutboundTrustCache's own equals-on-read check against the actual caCertificates
-     * content is what guarantees correct trust material is returned, not the quality of this key -- a
-     * key collision (e.g. two IdPs sharing a discoveryUrl with different CAs) only costs a redundant
-     * rebuild, it can never return the wrong IdP's trust material.
-     */
     private static String identityKeyFor(AbstractExternalOAuthIdentityProviderDefinition<?> config) {
         if (config instanceof OIDCIdentityProviderDefinition oidc && oidc.getDiscoveryUrl() != null) {
             return oidc.getDiscoveryUrl().toString();
@@ -228,5 +271,32 @@ public class OidcMetadataFetcher {
 
     private boolean shouldFetchMetadata(OIDCIdentityProviderDefinition definition) {
         return definition.getDiscoveryUrl() != null && !StringUtils.isBlank(definition.getDiscoveryUrl().toString());
+    }
+
+    private static class JwksRequest {
+        final String uri;
+        final RestTemplate template;
+        final String authorizationValue;
+
+        JwksRequest(String uri, RestTemplate template, String authorizationValue) {
+            this.uri = uri;
+            this.template = template;
+            this.authorizationValue = authorizationValue;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            JwksRequest that = (JwksRequest) o;
+            return Objects.equals(uri, that.uri) &&
+                   Objects.equals(template, that.template) &&
+                   Objects.equals(authorizationValue, that.authorizationValue);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(uri, template, authorizationValue);
+        }
     }
 }

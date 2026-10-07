@@ -43,7 +43,13 @@ public class StaleUrlCache implements UrlContentCache {
                          final Ticker ticker, RemovalListener<Object, Object> listener) {
         Caffeine<Object, Object> builder = Caffeine.newBuilder()
                 .refreshAfterWrite(cacheExpiration)
-                .maximumSize(maxEntries)
+                .maximumWeight(maxEntries == 10_000 ? 100 * 1024 * 1024L : maxEntries * 1024L * 10L) // 100MB default or 10KB per entry
+                .weigher((k, v) -> {
+                    if (v instanceof CacheEntry ce && ce.data != null) {
+                        return ce.data.length;
+                    }
+                    return 1;
+                })
                 .ticker(ticker);
         if (listener != null) {
             builder = builder.evictionListener(listener).removalListener(listener);
