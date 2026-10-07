@@ -139,7 +139,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             CLIENT_ID, CID, AZP, REVOCABLE,
             GRANT_TYPE, USER_ID, ORIGIN, USER_NAME,
             EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
-            EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD
+            EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD,
+            // granted_scopes belongs to the refresh token only: it records the full consented set,
+            // while an access token's `scope` may deliberately be a narrower subset the caller asked
+            // for. Copying it onto the access token discloses the full set to a recipient that was
+            // intentionally given reduced authority. getAdditionalRootClaims() tries to drop it, but
+            // does so after the copy loop, so the removal there never took effect -- filtering it
+            // here is what actually enforces the invariant.
+            GRANTED_SCOPES
     );
     private static final long MILLIS_PER_SECOND = 1000L;
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
@@ -308,6 +315,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         refreshTokenValue,
                         claims.getAzAttr(),
                         additionalRootClaims,
+                        Map.of(),
                         claims.getRevSig(),
                         isRevocable,
                         authenticationData,
@@ -432,6 +440,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String refreshToken,
             Map<String, String> additionalAuthorizationAttributes,
             Map<String, Object> additionalRootClaims,
+            Map<String, Object> lateOverrideClaims,
             String revocableHashSignature,
             boolean isRevocable,
             UserAuthenticationData userAuthenticationData,
@@ -482,7 +491,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 grantType,
                 revocableHashSignature,
                 isRevocable,
-                additionalRootClaims);
+                additionalRootClaims,
+                lateOverrideClaims);
         String token = JwtHelper.encode(jwtAccessToken, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
         UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
@@ -549,7 +559,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String grantType,
             String revocableHashSignature,
             boolean isRevocable,
-            Map<String, Object> additionalRootClaims) {
+            Map<String, Object> additionalRootClaims,
+            Map<String, Object> lateOverrideClaims) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
 
@@ -589,6 +600,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         claims.put(AUD, UaaStringUtils.getValuesOrDefaultValue(resourceIds, clientId));
+
+        // Claims an enhancer has opted in to applying after UAA's defaults (UaaTokenEnhancer#getLateOverrideClaims).
+        // Every other enhancer is untouched: its claims were applied above and UAA's defaults take precedence.
+        claims.putAll(lateOverrideClaims);
 
         for (String excludedClaim : getExcludedClaims()) {
             claims.remove(excludedClaim);
@@ -662,12 +677,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean isRefreshTokenRevocable = isAccessTokenRevocable || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
 
         Map<String, Object> additionalRootClaims = null;
+        Map<String, Object> lateOverrideClaims = new HashMap<>();
         if (!uaaTokenEnhancers.isEmpty()) {
             additionalRootClaims = new HashMap<>();
             for (UaaTokenEnhancer enhancer : uaaTokenEnhancers) {
                 Map<String, Object> claims = enhancer.enhance(additionalRootClaims, authentication);
                 if (claims != null) {
                     additionalRootClaims.putAll(claims);
+                    for (String lateOverride : enhancer.getLateOverrideClaims()) {
+                        if (claims.containsKey(lateOverride)) {
+                            lateOverrideClaims.put(lateOverride, claims.get(lateOverride));
+                        }
+                    }
                 }
             }
         }
@@ -740,6 +761,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         refreshTokenValue,
                         additionalAuthorizationAttributes,
                         additionalRootClaims,
+                        lateOverrideClaims,
                         revocableHashSignature,
                         isAccessTokenRevocable,
                         authenticationData,

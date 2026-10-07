@@ -6,7 +6,7 @@ In [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749#section-2.3.1) the password
 or better the process of checking its possession means the authentication process.
 
 The secrets can be passed to a server in different ways. It can happen through the HTTP header and/or the body. In the case that an Authorization header is used,
-the encoding of the secret needs to be done according to the RFC 6749. UAA fixed this behavior with https://github.com/cloudfoundry/uaa/issues/778.
+the encoding of the secret needs to be done according to the RFC 6749. UAA fixed this behavior with <https://github.com/cloudfoundry/uaa/issues/778>.
 The OIDC standard defines additional authentication mechanisms, see [section 9](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication).
 The usage of secrets via client_secret_basic and client_secret_post is straightforward to set up and to use, however, if system-to-system communication is
 in use, this can be a security problem because it will be hard to change secrets in running systems. The use of many secrets is not
@@ -17,10 +17,12 @@ standards define token-based authentication mechanisms for OAuth2 clients. They 
 * tls_client_auth [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705)
 
 ## New methods
+
 The new methods are based on asymmetric trust relation, so that the keys are divided into a private and a public one. The private key should never leave
 the original system, but only the public key should be exchanged.
 
 ### private_key_jwt (Partly finished)
+
 The standard private_key_jwt is similar to the existing JWT bearer flow, but JWT bearer is for user principle propagation, whereas private_key_jwt
 is used for client authentication only. The used technics are similar and therefore the trust model is similar. Both usages are specified in the same
 [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523.txt). The JWT bearer trust is based on parameters tokenKey and/or tokenKeyUrl parameter, part of the
@@ -29,7 +31,7 @@ of public keys, and this set can contain many keys because each key has its own 
 a dynamic token key URI. OIDC has defined the parameter jwks_uri for this already. The structure of the keys is defined with [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517).
 UAA provides its own jwks_uri with endpoint /token_keys. The content of this endpoint is [JWKS](https://datatracker.ietf.org/doc/html/rfc7517#section-5).
 
-The content of the JWT (parameter client_assertion) can be different. The standards define the difference. The [OIDC core standard](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication) 
+The content of the JWT (parameter client_assertion) can be different. The standards define the difference. The [OIDC core standard](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
  simplifies the structure so that issuer and subject are the client_id of the authenticated OAuth2 client. The key rotation is supported with
 jwks_uri, which retrieves the JWK. You can only have one JWKS_URI by the client. For the [RFC 7523 from OAuth2 standard](https://www.rfc-editor.org/info/rfc7523) the
 structure is more complex, but with seperated issuer and subject there can be more than one entry of federated credential.
@@ -45,11 +47,281 @@ The new parameter for federated Credentials in UAA clients is (Work in progress 
 
 * jwt_creds
 
-### tls_client_auth (Planned Feature)
-Not yet defined a release date.
+### tls_client_auth ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705))
+
+Mutual-TLS client authentication: a client presents an X.509 certificate at the TLS layer
+instead of a `client_secret` or a signed JWT assertion. UAA validates the certificate against
+a per-client trusted CA and, optionally, derives JWT claims from the certificate's subject
+fields (e.g. mapping a Cloud Foundry app instance identity certificate to `app_guid`/
+`space_guid`/`org_guid` claims).
+
+The client is authenticated on the fixed dedicated endpoint, `/oauth/mtls/token`, rather than
+the regular `/oauth/token`. A nonblank `tls-client-auth-ca` is the sole inbound mTLS selector
+for a client, and configuring it is exclusive: the client must authenticate at
+`/oauth/mtls/token` with its certificate, and every other credential path is refused, including
+at the regular `/oauth/token` -- a client that keeps a `client_secret` alongside
+`tls-client-auth-ca` cannot fall back to `client_secret_basic` there. This is deliberate:
+allowing a dual path would let the same client obtain both certificate-bound and unbound
+tokens, undermining the guarantee that a `tls-client-auth-ca`-configured client's tokens are
+always certificate-bound.
+
+The underlying TLS-layer change, however, is **connector-wide, not per-endpoint**: enabling
+this feature (`uaa.mtls-enabled`) reconfigures the whole embedded Tomcat connector to request a
+client certificate on *every* TLS handshake to this UAA instance (`certificateVerification=
+optionalNoCA`; see `MtlsClientAuthTomcatCustomizer`), regardless of which path the request is
+ultimately routed to. Any TLS client connecting to any UAA endpoint will therefore be prompted
+for a certificate during the handshake -- well-behaved clients (including Go's `crypto/tls`)
+simply respond with an empty `Certificate` message if they have no certificate matching the
+connector's advertised acceptable-issuer list, so this doesn't outright break other endpoints,
+but it is a deployment-wide TLS-layer change, not one isolated to `/oauth/mtls/token`.
+
+#### Deployment topology
+
+UAA itself only ever sees the certificate presented by its *immediate* TLS peer -- whatever
+that happens to be depends on how UAA is deployed:
+
+* **Behind a Gorouter** with `forwarded_client_cert: sanitize_set` (the typical Cloud
+  Foundry deployment): the Gorouter terminates the client's TLS connection, validates it, and
+  forwards the client's certificate to UAA in the `X-Forwarded-Client-Cert` header over its own
+  backend mTLS connection. Here, UAA's immediate TLS peer is the Gorouter itself, not the
+  original client.
+* **Direct connections**, e.g. an app connecting straight to UAA over BOSH DNS
+  (`uaa.service.cf.internal`) where Application Security Groups permit it, bypassing the
+  Gorouter entirely: UAA's immediate TLS peer *is* the original client.
+
+`tls-client-auth-trusted-proxy-ca` determines which of the two topologies a *given client* uses --
+the two are mutually exclusive per client, not two ways of satisfying the same requirement:
+
+* **Not configured:** the client is direct-connection-only. UAA always authenticates it using the
+  certificate its immediate TLS peer actually presented during the handshake, and never consults
+  the `X-Forwarded-Client-Cert` header at all (even if one happens to be present -- e.g. noise
+  from an unrelated proxy in the network path).
+* **Configured:** the client is proxy-only. UAA requires the `X-Forwarded-Client-Cert` header to
+  actually be present, and the genuine TLS peer that presented it to validate against this CA,
+  before trusting the header-derived certificate. A direct connection (no header) is always
+  rejected for this client, even if its own certificate happens to validate against the configured
+  CA.
+
+An operator who needs both a Gorouter-fronted access pattern and a direct-connection access
+pattern for what is conceptually "the same" workload registers **two separate UAA clients** -- one
+with `tls-client-auth-trusted-proxy-ca` set (proxy path) and one without it (direct path) -- rather
+than expecting one client to accept either.
+
+#### Scoping a client to a specific org/space/app
+
+Because Cloud Foundry's Diego instance-identity CA is shared across every app instance in a
+foundation, any two clients configured with the same `tls-client-auth-ca` would otherwise
+authenticate each other's certificates -- PKIX chain validation alone only proves a certificate
+was issued by the configured CA, not that it belongs to *this* client specifically. RFC 8705
+section 2.1.2 therefore requires the authorization server to compare a configured subject value
+against the presented certificate.
+
+**A client configuring `tls-client-auth-ca` must therefore also register exactly one expected
+certificate subject value**, using one of the five RFC 8705 section 2.1.2 parameters. UAA rejects
+the client otherwise, at registration and again at authentication time:
+
+| Parameter | Matched against |
+|-----------|-----------------|
+| `tls_client_auth_subject_dn` | the certificate's subject DN, in RFC 4514 string form |
+| `tls_client_auth_san_dns` | a `dNSName` subjectAltName entry |
+| `tls_client_auth_san_uri` | a `uniformResourceIdentifier` subjectAltName entry |
+| `tls_client_auth_san_ip` | an `iPAddress` subjectAltName entry, compared in binary form |
+| `tls_client_auth_san_email` | an `rfc822Name` subjectAltName entry |
+
+These are the IANA-registered client metadata names, spelled exactly as RFC 7591 dynamic client
+registration sends them, so they use underscores rather than UAA's usual hyphens.
+
+```yaml
+tls-client-auth-ca: <instance-identity CA certificate PEM>
+tls_client_auth_subject_dn: "CN=my-app,OU=space:<space-guid>,O=cloudfoundry"
+```
+
+Take the DN from the certificate itself rather than writing it by hand --
+`openssl x509 -in cert.pem -noout -subject -nameopt RFC2253` prints exactly the form expected.
+Comparison follows RFC 4517 `distinguishedNameMatch`: attribute-type case and whitespace around
+separators are insignificant, but the order of the relative distinguished names is.
+
+UAA additionally offers `tls-client-auth-required-claims`, which constrains the certificate
+further by matching values extracted through `tls-client-auth-claim-mappings`. That is a UAA
+extension, not part of RFC 8705, and it does not substitute for the subject binding -- use it
+*alongside* one, for example to pin a SAN-bound client to a particular CF space:
+
+```yaml
+tls_client_auth_san_dns: my-app.apps.internal
+tls-client-auth-claim-mappings:
+  - field: subject_ou
+    pattern: "space:(.+)"
+    claim: space_guid
+tls-client-auth-required-claims:
+  space_guid: <specific-space-guid>
+```
+
+An operator who needs two differently-scoped clients registers them as two separate UAA clients,
+each with its own subject value.
+
+#### Configuration
+
+Per-client properties (set via the client-admin API, `oauth.clients` bootstrap, or the client
+admin UI, alongside the client's other properties such as `authorized-grant-types`):
+
+The mTLS token endpoint is fixed at `/oauth/mtls/token`; it is not configurable. A client opts
+into mTLS by configuring a nonblank `tls-client-auth-ca`. The client must use that endpoint and
+present a certificate whose chain validates to the configured CA; no separate
+`token-endpoint-auth-method` property is used or supported.
+
+| Property | Required | Description |
+|----------|----------|--------------|
+| `tls-client-auth-ca` | yes | PEM-encoded CA certificate. This is the per-client mTLS selector: requests to the fixed `/oauth/mtls/token` endpoint authenticate with a presented leaf certificate only when it chains to this CA. |
+| `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
+| one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`, `tls_client_auth_san_email` | yes -- exactly one | The expected certificate subject value (RFC 8705 section 2.1.2). Chain validation proves only that the CA issued the certificate; this is what identifies *this* client. See "Scoping a client" above. |
+| `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values produced by `tls-client-auth-claim-mappings`. A UAA extension applied in addition to the subject binding, not instead of it -- authentication fails unless every entry matches exactly. |
+| `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to JWT claim names. `subject_cn` and `subject_o` map their values directly; `pattern` is rejected for either, since it is applied only to `subject_ou`, where it must contain at least one capturing group -- a pattern that only matches without capturing (e.g. `space:.+` instead of `space:(.+)`) is rejected too, since it would never produce a value. Patterns are administrator-controlled configuration and are evaluated against certificate OU values on every mTLS token request, so they are bounded: an OU longer than 256 characters is not matched, and a match that reads more than 100 000 characters is abandoned, after which that mapping yields no claim (a warning is logged; a claim that `tls-client-auth-required-claims` depends on is then absent, so the client is refused). Prefer simple anchored patterns such as `^space:(.+)$`; nested quantifiers like `((a+)+)+` will be cut off by the limit. |
+| `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. At most 256 characters; must contain at least one `{claim}` placeholder; every placeholder must name a claim declared in `tls-client-auth-claim-mappings`. |
+| `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. Each entry is subject to the same constraints as `tls-client-auth-sub-template`: at most 256 characters, at least one `{claim}` placeholder, and every placeholder must name a declared claim. |
+| `tls-client-auth-allowed-resources` | no | List of exact [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) resource values (absolute URIs, no fragment) this client may request at token time via the `resource` request parameter -- see "RFC 8707 resource indicators" below. Mutually exclusive with `tls-client-auth-aud-templates`: two mechanisms for setting `aud` on one client is a footgun. Must be non-empty if present. |
+
+Example (Gorouter-fronted; a Cloud Foundry app instance identity certificate mapped to
+`cf_instance_guid`/`app_guid`/`space_guid`/`org_guid` claims):
+
+```yaml
+tls-client-auth-ca: <instance-identity CA certificate PEM>
+tls-client-auth-trusted-proxy-ca: <Gorouter backend mTLS CA certificate PEM, e.g. service_cf_internal_ca>
+tls-client-auth-claim-mappings:
+  - field: subject_cn
+    claim: cf_instance_guid
+  - field: subject_ou
+    pattern: "app:(.+)"
+    claim: app_guid
+  - field: subject_ou
+    pattern: "space:(.+)"
+    claim: space_guid
+  - field: subject_ou
+    pattern: "organization:(.+)"
+    claim: org_guid
+tls_client_auth_subject_dn: "CN=<app instance guid>,OU=organization:<org-guid>,OU=space:<space-guid>,OU=app:<app-guid>"
+```
+
+The subject binding is part of the example because the instance-identity CA issues a certificate
+to every app instance in the foundation. Without it this client would accept any of them, and UAA
+rejects that configuration. Where a single client must serve several app instances, bind on a SAN
+they share and use `tls-client-auth-required-claims` to narrow it to an org, space or app.
+
+For the direct-connection topology described above, omit `tls-client-auth-trusted-proxy-ca`
+entirely rather than setting it -- configuring it at all switches this client to proxy-only.
+
+#### RFC 8707 resource indicators
+
+A client configured with `tls-client-auth-allowed-resources` may pass a `resource` parameter to
+`/oauth/mtls/token`:
+
+```yaml
+tls-client-auth-allowed-resources:
+  - https://billing.apps.internal
+  - https://reporting.apps.internal
+```
+
+```text
+POST /oauth/mtls/token
+grant_type=client_credentials&resource=https://billing.apps.internal
+```
+
+The requested value replaces the token's `aud` claim, letting one client obtain tokens scoped to
+whichever of several permitted targets a given request needs. Without a configured allow-list a
+client cannot request any resource -- an absent list authorizes nothing, it does not fall back to
+an unrestricted `aud`. Requesting a value outside the list, requesting more than one resource in
+the same call, or a value that is not an absolute URI without a fragment (per the RFC) is refused
+as `invalid_target`, and no token is issued.
+
+#### Registering a `tls_client_auth` client
+
+A client opts in by setting `tls-client-auth-ca` together with exactly one of the five subject parameters
+(`tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`,
+`tls_client_auth_san_email`). The same keys are accepted by every registration path, and every path enforces the same
+rules:
+
+| Path | Notes |
+|---|---|
+| Client admin API (`POST`/`PUT /oauth/clients`) | The keys are top-level JSON properties of the client. The field reference is generated from the API docs. |
+| Zone client API (`/identity-zones/{id}/clients`) | A client with a non-blank `tls-client-auth-ca` may omit `client_secret`; a supplied secret is still checked against the zone's secret policy. |
+| `oauth.clients` bootstrap (BOSH / `uaa.yml`) | Validated at startup with the same rules; an invalid mTLS client prevents the bootstrap from completing. |
+
+With `uaa.mtls-enabled` off, a request carrying `tls-client-auth-ca` or `tls-client-auth-trusted-proxy-ca` is rejected
+with `400` ("require uaa.mtls-enabled to be true"). A client that sets `tls-client-auth-ca` authenticates **only** at
+`/oauth/mtls/token` and may not combine the certificate with a `client_secret`, so it cannot also be used at
+`/oauth/token`.
+
+#### Certificate-bound access tokens
+
+A token issued at `/oauth/mtls/token` is bound to the client certificate it was requested with
+([RFC 8705 section 3](https://www.rfc-editor.org/rfc/rfc8705#section-3)). Besides the usual claims it carries:
+
+| Claim | Value |
+|---|---|
+| `cnf` | `{"x5t#S256": "<thumbprint>"}` — the base64url (no padding) SHA-256 of the DER encoding of the client certificate |
+| `client_auth_method` | `tls_client_auth` |
+| `sub`, `aud` | the client id and its default audience, unless `tls-client-auth-sub-template`, `tls-client-auth-aud-templates` or an allowed `resource` replace them |
+| mapped claims | one per `tls-client-auth-claim-mappings` entry; a dotted claim name such as `cf.app` becomes a nested object |
+
+Only `client_credentials` is issued here, and no refresh token is returned. Discovery advertises the capability as
+`tls_client_certificate_bound_access_tokens: true`.
+
+**Binding is enforced by the resource server, not by UAA.** UAA stamps `cnf` but does not itself check it on its own
+protected endpoints. A resource server that wants the binding to mean anything must, for every request, compute the
+thumbprint of the certificate presented on *its* TLS connection and require it to equal `cnf.x5t#S256`; without that
+check the token is an ordinary bearer token. To compute the thumbprint by hand:
+
+```bash
+openssl x509 -in client-cert.pem -outform DER | openssl dgst -sha256 -binary \
+  | openssl base64 -A | tr '+/' '-_' | tr -d '='
+```
+
+A resource that cannot see the client's certificate can ask UAA instead: both `POST /introspect` and `POST
+/check_token` return the token's `cnf` claim unchanged, for JWT and opaque tokens alike (RFC 8705 section 3.2). The
+resource server still has to compare it with the certificate it saw.
+
+#### Error responses at `/oauth/mtls/token`
+
+| Status | When | Body |
+|---|---|---|
+| `404` | `uaa.mtls-enabled` is off, or the path is anything below `/oauth/mtls/token` | no OAuth error body |
+| `405` with `Allow: POST` | any method other than `POST`, including `GET` | no OAuth error body |
+| `401` `invalid_client` | no certificate was presented, the certificate is not the one registered for the client, it does not chain to `tls-client-auth-ca` (including expired, or a CA certificate used as the leaf), or `tls-client-auth-required-claims` is not satisfied | `tls_client_auth: certificate validation failed`, or `tls_client_auth: certificate chain validation failed: <reason>` |
+| `401` `invalid_client` | the client's `tls-client-auth-ca` cannot be parsed | `tls_client_auth: CA configuration error: <reason>` |
+| `401` `invalid_client` | a `client_secret` or Basic credentials were sent for a client that has `tls-client-auth-ca` | `tls_client_auth: configured clients must authenticate at /oauth/mtls/token without client credentials` |
+| `401` `invalid_client` | a client with no `tls-client-auth-ca` calls this endpoint | `tls_client_auth: /oauth/mtls/token requires a client configured with tls-client-auth-ca` |
+| `401` `invalid_client` | the client has `tls-client-auth-ca` but not exactly one subject parameter (a client stored before the check existed) | `tls_client_auth: client is configured with tls-client-auth-ca but does not register exactly one certificate subject value…` |
+| `400` `invalid_grant` | any grant other than `client_credentials` | `the mTLS token endpoint only issues client_credentials tokens` |
+| `400` `invalid_target` | `resource` is not in the client's allow-list, is repeated, is not an absolute URI without a fragment, or the client has no allow-list | e.g. `client_id=<id> is not authorized to request the given resource` |
+
+Descriptions never echo submitted values such as the grant type or the resource. A missing certificate, a certificate
+with the wrong subject and an unsatisfied `tls-client-auth-required-claims` all return the same message, so a caller
+cannot probe which part of the registration it missed.
+
+#### Compatibility and upgrade notes
+
+`uaa.mtls-enabled` defaults to `false`. With it off the feature does nothing observable, with these exceptions:
+
+* OIDC discovery gains one field, `tls_client_certificate_bound_access_tokens`, always present and `false` when the
+  feature is off. RFC 8705 section 3.3 treats an omitted value as `false`, so its meaning is unchanged.
+* **Deployments that register their own `UaaTokenEnhancer` beans** (stock UAA registers none unless this feature is on)
+  see one change regardless of the flag: an access token issued by a *refresh* no longer carries the
+  `granted_scopes` claim. That claim records the full consented scope set and belongs on the refresh token only; copying
+  it onto an access token whose `scope` was deliberately narrowed disclosed more than the caller was given.
+* The classes `ClientAdminEndpointsValidator`, `ClientAdminBootstrap`, `ClientDetailsAuthenticationProvider` and
+  `ZoneEndpointsClientDetailsValidator` gained constructor parameters and lost their previous signatures. They are
+  Spring-wired internals; only code that constructs them by hand needs the extra argument.
+
+**Token enhancers.** With the feature on, `MtlsClaimsEnhancer` joins any other `UaaTokenEnhancer` in one shared list. It
+adds nothing to a request that was not authenticated with `tls_client_auth` and does not restrict or alter another
+enhancer's claims, which are applied exactly as before. If two enhancers emit the same custom claim the later one in
+the list wins, and `MtlsClaimsEnhancer` declares no order. `UaaTokenEnhancer` has a new `default` method,
+`getLateOverrideClaims()`, returning an empty set; an enhancer that needs a claim such as `sub` or `aud` to survive
+UAA's own defaults can opt in by returning its name. Existing implementations compile and behave unchanged.
 
 ## Configs
+
 Here is a brief example of the `clients` section:
+
 ```yaml
 oauth:
   clients:
@@ -78,9 +350,11 @@ oauth:
           ]
         }
 ```
+
 The example configuration above with jwks_uri enables continuous trust to a running UAA.
 
 Here is a brief example of the oauth providers section, where UAA is acting as a client.
+
 ```yaml
 login:
   oauth:
@@ -99,12 +373,46 @@ login:
 The option jwtClientAuthentication creates during the proxy flow a client assertion which is based on OIDC private_key_jwt.
 
 ### Developer implementation
+
 As a developer, you should use the [UAA documentation](https://docs.cloudfoundry.org/api/uaa/version/77.18.0/index.html#token). There is a description
-about the new parameters client_assertion and client_assertion_type. In addition, you can check in the retrieved access_token tokens for the existence 
-of claim client_auth_method with value private_key_jwt, (client_auth_method=private_key). This claim should guarantee the used method of client 
-authentication. Tokens without this claim are authenticated with secrets. There might be use-cases where a stronger authentication mechanism is 
+about the new parameters client_assertion and client_assertion_type. In addition, you can check in the retrieved access_token tokens for the existence
+of claim client_auth_method with value private_key_jwt, (client_auth_method=private_key). This claim should guarantee the used method of client
+authentication. Tokens without this claim are authenticated with secrets. There might be use-cases where a stronger authentication mechanism is
 required.
 
 ### Production use
 
-The support of private_key_jwt (according to OIDC) for a production system is given with the end of Q4/2024. 
+The support of private_key_jwt (according to OIDC) for a production system is given with the end of Q4/2024.
+
+## Operating tls_client_auth
+
+### Certificate revocation is not checked
+
+UAA validates a presented client certificate's chain against the configured CA and enforces its
+validity dates, but performs **no revocation checking**: PKIX validation runs with
+`setRevocationEnabled(false)`, so neither CRL distribution points nor OCSP responders are consulted.
+
+The practical consequence is that a stolen or mis-issued client certificate remains accepted until
+it expires. RFC 8705 treats revocation as a deployment decision rather than a requirement, and
+names it as the mitigation for certificate theft, so plan accordingly:
+
+* Keep certificate lifetimes short. Cloud Foundry's Diego instance-identity certificates are
+  already short-lived, which is what makes this acceptable for the workload-identity use case.
+* To cut off a compromised client immediately, remove `tls-client-auth-ca` from that client (or
+  delete the client), rather than relying on revoking the certificate.
+* Do not point `tls-client-auth-ca` at a long-lived, broadly-issuing CA and treat revocation as the
+  containment mechanism. It is not available.
+
+### Rotating the CA
+
+`tls-client-auth-ca` and `tls-client-auth-trusted-proxy-ca` accept **multiple concatenated
+PEM certificates**, and every certificate in the value is treated as an independent trust anchor.
+That is what makes a CA rotation possible without an outage:
+
+1. Set the value to the outgoing CA followed by the incoming CA. Certificates issued by either now
+   authenticate.
+2. Wait for every certificate issued by the outgoing CA to expire or be reissued.
+3. Set the value to the incoming CA alone.
+
+A malformed entry rejects the whole value at client create/update time, so a bundle either parses
+completely or is refused — UAA will not silently trust a subset of it.
