@@ -14,11 +14,17 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.saml2.provider.service.authentication.Saml2PostAuthenticationRequest;
+import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequest;
+import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
+import org.springframework.security.saml2.provider.service.web.HttpSessionSaml2AuthenticationRequestRepository;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.HttpSessionLogoutRequestRepository;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -346,13 +352,75 @@ class ZoneContextPathSessionTests {
         @Test
         void attributeNameForContextPath_emptyUsesDefault() {
             assertThat(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath(""))
-                    .isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "default");
+                    .isEqualTo(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath(DEFAULT_ZONE_SUBDOMAIN_PATH));
         }
 
         @Test
         void attributeNameForContextPath_nonEmptyUsesPath() {
-            assertThat(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/zone1"))
-                    .isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "/uaa/z/zone1");
+            String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/zone1");
+            assertThat(attrName).startsWith(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX);
+            assertThat(attrName).isNotEqualTo(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/zone2"));
+        }
+
+        @Test
+        void attributeNameForContextPath_isSameLength_regardlessOfContextPathLength() {
+            String shortName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/a");
+            String longName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa/z/" + "a".repeat(300));
+            assertThat(longName).hasSameSizeAs(shortName);
+        }
+
+        @Test
+        void samlAuthenticationRequest_containerKeyStaysWithinJdbcColumnLimit_forLongZoneSubdomain() {
+            RelyingPartyRegistration registration = relyingPartyRegistration();
+            Saml2PostAuthenticationRequest authenticationRequest = Saml2PostAuthenticationRequest
+                    .withRelyingPartyRegistration(registration).samlRequest("request").build();
+
+            assertContainerKeysWithinJdbcColumnLimit(zoneRequest ->
+                    new HttpSessionSaml2AuthenticationRequestRepository()
+                            .saveAuthenticationRequest(authenticationRequest, zoneRequest, new MockHttpServletResponse()));
+        }
+
+        @Test
+        void samlLogoutRequest_containerKeyStaysWithinJdbcColumnLimit_forLongZoneSubdomain() {
+            RelyingPartyRegistration registration = relyingPartyRegistration();
+            Saml2LogoutRequest logoutRequest = Saml2LogoutRequest
+                    .withRelyingPartyRegistration(registration).samlRequest("request").id("id").relayState("state").build();
+
+            assertContainerKeysWithinJdbcColumnLimit(zoneRequest ->
+                    new HttpSessionLogoutRequestRepository()
+                            .saveLogoutRequest(logoutRequest, zoneRequest, new MockHttpServletResponse()));
+        }
+
+        /**
+         * Spring Session JDBC caps SPRING_SESSION_ATTRIBUTES.ATTRIBUTE_NAME at 200 characters. Spring's own
+         * repositories choose the attribute name, so let them write through the zone session and inspect the keys
+         * that actually reach the container session.
+         */
+        private void assertContainerKeysWithinJdbcColumnLimit(Consumer<HttpServletRequest> springSavesRequest) {
+            MockHttpServletRequest zoneRequest = new MockHttpServletRequest();
+            zoneRequest.setContextPath("/auth/z/" + "a".repeat(300));
+            MockHttpSession container = new MockHttpSession();
+            zoneRequest.setSession(container);
+
+            springSavesRequest.accept(new ZoneContextPathSessionRequestWrapper(zoneRequest, timeService));
+
+            List<String> springKeys = Collections.list(container.getAttributeNames()).stream()
+                    .filter(name -> name.contains("org.springframework"))
+                    .toList();
+            assertThat(springKeys).hasSize(1);
+            assertThat(Collections.list(container.getAttributeNames()))
+                    .allSatisfy(name -> assertThat(name.length()).isLessThanOrEqualTo(200));
+        }
+
+        private static RelyingPartyRegistration relyingPartyRegistration() {
+            return RelyingPartyRegistration.withRegistrationId("saml.tenant.test")
+                    .entityId("https://sp.example.com/saml")
+                    .assertionConsumerServiceLocation("https://sp.example.com/acs")
+                    .assertingPartyMetadata(party -> party
+                            .entityId("https://idp.example.com/saml")
+                            .singleSignOnServiceLocation("https://idp.example.com/sso")
+                            .singleLogoutServiceLocation("https://idp.example.com/slo"))
+                    .build();
         }
 
         /**
@@ -367,7 +435,7 @@ class ZoneContextPathSessionTests {
             session.setAttribute("user", "admin");
 
             String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa");
-            assertThat(attrName).isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "/uaa");
+            assertThat(attrName).startsWith(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX);
             assertThat(request.getSession(false).getAttribute(attrName + ZonePathHttpSession.ATTRIBUTE_KEY_DELIMITER + "user")).isEqualTo("admin");
         }
 
@@ -385,7 +453,6 @@ class ZoneContextPathSessionTests {
             session.setAttribute("user", "admin");
 
             String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("/uaa");
-            assertThat(attrName).isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "/uaa");
             assertThat(request.getSession(false).getAttribute(attrName + ZonePathHttpSession.ATTRIBUTE_KEY_DELIMITER + "user")).isEqualTo("admin");
         }
 
@@ -403,7 +470,7 @@ class ZoneContextPathSessionTests {
             session.setAttribute("user", "admin");
 
             String attrName = ZoneContextPathSessionRequestWrapper.attributeNameForContextPath("");
-            assertThat(attrName).isEqualTo(ZoneContextPathSessionRequestWrapper.ATTRIBUTE_NAME_PREFIX + "default");
+            assertThat(attrName).isEqualTo(ZoneContextPathSessionRequestWrapper.attributeNameForContextPath(DEFAULT_ZONE_SUBDOMAIN_PATH));
             assertThat(request.getSession(false).getAttribute(attrName + ZonePathHttpSession.ATTRIBUTE_KEY_DELIMITER + "user")).isEqualTo("admin");
         }
 
