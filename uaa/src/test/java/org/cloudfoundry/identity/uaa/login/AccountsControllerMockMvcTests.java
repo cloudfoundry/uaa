@@ -411,12 +411,12 @@ class AccountsControllerMockMvcTests {
 
     @Test
     void creatingAnAccountWithClientRedirect() throws Exception {
-        createAccount("http://redirect.uri/client");
+        createAccount("http://redirect.uri/client", "http://redirect.uri/client");
     }
 
     @Test
     void creatingAnAccountWithFallbackClientRedirect() throws Exception {
-        createAccount(null);
+        createAccount("http://redirect.uri/fallback", null);
     }
 
     @Test
@@ -699,7 +699,7 @@ class AccountsControllerMockMvcTests {
         return MockMvcUtils.createClient(mockMvc, adminToken, clientDetails);
     }
 
-    private void createAccount(String redirectUri) throws Exception {
+    private void createAccount(String expectedRedirectUri, String redirectUri) throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
@@ -719,7 +719,8 @@ class AccountsControllerMockMvcTests {
         assertThat(message.getContentString()).contains("Cloud Foundry");
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 
-        confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
+        String afterReset = confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
+        assertThat(afterReset).isEqualTo("/login?success=password_reset&form_redirect_uri=" + expectedRedirectUri);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -739,7 +740,7 @@ class AccountsControllerMockMvcTests {
      * that flow, confirming the account via {@code /verify_user} and setting the password to
      * {@link #USER_PASSWORD} so the account can then be used to log in.
      */
-    private void confirmAccountAndSetPassword(String activationCode, String subdomain, String email) throws Exception {
+    private String confirmAccountAndSetPassword(String activationCode, String subdomain, String email) throws Exception {
         MockHttpServletRequestBuilder verify = get("/verify_user").param("code", activationCode);
         if (hasText(subdomain)) {
             verify.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
@@ -763,8 +764,12 @@ class AccountsControllerMockMvcTests {
         if (hasText(subdomain)) {
             reset.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         }
-        mockMvc.perform(reset)
-                .andExpect(status().isFound());
+        // Returns the post-reset redirect so callers can assert the carried signup redirect.
+        return mockMvc.perform(reset)
+                .andExpect(status().isFound())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
     }
 
     private ResultActions loginWithAccount(String subdomain) throws Exception {
