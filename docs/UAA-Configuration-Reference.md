@@ -1758,6 +1758,15 @@ List of usernames to delete on bootstrap. Used to remove specific users during s
 
 When `true`, "Create Account" and "Forgot Password" links are displayed on the login page.
 
+> **Note on self-service account confirmation.** Clicking the activation link in the confirmation
+> email verifies ownership of the email address but does **not** activate the password typed on the
+> registration form. The owner is sent to a password-setup page (stating that a password change is
+> required due to changes in the system) and must establish their own password through the link
+> before the account can be used to sign in. This ensures a password chosen before the email address
+> was verified can never be used to authenticate. Any client or signup redirect configured for the
+> registration (an explicit `redirect_uri` or the client's `signup_redirect_url`) is applied after the
+> owner has set their password, provided it matches one of the client's registered redirect URIs.
+
 [Back to table](#login--branding)
 
 ---

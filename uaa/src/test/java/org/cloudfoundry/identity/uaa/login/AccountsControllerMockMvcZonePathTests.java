@@ -45,6 +45,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
 import java.util.Collections;
@@ -61,12 +62,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 import static org.springframework.util.StringUtils.hasLength;
+import static org.springframework.util.StringUtils.hasText;
 
 @DefaultTestContext
 @EnabledIfZonePathsEnabled
 class AccountsControllerMockMvcZonePathTests {
 
-    private static final String LOGIN_REDIRECT = "/login?success=verify_success";
     private static final String USER_PASSWORD = "secr3T";
     private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String userEmail;
@@ -303,11 +304,7 @@ class AccountsControllerMockMvcZonePathTests {
         ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'", IdentityZoneHolder.get().getId()).getFirst();
         assertThat(scimUser.isVerified()).isFalse();
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
-                .andReturn();
+        confirmAccountAndSetPassword(ZoneResolutionMode.SUBDOMAIN, "", "test" + generator.counter.get(), userEmail);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -336,11 +333,7 @@ class AccountsControllerMockMvcZonePathTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
-                .andReturn();
+        confirmAccountAndSetPassword(ZoneResolutionMode.SUBDOMAIN, "", "test" + generator.counter.get(), userEmail);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -382,11 +375,7 @@ class AccountsControllerMockMvcZonePathTests {
         assertThat(message.getContentString()).contains("Cloud Foundry");
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
-                .andReturn();
+        confirmAccountAndSetPassword(ZoneResolutionMode.SUBDOMAIN, "", "test" + generator.counter.get(), userEmail);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -441,12 +430,7 @@ class AccountsControllerMockMvcZonePathTests {
             assertThat(link).contains(subdomain + ".localhost");
         }
 
-        String expectedVerifyRedirect = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/login?success=verify_success" : LOGIN_REDIRECT;
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(expectedVerifyRedirect))
-                .andReturn();
+        confirmAccountAndSetPassword(mode, subdomain, "test" + generator.counter.get(), userEmail);
 
         MvcResult mvcResult = loginWithAccount(subdomain)
                 .andExpect(redirectedUrl("/"))
@@ -495,13 +479,7 @@ class AccountsControllerMockMvcZonePathTests {
             assertThat(link).contains(subdomain + ".localhost");
         }
 
-        String expectedVerifyRedirect = mode == ZoneResolutionMode.ZONE_PATH
-                ? "/z/" + subdomain + "/login?success=verify_success&form_redirect_uri=http://myzoneclient.example.com"
-                : LOGIN_REDIRECT + "&form_redirect_uri=http://myzoneclient.example.com";
-        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(redirectedUrl(expectedVerifyRedirect))
-                .andReturn();
+        confirmAccountAndSetPassword(mode, subdomain, "test" + generator.counter.get(), userEmail);
 
         MvcResult mvcResult = loginWithAccount(subdomain)
                 .andExpect(authenticated())
@@ -540,14 +518,29 @@ class AccountsControllerMockMvcZonePathTests {
                         .param("password_confirmation", "test-password"))
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        mockMvc.perform(get("/verify_user")
+        MvcResult verifyResult = mockMvc.perform(get("/verify_user")
                         .session(session)
                         .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
                 .andReturn();
 
+        String location = verifyResult.getResponse().getRedirectedUrl();
+        assertThat(location)
+                .startsWith("/reset_password?code=")
+                .contains("force_change=true");
+
         assertThat(SessionUtils.getSavedRequestSession(MockMvcUtils.getZoneSession(session)).getRedirectUrl()).isNotNull();
+
+        // Consume the reset code so the predictable code sequence does not collide with later tests.
+        String resetCode = UriComponentsBuilder.fromUriString(location).build().getQueryParams().getFirst("code");
+        mockMvc.perform(post("/reset_password.do")
+                        .with(cookieCsrf())
+                        .session(session)
+                        .param("code", resetCode)
+                        .param("email", "testuser@test.org")
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD))
+                .andExpect(status().isFound());
     }
 
     @Test
@@ -669,11 +662,8 @@ class AccountsControllerMockMvcZonePathTests {
         assertThat(message.getContentString()).contains("Cloud Foundry");
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT + "&form_redirect_uri=" + expectedRedirectUri))
-                .andReturn();
+        String afterReset = confirmAccountAndSetPassword(ZoneResolutionMode.SUBDOMAIN, "", "test" + generator.counter.get(), userEmail);
+        assertThat(afterReset).isEqualTo("/login?success=password_reset&form_redirect_uri=" + expectedRedirectUri);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -685,6 +675,39 @@ class AccountsControllerMockMvcZonePathTests {
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail()).isEqualTo(userEmail);
         assertThat(principal.getOrigin()).isEqualTo(OriginKeys.UAA);
+    }
+
+    /**
+     * Account confirmation no longer leaves a usable password: clicking the activation link sends
+     * the owner to the reset-password page to establish their own password. This helper completes
+     * that flow (zone-resolution aware), confirming the account via {@code /verify_user} and setting
+     * the password to {@link #USER_PASSWORD} so the account can then be used to log in.
+     */
+    private String confirmAccountAndSetPassword(ZoneResolutionMode mode, String subdomain, String activationCode, String email) throws Exception {
+        MvcResult verifyResult = mockMvc.perform(mode.createRequestBuilder(subdomain != null ? subdomain : "", HttpMethod.GET, "/verify_user")
+                        .param("code", activationCode))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        String location = verifyResult.getResponse().getRedirectedUrl();
+        String expectedPrefix = (mode == ZoneResolutionMode.ZONE_PATH && hasText(subdomain))
+                ? "/z/" + subdomain + "/reset_password?code=" : "/reset_password?code=";
+        assertThat(location)
+                .startsWith(expectedPrefix)
+                .contains("force_change=true");
+        String resetCode = UriComponentsBuilder.fromUriString(location).build().getQueryParams().getFirst("code");
+
+        // Returns the post-reset redirect so callers can assert the carried signup redirect.
+        return mockMvc.perform(mode.createRequestBuilder(subdomain != null ? subdomain : "", HttpMethod.POST, "/reset_password.do")
+                        .with(cookieCsrf())
+                        .param("code", resetCode)
+                        .param("email", email)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD))
+                .andExpect(status().isFound())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
     }
 
     private ResultActions loginWithAccount(String subdomain) throws Exception {

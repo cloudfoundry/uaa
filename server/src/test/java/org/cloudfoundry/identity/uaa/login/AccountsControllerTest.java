@@ -203,30 +203,32 @@ class AccountsControllerTest {
 
     @Test
     void verifyUser() throws Exception {
-        when(accountCreationService.completeActivation("the_secret_code"))
-                .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
+        AccountCreationService.AccountCreationResponse response = new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback");
+        response.setPasswordResetCode("the_reset_code");
+        when(accountCreationService.completeActivation("the_secret_code")).thenReturn(response);
 
         MockHttpServletRequestBuilder get = get("/verify_user")
                 .param("code", "the_secret_code");
 
         mockMvc.perform(get)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?success=verify_success&form_redirect_uri=//example.com/callback"));
+                .andExpect(redirectedUrl("/reset_password?code=the_reset_code&force_change=true"));
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
     @Test
     void verifyUserWithPriorHeadRequest() throws Exception {
-        when(accountCreationService.completeActivation("the_secret_code"))
-                .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
+        AccountCreationService.AccountCreationResponse response = new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback");
+        response.setPasswordResetCode("the_reset_code");
+        when(accountCreationService.completeActivation("the_secret_code")).thenReturn(response);
 
         mockMvc.perform(head("/verify_user").param("code", "the_secret_code"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
         mockMvc.perform(get("/verify_user").param("code", "the_secret_code"))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?success=verify_success&form_redirect_uri=//example.com/callback"));
+                .andExpect(redirectedUrl("/reset_password?code=the_reset_code&force_change=true"));
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         Mockito.verify(accountCreationService, times(1)).completeActivation("the_secret_code");
