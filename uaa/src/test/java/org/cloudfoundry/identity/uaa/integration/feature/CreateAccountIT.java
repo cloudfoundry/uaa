@@ -95,8 +95,14 @@ class CreateAccountIT {
                 .doesNotContain("%40");
 
         webDriver.get(link);
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).doesNotContain("Where to?");
+        // Confirming the account lands on the forced password-set page, not a sign-in page.
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Reset Password");
 
+        webDriver.findElement(By.name("password")).sendKeys(SECRET);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(SECRET);
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
+
+        // The owner can now sign in with the password they set.
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys(SECRET);
         webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
@@ -130,8 +136,14 @@ class CreateAccountIT {
         assertThat(link).isNotEmpty();
 
         webDriver.get(link);
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).doesNotContain("Where to?");
+        // Confirming the account lands on the forced password-set page, not a sign-in page.
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Reset Password");
 
+        webDriver.findElement(By.name("password")).sendKeys(SECRET);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(SECRET);
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
+
+        // The owner can now sign in with the password they set.
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys(SECRET);
         webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));

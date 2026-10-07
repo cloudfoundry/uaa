@@ -176,7 +176,8 @@ public class ResetPasswordController {
     @GetMapping(value = "/reset_password", params = {"code"})
     public String resetPasswordPage(Model model,
             HttpServletResponse response,
-            @RequestParam("code") String code) {
+            @RequestParam("code") String code,
+            @RequestParam(value = "force_change", required = false) boolean forceChange) {
 
         ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZone().getId()));
         if (expiringCode == null) {
@@ -189,6 +190,9 @@ public class ResetPasswordController {
             model.addAttribute("code", newCode);
             model.addAttribute("email", uaaUser.getEmail());
             model.addAttribute("username", uaaUser.getUsername());
+            if (forceChange) {
+                model.addAttribute("message_code", "force_change");
+            }
             return "reset_password";
         }
     }
