@@ -49,6 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -257,6 +258,78 @@ class AccountsControllerMockMvcTests {
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail()).isEqualTo(userEmail);
         assertThat(principal.getOrigin()).isEqualTo(OriginKeys.UAA);
+    }
+
+    @Test
+    void confirmingAccountDoesNotAuthorizeThePreRegisteredPassword() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        String registrationPassword = "firstPass1";
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", registrationPassword)
+                        .param("password_confirmation", registrationPassword))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        mockMvc.perform(get("/verify_user")
+                        .param("code", "test" + generator.counter.get()))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        // Clicking the confirmation link only proves ownership of the email address. The
+        // password supplied on the registration form must not become a usable credential once
+        // the account is confirmed; the owner must establish the password through the link.
+        mockMvc.perform(post("/login.do")
+                        .with(cookieCsrf())
+                        .param("username", userEmail)
+                        .param("password", registrationPassword))
+                .andExpect(unauthenticated());
+    }
+
+    @Test
+    void confirmingAccountDoesNotAuthorizePasswordFromEarlierRegistration() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        String firstRegistrationPassword = "firstPass1";
+        String laterRegistrationPassword = "laterPass2";
+
+        // First registration for the address.
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", firstRegistrationPassword)
+                        .param("password_confirmation", firstRegistrationPassword))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        // A later registration for the same still-unconfirmed address.
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", laterRegistrationPassword)
+                        .param("password_confirmation", laterRegistrationPassword))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        // The owner confirms the account using the most recent link.
+        mockMvc.perform(get("/verify_user")
+                        .param("code", "test" + generator.counter.get()))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        // Confirmation must not authorize the password chosen by the earlier registration.
+        mockMvc.perform(post("/login.do")
+                        .with(cookieCsrf())
+                        .param("username", userEmail)
+                        .param("password", firstRegistrationPassword))
+                .andExpect(unauthenticated());
     }
 
     @Test
