@@ -208,4 +208,39 @@ class TlsClientAuthConfigurationTest {
 
         assertThat(config1).isNotEqualTo(config2);
     }
+
+    @Test
+    void boundAccessTokensDefaultsToFalseWhenAbsent() {
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(null)).isFalse();
+    }
+
+    @Test
+    void boundAccessTokensAcceptsABoolean() {
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(true)).isTrue();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(false)).isFalse();
+    }
+
+    @Test
+    void boundAccessTokensAcceptsTrueAndFalseStringsInAnyCase() {
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("true")).isTrue();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("TRUE")).isTrue();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("false")).isFalse();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("False")).isFalse();
+    }
+
+    @Test
+    void boundAccessTokensReturnsNullForAnythingElseSoItCanBeRefused() {
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("yes")).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("1")).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("")).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(" true ")).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(1)).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(List.of(true))).isNull();
+    }
+
+    @Test
+    void boundAccessTokensConstantIsTheRfc8705ClientMetadataName() {
+        assertThat(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS)
+                .isEqualTo("tls_client_certificate_bound_access_tokens");
+    }
 }

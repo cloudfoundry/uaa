@@ -795,6 +795,50 @@ class ClientAdminBootstrapTests {
      * shared-CA case that RFC 8705 section 2.1.2 requires a subject binding for.
      */
     @Test
+    void boundAccessTokensBooleanFromYamlIsPersistedAndLoaded() {
+        // oauth.clients comes from YAML, which yields a real Boolean rather than a string
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap().afterPropertiesSet();
+
+        ClientDetails loaded = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(loaded.getAdditionalInformation()
+                .get(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS))).isTrue();
+    }
+
+    @Test
+    void boundAccessTokensFalseStringIsPersistedAndLoaded() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, "false");
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap().afterPropertiesSet();
+
+        ClientDetails loaded = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(loaded.getAdditionalInformation()
+                .get(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS))).isFalse();
+    }
+
+    @Test
+    void boundAccessTokensThatIsNotABooleanIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, "maybe");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+    }
+
+    @Test
     void mtlsClientWithNoSubjectBindingIsRejectedDuringBootstrap() {
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
