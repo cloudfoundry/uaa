@@ -28,6 +28,16 @@ public class TlsClientAuthConfiguration {
      */
     public static final String TLS_CLIENT_AUTH_ALLOWED_RESOURCES = "tls-client-auth-allowed-resources";
 
+    /**
+     * RFC 8705 section 3.4 client registration metadata, named verbatim like the subject parameters
+     * below. {@code true} makes the access tokens issued to the client certificate-bound
+     * ({@code cnf.x5t#S256}); {@code false} or absent -- the RFC default -- issues an ordinary
+     * bearer JWT. It is independent of {@code tls_client_auth}: authenticating with a certificate
+     * does not by itself require a bound token (RFC 8705 section 1). Registration-only: a token
+     * request cannot change it.
+     */
+    public static final String TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS = "tls_client_certificate_bound_access_tokens";
+
     /** RFC 8707 section 2's token-request parameter name, distinct from the config keys above. */
     public static final String RESOURCE_PARAMETER = "resource";
 
@@ -98,6 +108,31 @@ public class TlsClientAuthConfiguration {
         int dotIdx = claim.indexOf('.');
         String root = dotIdx >= 0 ? claim.substring(0, dotIdx) : claim;
         return RESERVED_CLAIM_NAMES.contains(root);
+    }
+
+    /**
+     * Reads {@link #TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS} from a client's flat configuration:
+     * a {@link Boolean} or the string {@code true}/{@code false} (any case, as BOSH/YAML bootstrap
+     * and JSON registration both produce). Absent is {@code false}, the RFC 8705 section 3.4 default.
+     * Anything else is {@code null}, so a validator can refuse it; a caller that must decide anyway
+     * treats {@code null} as {@code false} only after registration validation has had its say.
+     */
+    public static Boolean parseBoundAccessTokens(Object raw) {
+        if (raw == null) {
+            return Boolean.FALSE;
+        }
+        if (raw instanceof Boolean bool) {
+            return bool;
+        }
+        if (raw instanceof String text) {
+            if ("true".equalsIgnoreCase(text)) {
+                return Boolean.TRUE;
+            }
+            if ("false".equalsIgnoreCase(text)) {
+                return Boolean.FALSE;
+            }
+        }
+        return null;
     }
 
     @JsonProperty(TLS_CLIENT_AUTH_CA)

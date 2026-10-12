@@ -95,6 +95,7 @@ class MtlsClaimsEnhancerTest {
         clientDetails.setClientId("instance-identity");
         clientDetails.setTlsClientAuthConfiguration(
             new TlsClientAuthConfiguration("-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+        clientDetails.addAdditionalInformation(BOUND_TOKENS, true);
         when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
 
         OAuth2Authentication auth = mockAuthentication("instance-identity");
@@ -650,6 +651,7 @@ class MtlsClaimsEnhancerTest {
         clientDetails.setClientId("instance-identity");
         clientDetails.setTlsClientAuthConfiguration(
             new TlsClientAuthConfiguration("-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+        clientDetails.addAdditionalInformation(BOUND_TOKENS, true);
         when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
 
         OAuth2Authentication auth = mockAuthentication("instance-identity");
@@ -883,8 +885,9 @@ class MtlsClaimsEnhancerTest {
         OAuth2Authentication auth = mock(OAuth2Authentication.class);
         when(auth.getOAuth2Request()).thenReturn(request);
 
+        X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(mockCfCert());
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
         clientDetails.setAdditionalInformation(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,

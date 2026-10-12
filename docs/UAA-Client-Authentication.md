@@ -174,6 +174,7 @@ present a certificate whose chain validates to the configured CA; no separate
 | `tls-client-auth-ca` | yes | PEM-encoded CA certificate. This is the per-client mTLS selector: requests to the fixed `/oauth/mtls/token` endpoint authenticate with a presented leaf certificate only when it chains to this CA. |
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
 | one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`, `tls_client_auth_san_email` | yes -- exactly one | The expected certificate subject value (RFC 8705 section 2.1.2). Chain validation proves only that the CA issued the certificate; this is what identifies *this* client. See "Scoping a client" above. |
+| `tls_client_certificate_bound_access_tokens` | no | [RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4) client metadata, named verbatim. `true` makes the access tokens issued to this client certificate-bound (`cnf.x5t#S256`); `false` or absent -- the RFC default -- issues an ordinary bearer JWT. Must be a boolean (`true`/`false`, or the same strings). Certificate authentication, chain validation and the subject binding are identical either way. Set at registration only; a token request parameter or claim template cannot change it. See "Certificate-bound access tokens" below. |
 | `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values produced by `tls-client-auth-claim-mappings`. A UAA extension applied in addition to the subject binding, not instead of it -- authentication fails unless every entry matches exactly. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to JWT claim names. `subject_cn` and `subject_o` map their values directly; `pattern` is rejected for either, since it is applied only to `subject_ou`, where it must contain at least one capturing group -- a pattern that only matches without capturing (e.g. `space:.+` instead of `space:(.+)`) is rejected too, since it would never produce a value. Patterns are administrator-controlled configuration and are evaluated against certificate OU values on every mTLS token request, so they are bounded: an OU longer than 256 characters is not matched, and a match that reads more than 100 000 characters is abandoned, after which that mapping yields no claim (a warning is logged; a claim that `tls-client-auth-required-claims` depends on is then absent, so the client is refused). Prefer simple anchored patterns such as `^space:(.+)$`; nested quantifiers like `((a+)+)+` will be cut off by the limit. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. At most 256 characters; must contain at least one `{claim}` placeholder; every placeholder must name a claim declared in `tls-client-auth-claim-mappings`. |
@@ -252,18 +253,25 @@ with `400` ("require uaa.mtls-enabled to be true"). A client that sets `tls-clie
 
 #### Certificate-bound access tokens
 
-A token issued at `/oauth/mtls/token` is bound to the client certificate it was requested with
-([RFC 8705 section 3](https://www.rfc-editor.org/rfc/rfc8705#section-3)). Besides the usual claims it carries:
+Authenticating with a certificate and receiving a certificate-bound token are separate
+([RFC 8705 section 1](https://www.rfc-editor.org/rfc/rfc8705#section-1)). A token issued at `/oauth/mtls/token` is
+bound to the client certificate it was requested with
+([RFC 8705 section 3](https://www.rfc-editor.org/rfc/rfc8705#section-3)) only for a client registered with
+`tls_client_certificate_bound_access_tokens: true`. For a client that sets it to `false`, or does not set it (the RFC
+section 3.4 default), the same certificate, chain and subject checks apply and the token is an ordinary bearer JWT
+without `cnf` -- for example a managed service account whose token is later used at resource servers that never see
+its certificate. Besides the usual claims a token carries:
 
 | Claim | Value |
 |---|---|
-| `cnf` | `{"x5t#S256": "<thumbprint>"}` — the base64url (no padding) SHA-256 of the DER encoding of the client certificate |
+| `cnf` | only when `tls_client_certificate_bound_access_tokens` is `true`: `{"x5t#S256": "<thumbprint>"}` — the base64url (no padding) SHA-256 of the DER encoding of the client certificate |
 | `client_auth_method` | `tls_client_auth` |
 | `sub`, `aud` | the client id and its default audience, unless `tls-client-auth-sub-template`, `tls-client-auth-aud-templates` or an allowed `resource` replace them |
 | mapped claims | one per `tls-client-auth-claim-mappings` entry; a dotted claim name such as `cf.app` becomes a nested object |
 
 Only `client_credentials` is issued here, and no refresh token is returned. Discovery advertises the capability as
-`tls_client_certificate_bound_access_tokens: true`.
+`tls_client_certificate_bound_access_tokens: true`; whether a given client receives bound tokens is that client's own
+setting.
 
 **Binding is enforced by the resource server, not by UAA.** UAA stamps `cnf` but does not itself check it on its own
 protected endpoints. A resource server that wants the binding to mean anything must, for every request, compute the
