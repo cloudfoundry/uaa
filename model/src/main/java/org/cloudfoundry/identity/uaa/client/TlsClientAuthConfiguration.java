@@ -135,6 +135,31 @@ public class TlsClientAuthConfiguration {
         return null;
     }
 
+    /**
+     * The address bytes of an IPv4 or IPv6 <em>literal</em>, or {@code null} when {@code value} is anything
+     * else, a hostname included. The character check comes first so that
+     * {@link java.net.InetAddress#getByName} is only ever handed text it parses as a literal: it falls back
+     * to a DNS lookup for anything that does not look like one, and a client's registered
+     * {@code tls_client_auth_san_ip} must not make authentication depend on name resolution.
+     */
+    public static byte[] parseIpLiteral(String value) {
+        if (value == null) {
+            return null;
+        }
+        boolean ipv6 = value.indexOf(':') >= 0;
+        boolean valid = ipv6
+                ? value.matches("[0-9A-Fa-f:.]+")
+                : value.matches("\\d{1,3}(\\.\\d{1,3}){3}");
+        if (!valid) {
+            return null;
+        }
+        try {
+            return java.net.InetAddress.getByName(value).getAddress();
+        } catch (java.net.UnknownHostException e) {
+            return null;
+        }
+    }
+
     @JsonProperty(TLS_CLIENT_AUTH_CA)
     private String trustedCaPem;
 

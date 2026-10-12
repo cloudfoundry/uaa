@@ -135,16 +135,16 @@ public final class TlsClientAuthSubjectMatcher {
     /**
      * RFC 8705 section 2.1.2 requires IP comparison "to be done in binary format", so that the same
      * address written differently (notably the many legal spellings of an IPv6 address) compares
-     * equal. {@link InetAddress#getByName} is used only to parse literals -- both values are
-     * already literal addresses, so no name resolution occurs.
+     * equal. Both values are parsed as literals only -- a hostname parses to nothing and matches
+     * nothing -- so authentication never depends on name resolution.
      */
     private static boolean ipAddressesEqual(String expected, String presented) {
-        try {
-            return Arrays.equals(InetAddress.getByName(expected).getAddress(),
-                    InetAddress.getByName(presented).getAddress());
-        } catch (UnknownHostException e) {
-            logger.warn("tls_client_auth: could not parse an IP address for comparison: {}", e.getMessage());
+        byte[] expectedBytes = TlsClientAuthConfiguration.parseIpLiteral(expected);
+        byte[] presentedBytes = TlsClientAuthConfiguration.parseIpLiteral(presented);
+        if (expectedBytes == null || presentedBytes == null) {
+            logger.warn("tls_client_auth: an IP address to compare is not an IP literal");
             return false;
         }
+        return Arrays.equals(expectedBytes, presentedBytes);
     }
 }

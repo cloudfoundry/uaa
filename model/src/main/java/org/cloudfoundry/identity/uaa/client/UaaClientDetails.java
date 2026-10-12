@@ -88,7 +88,7 @@ public class UaaClientDetails implements ClientDetails {
     private String clientJwtConfig;
 
     @JsonIgnore
-    private TlsClientAuthConfiguration tlsClientAuthConfiguration;
+    private transient TlsClientAuthConfiguration tlsClientAuthConfiguration;
 
     public UaaClientDetails() {
     }

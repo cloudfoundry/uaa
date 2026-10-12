@@ -426,6 +426,12 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
      * operator state one.
      */
     private static void requireExactlyOneSubjectBinding(Map<String, Object> additionalInfo, String clientId) {
+        if (additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP) instanceof String sanIp
+                && !sanIp.isBlank() && TlsClientAuthConfiguration.parseIpLiteral(sanIp) == null) {
+            throw new InvalidClientDetailsException(
+                    "Invalid " + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP + " for client_id=" + clientId
+                            + ": must be an IPv4 or IPv6 address literal, not a hostname.");
+        }
         List<String> configured = TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS.stream()
                 .filter(parameter -> additionalInfo.get(parameter) instanceof String value && !value.isBlank())
                 .toList();
