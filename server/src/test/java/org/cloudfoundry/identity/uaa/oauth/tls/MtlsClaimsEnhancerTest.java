@@ -10,6 +10,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 import javax.security.auth.x500.X500Principal;
@@ -807,6 +809,96 @@ class MtlsClaimsEnhancerTest {
         OAuth2Authentication auth = mock(OAuth2Authentication.class);
         when(auth.getOAuth2Request()).thenReturn(request);
         return auth;
+    }
+
+    private static final String BOUND_TOKENS = "tls_client_certificate_bound_access_tokens";
+
+    /**
+     * RFC 8705 section 1 separates mutual-TLS client authentication from certificate-bound access tokens, and
+     * section 3.4 makes {@code tls_client_certificate_bound_access_tokens} default to {@code false}. A client that
+     * authenticates with a certificate but does not ask for bound tokens gets an ordinary bearer JWT.
+     */
+    private Map<String, Object> enhanceForClientWith(Map<String, Object> extraInfo) throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        Map<String, Object> info = new HashMap<>(extraInfo);
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n");
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                "[{\"field\":\"subject_ou\",\"pattern\":\"^app:(.+)$\",\"claim\":\"cf.app\"}]");
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "app/{cf.app}");
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setAdditionalInformation(info);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        return enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+    }
+
+    @Test
+    void omitsCnfWhenTheClientDoesNotSetBoundAccessTokens() throws Exception {
+        Map<String, Object> result = enhanceForClientWith(Map.of());
+
+        assertThat(result).doesNotContainKey("cnf");
+        // authentication succeeded and the certificate identity is still stamped on the token
+        assertThat(result).containsEntry("sub", "app/app-guid");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"false", "FALSE"})
+    void omitsCnfWhenBoundAccessTokensIsTheStringFalse(String value) throws Exception {
+        assertThat(enhanceForClientWith(Map.of(BOUND_TOKENS, value))).doesNotContainKey("cnf");
+    }
+
+    @Test
+    void omitsCnfWhenBoundAccessTokensIsBooleanFalse() throws Exception {
+        Map<String, Object> result = enhanceForClientWith(Map.of(BOUND_TOKENS, false));
+
+        assertThat(result).doesNotContainKey("cnf");
+        assertThat(result).containsEntry("sub", "app/app-guid");
+    }
+
+    @Test
+    void addsCnfWhenBoundAccessTokensIsBooleanTrue() throws Exception {
+        Map<String, Object> result = enhanceForClientWith(Map.of(BOUND_TOKENS, true));
+
+        assertThat(result).containsKey("cnf");
+        assertThat(result).containsEntry("sub", "app/app-guid");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "TRUE"})
+    void addsCnfWhenBoundAccessTokensIsTheStringTrue(String value) throws Exception {
+        assertThat(enhanceForClientWith(Map.of(BOUND_TOKENS, value))).containsKey("cnf");
+    }
+
+    @Test
+    void aTokenRequestParameterCannotSwitchBindingOn() throws Exception {
+        OAuth2Request request = mock(OAuth2Request.class);
+        when(request.getClientId()).thenReturn("instance-identity");
+        when(request.getExtensions()).thenReturn(Map.of(CLIENT_AUTH_METHOD, ClientAuthentication.TLS_CLIENT_AUTH));
+        when(request.getRequestParameters()).thenReturn(Map.of(BOUND_TOKENS, "true"));
+        OAuth2Authentication auth = mock(OAuth2Authentication.class);
+        when(auth.getOAuth2Request()).thenReturn(request);
+
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(mockCfCert());
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setAdditionalInformation(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n"));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        assertThat(enhancer.enhance(new HashMap<>(), auth)).doesNotContainKey("cnf");
+    }
+
+    @Test
+    void aClaimMappingCannotSwitchBindingOnOrOff() throws Exception {
+        // cnf is a reserved claim name, so a mapping can neither forge a thumbprint nor remove the real one
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cnf")).isTrue();
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cnf.x5t#S256")).isTrue();
     }
 
     private OAuth2Authentication mockAuthentication(String clientId) {

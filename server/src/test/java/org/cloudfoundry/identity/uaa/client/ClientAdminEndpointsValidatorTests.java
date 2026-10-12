@@ -482,6 +482,55 @@ class ClientAdminEndpointsValidatorTests {
         assertThatNoException().isThrownBy(() -> validateMtlsClient(additionalInfo));
     }
 
+    private static final String BOUND_TOKENS = "tls_client_certificate_bound_access_tokens";
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "false", "TRUE", "False"})
+    void acceptsBoundAccessTokensAsABooleanString(String value) {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one");
+        additionalInfo.put(BOUND_TOKENS, value);
+
+        ClientDetails validated = validateMtlsClient(additionalInfo);
+
+        assertThat(validated.getAdditionalInformation()).containsEntry(BOUND_TOKENS, value);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void acceptsBoundAccessTokensAsABoolean(boolean value) {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one");
+        additionalInfo.put(BOUND_TOKENS, value);
+
+        ClientDetails validated = validateMtlsClient(additionalInfo);
+
+        assertThat(validated.getAdditionalInformation()).containsEntry(BOUND_TOKENS, value);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"yes", "1", "maybe", "", "  "})
+    void rejectsBoundAccessTokensThatIsNotABoolean(String value) {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one");
+        additionalInfo.put(BOUND_TOKENS, value);
+
+        assertThatThrownBy(() -> validateMtlsClient(additionalInfo))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(BOUND_TOKENS);
+    }
+
+    @Test
+    void rejectsBoundAccessTokensThatIsNotAScalar() {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app-one");
+        additionalInfo.put(BOUND_TOKENS, List.of(true));
+
+        assertThatThrownBy(() -> validateMtlsClient(additionalInfo))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(BOUND_TOKENS);
+    }
+
     private static String sampleValueFor(String parameter) {
         return switch (parameter) {
             case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN -> "CN=app-one,O=acme";
