@@ -63,6 +63,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.config.BeanIds.SPRING_SECURITY_FILTER_CHAIN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 /**
  * Adversarial MockMvc coverage for the RFC 8705 mTLS token endpoint.
@@ -1338,6 +1339,75 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
 
             assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(200);
             assertThat(claimsOf(result)).doesNotContainKey("cnf");
+        }
+
+        @Test
+        @DisplayName("K7. the setting survives create, read and update through the client admin API")
+        void settingRoundTripsThroughTheAdminApi() throws Exception {
+            String clientId = "mtlsk7" + generator.generate();
+            MvcResult created = createClientViaAdminApi(clientId, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=k7-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true));
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+            assertThat(readClient(clientId))
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+            assertThat(claimsOf(perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=k7-app")).param("token_format", "jwt"))))
+                    .as("created with true: bound").containsKey("cnf");
+
+            Map<String, Object> update = readClient(clientId);
+            update.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, false);
+            MvcResult updated = perform(put("/oauth/clients/" + clientId)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(update)));
+            assertThat(updated.getResponse().getStatus()).as("Actual: %s", outcome(updated)).isEqualTo(200);
+
+            assertThat(readClient(clientId))
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, false);
+            assertThat(claimsOf(perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=k7-app")).param("token_format", "jwt"))))
+                    .as("updated to false: bearer").doesNotContainKey("cnf");
+        }
+
+        @Test
+        @DisplayName("K8. a client created without the setting reads back without it and gets bearer tokens")
+        void absentSettingStaysAbsentThroughTheAdminApi() throws Exception {
+            String clientId = "mtlsk8" + generator.generate();
+            MvcResult created = createClientViaAdminApi(clientId, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=k8-app"));
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+
+            assertThat(readClient(clientId))
+                    .doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+            assertThat(claimsOf(perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=k8-app")).param("token_format", "jwt"))))
+                    .doesNotContainKey("cnf");
+        }
+
+        @Test
+        @DisplayName("K9. a value that is not a boolean is refused at registration")
+        void nonBooleanSettingIsRefusedAtRegistration() throws Exception {
+            MvcResult created = createClientViaAdminApi("mtlsk9" + generator.generate(), Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=k9-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, "maybe"));
+
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(400);
+            assertThat(denial(created).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+        }
+
+        @SuppressWarnings("unchecked")
+        private Map<String, Object> readClient(String clientId) throws Exception {
+            MvcResult read = perform(get("/oauth/clients/" + clientId)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .accept(APPLICATION_JSON));
+            assertThat(read.getResponse().getStatus()).as("Actual: %s", outcome(read)).isEqualTo(200);
+            return JsonUtils.readValue(read.getResponse().getContentAsString(), Map.class);
         }
 
         @Test

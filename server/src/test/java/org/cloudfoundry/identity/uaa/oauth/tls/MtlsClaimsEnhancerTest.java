@@ -897,6 +897,24 @@ class MtlsClaimsEnhancerTest {
         assertThat(enhancer.enhance(new HashMap<>(), auth)).doesNotContainKey("cnf");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"yes", "1", "maybe", ""})
+    void refusesToIssueATokenForAStoredClientWhoseBoundAccessTokensIsNotABoolean(String value) {
+        // Registration validation rejects these; this is stored data that bypassed it. Guessing "bearer" would
+        // silently drop the binding an operator may have meant, so the token request fails instead.
+        assertThatThrownBy(() -> enhanceForClientWith(Map.of(BOUND_TOKENS, value)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(BOUND_TOKENS)
+                .hasMessageContaining("instance-identity");
+    }
+
+    @Test
+    void refusesToIssueATokenForAStoredClientWhoseBoundAccessTokensIsNotAScalar() {
+        assertThatThrownBy(() -> enhanceForClientWith(Map.of(BOUND_TOKENS, List.of(true))))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(BOUND_TOKENS);
+    }
+
     @Test
     void aClaimMappingCannotSwitchBindingOnOrOff() throws Exception {
         // cnf is a reserved claim name, so a mapping can neither forge a thumbprint nor remove the real one
