@@ -23,7 +23,7 @@ public class OpenIdConfiguration {
     private String tokenUrl;
 
     @JsonProperty("token_endpoint_auth_methods_supported")
-    private String[] tokenAMR = new String[]{ClientAuthentication.CLIENT_SECRET_BASIC, ClientAuthentication.CLIENT_SECRET_POST, ClientAuthentication.PRIVATE_KEY_JWT, ClientAuthentication.TLS_CLIENT_AUTH};
+    private String[] tokenAMR = new String[]{ClientAuthentication.CLIENT_SECRET_BASIC, ClientAuthentication.CLIENT_SECRET_POST, ClientAuthentication.PRIVATE_KEY_JWT};
 
     @JsonProperty("token_endpoint_auth_signing_alg_values_supported")
     private String[] tokenEndpointAuthSigningValues = new String[]{"RS256", "HS256"};
@@ -107,10 +107,9 @@ public class OpenIdConfiguration {
         this.jwksUri = contextPath + "/token_keys";
         this.logoutEndpoint = contextPath + "/logout.do";
         this.tlsClientCertificateBoundAccessTokens = mtlsEnabled;
-        if (!mtlsEnabled) {
-            this.tokenAMR = Arrays.stream(this.tokenAMR)
-                    .filter(method -> !ClientAuthentication.TLS_CLIENT_AUTH.equals(method))
-                    .toArray(String[]::new);
+        if (mtlsEnabled) {
+            this.tokenAMR = Arrays.copyOf(this.tokenAMR, this.tokenAMR.length + 1);
+            this.tokenAMR[this.tokenAMR.length - 1] = ClientAuthentication.TLS_CLIENT_AUTH;
         }
     }
 }
