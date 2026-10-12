@@ -181,6 +181,16 @@ class TlsClientAuthSubjectMatcherTest {
         }
 
         @Test
+        @DisplayName("a registered hostname is never resolved: it matches no IP SAN, even one it resolves to")
+        void aHostnameInPlaceOfAnIpLiteralDoesNotMatchViaDns() throws Exception {
+            X509Certificate cert = certWithSans("CN=irrelevant",
+                    new GeneralName(GeneralName.iPAddress, "127.0.0.1"));
+
+            assertThat(TlsClientAuthSubjectMatcher.matches(cert, san(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP, "localhost"))).isFalse();
+        }
+
+        @Test
         void matchesIpv4San() throws Exception {
             X509Certificate cert = certWithSans("CN=irrelevant",
                     new GeneralName(GeneralName.iPAddress, "10.0.0.7"));
