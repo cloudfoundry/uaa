@@ -371,4 +371,26 @@ class UaaClientDetailsTest {
             assertThat(testClientCompare).isNotEqualTo(testClient);
         }
     }
+
+    @Nested
+    class Serialization {
+        @Test
+        void aClientWithATlsClientAuthConfigurationIsJavaSerializable() throws Exception {
+            // ClientDetails is Serializable; the typed TlsClientAuthConfiguration is a derived view of the flat
+            // additionalInformation (which is transient too) and must not make the object unserializable.
+            UaaClientDetails client = new UaaClientDetails("mtls", "", "uaa.none", "client_credentials", "uaa.resource");
+            client.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+                    "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+
+            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+            try (java.io.ObjectOutputStream out = new java.io.ObjectOutputStream(bytes)) {
+                out.writeObject(client);
+            }
+            try (java.io.ObjectInputStream in = new java.io.ObjectInputStream(
+                    new java.io.ByteArrayInputStream(bytes.toByteArray()))) {
+                UaaClientDetails restored = (UaaClientDetails) in.readObject();
+                assertThat(restored.getClientId()).isEqualTo("mtls");
+            }
+        }
+    }
 }

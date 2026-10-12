@@ -51,6 +51,20 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
     }
 
     @Test
+    void aDefaultConstructedInstanceAdvertisesNoMtls() {
+        OpenIdConfiguration config = new OpenIdConfiguration();
+
+        assertThat(config.getTokenAMR()).doesNotContain("tls_client_auth");
+        assertThat(config.isTlsClientCertificateBoundAccessTokens()).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsAdvertisedOnlyWhenMtlsIsExplicitlyEnabled() {
+        assertThat(new OpenIdConfiguration("/uaa", "issuer", true).getTokenAMR()).contains("tls_client_auth");
+        assertThat(new OpenIdConfiguration("/uaa", "issuer", false).getTokenAMR()).doesNotContain("tls_client_auth");
+    }
+
+    @Test
     void allNulls() throws Exception {
         OpenIdConfiguration openIdConfiguration = new OpenIdConfiguration(null, null);
 

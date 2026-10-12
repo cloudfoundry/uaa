@@ -482,6 +482,26 @@ class ClientAdminEndpointsValidatorTests {
         assertThatNoException().isThrownBy(() -> validateMtlsClient(additionalInfo));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"localhost", "app.example.com", "10.0.0", "300.1.1.1", "10.0.0.1/24", "2001:db8::zz"})
+    void rejectsASanIpThatIsNotAnIpLiteral(String value) {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP, value);
+
+        assertThatThrownBy(() -> validateMtlsClient(additionalInfo))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"10.0.0.7", "2001:db8::1", "2001:0db8:0000:0000:0000:0000:0000:0001", "::1"})
+    void acceptsASanIpThatIsAnIpLiteral(String value) {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP, value);
+
+        assertThatNoException().isThrownBy(() -> validateMtlsClient(additionalInfo));
+    }
+
     private static final String BOUND_TOKENS = "tls_client_certificate_bound_access_tokens";
 
     @ParameterizedTest
