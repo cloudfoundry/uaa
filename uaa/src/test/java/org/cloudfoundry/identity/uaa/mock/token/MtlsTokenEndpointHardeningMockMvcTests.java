@@ -725,7 +725,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("F1. a JWT-format mTLS token's cnf is visible via /introspect")
         void jwtFormatTokenCnfViaIntrospect() throws Exception {
-            String clientId = mtlsClient("f1", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=f1-app"), false);
+            String clientId = mtlsClient("f1", GRANT_TYPE_CLIENT_CREDENTIALS, boundTokens(tlsConfig(caCert, "CN=f1-app")), false);
             X509Certificate cert = leafSignedByCa("CN=f1-app");
 
             MvcResult issued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
@@ -744,7 +744,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("F2. a JWT-format mTLS token's cnf is visible via /check_token")
         void jwtFormatTokenCnfViaCheckToken() throws Exception {
-            String clientId = mtlsClient("f2", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=f2-app"), false);
+            String clientId = mtlsClient("f2", GRANT_TYPE_CLIENT_CREDENTIALS, boundTokens(tlsConfig(caCert, "CN=f2-app")), false);
             X509Certificate cert = leafSignedByCa("CN=f2-app");
 
             MvcResult issued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
@@ -761,7 +761,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("F3. an OPAQUE-format mTLS token's cnf is visible via /introspect")
         void opaqueFormatTokenCnfViaIntrospect() throws Exception {
-            String clientId = mtlsClient("f3", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=f3-app"), false);
+            String clientId = mtlsClient("f3", GRANT_TYPE_CLIENT_CREDENTIALS, boundTokens(tlsConfig(caCert, "CN=f3-app")), false);
             X509Certificate cert = leafSignedByCa("CN=f3-app");
 
             // The expected thumbprint is a pure function of the certificate, so a JWT-format
@@ -788,7 +788,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         @Test
         @DisplayName("F4. an OPAQUE-format mTLS token's cnf is visible via /check_token")
         void opaqueFormatTokenCnfViaCheckToken() throws Exception {
-            String clientId = mtlsClient("f4", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=f4-app"), false);
+            String clientId = mtlsClient("f4", GRANT_TYPE_CLIENT_CREDENTIALS, boundTokens(tlsConfig(caCert, "CN=f4-app")), false);
             X509Certificate cert = leafSignedByCa("CN=f4-app");
 
             MvcResult jwtIssued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, cert)
@@ -1278,8 +1278,103 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     // ------------------------------------------------------------------------------------
+    // Group K -- certificate authentication is independent of certificate-bound tokens
+    // ------------------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("K. tls_client_certificate_bound_access_tokens (RFC 8705 sections 1 and 3.4)")
+    class BoundAccessTokensPolicy {
+
+        @Test
+        @DisplayName("K1. a client that does not set it authenticates with its certificate and gets a bearer token")
+        void absentSettingIssuesBearerToken() throws Exception {
+            String clientId = mtlsClient("k1", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=k1-app"), false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leafSignedByCa("CN=k1-app"))
+                    .param("token_format", "jwt"));
+
+            assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(200);
+            assertThat(claimsOf(result))
+                    .doesNotContainKey("cnf")
+                    .containsEntry("app_id", "k1-app")
+                    .containsEntry("client_auth_method", "tls_client_auth");
+        }
+
+        @Test
+        @DisplayName("K2. an explicit false behaves like absent")
+        void explicitFalseIssuesBearerToken() throws Exception {
+            Map<String, Object> config = new java.util.HashMap<>(tlsConfig(caCert, "CN=k2-app"));
+            config.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, false);
+            String clientId = mtlsClient("k2", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leafSignedByCa("CN=k2-app"))
+                    .param("token_format", "jwt"));
+
+            assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(200);
+            assertThat(claimsOf(result)).doesNotContainKey("cnf");
+        }
+
+        @Test
+        @DisplayName("K3. true binds the token to the presented certificate")
+        void trueIssuesBoundToken() throws Exception {
+            String clientId = mtlsClient("k3", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    boundTokens(tlsConfig(caCert, "CN=k3-app")), false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leafSignedByCa("CN=k3-app"))
+                    .param("token_format", "jwt"));
+
+            assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(200);
+            assertThat(claimsOf(result)).containsKey("cnf");
+        }
+
+        @Test
+        @DisplayName("K4. a request parameter cannot switch binding on for a bearer client")
+        void requestParameterCannotSwitchBindingOn() throws Exception {
+            String clientId = mtlsClient("k4", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=k4-app"), false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leafSignedByCa("CN=k4-app"))
+                    .param("token_format", "jwt")
+                    .param(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, "true"));
+
+            assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(200);
+            assertThat(claimsOf(result)).doesNotContainKey("cnf");
+        }
+
+        @Test
+        @DisplayName("K5. a bearer client still refuses a certificate whose subject is not the registered one")
+        void bearerClientStillEnforcesSubjectBinding() throws Exception {
+            String clientId = mtlsClient("k5", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=k5-app"), false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=k5-someone-else")).param("token_format", "jwt"));
+
+            assertThat(denial(result).status()).as("Actual: %s", outcome(result)).isEqualTo(401);
+        }
+
+        @Test
+        @DisplayName("K6. a bearer client still refuses a certificate from a CA it does not trust")
+        void bearerClientStillValidatesTheChain() throws Exception {
+            String clientId = mtlsClient("k6", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=k6-app"), false);
+            X509Certificate rogueLeaf = signCert(new X500Name("CN=k6-app"), rogueCaSubject,
+                    generateKeyPair().getPublic(), rogueCaKeyPair.getPrivate(),
+                    false, BigInteger.valueOf(98), 3_600_000L);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, rogueLeaf));
+
+            assertThat(denial(result).status()).as("Actual: %s", outcome(result)).isEqualTo(401);
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------------------------
+
+    /** Opts the client into RFC 8705 section 3 certificate-bound access tokens (section 3.4 defaults to false). */
+    private static Map<String, Object> boundTokens(Map<String, Object> tlsConfig) {
+        Map<String, Object> bound = new java.util.HashMap<>(tlsConfig);
+        bound.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+        return bound;
+    }
 
     /** Concatenated PEM, as an operator would publish an overlapping old/new CA bundle. */
     private static String caBundlePem(X509Certificate... cas) throws Exception {

@@ -377,6 +377,13 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls-enabled "
                             + "to be true on this UAA deployment. ClientID: " + clientId);
         }
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS)
+                && TlsClientAuthConfiguration.parseBoundAccessTokens(additionalInfo.get(
+                        TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS)) == null) {
+            throw new InvalidClientDetailsException(
+                    "Invalid " + TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                            + " for client_id=" + clientId + ": must be true or false.");
+        }
         if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
             try {
                 PemCertificateParser.parseCertificate((String) additionalInfo.get(

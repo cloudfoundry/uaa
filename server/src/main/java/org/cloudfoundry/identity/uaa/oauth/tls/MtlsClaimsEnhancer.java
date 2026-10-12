@@ -176,21 +176,12 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         // Nested maps overwrite any flat claim that shares the same parent key
         result.putAll(nestedClaims);
 
-        // Always add cnf.x5t#S256 (RFC 8705 §3.1 confirmation claim)
-        try {
-            byte[] derEncoded = cert.getEncoded();
-            byte[] sha256 = MessageDigest.getInstance("SHA-256").digest(derEncoded);
-            String thumbprint = Base64.getUrlEncoder().withoutPadding().encodeToString(sha256);
-            result.put("cnf", Map.of("x5t#S256", thumbprint));
-        } catch (CertificateEncodingException | NoSuchAlgorithmException e) {
-            // Fail closed: an already-validated peer certificate should always be re-encodable,
-            // and SHA-256 is a guaranteed JCE algorithm, so this is practically impossible. If it
-            // ever happens, we must not silently issue an unbound bearer token in place of a
-            // certificate-bound (RFC 8705 §3.1) one -- fail the whole token request instead (same
-            // fail-closed choice as an unguarded client-details lookup failure above).
-            throw new IllegalStateException(
-                    "Failed to compute cnf.x5t#S256 confirmation claim for client_id="
-                            + clientId + ": " + e.getMessage(), e);
+        // cnf.x5t#S256 (RFC 8705 §3.1 confirmation claim) only for a client that registered
+        // tls_client_certificate_bound_access_tokens=true (§3.4; default false). Authenticating with a
+        // certificate does not by itself require a bound token (§1). The policy is read from the client's
+        // registration only -- never from the token request or a claim template.
+        if (isBoundAccessTokens(clientDetails.getAdditionalInformation(), clientId)) {
+            result.put("cnf", Map.of("x5t#S256", thumbprint(cert, clientId)));
         }
 
         // PHASE 3 — template rendering for sub and aud
@@ -243,6 +234,35 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         }
 
         return result;
+    }
+
+    private static boolean isBoundAccessTokens(Map<String, Object> info, String clientId) {
+        Object raw = info == null ? null : info.get(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+        Boolean bound = TlsClientAuthConfiguration.parseBoundAccessTokens(raw);
+        if (bound == null) {
+            // Registration validation refuses this; reaching it means stored data that bypassed it. Fail closed
+            // to the stricter profile rather than guess that the operator wanted bearer tokens.
+            throw new IllegalStateException("client_id=" + clientId + " has an invalid "
+                    + TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                    + "; refusing to issue a token");
+        }
+        return bound;
+    }
+
+    private static String thumbprint(X509Certificate cert, String clientId) {
+        try {
+            byte[] sha256 = MessageDigest.getInstance("SHA-256").digest(cert.getEncoded());
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(sha256);
+        } catch (CertificateEncodingException | NoSuchAlgorithmException e) {
+            // Fail closed: an already-validated peer certificate should always be re-encodable,
+            // and SHA-256 is a guaranteed JCE algorithm, so this is practically impossible. If it
+            // ever happens, we must not silently issue an unbound bearer token in place of a
+            // certificate-bound (RFC 8705 §3.1) one -- fail the whole token request instead (same
+            // fail-closed choice as an unguarded client-details lookup failure above).
+            throw new IllegalStateException(
+                    "Failed to compute cnf.x5t#S256 confirmation claim for client_id="
+                            + clientId + ": " + e.getMessage(), e);
+        }
     }
 
     /**

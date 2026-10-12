@@ -370,7 +370,9 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
         return Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(ca),
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                 List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "app_id")),
-                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, expectedSubjectDn);
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, expectedSubjectDn,
+                // These tests assert the token is certificate-bound (section 3.4 defaults to false).
+                TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
     }
 
     /** @param zone the zone to address, or {@code null} for the default zone. */

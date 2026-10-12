@@ -166,7 +166,8 @@ cat > client.json <<JSON
   "scope": ["uaa.none"],
   "authorities": ["uaa.resource"],
   "tls-client-auth-ca": $(jq -Rs . <<< "$CA_PEM"),
-  "tls_client_auth_subject_dn": "$SUBJECT_DN"
+  "tls_client_auth_subject_dn": "$SUBJECT_DN",
+  "tls_client_certificate_bound_access_tokens": true
 }
 JSON
 
@@ -179,6 +180,11 @@ curl -s --cacert "$UAA_CACERT" -X POST "$UAA/oauth/clients" \
 `jq -Rs .` reads the PEM file as a raw string and produces a correctly JSON-escaped value (PEM's
 embedded newlines would otherwise break the JSON). A successful response is `201 Created` with the
 client's full configuration echoed back, `tls-client-auth-ca` included.
+
+`tls_client_certificate_bound_access_tokens` ([RFC 8705 §3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4))
+decides whether this client's tokens carry the `cnf` thumbprint. It defaults to `false`: leave it out and the client
+authenticates with its certificate exactly as above but receives an ordinary bearer JWT. This guide sets it to `true`
+so that Steps 5 and 6 have a `cnf` to look at.
 
 ### 3b. Via a config file (`uaa.yml` bootstrap)
 
@@ -197,6 +203,7 @@ oauth:
         ... contents of ca-cert.pem ...
         -----END CERTIFICATE-----
       tls_client_auth_subject_dn: "CN=mtls-demo-client"
+      tls_client_certificate_bound_access_tokens: true
 ```
 
 This is validated at UAA startup with exactly the same rules as the API path — a malformed mTLS
@@ -254,7 +261,8 @@ ACCESS_TOKEN=$(jq -r .access_token token.json)
 decode_jwt_payload "$ACCESS_TOKEN" | jq .
 ```
 
-Expect to see, alongside the usual claims:
+For a client registered with `tls_client_certificate_bound_access_tokens: true` (as in Step 3), expect to see,
+alongside the usual claims:
 
 ```json
 {
@@ -270,7 +278,8 @@ not the `scope` field set at registration — the latter is relevant only when *
 audience of someone else's token, as in Step 6.
 
 `cnf.x5t#S256` is the [RFC 8705 §3](https://www.rfc-editor.org/rfc/rfc8705#section-3) confirmation
-claim: proof that the token is bound to this specific certificate. Verify it matches the
+claim: proof that the token is bound to this specific certificate. A client that leaves
+`tls_client_certificate_bound_access_tokens` unset or `false` gets no `cnf`. Verify it matches the
 certificate you presented:
 
 ```bash
@@ -345,7 +354,8 @@ curl -s --cacert "$UAA_CACERT" "$UAA/.well-known/openid-configuration" | jq '{
 ```
 
 `tls_client_certificate_bound_access_tokens` is always present (`false` when `uaa.mtls-enabled` is
-off); `mtls_endpoint_aliases` only appears when the feature is on.
+off) and says the server *supports* bound tokens; each client opts in with its own setting.
+`mtls_endpoint_aliases` only appears when the feature is on.
 
 ## Step 8 — Requesting a specific audience (RFC 8707)
 
@@ -622,7 +632,8 @@ cat > client.json <<JSON
   "scope": ["uaa.none"],
   "authorities": ["uaa.resource"],
   "tls-client-auth-ca": $(jq -Rs . < ca-cert.pem),
-  "tls_client_auth_subject_dn": "$SUBJECT_DN"
+  "tls_client_auth_subject_dn": "$SUBJECT_DN",
+  "tls_client_certificate_bound_access_tokens": true
 }
 JSON
 curl -sf --cacert "$UAA_CACERT" -X POST "$UAA/oauth/clients" \
