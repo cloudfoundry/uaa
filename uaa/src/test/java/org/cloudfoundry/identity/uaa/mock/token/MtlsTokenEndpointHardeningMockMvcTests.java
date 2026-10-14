@@ -35,6 +35,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -1451,6 +1452,34 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     @Nested
     @DisplayName("L. security review regressions")
     class SecurityReviewRegressions {
+
+        @ParameterizedTest
+        @MethodSource("unreadableProxyCaValues")
+        void malformedPersistedProxyTrustCannotBypassTheProxy(Object proxyCa) throws Exception {
+            String id = "proxy-policy" + generator.generate();
+            Map<String, Object> persisted = new HashMap<>();
+            persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert));
+            persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=proxy-policy");
+            persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, proxyCa);
+            setUpClients(id, "uaa.resource", "uaa.none", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    false, null, null, -1, IdentityZone.getUaa(), persisted);
+            try {
+                assertThat(clientDetailsService.loadClientByClientId(id).getAdditionalInformation())
+                        .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, proxyCa);
+                MvcResult issued = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS,
+                        leafSignedByCa("CN=proxy-policy")));
+                assertThat(denial(issued)).as("a direct connection must not bypass malformed stored proxy trust; actual: %s",
+                                outcome(issued))
+                        .isEqualTo(new Denial(401, "invalid_client",
+                                "tls_client_auth: the client's tls-client-auth-trusted-proxy-ca cannot be read"));
+            } finally {
+                clientDetailsService.removeClientDetails(id, IdentityZone.getUaaZoneId());
+            }
+        }
+
+        static java.util.stream.Stream<Object> unreadableProxyCaValues() {
+            return java.util.stream.Stream.of(null, "", " ", 42, List.of("pem"), Map.of("ca", "pem"));
+        }
 
         @Test
         void persistedNullCaCannotObtainATokenUsingItsSecret() throws Exception {

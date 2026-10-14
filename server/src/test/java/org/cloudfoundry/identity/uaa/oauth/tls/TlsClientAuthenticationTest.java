@@ -42,6 +42,49 @@ import static org.mockito.Mockito.mock;
 
 class TlsClientAuthenticationTest {
 
+    @Test
+    void zeroWidthRepetitionCannotKeepATokenWorkerBusy(@org.junit.jupiter.api.io.TempDir java.nio.file.Path directory)
+            throws Exception {
+        String classpath = System.getProperty("uaa.test.classpath");
+        assertThat(classpath).as("the probe must use the actual test and production classpath").isNotBlank();
+        java.nio.file.Path output = directory.resolve("regex-probe.log");
+        Process probe = new ProcessBuilder(java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-Xmx128m", "-cp", classpath, ZeroWidthRegexProbe.class.getName())
+                .redirectErrorStream(true).redirectOutput(output.toFile()).start();
+        boolean completed;
+        try {
+            completed = probe.waitFor(8, java.util.concurrent.TimeUnit.SECONDS);
+        } finally {
+            if (probe.isAlive()) {
+                probe.destroyForcibly();
+                assertThat(probe.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            }
+        }
+        String log = java.nio.file.Files.readString(output);
+        assertThat(completed).as("claim extraction must finish even when repetitions read no characters; output: %s", log)
+                .isTrue();
+        assertThat(probe.exitValue()).as("the benign CN mapping must survive while the unsafe OU pattern yields no claim: %s", log)
+                .isZero();
+    }
+
+    /** A separate JVM lets the regression test terminate Java's non-interruptible regex engine safely. */
+    public static class ZeroWidthRegexProbe {
+        public static void main(String[] args) throws Exception {
+            Security.addProvider(new BouncyCastleFipsProvider());
+            KeyPair key = generateKeyPair();
+            X500Name subject = new X500Name("CN=workload,OU=a");
+            X509Certificate cert = signCert(subject, subject, key.getPublic(), key.getPrivate(), false, BigInteger.ONE);
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("unused", List.of(
+                    new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "((){2147483647}){2147483647}(.+)", "unsafe"),
+                    new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "workload")));
+            System.out.println("Extracting claims using production code");
+            Map<String, String> claims = new TlsClientAuthentication().extractClaimMappingValues(cert, config);
+            if (!claims.equals(Map.of("workload", "workload"))) {
+                throw new AssertionError("Unexpected claims: " + claims);
+            }
+        }
+    }
+
     private TlsClientAuthentication service;
 
     @BeforeEach

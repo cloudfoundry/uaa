@@ -139,6 +139,13 @@ tasks.named<Jar>("jar") {
     exclude("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
 }
 
+tasks.named<Test>("test") {
+    // Isolated security probes need the complete runtime classpath, including test fixtures.
+    doFirst {
+        systemProperty("uaa.test.classpath", classpath.asPath)
+    }
+}
+
 tasks.named<ProcessResources>("processResources") {
     //maven replaces project.artifactId in the log4j2.properties file
     //https://www.pivotaltracker.com/story/show/74344574
