@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -199,6 +200,18 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     GeneralIdentityZoneConfigurationValidator validator;
     IdentityZone zone;
+
+    @Test
+    void malformedNamedTrustBundleIsRejected() {
+        Map<String, Object> config = new HashMap<>(org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                zone.getConfig(), Map.class));
+        config.put("mtlsTrustBundles", Map.of("broken", "not a PEM certificate"));
+        zone.setConfig(org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(config, IdentityZoneConfiguration.class));
+
+        assertThatThrownBy(() -> validator.validate(zone, IdentityZoneValidator.Mode.MODIFY))
+                .isInstanceOf(InvalidIdentityZoneConfigurationException.class)
+                .hasMessageContaining("broken");
+    }
 
     @BeforeEach
     void setUp() {

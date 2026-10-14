@@ -24,9 +24,12 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.ZoneContextPathSessionFilter;
 import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -1544,6 +1547,186 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
             assertThat(denial(response.get()))
                     .extracting(Denial::status, Denial::error)
                     .containsExactly(401, "invalid_client");
+        }
+    }
+
+    @Nested
+    @DisplayName("M. named CA trust bundles")
+    class NamedTrustBundles {
+        private static final String CA_REF = "tls-client-auth-ca-ref";
+        private static final String PROXY_REF = "tls-client-auth-trusted-proxy-ca-ref";
+        private IdentityZoneConfiguration previous;
+        private final List<String> createdIds = new java.util.ArrayList<>();
+
+        private String trackedId(String prefix) {
+            String id = prefix + generator.generate();
+            createdIds.add(id);
+            return id;
+        }
+
+        @BeforeEach
+        void configureBundles() throws Exception {
+            previous = JsonUtils.convertValue(JsonUtils.convertValue(
+                    identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig(), Map.class),
+                    IdentityZoneConfiguration.class);
+            setBundles(Map.of("workload", toPem(caCert), "proxy", toPem(rotatedCaCert)));
+        }
+
+        @AfterEach
+        void restoreBundles() {
+            for (String id : createdIds) {
+                try {
+                    clientDetailsService.removeClientDetails(id, IdentityZone.getUaaZoneId());
+                } catch (org.cloudfoundry.identity.uaa.provider.NoSuchClientException ignored) {
+                    // A rejected registration did not persist the client.
+                }
+            }
+            IdentityZone zone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
+            zone.setConfig(previous);
+            identityZoneProvisioning.update(zone);
+            IdentityZoneHolder.clear();
+        }
+
+        private void setBundles(Map<String, String> bundles) {
+            IdentityZone zone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
+            Map<String, Object> config = new HashMap<>(JsonUtils.convertValue(zone.getConfig(), Map.class));
+            config.put("mtlsTrustBundles", bundles);
+            zone.setConfig(JsonUtils.convertValue(config, IdentityZoneConfiguration.class));
+            IdentityZoneHolder.set(identityZoneProvisioning.update(zone));
+        }
+
+        private Map<String, Object> referenceConfig() {
+            return Map.of(CA_REF, "workload", TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=bundle-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+        }
+
+        @Test
+        void referenceOnlyClientReceivesCertificateBoundTokenWithoutPersistingPem() throws Exception {
+            String id = trackedId("bundle");
+            MvcResult created = createClientViaAdminApi(id, referenceConfig());
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+            assertThat(clientDetailsService.loadClientByClientId(id).getAdditionalInformation())
+                    .containsEntry(CA_REF, "workload").doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            MvcResult issued = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, leafSignedByCa("CN=bundle-app")));
+            assertThat(issued.getResponse().getStatus()).as("Actual: %s", outcome(issued)).isEqualTo(200);
+            assertThat(claimsOf(issued)).containsKey("cnf").containsEntry("client_auth_method", "tls_client_auth");
+        }
+
+        @Test
+        void unknownBundleIsRejectedAtRegistration() throws Exception {
+            MvcResult created = createClientViaAdminApi(trackedId("unknown"), Map.of(
+                    CA_REF, "missing", TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=bundle-app"));
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(400);
+            assertThat(denial(created).description()).contains("missing", CA_REF);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"tls-client-auth-ca", "tls-client-auth-trusted-proxy-ca"})
+        void inlineAndReferenceAreMutuallyExclusive(String inlineKey) throws Exception {
+            Map<String, Object> config = new HashMap<>(tlsConfig(caCert, "CN=bundle-app"));
+            config.put(inlineKey, toPem(caCert));
+            String referenceKey = inlineKey + "-ref";
+            config.put(referenceKey, "workload");
+            MvcResult created = createClientViaAdminApi(trackedId("conflict"), config);
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(400);
+            assertThat(denial(created).description()).contains(inlineKey, referenceKey);
+        }
+
+        @Test
+        void referenceStillRequiresExactlyOneSubjectBinding() throws Exception {
+            MvcResult created = createClientViaAdminApi(trackedId("subject"), Map.of(CA_REF, "workload"));
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(400);
+            assertThat(denial(created).description()).contains("exactly one");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", "   "})
+        void blankReferenceIsRejected(String name) throws Exception {
+            MvcResult created = createClientViaAdminApi(trackedId("blank"), Map.of(
+                    CA_REF, name, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=bundle-app"));
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(400);
+            assertThat(denial(created).description()).contains(CA_REF);
+        }
+
+        @Test
+        void bundleRotationChangesTrustWithoutUpdatingClient() throws Exception {
+            String id = trackedId("rotation");
+            MvcResult created = createClientViaAdminApi(id, referenceConfig());
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+            X509Certificate oldLeaf = leafSignedByCa("CN=bundle-app");
+            X509Certificate newLeaf = leafSignedBy(rotatedCaSubject, rotatedCaKeyPair, "CN=bundle-app");
+            setBundles(Map.of("workload", caBundlePem(caCert, rotatedCaCert)));
+            assertThat(perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, oldLeaf)).getResponse().getStatus()).isEqualTo(200);
+            assertThat(perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, newLeaf)).getResponse().getStatus()).isEqualTo(200);
+            setBundles(Map.of("workload", toPem(rotatedCaCert)));
+            assertThat(perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, oldLeaf)).getResponse().getStatus()).isEqualTo(401);
+            assertThat(perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, newLeaf)).getResponse().getStatus()).isEqualTo(200);
+            assertThat(clientDetailsService.loadClientByClientId(id).getAdditionalInformation())
+                    .containsEntry(CA_REF, "workload").doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        }
+
+        @Test
+        void removedBundleFailsClosedAtTokenTime() throws Exception {
+            String id = mtlsClient("removed", GRANT_TYPE_CLIENT_CREDENTIALS, referenceConfig(), true);
+            createdIds.add(id);
+            setBundles(Map.of());
+            MvcResult denied = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, leafSignedByCa("CN=bundle-app")));
+            assertThat(denial(denied)).extracting(Denial::status, Denial::error).containsExactly(401, "invalid_client");
+            assertThat(denial(denied).description()).contains("workload");
+        }
+
+        @Test
+        void referenceOnlyClientCannotFallBackToSecretAuthentication() throws Exception {
+            String id = mtlsClient("secretref", GRANT_TYPE_CLIENT_CREDENTIALS, Map.of(
+                    CA_REF, "workload", TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=bundle-app"), true);
+            createdIds.add(id);
+            MvcResult denied = perform(post("/oauth/token").servletPath("/oauth/token")
+                    .contentType(APPLICATION_FORM_URLENCODED).header("Authorization", basic(id, SECRET))
+                    .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS));
+            assertThat(denial(denied)).as("Actual: %s", outcome(denied))
+                    .extracting(Denial::status, Denial::error).containsExactly(401, "invalid_client");
+        }
+
+        @Test
+        void proxyTrustCanAlsoReferenceANamedBundle() throws Exception {
+            Map<String, Object> config = new HashMap<>(referenceConfig());
+            config.put(PROXY_REF, "proxy");
+            String id = trackedId("proxyref");
+            MvcResult created = createClientViaAdminApi(id, config);
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+            X509Certificate leaf = leafSignedByCa("CN=bundle-app");
+            X509Certificate proxy = leafSignedBy(rotatedCaSubject, rotatedCaKeyPair, "CN=proxy");
+            MvcResult issued = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, proxy)
+                    .header("X-Forwarded-Client-Cert", Base64.getEncoder().encodeToString(leaf.getEncoded())));
+            assertThat(issued.getResponse().getStatus()).as("Actual: %s", outcome(issued)).isEqualTo(200);
+            assertThat(claimsOf(issued)).containsKey("cnf");
+        }
+
+        @Test
+        void removedBundleIsDetectedByTheStartupValidator() {
+            String id = mtlsClient("startup", GRANT_TYPE_CLIENT_CREDENTIALS, referenceConfig(), true);
+            createdIds.add(id);
+            setBundles(Map.of());
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> webApplicationContext.getBean(
+                    "mtlsTrustBundleStartupValidator", org.springframework.beans.factory.SmartInitializingSingleton.class)
+                    .afterSingletonsInstantiated())
+                    .isInstanceOf(org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException.class)
+                    .hasMessageContaining("workload");
+        }
+
+        @Test
+        void discoveryReturnsOnlySortedBundleNames() throws Exception {
+            MvcResult result = perform(get("/oauth/mtls/trust-bundles").servletPath("/oauth/mtls/trust-bundles")
+                    .header("Authorization", "Bearer " + adminToken).accept(APPLICATION_JSON));
+            assertThat(result.getResponse().getStatus()).as("Actual: %s", outcome(result)).isEqualTo(200);
+            assertThat(JsonUtils.readValueAsMap(result.getResponse().getContentAsString()))
+                    .containsExactlyEntriesOf(Map.of("trust_bundles", List.of("proxy", "workload")));
+        }
+
+        @Test
+        void discoveryRequiresAuthentication() throws Exception {
+            MvcResult result = perform(get("/oauth/mtls/trust-bundles").servletPath("/oauth/mtls/trust-bundles"));
+            assertThat(result.getResponse().getStatus()).isEqualTo(401);
         }
     }
 

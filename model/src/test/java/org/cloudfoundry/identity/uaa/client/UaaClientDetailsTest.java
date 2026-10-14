@@ -376,6 +376,22 @@ class UaaClientDetailsTest {
     class TlsClientAuthConfigurationMirroring {
         private static final String CA = "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n";
 
+        @Test
+        void namedTrustReferencesSurviveTypedConfigurationAndClearing() {
+            TlsClientAuthConfiguration config = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(Map.of(
+                    "tls-client-auth-ca-ref", "workload", "tls-client-auth-trusted-proxy-ca-ref", "proxy"),
+                    TlsClientAuthConfiguration.class);
+            UaaClientDetails client = new UaaClientDetails();
+            client.setTlsClientAuthConfiguration(config);
+            assertThat(client.getAdditionalInformation())
+                    .containsEntry("tls-client-auth-ca-ref", "workload")
+                    .containsEntry("tls-client-auth-trusted-proxy-ca-ref", "proxy")
+                    .doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            client.setTlsClientAuthConfiguration(null);
+            assertThat(client.getAdditionalInformation())
+                    .doesNotContainKeys("tls-client-auth-ca-ref", "tls-client-auth-trusted-proxy-ca-ref");
+        }
+
         private TlsClientAuthConfiguration fullConfiguration() {
             TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(CA, null);
             config.setAllowedResources(List.of("https://api.example.com"));

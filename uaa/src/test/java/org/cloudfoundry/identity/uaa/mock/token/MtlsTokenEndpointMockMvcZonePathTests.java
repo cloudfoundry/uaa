@@ -338,6 +338,39 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
         }
     }
 
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void namedTrustBundlesAreIsolatedBetweenIdentityZones(ZoneResolutionMode mode) throws Exception {
+        IdentityZone zoneA = newZone();
+        IdentityZone zoneB = newZone();
+        configureTrustBundle(zoneA, toPem(zoneACaCert));
+        configureTrustBundle(zoneB, toPem(zoneBCaCert));
+        String id = "same-bundle-client" + generator.generate();
+        Map<String, Object> references = Map.of("tls-client-auth-ca-ref", "shared-name",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=bundle-app",
+                TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+        for (IdentityZone zone : List.of(zoneA, zoneB)) {
+            setUpClients(id, "uaa.resource", "uaa.none", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    false, null, null, -1, zone, references);
+            clientDetailsService.updateClientSecret(id, null, zone.getId());
+        }
+        X509Certificate certA = leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=bundle-app");
+        X509Certificate certB = leafSignedBy(zoneBCaSubject, zoneBCaKeyPair, "CN=bundle-app");
+        MvcResult ownA = perform(mtlsPost(mode, zoneA, id, certA));
+        assertThat(ownA.getResponse().getStatus()).as("Actual: %s", outcome(ownA)).isEqualTo(200);
+        MvcResult ownB = perform(mtlsPost(mode, zoneB, id, certB));
+        assertThat(ownB.getResponse().getStatus()).as("Actual: %s", outcome(ownB)).isEqualTo(200);
+        assertThat(perform(mtlsPost(mode, zoneA, id, certB)).getResponse().getStatus()).isEqualTo(401);
+        assertThat(perform(mtlsPost(mode, zoneB, id, certA)).getResponse().getStatus()).isEqualTo(401);
+    }
+
+    private void configureTrustBundle(IdentityZone zone, String caPem) {
+        Map<String, Object> config = new java.util.HashMap<>(JsonUtils.convertValue(zone.getConfig(), Map.class));
+        config.put("mtlsTrustBundles", Map.of("shared-name", caPem));
+        zone.setConfig(JsonUtils.convertValue(config, org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
+        identityZoneProvisioning.update(zone);
+    }
+
     // ------------------------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------------------------
