@@ -384,7 +384,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
                         || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF)
                         || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
-                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF))) {
+                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF)
+                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN))) {
             throw new InvalidClientDetailsException("mTLS is disabled for identity_zone_id=" + zone.getId()
                     + "; config.mtls.enabled must be true. ClientID: " + clientId);
         }
@@ -397,7 +398,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
         boolean hasProxy = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
                 || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
-        if (!enabled && (hasCa || hasProxy)) {
+        boolean hasProxyIdentity = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
+        if (!enabled && (hasCa || hasProxy || hasProxyIdentity)) {
             throw new InvalidClientDetailsException(
                     "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls.enabled "
                             + "to be true on this UAA deployment. ClientID: " + clientId);
@@ -424,8 +426,30 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 }
             }
         }
+        validateProxyIdentity(info, hasProxy, hasProxyIdentity, clientId);
         if (hasCa) {
             requireExactlyOneSubjectBinding(info, clientId);
+        }
+    }
+
+    private static void validateProxyIdentity(Map<String, Object> info, boolean hasProxy,
+            boolean hasProxyIdentity, String clientId) {
+        String key = TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN;
+        if (hasProxyIdentity && !hasProxy) {
+            throw new InvalidClientDetailsException(key + " for client_id=" + clientId
+                    + " requires tls-client-auth-trusted-proxy-ca or tls-client-auth-trusted-proxy-ca-ref");
+        }
+        if (!hasProxy) {
+            return;
+        }
+        if (!(info.get(key) instanceof String dn) || dn.isBlank()) {
+            throw new InvalidClientDetailsException(key + " for client_id=" + clientId
+                    + " must be a nonblank subject DN identifying the trusted proxy");
+        }
+        try {
+            new javax.naming.ldap.LdapName(dn);
+        } catch (javax.naming.InvalidNameException e) {
+            throw new InvalidClientDetailsException(key + " for client_id=" + clientId + " must be a valid subject DN", e);
         }
     }
 

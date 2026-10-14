@@ -159,7 +159,8 @@ public class TlsClientAuthentication {
         HttpServletRequest request = attrs.getRequest();
         boolean trustedProxyConfigured = clientConfig != null
                 && ((clientConfig.getTrustedProxyCaPem() != null && !clientConfig.getTrustedProxyCaPem().isBlank())
-                        || clientConfig.getTrustedProxyCaRef() != null);
+                        || clientConfig.getTrustedProxyCaRef() != null
+                        || clientConfig.getTrustedProxySubjectDn() != null);
 
         if (!trustedProxyConfigured) {
             // Direct-connection-only client: always use the genuine TLS-handshake peer
@@ -207,7 +208,8 @@ public class TlsClientAuthentication {
      * {@link RawPeerCertificateCaptureFilter} (the certificate the immediate TCP peer actually
      * presented during the TLS handshake -- distinct from any certificate derived from the
      * {@code X-Forwarded-Client-Cert} header) validates against {@code clientConfig}'s
-     * {@code tls-client-auth-trusted-proxy-ca}.
+     * {@code tls-client-auth-trusted-proxy-ca} and matches its registered
+     * {@code tls-client-auth-trusted-proxy-subject-dn}.
      *
      * <p>Scoped per-client (like {@code tls-client-auth-ca}) rather than a single global CA: the value
      * is stored in {@code additionalInformation} and is therefore API-mutable at runtime. The Tomcat
@@ -226,10 +228,16 @@ public class TlsClientAuthentication {
      * @return {@code false} if {@code clientConfig} is {@code null}, has no
      *         {@code tls-client-auth-trusted-proxy-ca} configured, there is no current request or no
      *         captured peer certificate, the peer certificate does not validate against the configured
-     *         proxy CA, or the validated peer leaf fails an end-entity constraint check
+     *         proxy CA, fails an end-entity constraint check, or has no matching registered proxy subject DN
      */
     public boolean isCertificateFromTrustedProxy(TlsClientAuthConfiguration clientConfig) {
-        String trustedProxyCaPem = clientConfig == null ? null : MtlsTrustBundles.resolve(
+        // A shared CA also issues to unrelated services. Issuance alone must not grant
+        // permission to assert a workload's identity through XFCC.
+        if (clientConfig == null || clientConfig.getTrustedProxySubjectDn() == null
+                || clientConfig.getTrustedProxySubjectDn().isBlank()) {
+            return false;
+        }
+        String trustedProxyCaPem = MtlsTrustBundles.resolve(
                 clientConfig.getTrustedProxyCaPem(), clientConfig.getTrustedProxyCaRef(),
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF, trustBundles());
@@ -252,7 +260,7 @@ public class TlsClientAuthentication {
             if (validated.isPresent()) {
                 validateEndEntityConstraints(validated.get());
             }
-            return validated.isPresent();
+            return validated.isPresent() && TlsClientAuthSubjectMatcher.matchesTrustedProxy(validated.get(), clientConfig);
         } catch (Exception e) {
             logger.warn("isCertificateFromTrustedProxy: peer certificate did not validate against "
                     + "tls-client-auth-trusted-proxy-ca: {}", e.getMessage());

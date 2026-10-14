@@ -320,7 +320,8 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             return null;
         }
         for (String inlineKey : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
-                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN)) {
             if (info.containsKey(inlineKey)
                     && !(info.get(inlineKey) instanceof String pem && !pem.isBlank())) {
                 return null;
@@ -399,6 +400,8 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
+                Object proxySubject = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
+                cfg.setTrustedProxySubjectDn(proxySubject instanceof String dn ? dn : null);
                 cfg.setRequiredClaims(requiredClaims);
                 cfg.setAllowedResources(allowedResources);
                 return cfg;

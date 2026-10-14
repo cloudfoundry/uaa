@@ -328,6 +328,8 @@ public class UaaClientDetails implements ClientDetails {
                     tlsClientAuthConfiguration.getAudTemplates());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
                     tlsClientAuthConfiguration.getTrustedProxyCaPem());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN,
+                    tlsClientAuthConfiguration.getTrustedProxySubjectDn());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                     tlsClientAuthConfiguration.getRequiredClaims());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
@@ -345,6 +347,7 @@ public class UaaClientDetails implements ClientDetails {
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
             TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS.forEach(this.additionalInformation::remove);

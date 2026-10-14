@@ -1368,7 +1368,11 @@ and reference are mutually exclusive. Referencing clients require `uaa.mtls.enab
 individual certificate subject binding. Unknown references are rejected at registration and prevent default-zone
 startup. Unresolved tenant references are logged at startup and deny affected clients at token time without
 preventing other zones from starting. Removing a bundle denies referencing clients at token time.
-Trust is resolved from the client's current zone only.
+Trust is resolved from the client's current zone only. Proxy trust also requires the per-client
+`tls-client-auth-trusted-proxy-subject-dn` string: the full RFC 4514 subject DN of the genuine proxy
+certificate, for example `CN=gorouter_backend_tls`. It has no default and is mandatory with either proxy CA
+property. A CA match alone never authorizes XFCC forwarding. See
+[proxy client configuration](UAA-Client-Authentication.md#deployment-topology) for direct and proxy examples.
 
 Other zones use `config.mtls.trustBundles` in the identity-zone API and do not inherit the default zone's bundles.
 Their `config.mtls.enabled` flag controls availability within the deployment's master switch.

@@ -512,15 +512,18 @@ openssl x509 -req -in proxy.csr -CA proxy-ca-cert.pem -CAkey proxy-ca-key.pem -C
   -days 90 -out proxy-cert.pem
 ```
 
-Register `tls-client-auth-trusted-proxy-ca` on the client — this switches it to proxy-only; a
-direct connection without the header is refused even if its own certificate would otherwise
-validate:
+Register `tls-client-auth-trusted-proxy-ca` and the proxy certificate's full subject DN in
+`tls-client-auth-trusted-proxy-subject-dn` on the client. Both are required for the proxy-only mode. A shared CA
+also issues certificates to unrelated services; only the registered proxy identity may vouch for XFCC. A direct
+connection without the header is refused even if its own certificate would otherwise validate:
 
 ```bash
 curl -s --cacert "$UAA_CACERT" -X PUT "$UAA/oauth/clients/mtls-demo-client" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"client_id\": \"mtls-demo-client\", \"tls-client-auth-trusted-proxy-ca\": $(jq -Rs . < proxy-ca-cert.pem)}"
+  -d "$(jq -n --rawfile ca proxy-ca-cert.pem \
+    '{"client_id": "mtls-demo-client", "tls-client-auth-trusted-proxy-ca": $ca,
+      "tls-client-auth-trusted-proxy-subject-dn": "CN=demo-gorouter-backend"}')"
 ```
 
 The request now presents the *proxy's* certificate at the TLS layer, and the *original client's*
@@ -537,7 +540,8 @@ curl -s -X POST "$UAA/oauth/mtls/token" \
 ```
 
 Both checks run: the genuine TLS peer (the `curl` process here, standing in for the Gorouter) must
-validate against `tls-client-auth-trusted-proxy-ca`, *and* the header-derived certificate must
+validate against `tls-client-auth-trusted-proxy-ca` and match `tls-client-auth-trusted-proxy-subject-dn`,
+*and* the header-derived certificate must
 satisfy the client's ordinary `tls-client-auth-ca` / subject-binding configuration, exactly as in
 Step 4. An operator who needs both a proxied and a direct-connection path for what is conceptually
 "the same" workload registers **two separate clients** — this is a per-client, mutually exclusive

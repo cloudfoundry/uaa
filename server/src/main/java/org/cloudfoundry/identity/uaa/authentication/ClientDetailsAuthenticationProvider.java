@@ -323,7 +323,8 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         // The key being present is what makes the client mTLS-only. A value that is blank or not a string -- a row
         // that bypassed registration validation -- must not turn it back into an ordinary client whose secret works.
         for (String inlineKey : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
-                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN)) {
             if (info.containsKey(inlineKey)
                     && !(info.get(inlineKey) instanceof String pem && !pem.isBlank())) {
                 throw new BadCredentialsException("tls_client_auth: the client's " + inlineKey + " cannot be read");
@@ -383,6 +384,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
+                cfg.setTrustedProxySubjectDn(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN));
                 cfg.setRequiredClaims(requiredClaims);
                 // RFC 8705 2.1.2 subject binding. Read from the flat additionalInformation path so
                 // that clients registered through the BOSH oauth.clients bootstrap, which never
