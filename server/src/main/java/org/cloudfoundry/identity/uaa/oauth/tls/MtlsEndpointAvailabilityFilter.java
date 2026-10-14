@@ -16,10 +16,9 @@ import java.io.IOException;
  * client authentication ({@code uaa.mtls.enabled}, false by default), it is exactly one path with
  * nothing served beneath it, and it accepts only POST.
  *
- * <p>The feature is otherwise gated asymmetrically: {@code mtlsTokenEndpointSecurity} is
- * {@code @ConditionalOnProperty}, but {@code UaaTokenEndpoint}'s {@code @RequestMapping} lists the
- * path unconditionally. With the feature off, no OAuth filter chain has a {@code securityMatcher} for
- * it, so the request fell through to the catch-all {@code uiSecurity} chain -- form login, session,
+ * <p>Originally the security chain was conditional on the deployment flag while the controller's
+ * mapping was unconditional. With the feature off, requests fell through to the catch-all
+ * {@code uiSecurity} chain -- form login, session,
  * CSRF -- and was answered by that chain's {@code CsrfFilter} with
  * {@code 403 "Could not verify the provided CSRF token"}. That is a closed door, but an accidental
  * one: it depends on CSRF rather than on any decision about this feature, and it leaves the token
@@ -58,6 +57,8 @@ import java.io.IOException;
  * <p>This filter only ever denies. It cannot grant access that would otherwise be refused: it is a
  * pass-through for a POST to the exact path once the feature is enabled, and every other path is
  * untouched.
+ * Zone-specific availability is checked by {@link MtlsZoneAvailabilityFilter} after zone resolution;
+ * the security chain itself is now always created.
  */
 public class MtlsEndpointAvailabilityFilter implements Filter {
 

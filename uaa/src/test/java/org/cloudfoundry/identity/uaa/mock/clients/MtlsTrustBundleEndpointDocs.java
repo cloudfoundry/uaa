@@ -29,8 +29,8 @@ class MtlsTrustBundleEndpointDocs extends EndpointDocs {
     @Test
     void listTrustBundleNames() throws Exception {
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
-        Map<String, String> previous = zone.getConfig().getMtlsTrustBundles();
-        zone.getConfig().setMtlsTrustBundles(Map.of("instance-identity", certificate1()));
+        Map<String, String> previous = zone.getConfig().getMtls().getTrustBundles();
+        zone.getConfig().getMtls().setTrustBundles(Map.of("instance-identity", certificate1()));
         identityZoneManager.setCurrentIdentityZone(provisioning.update(zone));
         try {
             String token = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "uaa.admin");
@@ -43,7 +43,7 @@ class MtlsTrustBundleEndpointDocs extends EndpointDocs {
                             responseFields(fieldWithPath("trust_bundles").type(ARRAY).description(
                                     "Sorted names of CA trust bundles in the current identity zone. PEM contents are never returned."))));
         } finally {
-            zone.getConfig().setMtlsTrustBundles(previous);
+            zone.getConfig().getMtls().setTrustBundles(previous);
             provisioning.update(zone);
             identityZoneManager.clear();
         }

@@ -54,8 +54,15 @@ public class TlsClientAuthentication {
     private IdentityZoneManager identityZoneManager =
             new IdentityZoneManagerImpl();
 
+    @Autowired
+    private MtlsFeaturePolicy featurePolicy = new MtlsFeaturePolicy(true, new IdentityZoneManagerImpl());
+
+    public boolean isMtlsEnabled() {
+        return featurePolicy.isEnabled();
+    }
+
     private Map<String, String> trustBundles() {
-        return identityZoneManager.getCurrentIdentityZone().getConfig().getMtlsTrustBundles();
+        return identityZoneManager.getCurrentIdentityZone().getConfig().getMtls().getTrustBundles();
     }
 
     private static final String XFCC_HEADER = "X-Forwarded-Client-Cert";
@@ -364,6 +371,10 @@ public class TlsClientAuthentication {
      */
     public Optional<X509Certificate> validateClientCert(
             X509Certificate[] chain, TlsClientAuthConfiguration config) {
+
+        if (!isMtlsEnabled()) {
+            throw new InvalidClientDetailsException("tls_client_auth: mTLS is disabled for this identity zone or deployment");
+        }
 
         if (chain == null || chain.length == 0 || !TlsClientAuthConfiguration.isConfigured(config)) {
             return Optional.empty();

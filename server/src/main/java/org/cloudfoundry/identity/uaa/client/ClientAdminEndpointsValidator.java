@@ -13,6 +13,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
@@ -139,7 +141,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         client.setAdditionalInformation(prototype.getAdditionalInformation());
 
         checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, client.getClientId(),
-                identityZoneManager.getCurrentIdentityZone().getConfig().getMtlsTrustBundles());
+                identityZoneManager.getCurrentIdentityZone());
         validateTlsClientAuthClaimConfig(client.getAdditionalInformation(), client.getClientId());
 
         String clientId = client.getClientId();
@@ -373,6 +375,20 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     public static void checkMtlsClientConfigAllowed(Map<String, Object> info, boolean enabled, String clientId) {
         checkMtlsClientConfigAllowed(info, enabled, clientId, Map.of());
+    }
+
+    public static void checkMtlsClientConfigAllowed(Map<String, Object> info, boolean deploymentEnabled,
+            String clientId, IdentityZone zone) {
+        boolean enabled = MtlsFeaturePolicy.isEnabled(deploymentEnabled, zone);
+        if (deploymentEnabled && !enabled && info.keySet().stream().anyMatch(key ->
+                key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF)
+                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
+                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF))) {
+            throw new InvalidClientDetailsException("mTLS is disabled for identity_zone_id=" + zone.getId()
+                    + "; config.mtls.enabled must be true. ClientID: " + clientId);
+        }
+        checkMtlsClientConfigAllowed(info, enabled, clientId, zone.getConfig().getMtls().getTrustBundles());
     }
 
     public static void checkMtlsClientConfigAllowed(Map<String, Object> info, boolean enabled, String clientId,

@@ -323,7 +323,7 @@ Set `tls-client-auth-ca` or `tls-client-auth-ca-ref` together with exactly one o
 `tls_client_auth_san_uri`, `tls_client_auth_san_ip` or `tls_client_auth_san_email` when creating or updating a
 client (see Clients, Create). The full list of `tls-client-auth-*` keys, with their descriptions, is in the client request fields. A client that
 sets `tls-client-auth-ca` authenticates only at `/oauth/mtls/token` and cannot also use a `client_secret`. These keys are
-rejected unless the deployment sets `uaa.mtls.enabled`.
+rejected unless both the deployment's `uaa.mtls.enabled` and the zone's `config.mtls.enabled` are true.
 
 #### Errors from `/oauth/mtls/token`
 
@@ -2544,7 +2544,7 @@ _Response Fields_
 
 `GET /oauth/mtls/trust-bundles` lists only the names of CA trust bundles in the current identity zone.
 The request needs `clients.read`, `clients.admin`, or zone/UAA admin authority. PEM contents are never returned.
-This endpoint is unavailable when `uaa.mtls.enabled` is false.
+This endpoint is unavailable when deployment or current-zone mTLS is disabled.
 
 <%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/curl-request.md') %>
 <%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/http-response.md') %>

@@ -29,7 +29,6 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UserManagedAuthzApprovalHandler;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
-import org.cloudfoundry.identity.uaa.oauth.tls.MtlsEnabledCondition;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
@@ -54,7 +53,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
@@ -475,10 +473,6 @@ class OauthEndpointSecurityConfiguration {
      * CSRF is disabled because this is a stateless machine-to-machine API endpoint.
      */
     @Bean
-    // MtlsEnabledCondition rather than @ConditionalOnProperty: it reads the flag exactly as the
-    // feature's @Value-injected gates do, so a value such as "1" cannot leave this chain absent
-    // while the endpoint itself is served. See MtlsEnabledCondition.
-    @Conditional(MtlsEnabledCondition.class)
     @Order(FilterChainOrder.OAUTH_11)
     UaaFilterChain mtlsTokenEndpointSecurity(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http

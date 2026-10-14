@@ -65,7 +65,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             checkMtlsClientConfigAllowed(additionalInformation, mtlsEnabled, clientDetails.getClientId(),
-                    identityZoneManager.getCurrentIdentityZone().getConfig().getMtlsTrustBundles());
+                    identityZoneManager.getCurrentIdentityZone());
             validateTlsClientAuthClaimConfig(additionalInformation, clientDetails.getClientId());
             boolean hasTlsClientAuthCa = hasNonblankTlsClientAuthCa(additionalInformation);
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||

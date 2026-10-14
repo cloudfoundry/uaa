@@ -233,13 +233,16 @@ uaa:
         -----END CERTIFICATE-----
 ```
 
-For other zones, set `config.mtlsTrustBundles` through the identity-zone API:
+For other zones, set `config.mtls` through the identity-zone API:
 
 ```json
 {
   "config": {
-    "mtlsTrustBundles": {
-      "instance-identity": "<CA certificate PEM>"
+    "mtls": {
+      "enabled": true,
+      "trustBundles": {
+        "instance-identity": "<CA certificate PEM>"
+      }
     }
   }
 }
@@ -249,6 +252,13 @@ This fragment belongs in a complete identity-zone update. Bundle names are case-
 digits, dots, underscores or hyphens, and start with a letter or digit. Each value is a PEM certificate or a
 concatenated bundle. Names and contents are isolated per zone: no lookup falls back to the default zone.
 The default zone's definitions are reapplied from `uaa.yml` on restart; other zones persist their definitions.
+`config.mtls.enabled` defaults to `true` for zones that omit it. Effective enablement requires both the deployment's
+`uaa.mtls.enabled` and the current zone's `config.mtls.enabled`. A zone cannot override a disabled deployment.
+Set the zone flag to `false` to disable certificate authentication, mTLS registration, and bundle-name discovery
+for that zone. Its token endpoint returns `404`, and OIDC discovery omits the mTLS authentication method and alias.
+Changing the zone flag takes effect on subsequent requests without restarting; re-enabling retains its clients and
+bundles. It does not revoke tokens already issued or change the deployment's TLS connector.
+The default zone's flag is also reapplied from `uaa.mtls.enabled` on restart. Null `mtls` or `enabled` values are rejected.
 For YAML names containing underscores, use quoted bracket notation, such as `"[instance_identity]": |`,
 to preserve the name through [Spring Boot map binding](https://docs.spring.io/spring-boot/3.3/reference/features/external-config.html#features.external-config.typesafe-configuration-properties.relaxed-binding.maps).
 Identity-zone JSON uses the literal name, such as `"instance_identity"`.
@@ -318,7 +328,7 @@ rules:
 | Zone client API (`/identity-zones/{id}/clients`) | A client with a nonblank `tls-client-auth-ca` or valid `tls-client-auth-ca-ref` may omit `client_secret`; a supplied secret is still checked against the zone's secret policy. |
 | `oauth.clients` bootstrap (BOSH / `uaa.yml`) | Validated at startup with the same rules; an invalid mTLS client prevents the bootstrap from completing. |
 
-With `uaa.mtls.enabled` off, a request carrying `tls-client-auth-ca` or `tls-client-auth-trusted-proxy-ca` is rejected
+With either mTLS switch off, a request carrying inline trust or a trust-bundle reference is rejected
 with `400` ("require uaa.mtls.enabled to be true"). A client that sets either trust selector authenticates **only** at
 `/oauth/mtls/token` and may not combine the certificate with a `client_secret`, so it cannot also be used at
 `/oauth/token`.
@@ -363,7 +373,7 @@ resource server still has to compare it with the certificate it saw.
 
 | Status | When | Body |
 |---|---|---|
-| `404` | `uaa.mtls.enabled` is off, or the path is anything below `/oauth/mtls/token` | no OAuth error body |
+| `404` | Deployment or zone mTLS is off, or the path is anything below `/oauth/mtls/token` | no OAuth error body |
 | `405` with `Allow: POST` | any method other than `POST`, including `GET` | no OAuth error body |
 | `401` `invalid_client` | no certificate was presented, the certificate is not the one registered for the client, it does not chain to `tls-client-auth-ca` (including expired, or a CA certificate used as the leaf), or `tls-client-auth-required-claims` is not satisfied | `tls_client_auth: certificate validation failed`, or `tls_client_auth: certificate chain validation failed: <reason>` |
 | `401` `invalid_client` | the client's `tls-client-auth-ca` cannot be parsed | `tls_client_auth: CA configuration error: <reason>` |
@@ -383,7 +393,7 @@ cannot probe which part of the registration it missed.
 
 * OIDC discovery gains one field, `tls_client_certificate_bound_access_tokens`, always present and `false` when the
   feature is off. RFC 8705 section 3.3 treats an omitted value as `false`, so its meaning is unchanged.
-* **Deployments that register their own `UaaTokenEnhancer` beans** (stock UAA registers none unless this feature is on)
+* **Deployments that register their own `UaaTokenEnhancer` beans**
   see one change regardless of the flag: an access token issued by a *refresh* no longer carries the
   `granted_scopes` claim. That claim records the full consented scope set and belongs on the refresh token only; copying
   it onto an access token whose `scope` was deliberately narrowed disclosed more than the caller was given.
@@ -391,12 +401,14 @@ cannot probe which part of the registration it missed.
   `ZoneEndpointsClientDetailsValidator` gained constructor parameters and lost their previous signatures. They are
   Spring-wired internals; only code that constructs them by hand needs the extra argument.
 
-**Token enhancers.** With the feature on, `MtlsClaimsEnhancer` joins any other `UaaTokenEnhancer` in one shared list. It
+**Token enhancers.** `MtlsClaimsEnhancer` is always registered alongside other `UaaTokenEnhancer` beans. It is active
+only when deployment and zone mTLS are both enabled. An inactive enhancer does not activate refresh-claim copying. It
 adds nothing to a request that was not authenticated with `tls_client_auth` and does not restrict or alter another
 enhancer's claims, which are applied exactly as before. If two enhancers emit the same custom claim the later one in
 the list wins, and `MtlsClaimsEnhancer` declares no order. `UaaTokenEnhancer` has a new `default` method,
 `getLateOverrideClaims()`, returning an empty set; an enhancer that needs a claim such as `sub` or `aud` to survive
 UAA's own defaults can opt in by returning its name. Existing implementations compile and behave unchanged.
+`UaaTokenEnhancer.isEnabled()` defaults to `true`; mTLS overrides it to evaluate the current zone on each invocation.
 
 ## Configs
 

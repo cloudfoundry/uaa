@@ -1261,7 +1261,9 @@ client admin API (`/oauth/clients`).
 ### `uaa.mtls.enabled`
 
 **Default:** `false`
-**Source:** `@Value("${uaa.mtls.enabled:false}")` in [`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java), [`SpringServletXmlFiltersConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlFiltersConfiguration.java), [`ClientAdminBootstrap`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminBootstrap.java), [`ZoneEndpointsClientDetailsValidator`](../server/src/main/java/org/cloudfoundry/identity/uaa/zone/ZoneEndpointsClientDetailsValidator.java), [`OpenIdConnectEndpoints`](../server/src/main/java/org/cloudfoundry/identity/uaa/account/OpenIdConnectEndpoints.java), [`MtlsClientAuthTomcatCustomizer`](../server/src/main/java/org/cloudfoundry/identity/uaa/web/tomcat/MtlsClientAuthTomcatCustomizer.java); and, for the beans that are conditional rather than parameterised, [`MtlsEnabledCondition`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/tls/MtlsEnabledCondition.java)
+**Source:** `@Value("${uaa.mtls.enabled:false}")` in
+[`MtlsFeaturePolicy`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/tls/MtlsFeaturePolicy.java)
+and the deployment's connector, filter, discovery, and client-registration configuration.
 **Type:** `boolean`
 
 Master switch enabling RFC 8705 mutual-TLS client authentication (`tls_client_auth`)
@@ -1293,8 +1295,17 @@ before signing its access tokens.
 The value is read the same way everywhere -- `true`, `1`, `yes` and `on` all enable it -- so the
 feature cannot be half-enabled by an unusual spelling.
 
-**Token enhancers.** Enabling this registers `MtlsClaimsEnhancer` in the same list as any other
-`UaaTokenEnhancer` a deployment provides. It adds nothing to a request that was not authenticated with
+All mTLS beans and the security chain are created regardless of this flag. Availability is enforced at runtime:
+both this deployment switch and `config.mtls.enabled` in the current identity zone must be enabled.
+The zone flag defaults to `true` when omitted and can disable mTLS independently without restarting UAA.
+With a zone disabled, its mTLS endpoints return `404`, new mTLS client registrations fail, and OIDC discovery
+omits the mTLS authentication method and endpoint alias. Existing mTLS clients cannot use their secrets as a fallback.
+Other zones remain unaffected; issued tokens are not revoked by changing the flag.
+The default zone's flag is initialized from this property on every restart; other zones retain their stored flags.
+
+**Token enhancers.** `MtlsClaimsEnhancer` is always registered in the same list as any other
+`UaaTokenEnhancer` a deployment provides. It is active only when both mTLS switches are enabled and does not
+activate refresh-claim copying while inactive. It adds nothing to a request that was not authenticated with
 `tls_client_auth`, and it does not restrict or alter any other enhancer: claims from other enhancers are
 applied exactly as they were before. The one thing it asks for is that its certificate-derived `sub`
 and `aud` survive UAA's defaults, which it does through the opt-in
@@ -1347,7 +1358,8 @@ and reference are mutually exclusive. Referencing clients require `uaa.mtls.enab
 individual certificate subject binding. Unknown references are rejected at registration and at startup; removing
 a bundle denies referencing clients at token time. Trust is resolved from the client's current zone only.
 
-Other zones use `config.mtlsTrustBundles` in the identity-zone API and do not inherit the default zone's bundles.
+Other zones use `config.mtls.trustBundles` in the identity-zone API and do not inherit the default zone's bundles.
+Their `config.mtls.enabled` flag controls availability within the deployment's master switch.
 An authenticated client administrator can list names through `GET /oauth/mtls/trust-bundles`; PEM contents are
 not returned. See [Named CA trust bundles](UAA-Client-Authentication.md#named-ca-trust-bundles).
 

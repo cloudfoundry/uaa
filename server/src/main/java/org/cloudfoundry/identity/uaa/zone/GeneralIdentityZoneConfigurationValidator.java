@@ -30,7 +30,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         IdentityZoneConfiguration config = zone.getConfig();
         if (mode == IdentityZoneValidator.Mode.CREATE || mode == IdentityZoneValidator.Mode.MODIFY) {
             try {
-                MtlsTrustBundles.validate(config.getMtlsTrustBundles());
+                MtlsTrustBundles.validate(config.getMtls().getTrustBundles());
             } catch (InvalidClientDetailsException e) {
                 throw new InvalidIdentityZoneConfigurationException(e.getMessage(), e);
             }
