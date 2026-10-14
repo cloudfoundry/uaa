@@ -9,11 +9,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OauthEndpointSecurityConfigurationTests {
 
     /**
-     * The chain must be gated on {@code uaa.mtls-enabled}, and specifically through
+     * The chain must be gated on {@code uaa.mtls.enabled}, and specifically through
      * {@link MtlsEnabledCondition} rather than {@code @ConditionalOnProperty}. The two do not agree
      * on what counts as true: {@code havingValue = "true"} compares the raw string, while the rest of
      * the feature is gated by {@code boolean} injection points that also accept {@code 1}, {@code yes}
-     * and {@code on}. With the annotation, {@code uaa.mtls-enabled=1} left this chain absent while the
+     * and {@code on}. With the annotation, {@code uaa.mtls.enabled=1} left this chain absent while the
      * endpoint was still served — see {@code MtlsEnabledConditionTest} and
      * {@code MtlsFlagConsistencyMockMvcTests}.
      */
