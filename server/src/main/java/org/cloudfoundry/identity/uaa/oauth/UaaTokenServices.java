@@ -13,6 +13,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
@@ -160,6 +163,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Set<String> excludedClaims;
     private List<UaaTokenEnhancer> uaaTokenEnhancers = new ArrayList<>();
+    @Autowired
+    private MtlsFeaturePolicy mtlsFeaturePolicy =
+            new MtlsFeaturePolicy(true,
+                    new IdentityZoneManagerImpl());
     private IdTokenClaimEnhancer idTokenClaimEnhancer = IdTokenClaimEnhancer.noOp();
     private final IdTokenCreator idTokenCreator;
     private final RefreshTokenCreator refreshTokenCreator;
@@ -381,7 +388,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Map<String, Object> getAdditionalRootClaims(Map<String, Object> refreshTokenClaims) {
         Map<String, Object> additionalRootClaims = new HashMap<>();
-        if (!uaaTokenEnhancers.isEmpty()) {
+        if (uaaTokenEnhancers.stream().anyMatch(UaaTokenEnhancer::isEnabled)) {
             refreshTokenClaims.entrySet()
                     .stream()
                     .filter(entry -> !NON_ADDITIONAL_ROOT_CLAIMS.contains(entry.getKey()))
@@ -496,6 +503,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 additionalRootClaims,
                 lateOverrideClaims);
         UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
+        if (ClientAuthentication.TLS_CLIENT_AUTH.equals(
+                jwtAccessToken.get(CLIENT_AUTH_METHOD)) && !mtlsFeaturePolicy.isEnabled()) {
+            throw new InvalidClientDetailsException("mTLS is disabled for this identity zone or deployment");
+        }
         // The signing boundary also covers flows that do not use client authentication and deployments
         // with no mTLS enhancer. Never sign an unbound token for a client that requires certificate binding.
         Boolean boundAccessTokens = TlsClientAuthConfiguration.parseBoundAccessTokens(
@@ -696,9 +707,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Map<String, Object> additionalRootClaims = null;
         Map<String, Object> lateOverrideClaims = new HashMap<>();
-        if (!uaaTokenEnhancers.isEmpty()) {
+        List<UaaTokenEnhancer> activeEnhancers = uaaTokenEnhancers.stream().filter(UaaTokenEnhancer::isEnabled).toList();
+        if (!activeEnhancers.isEmpty()) {
             additionalRootClaims = new HashMap<>();
-            for (UaaTokenEnhancer enhancer : uaaTokenEnhancers) {
+            for (UaaTokenEnhancer enhancer : activeEnhancers) {
                 Map<String, Object> claims = enhancer.enhance(additionalRootClaims, authentication);
                 if (claims != null) {
                     additionalRootClaims.putAll(claims);

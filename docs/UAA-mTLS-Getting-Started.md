@@ -43,7 +43,7 @@ absolute path for whatever CA issued *that* deployment's HTTPS certificate.
 
 ## Step 1 — Enable the feature
 
-`uaa.mtls.enabled` is a single, deployment-wide switch. In `uaa.yml`:
+`uaa.mtls.enabled` is the deployment-wide master switch. In `uaa.yml`:
 
 ```yaml
 uaa.mtls.enabled: true
@@ -54,6 +54,11 @@ peer for a certificate (without requiring one — plain HTTPS clients are unaffe
 after changing it. See
 [the configuration reference](UAA-Configuration-Reference.md#uaamtlsenabled) for exactly what this
 flips at the Tomcat layer.
+
+Each identity zone also has `config.mtls.enabled`, which defaults to `true` when omitted. Set it to `false` through
+the identity-zone API to disable mTLS for that zone, and to `true` to re-enable it without restarting UAA.
+Both switches must be enabled; a zone cannot override the deployment's off-switch. The default zone's flag is
+reapplied from `uaa.mtls.enabled` on restart. Bundle definitions live alongside it at `config.mtls.trustBundles`.
 
 ### Step 1a — Running a local test instance over HTTPS (optional)
 
@@ -353,7 +358,7 @@ curl -s --cacert "$UAA_CACERT" "$UAA/.well-known/openid-configuration" | jq '{
 }
 ```
 
-`tls_client_certificate_bound_access_tokens` is always present (`false` when `uaa.mtls.enabled` is
+`tls_client_certificate_bound_access_tokens` is always present (`false` when deployment or zone mTLS is
 off) and says the server *supports* bound tokens; each client opts in with its own setting.
 `mtls_endpoint_aliases` only appears when the feature is on.
 
@@ -487,7 +492,7 @@ subset of it.
 For many clients sharing the same CA, configure a [named trust bundle](UAA-Client-Authentication.md#named-ca-trust-bundles)
 and use `tls-client-auth-ca-ref` instead of copying PEM into every registration. Rotation then changes only the
 zone's bundle. Default-zone bundles come from `uaa.mtls.trust_bundles` in `uaa.yml`; other zones manage their own
-`config.mtlsTrustBundles` through the identity-zone API. Subject binding remains mandatory for every client.
+`config.mtls.trustBundles` through the identity-zone API. Subject binding remains mandatory for every client.
 
 ## Behind a proxy: the `X-Forwarded-Client-Cert` topology
 

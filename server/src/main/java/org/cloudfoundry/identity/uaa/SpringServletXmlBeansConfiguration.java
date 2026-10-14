@@ -410,6 +410,7 @@ public class SpringServletXmlBeansConfiguration {
             Environment environment
     ) {
         IdentityZoneConfigurationBootstrap bean = new IdentityZoneConfigurationBootstrap(provisioning);
+        bean.setMtlsEnabled(environment.getProperty("uaa.mtls.enabled", Boolean.class, false));
         bean.setMtlsTrustBundles(Binder.get(environment)
                 .bind("uaa.mtls.trust-bundles", Bindable.mapOf(String.class, String.class))
                 .orElse(Map.of()));

@@ -10,6 +10,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXTERNAL_
 
 public interface UaaTokenEnhancer {
 
+    /** Runtime availability; disabled enhancers must not change ordinary token or refresh claims. */
+    default boolean isEnabled() {
+        return true;
+    }
+
     Map<String, String> getExternalAttributes(OAuth2Authentication authentication);
 
     /**

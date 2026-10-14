@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenEnhancer;
@@ -10,7 +11,6 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 
@@ -43,15 +43,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  * {@link org.cloudfoundry.identity.uaa.oauth.UaaTokenServices#setUaaTokenEnhancers} via
  * {@code @Autowired(required = false)}.
  *
- * <p>Gated on {@code uaa.mtls.enabled} via {@link MtlsEnabledCondition} -- which reads the flag the
- * same way the feature's {@code @Value}-injected gates do, so the whole feature switches together --
- * so that a deployment which has not turned the feature on
- * registers no {@link UaaTokenEnhancer} at all. That keeps {@code uaaTokenEnhancers} empty, which
- * is what it was before this feature existed -- {@code UaaTokenServices} takes a different code
- * path when the list is non-empty, so registering this bean unconditionally would change token
- * contents on deployments that do not use mTLS.
+ * <p>Always registered. Runtime deployment and zone policy determines whether it contributes
+ * claims, and refuses mTLS token issuance when either switch is off.
  */
-@Conditional(MtlsEnabledCondition.class)
 @Component
 public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
@@ -89,6 +83,11 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         return Set.of("sub", "aud");
     }
 
+    @Override
+    public boolean isEnabled() {
+        return tlsClientAuthentication.isMtlsEnabled();
+    }
+
     /**
      * Not used — all enrichment is performed in {@link #enhance}.
      */
@@ -108,6 +107,13 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
      */
     @Override
     public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+        if (!isEnabled()) {
+            if (ClientAuthentication.TLS_CLIENT_AUTH.equals(
+                    UaaSecurityContextUtils.getClientAuthenticationMethod(authentication))) {
+                throw new InvalidClientDetailsException("mTLS is disabled for this identity zone or deployment");
+            }
+            return Map.of();
+        }
         // Cheap presence-only check (no trust decision, no database lookup) -- avoids resolving the
         // client's TlsClientAuthConfiguration at all when there is clearly nothing to process.
         if (!tlsClientAuthentication.hasCertificateFromRequest()) {

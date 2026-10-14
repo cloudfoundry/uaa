@@ -237,7 +237,7 @@ public class ClientAdminBootstrap implements
 
             client.setAdditionalInformation(info);
             ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, clientId,
-                    identityZoneManager.getCurrentIdentityZone().getConfig().getMtlsTrustBundles());
+                    identityZoneManager.getCurrentIdentityZone());
             ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(
                     client.getAdditionalInformation(), clientId);
 
