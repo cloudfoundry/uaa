@@ -16,6 +16,8 @@ import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -135,6 +137,36 @@ class ClientDetailsAuthenticationProviderTests {
         assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
                 .as("a client with tls-client-auth-ca must never authenticate with a secret, readable or not")
                 .isInstanceOf(BadCredentialsException.class);
+    }
+
+    /**
+     * The key being present is what makes a client mTLS-only. A value that is not a usable PEM string -- blank, or not a
+     * string at all, in a row that bypassed registration validation -- must not quietly turn the client back into an
+     * ordinary one whose secret works at {@code /oauth/token}.
+     */
+    @ParameterizedTest
+    @MethodSource("unreadableCaValues")
+    void aClientWithAnUnreadableTlsClientAuthCaCannotAuthenticateWithItsSecret(Object caValue) {
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.matches(any(), any())).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), encoder, mock(JwtClientAuthentication.class),
+                mock(TlsClientAuthentication.class));
+        UaaClient client = new UaaClient("broken-ca-client", "secret", List.of(), Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, caValue), null);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
+        request.setServletPath("/oauth/token");
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("broken-ca-client", "secret");
+        authentication.setDetails(new UaaAuthenticationDetails(request));
+
+        assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    static java.util.stream.Stream<Object> unreadableCaValues() {
+        return java.util.stream.Stream.of("", "   ", 42, List.of("pem"),
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "pem"));
     }
 
     @Test
