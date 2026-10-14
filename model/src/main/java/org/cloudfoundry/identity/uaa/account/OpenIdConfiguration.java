@@ -86,7 +86,7 @@ public class OpenIdConfiguration {
 
     /**
      * Builds the discovery document for a deployment that has <em>not</em> enabled mutual-TLS client
-     * authentication, which is the product default ({@code uaa.mtls-enabled:false}).
+     * authentication, which is the product default ({@code uaa.mtls.enabled:false}).
      *
      * <p>This overload predates RFC 8705 support and its output must keep matching what it produced
      * then, since callers compiled against it cannot tell that a new capability exists. Defaulting to

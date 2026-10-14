@@ -66,7 +66,7 @@ tokens, undermining the guarantee that a `tls-client-auth-ca`-configured client'
 always certificate-bound.
 
 The underlying TLS-layer change, however, is **connector-wide, not per-endpoint**: enabling
-this feature (`uaa.mtls-enabled`) reconfigures the whole embedded Tomcat connector to request a
+this feature (`uaa.mtls.enabled`) reconfigures the whole embedded Tomcat connector to request a
 client certificate on *every* TLS handshake to this UAA instance (`certificateVerification=
 optionalNoCA`; see `MtlsClientAuthTomcatCustomizer`), regardless of which path the request is
 ultimately routed to. Any TLS client connecting to any UAA endpoint will therefore be prompted
@@ -246,8 +246,8 @@ rules:
 | Zone client API (`/identity-zones/{id}/clients`) | A client with a non-blank `tls-client-auth-ca` may omit `client_secret`; a supplied secret is still checked against the zone's secret policy. |
 | `oauth.clients` bootstrap (BOSH / `uaa.yml`) | Validated at startup with the same rules; an invalid mTLS client prevents the bootstrap from completing. |
 
-With `uaa.mtls-enabled` off, a request carrying `tls-client-auth-ca` or `tls-client-auth-trusted-proxy-ca` is rejected
-with `400` ("require uaa.mtls-enabled to be true"). A client that sets `tls-client-auth-ca` authenticates **only** at
+With `uaa.mtls.enabled` off, a request carrying `tls-client-auth-ca` or `tls-client-auth-trusted-proxy-ca` is rejected
+with `400` ("require uaa.mtls.enabled to be true"). A client that sets `tls-client-auth-ca` authenticates **only** at
 `/oauth/mtls/token` and may not combine the certificate with a `client_secret`, so it cannot also be used at
 `/oauth/token`.
 
@@ -291,7 +291,7 @@ resource server still has to compare it with the certificate it saw.
 
 | Status | When | Body |
 |---|---|---|
-| `404` | `uaa.mtls-enabled` is off, or the path is anything below `/oauth/mtls/token` | no OAuth error body |
+| `404` | `uaa.mtls.enabled` is off, or the path is anything below `/oauth/mtls/token` | no OAuth error body |
 | `405` with `Allow: POST` | any method other than `POST`, including `GET` | no OAuth error body |
 | `401` `invalid_client` | no certificate was presented, the certificate is not the one registered for the client, it does not chain to `tls-client-auth-ca` (including expired, or a CA certificate used as the leaf), or `tls-client-auth-required-claims` is not satisfied | `tls_client_auth: certificate validation failed`, or `tls_client_auth: certificate chain validation failed: <reason>` |
 | `401` `invalid_client` | the client's `tls-client-auth-ca` cannot be parsed | `tls_client_auth: CA configuration error: <reason>` |
@@ -307,7 +307,7 @@ cannot probe which part of the registration it missed.
 
 #### Compatibility and upgrade notes
 
-`uaa.mtls-enabled` defaults to `false`. With it off the feature does nothing observable, with these exceptions:
+`uaa.mtls.enabled` defaults to `false`. With it off the feature does nothing observable, with these exceptions:
 
 * OIDC discovery gains one field, `tls_client_certificate_bound_access_tokens`, always present and `false` when the
   feature is off. RFC 8705 section 3.3 treats an omitted value as `false`, so its meaning is unchanged.

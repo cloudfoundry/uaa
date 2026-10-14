@@ -237,7 +237,7 @@ public class SpringServletXmlFiltersConfiguration {
 
     @Bean
     public FilterRegistrationBean<MtlsEndpointAvailabilityFilter> mtlsEndpointAvailabilityFilter(
-            @Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled) {
+            @Value("${uaa.mtls.enabled:false}") boolean mtlsEnabled) {
         FilterRegistrationBean<MtlsEndpointAvailabilityFilter> bean =
                 new FilterRegistrationBean<>(new MtlsEndpointAvailabilityFilter(mtlsEnabled));
         // After ZonePathContextRewritingFilter (Ordered.HIGHEST_PRECEDENCE + 1) so the servlet path is
@@ -267,7 +267,7 @@ public class SpringServletXmlFiltersConfiguration {
 
     @Bean
     public FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilter(
-            @Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled) {
+            @Value("${uaa.mtls.enabled:false}") boolean mtlsEnabled) {
         if (!mtlsEnabled) {
             // The mapper only exists to turn Gorouter's X-Forwarded-Client-Cert header into the
             // servlet X509Certificate attribute for /oauth/mtls/token, so with mTLS off it would be

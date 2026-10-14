@@ -13,7 +13,7 @@ import java.io.IOException;
 /**
  * Enforces the three endpoint-level policies for {@code /oauth/mtls/token} that have to hold before
  * any authentication runs: it is absent on deployments that have not enabled RFC 8705 mutual-TLS
- * client authentication ({@code uaa.mtls-enabled}, false by default), it is exactly one path with
+ * client authentication ({@code uaa.mtls.enabled}, false by default), it is exactly one path with
  * nothing served beneath it, and it accepts only POST.
  *
  * <p>The feature is otherwise gated asymmetrically: {@code mtlsTokenEndpointSecurity} is

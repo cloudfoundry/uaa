@@ -25,7 +25,7 @@ public class OpenIdConnectEndpoints {
     public OpenIdConnectEndpoints(
             final @Value("${issuer.uri}") String issuer,
             final IdentityZoneManager identityZoneManager,
-            final @Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled
+            final @Value("${uaa.mtls.enabled:false}") boolean mtlsEnabled
     ) {
         this.issuer = issuer;
         this.identityZoneManager = identityZoneManager;

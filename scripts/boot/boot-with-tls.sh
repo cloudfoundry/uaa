@@ -51,7 +51,7 @@ pushd "${SCRIPT_DIR}"
       -Dsmtp.port=2525 \
       -Dspring.profiles.active=hsqldb \
       -Dstatsd.enabled=true \
-      -Duaa.mtls-enabled=true \
+      -Duaa.mtls.enabled=true \
       -Dfile.encoding=UTF-8 \
       -Duser.country=US \
       -Duser.language=en \

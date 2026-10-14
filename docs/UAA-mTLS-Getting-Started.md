@@ -12,9 +12,9 @@ this property do."
 
 ## Prerequisites
 
-* A UAA instance reachable over **HTTPS**, with `uaa.mtls-enabled: true` set (see Step 1). This is
+* A UAA instance reachable over **HTTPS**, with `uaa.mtls.enabled: true` set (see Step 1). This is
   not optional: a client certificate is exchanged during the TLS handshake itself, so there is no
-  equivalent over plain HTTP. Enabling `uaa.mtls-enabled` reconfigures UAA's *existing* TLS
+  equivalent over plain HTTP. Enabling `uaa.mtls.enabled` reconfigures UAA's *existing* TLS
   connector to request a certificate; it does not create TLS termination for UAA out of nothing —
   if your instance is HTTP-only today, every request to the mTLS endpoint will fail with the same
   "no certificate presented" error forever, with nothing in the logs pointing at the real cause.
@@ -43,16 +43,16 @@ absolute path for whatever CA issued *that* deployment's HTTPS certificate.
 
 ## Step 1 — Enable the feature
 
-`uaa.mtls-enabled` is a single, deployment-wide switch. In `uaa.yml`:
+`uaa.mtls.enabled` is a single, deployment-wide switch. In `uaa.yml`:
 
 ```yaml
-uaa.mtls-enabled: true
+uaa.mtls.enabled: true
 ```
 
 This is connector-wide, not per-endpoint: every TLS handshake to this UAA instance will now ask the
 peer for a certificate (without requiring one — plain HTTPS clients are unaffected). Restart UAA
 after changing it. See
-[the configuration reference](UAA-Configuration-Reference.md#uaamtls-enabled) for exactly what this
+[the configuration reference](UAA-Configuration-Reference.md#uaamtlsenabled) for exactly what this
 flips at the Tomcat layer.
 
 ### Step 1a — Running a local test instance over HTTPS (optional)
@@ -72,7 +72,7 @@ Then just run the script:
 
 That's the whole setup. It generates a throwaway TLS keystore under `scripts/certificates/` the
 first time (skipped on later runs, once one exists), boots that WAR directly via `java -jar` with
-`server.ssl.enabled=true` and `uaa.mtls-enabled=true` already set, and serves HTTPS on `8443`
+`server.ssl.enabled=true` and `uaa.mtls.enabled=true` already set, and serves HTTPS on `8443`
 (plain HTTP stays up on `8080` too).
 
 Wait for `Started UaaBootApplication` in the console, then confirm both the TLS connector and the
@@ -353,7 +353,7 @@ curl -s --cacert "$UAA_CACERT" "$UAA/.well-known/openid-configuration" | jq '{
 }
 ```
 
-`tls_client_certificate_bound_access_tokens` is always present (`false` when `uaa.mtls-enabled` is
+`tls_client_certificate_bound_access_tokens` is always present (`false` when `uaa.mtls.enabled` is
 off) and says the server *supports* bound tokens; each client opts in with its own setting.
 `mtls_endpoint_aliases` only appears when the feature is on.
 
@@ -541,7 +541,7 @@ whatever value was rejected — a caller cannot use the error message to probe w
 
 | You did this | You get | Why | Fix |
 |---|---|---|---|
-| Requested `/oauth/mtls/token` with `uaa.mtls-enabled` unset | `404` | The endpoint does not exist at all with the feature off | Set `uaa.mtls-enabled: true` and restart |
+| Requested `/oauth/mtls/token` with `uaa.mtls.enabled` unset | `404` | The endpoint does not exist at all with the feature off | Set `uaa.mtls.enabled: true` and restart |
 | `GET /oauth/mtls/token` | `405`, `Allow: POST` | The endpoint is POST-only | Use `POST` |
 | Registered a client with `tls-client-auth-ca` but no subject parameter | `400 invalid_client`, registration refused | RFC 8705 §2.1.2 requires exactly one of the five subject parameters | Add exactly one of `tls_client_auth_subject_dn`/`_san_dns`/`_san_uri`/`_san_ip`/`_san_email` |
 | Presented no certificate at all | `401 invalid_client`: `tls_client_auth: certificate validation failed` | — | Check `--cert`/`--key` are set (direct), or the proxy's XFCC header (proxied) |
@@ -555,7 +555,7 @@ whatever value was rejected — a caller cannot use the error message to probe w
 | A `tls-client-auth-claim-mappings` `pattern` targets `subject_cn`/`subject_o` | `400 invalid_client`, registration refused | `pattern` only applies to `subject_ou` | Drop `pattern` for `subject_cn`/`subject_o`, or move the mapping to `subject_ou` |
 | `PATCH /oauth/clients/{id}` | `405` (or an unrelated-looking `403`/CSRF error, depending on what else is mapped at that path) | The client-admin API has no `PATCH` | Use `PUT` with at least `client_id`; omitted fields are preserved |
 | `curl: (60) SSL certificate problem` on *every* request, including plain `/oauth/token` | — | `--cacert` is pointing at the demo mTLS CA from Step 2 instead of whatever CA signed UAA's own HTTPS certificate | Set `$UAA_CACERT` correctly — see Prerequisites; the two files are unrelated |
-| `uaa.mtls-enabled: true` is set, but every request still gets "no certificate presented" | `401 invalid_client: certificate validation failed`, with nothing relevant in the logs | UAA is only serving plain HTTP on that port — there is no TLS handshake for a certificate to be exchanged on | Confirm the port is actually HTTPS (`curl -v` shows a TLS handshake), not just that the flag is set |
+| `uaa.mtls.enabled: true` is set, but every request still gets "no certificate presented" | `401 invalid_client: certificate validation failed`, with nothing relevant in the logs | UAA is only serving plain HTTP on that port — there is no TLS handshake for a certificate to be exchanged on | Confirm the port is actually HTTPS (`curl -v` shows a TLS handshake), not just that the flag is set |
 
 For the complete error table (including the configuration-error and malformed-CA cases) see
 [UAA-Client-Authentication.md](UAA-Client-Authentication.md#error-responses-at-oauthmtlstoken).
@@ -668,8 +668,8 @@ echo "done -- stopping UAA"
 
 * [UAA-Client-Authentication.md](UAA-Client-Authentication.md) — full property reference, every
   error response, deployment topology, compatibility notes
-* [UAA-Configuration-Reference.md](UAA-Configuration-Reference.md#uaamtls-enabled) — the
-  `uaa.mtls-enabled` property
+* [UAA-Configuration-Reference.md](UAA-Configuration-Reference.md#uaamtlsenabled) — the
+  `uaa.mtls.enabled` property
 * [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705) — OAuth 2.0 Mutual-TLS Client Authentication
 * [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) — Resource Indicators for OAuth 2.0
 * [RFC 4514](https://www.rfc-editor.org/rfc/rfc4514) / [RFC 4517](https://www.rfc-editor.org/rfc/rfc4517) —

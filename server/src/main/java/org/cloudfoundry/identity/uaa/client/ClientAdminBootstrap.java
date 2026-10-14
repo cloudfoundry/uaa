@@ -95,7 +95,7 @@ public class ClientAdminBootstrap implements
             @Value("#{@config['delete']==null ? null : @config['delete']['clients']}") final Collection<String> clientsToDelete,
             final JdbcTemplate jdbcTemplate,
             @Value("#{@config['oauth']==null ? null : @config['oauth']['client']==null ? null : @config['oauth']['client']['allowpublic']}") final Set<String> allowPublicClients,
-            @Value("${uaa.mtls-enabled:false}") final boolean mtlsEnabled) {
+            @Value("${uaa.mtls.enabled:false}") final boolean mtlsEnabled) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
