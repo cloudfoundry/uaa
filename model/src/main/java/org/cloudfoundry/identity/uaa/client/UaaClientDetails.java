@@ -316,8 +316,10 @@ public class UaaClientDetails implements ClientDetails {
     public void setTlsClientAuthConfiguration(TlsClientAuthConfiguration tlsClientAuthConfiguration) {
         this.tlsClientAuthConfiguration = tlsClientAuthConfiguration;
         if (tlsClientAuthConfiguration != null) {
-            this.additionalInformation.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
                     tlsClientAuthConfiguration.getTrustedCaPem());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, tlsClientAuthConfiguration.getTrustedCaRef());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF, tlsClientAuthConfiguration.getTrustedProxyCaRef());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                     tlsClientAuthConfiguration.getClaimMappings());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
@@ -337,6 +339,8 @@ public class UaaClientDetails implements ClientDetails {
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL, tlsClientAuthConfiguration.getSanEmail());
         } else {
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);

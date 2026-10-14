@@ -484,6 +484,11 @@ expired or been reissued under the new one, submit `tls-client-auth-ca` with jus
 A malformed entry in the bundle rejects the whole value at update time — it never silently trusts a
 subset of it.
 
+For many clients sharing the same CA, configure a [named trust bundle](UAA-Client-Authentication.md#named-ca-trust-bundles)
+and use `tls-client-auth-ca-ref` instead of copying PEM into every registration. Rotation then changes only the
+zone's bundle. Default-zone bundles come from `uaa.mtls.trust_bundles` in `uaa.yml`; other zones manage their own
+`config.mtlsTrustBundles` through the identity-zone API. Subject binding remains mandatory for every client.
+
 ## Behind a proxy: the `X-Forwarded-Client-Cert` topology
 
 In a real Cloud Foundry deployment, the app's certificate goes to the Gorouter, not straight to

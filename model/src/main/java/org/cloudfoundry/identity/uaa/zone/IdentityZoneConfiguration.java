@@ -13,6 +13,9 @@
  */
 package org.cloudfoundry.identity.uaa.zone;
 
+import java.util.LinkedHashMap;
+import com.fasterxml.jackson.annotation.Nulls;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
@@ -22,6 +25,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -31,6 +35,8 @@ public class IdentityZoneConfiguration {
     private static final String PASSWORD = "password";
 
     private ClientSecretPolicy clientSecretPolicy = new ClientSecretPolicy();
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    private Map<String, String> mtlsTrustBundles = new LinkedHashMap<>();
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
     private CorsPolicy corsPolicy = new CorsPolicy();

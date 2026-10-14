@@ -284,11 +284,11 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             return false;
         }
         TlsClientAuthConfiguration config = getTlsClientAuthConfiguration(uaaClient);
-        X509Certificate[] chain = tlsClientAuthentication.getCertificateChainFromRequest(config);
-        if (chain == null || chain.length == 0) {
-            return false;
-        }
         try {
+            X509Certificate[] chain = tlsClientAuthentication.getCertificateChainFromRequest(config);
+            if (chain == null || chain.length == 0) {
+                return false;
+            }
             // Three separate questions, in increasing cost: was it issued by the CA we trust for
             // this client (RFC 8705 2.1, chain validation); is it THIS client's certificate
             // (RFC 8705 2.1.2, subject binding); and does it satisfy any additional UAA-specific
@@ -312,12 +312,21 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             return null;
         }
         Object rawConfig = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        Object rawReference = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
+        for (String referenceKey : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF)) {
+            if (info.containsKey(referenceKey)
+                    && !(info.get(referenceKey) instanceof String name && !name.isBlank())) {
+                throw new BadCredentialsException("tls_client_auth: " + referenceKey + " must name a nonblank trust bundle");
+            }
+        }
         // The key being present is what makes the client mTLS-only. A value that is blank or not a string -- a row
         // that bypassed registration validation -- must not turn it back into an ordinary client whose secret works.
         if (rawConfig != null && !(rawConfig instanceof String pem && !pem.isBlank())) {
             throw new BadCredentialsException("tls_client_auth: the client's tls-client-auth-ca cannot be read");
         }
-        if (rawConfig instanceof String pem) {
+        if (rawConfig instanceof String || rawReference instanceof String) {
+            String pem = rawConfig instanceof String value ? value : null;
             try {
                 List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
                 Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
@@ -365,6 +374,8 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                 }
 
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
+                cfg.setTrustedCaRef(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF));
+                cfg.setTrustedProxyCaRef(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF));
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);

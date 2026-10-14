@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
@@ -32,6 +35,9 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
     private static final String REQUIRED_SCOPE = "zones.write";
     private final ClientSecretValidator clientSecretValidator;
     private final boolean mtlsEnabled;
+    @Autowired
+    private IdentityZoneManager identityZoneManager =
+            new IdentityZoneManagerImpl();
 
     public ZoneEndpointsClientDetailsValidator(
             final ClientSecretValidator clientSecretValidator,
@@ -58,7 +64,8 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                 throw new InvalidClientDetailsException("client_id cannot be blank");
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
-            checkMtlsClientConfigAllowed(additionalInformation, mtlsEnabled, clientDetails.getClientId());
+            checkMtlsClientConfigAllowed(additionalInformation, mtlsEnabled, clientDetails.getClientId(),
+                    identityZoneManager.getCurrentIdentityZone().getConfig().getMtlsTrustBundles());
             validateTlsClientAuthClaimConfig(additionalInformation, clientDetails.getClientId());
             boolean hasTlsClientAuthCa = hasNonblankTlsClientAuthCa(additionalInformation);
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
@@ -100,6 +107,10 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             return false;
         }
 
+        Object reference = additionalInformation.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
+        if (reference instanceof String name && !name.isBlank()) {
+            return true;
+        }
         Object rawConfig = additionalInformation.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
         if (rawConfig instanceof String pem) {
             return !pem.isBlank();
