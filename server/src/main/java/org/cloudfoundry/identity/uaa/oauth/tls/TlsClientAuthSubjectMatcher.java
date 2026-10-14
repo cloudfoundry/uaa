@@ -72,6 +72,13 @@ public final class TlsClientAuthSubjectMatcher {
         };
     }
 
+    /** Checks the genuine TLS peer's identity independently of the forwarded workload certificate. */
+    public static boolean matchesTrustedProxy(X509Certificate cert, TlsClientAuthConfiguration config) {
+        return cert != null && config != null
+                && config.getTrustedProxySubjectDn() != null && !config.getTrustedProxySubjectDn().isBlank()
+                && subjectDnMatches(cert, config.getTrustedProxySubjectDn());
+    }
+
     /**
      * Compares the certificate's subject DN with the registered one.
      *

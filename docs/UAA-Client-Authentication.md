@@ -114,8 +114,9 @@ the two are mutually exclusive per client, not two ways of satisfying the same r
   the `X-Forwarded-Client-Cert` header at all (even if one happens to be present -- e.g. noise
   from an unrelated proxy in the network path).
 * **Configured:** the client is proxy-only. UAA requires the `X-Forwarded-Client-Cert` header to
-  actually be present, and the genuine TLS peer that presented it to validate against this CA,
-  before trusting the header-derived certificate. A direct connection (no header) is always
+  actually be present, and the genuine TLS peer must both validate against this CA and match
+  `tls-client-auth-trusted-proxy-subject-dn` before UAA trusts the header-derived certificate.
+  A direct connection (no header) is always
   rejected for this client, even if its own certificate happens to validate against the configured
   CA.
 
@@ -123,6 +124,13 @@ An operator who needs both a Gorouter-fronted access pattern and a direct-connec
 pattern for what is conceptually "the same" workload registers **two separate UAA clients** -- one
 with `tls-client-auth-trusted-proxy-ca` set (proxy path) and one without it (direct path) -- rather
 than expecting one client to accept either.
+
+The proxy subject DN is mandatory whenever either proxy CA property is configured. CA validation alone would
+also trust unrelated services issued certificates by a shared CA such as `service_cf_internal_ca`. Set the full
+RFC 4514 subject DN of the proxy's backend client certificate, for example `CN=gorouter_backend_tls`; this is
+separate from the workload's `tls_client_auth_subject_dn`. Missing or malformed proxy identities are rejected
+at registration. Stored clients without a matching proxy identity fail authentication and cannot fall back to
+direct connections.
 
 #### Scoping a client to a specific org/space/app
 
@@ -193,6 +201,7 @@ present a certificate whose chain validates to the configured CA; no separate
 | `tls-client-auth-ca-ref` | CA or reference required | Name of a CA bundle in this client's identity zone. Selects certificate-only authentication just like inline PEM; unknown or blank references are rejected. |
 | `tls-client-auth-trusted-proxy-ca-ref` | no | Name of a bundle in this zone for the TLS proxy peer. Mutually exclusive with `tls-client-auth-trusted-proxy-ca`; the same proxy and XFCC checks apply. |
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. A present but null, blank, or non-string stored value fails authentication and token issuance rather than enabling direct authentication. |
+| `tls-client-auth-trusted-proxy-subject-dn` | required with proxy CA or reference | Nonblank RFC 4514 subject DN identifying the genuine TLS proxy peer. UAA requires both this identity and the proxy CA chain to match before trusting XFCC. The comparison parses the DN, preserves RDN order and ignores insignificant formatting differences. A proxy subject without proxy CA trust is rejected. |
 | one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`, `tls_client_auth_san_email` | yes -- exactly one | The expected certificate subject value (RFC 8705 section 2.1.2). `tls_client_auth_san_ip` must be an IPv4 or IPv6 address literal, never a hostname (it is compared in binary form and is never resolved through DNS). Chain validation proves only that the CA issued the certificate; this is what identifies *this* client. See "Scoping a client" above. |
 | `tls_client_certificate_bound_access_tokens` | no | [RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4) client metadata, named verbatim. `true` makes the access tokens issued to this client certificate-bound (`cnf.x5t#S256`) and requires `uaa.mtls.enabled=true`, a nonblank `tls-client-auth-ca` or valid `tls-client-auth-ca-ref`, and the subject binding. Registration is rejected without these prerequisites; stored clients cannot fall back to secret authentication, and issuance fails if the token has no certificate confirmation. `false` or absent -- the RFC default -- issues an ordinary bearer JWT. Must be a boolean (`true`/`false`, or the same strings). Certificate authentication, chain validation and the subject binding are identical either way. Set at registration only; a token request parameter or claim template cannot change it. See "Certificate-bound access tokens" below. |
 | `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values produced by `tls-client-auth-claim-mappings`. A UAA extension applied in addition to the subject binding, not instead of it -- authentication fails unless every entry matches exactly. |
@@ -207,6 +216,7 @@ Example (Gorouter-fronted; a Cloud Foundry app instance identity certificate map
 ```yaml
 tls-client-auth-ca: <instance-identity CA certificate PEM>
 tls-client-auth-trusted-proxy-ca: <Gorouter backend mTLS CA certificate PEM, e.g. service_cf_internal_ca>
+tls-client-auth-trusted-proxy-subject-dn: CN=gorouter_backend_tls
 tls-client-auth-claim-mappings:
   - field: subject_cn
     claim: cf_instance_guid
@@ -228,7 +238,7 @@ rejects that configuration. Where a single client must serve several app instanc
 they share and use `tls-client-auth-required-claims` to narrow it to an org, space or app.
 
 For the direct-connection topology described above, omit `tls-client-auth-trusted-proxy-ca`
-entirely rather than setting it -- configuring it at all switches this client to proxy-only.
+and `tls-client-auth-trusted-proxy-subject-dn` entirely -- configuring proxy trust switches this client to proxy-only.
 
 Claim mappings cannot target reserved token or authentication claims, including the delegation claims
 `act` and `may_act`, or dotted names beneath them such as `act.sub`. Registration rejects these mappings;
@@ -295,7 +305,8 @@ Clients reference a bundle without storing its PEM:
 
 The same exactly-one subject binding and required-claim checks still identify the individual client. Inline PEM
 remains supported. To switch an existing client to a reference, clear its inline property explicitly with `null`
-in the client update. A proxy bundle uses `tls-client-auth-trusted-proxy-ca-ref` and remains separate from client trust.
+in the client update. A proxy bundle uses `tls-client-auth-trusted-proxy-ca-ref`, still requires
+`tls-client-auth-trusted-proxy-subject-dn`, and remains separate from client trust.
 
 Rotate a bundle by replacing its value with old and new CA PEMs concatenated together, then with the new CA alone.
 Every referencing client uses the current zone configuration; registrations do not need rewriting. Changing the
