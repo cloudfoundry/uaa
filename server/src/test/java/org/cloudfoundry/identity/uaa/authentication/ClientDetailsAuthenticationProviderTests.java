@@ -170,6 +170,30 @@ class ClientDetailsAuthenticationProviderTests {
     }
 
     @Test
+    void clientWithPersistedNullCaCannotAuthenticateWithItsSecret() {
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.matches(any(), any())).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), encoder, mock(JwtClientAuthentication.class),
+                mock(TlsClientAuthentication.class));
+        Map<String, Object> persisted = new HashMap<>();
+        persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, null);
+        UaaClient client = new UaaClient("null-ca-client", "secret", List.of(), persisted, null);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
+        request.setServletPath("/oauth/token");
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("null-ca-client", "secret");
+        authentication.setDetails(new UaaAuthenticationDetails(request));
+
+        assertThat(client.getAdditionalInformation()).containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, null);
+        assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                .as("the presence of a persisted CA key must keep the client mTLS-only even if its value is null")
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("tls-client-auth-ca cannot be read");
+    }
+
+    @Test
     void tlsConfigIsReadFromFlatAdditionalInfo() {
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
