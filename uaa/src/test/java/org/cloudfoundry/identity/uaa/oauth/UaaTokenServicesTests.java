@@ -557,7 +557,7 @@ class UaaTokenServicesTests {
                 // it out of the copy.
                 //
                 // The whole block is guarded by `if (!uaaTokenEnhancers.isEmpty())`, and stock UAA
-                // registers no UaaTokenEnhancer unless uaa.mtls-enabled is on (MtlsClaimsEnhancer is
+                // registers no UaaTokenEnhancer unless uaa.mtls.enabled is on (MtlsClaimsEnhancer is
                 // flag-gated), so without this filter enabling mTLS -- or registering any enhancer --
                 // would copy granted_scopes=[openid, user_attributes] onto the narrowed token, disclosing
                 // the user's full consented scope set to a recipient deliberately given reduced authority.

@@ -89,7 +89,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * effective servlet path the way a real DispatcherServlet mapping would.
  */
 @DefaultTestContext
-@TestPropertySource(properties = {"uaa.mtls-enabled=true"})
+@TestPropertySource(properties = {"uaa.mtls.enabled=true"})
 class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
 
     private static final String MTLS_PATH = "/oauth/mtls/token";

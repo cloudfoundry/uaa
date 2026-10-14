@@ -176,7 +176,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls-enabled");
+                .hasMessageContaining("uaa.mtls.enabled");
     }
 
     @Test

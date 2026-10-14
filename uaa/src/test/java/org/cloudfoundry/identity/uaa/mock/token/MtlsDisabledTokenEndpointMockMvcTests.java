@@ -61,18 +61,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 /**
  * The other half of {@link MtlsTokenEndpointHardeningMockMvcTests}: what the mTLS feature looks like
- * on a deployment that has NOT enabled it ({@code uaa.mtls-enabled} absent/false, which is the default
+ * on a deployment that has NOT enabled it ({@code uaa.mtls.enabled} absent/false, which is the default
  * for every existing UAA).
  *
  * <p>This matters because the feature is gated asymmetrically. The security filter chain
- * ({@code mtlsTokenEndpointSecurity}) is {@code @ConditionalOnProperty("uaa.mtls-enabled")}, but
+ * ({@code mtlsTokenEndpointSecurity}) is {@code @ConditionalOnProperty("uaa.mtls.enabled")}, but
  * {@code UaaTokenEndpoint}'s {@code @RequestMapping} lists {@code /oauth/mtls/token}
  * unconditionally, so the path still resolves to a controller with the feature off. What keeps it
  * from being served is {@link MtlsEndpointAvailabilityFilter}, which answers 404 before Spring
  * Security sees the request -- making that filter, and its ordering, the whole gate.
  */
 @DefaultTestContext
-@TestPropertySource(properties = {"uaa.mtls-enabled=false"})
+@TestPropertySource(properties = {"uaa.mtls.enabled=false"})
 class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
 
     private static final String MTLS_PATH = "/oauth/mtls/token";
@@ -170,7 +170,7 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
                 .as("the refusal must name the platform flag, so an operator knows what to turn on "
                         + "rather than thinking the CA itself was rejected")
                 .isEqualTo(new MtlsTokenEndpointHardeningMockMvcTests.Denial(400, "invalid_client",
-                        "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls-enabled "
+                        "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls.enabled "
                                 + "to be true on this UAA deployment. ClientID: " + clientId));
     }
 
@@ -306,7 +306,7 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
         // building it unconditionally couples UAA's ability to start to that jar being present even
         // for operators who will never use the feature.
         assertThat(clientCertificateMapperFilterRegistration.isEnabled())
-                .as("the mapper filter must not be enabled when uaa.mtls-enabled is false")
+                .as("the mapper filter must not be enabled when uaa.mtls.enabled is false")
                 .isFalse();
     }
 

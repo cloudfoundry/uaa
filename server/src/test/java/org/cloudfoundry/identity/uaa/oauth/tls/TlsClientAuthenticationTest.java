@@ -685,7 +685,7 @@ class TlsClientAuthenticationTest {
     void getCertificateChainFromRequestReturnsNullWhenNoTrustedProxyCaConfiguredAndNoPeerCertCaptured() {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         // no trusted-proxy CA configured for this client -> direct-connection-only, but no raw
-        // peer certificate was ever captured (e.g. uaa.mtls-enabled=false)
+        // peer certificate was ever captured (e.g. uaa.mtls.enabled=false)
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));

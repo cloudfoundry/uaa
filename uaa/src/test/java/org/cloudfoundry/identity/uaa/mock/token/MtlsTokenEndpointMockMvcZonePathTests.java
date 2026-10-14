@@ -78,13 +78,13 @@ import static org.springframework.security.config.BeanIds.SPRING_SECURITY_FILTER
  * {@code ZONE_PATH} mode, and one that skipped certificate capture would fail closed while one that
  * skipped the availability guard would fail open.
  *
- * <p>The only genuinely global setting is {@code uaa.mtls-enabled}, which is deployment topology
+ * <p>The only genuinely global setting is {@code uaa.mtls.enabled}, which is deployment topology
  * (it configures the Tomcat connector to request client certificates at all); it is enabled here so
  * the endpoint exists in every zone, which is exactly the condition under which tenant bleed would
  * be observable.
  */
 @DefaultTestContext
-@TestPropertySource(properties = {"uaa.mtls-enabled=true"})
+@TestPropertySource(properties = {"uaa.mtls.enabled=true"})
 @EnabledIfZonePathsEnabled
 class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
 

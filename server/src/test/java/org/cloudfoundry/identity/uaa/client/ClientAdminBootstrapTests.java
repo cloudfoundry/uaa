@@ -683,7 +683,7 @@ class ClientAdminBootstrapTests {
 
         assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls-enabled");
+                .hasMessageContaining("uaa.mtls.enabled");
     }
 
     @Test
@@ -694,7 +694,7 @@ class ClientAdminBootstrapTests {
 
         assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls-enabled");
+                .hasMessageContaining("uaa.mtls.enabled");
     }
 
     @Test

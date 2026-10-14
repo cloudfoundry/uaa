@@ -75,7 +75,7 @@ class OpenIdConnectEndpointsMockMvcTests {
                 assertThat(openIdConfiguration.getServiceDocumentation()).isEqualTo("http://docs.cloudfoundry.org/api/uaa/");
                 assertThat(openIdConfiguration.getUiLocalesSupported()).containsExactly(new String[]{"en-US"});
                 // This class pins the discovery document for a DEFAULT deployment, so it must stay
-                // on the default uaa.mtls-enabled=false. The mTLS-enabled shape is asserted by
+                // on the default uaa.mtls.enabled=false. The mTLS-enabled shape is asserted by
                 // MtlsTokenEndpointHardeningMockMvcTests, and its absence when disabled by
                 // MtlsDisabledTokenEndpointMockMvcTests (E3/E6).
                 assertThat(openIdConfiguration.getMtlsEndpointAliases()).isNull();

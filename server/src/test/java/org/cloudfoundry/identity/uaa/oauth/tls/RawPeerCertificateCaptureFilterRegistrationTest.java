@@ -102,7 +102,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
     void capturedAttributeSurvivesClientCertificateMapperOverwritingTheStandardAttribute() throws Exception {
         // Behavioural proof, not just an order-integer comparison: simulates a real TLS handshake
         // having already populated the standard jakarta.servlet.request.X509Certificate attribute
-        // with the genuine peer certificate (as Tomcat would when uaa.mtls-enabled configures
+        // with the genuine peer certificate (as Tomcat would when uaa.mtls.enabled configures
         // certificateVerification=optionalNoCA), then runs the real two-filter chain -- this filter
         // followed by the real ClientCertificateMapper -- with an X-Forwarded-Client-Cert header
         // present (a *different* certificate than the genuine peer one). ClientCertificateMapper is
