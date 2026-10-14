@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -102,6 +103,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
 
     private static final String MTLS_PATH = "/oauth/mtls/token";
+    private static final String PROXY_SUBJECT_DN = "tls-client-auth-trusted-proxy-subject-dn";
 
     /**
      * Bootstrapped with {@code uaa.resource} authority and a secret, so it can authenticate to
@@ -1742,6 +1744,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         void proxyTrustCanAlsoReferenceANamedBundle() throws Exception {
             Map<String, Object> config = new HashMap<>(referenceConfig());
             config.put(PROXY_REF, "proxy");
+            config.put(PROXY_SUBJECT_DN, "CN=proxy");
             String id = trackedId("proxyref");
             MvcResult created = createClientViaAdminApi(id, config);
             assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
@@ -1751,6 +1754,119 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                     .header("X-Forwarded-Client-Cert", Base64.getEncoder().encodeToString(leaf.getEncoded())));
             assertThat(issued.getResponse().getStatus()).as("Actual: %s", outcome(issued)).isEqualTo(200);
             assertThat(claimsOf(issued)).containsKey("cnf");
+        }
+
+        @ParameterizedTest
+        @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+        void unrelatedServiceCannotForwardAWorkloadCertificate(boolean reference, boolean bound) throws Exception {
+            Map<String, Object> config = proxyConfig(reference);
+            config.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, bound);
+            String id = trackedId("proxysubject");
+            MvcResult created = createClientViaAdminApi(id, config);
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+            assertThat(clientDetailsService.loadClientByClientId(id).getAdditionalInformation())
+                    .containsEntry(PROXY_SUBJECT_DN, "CN=gorouter_backend_tls");
+            // Only the public workload certificate is forwarded. The caller proves possession of
+            // an unrelated service key under the same internal CA as the genuine Gorouter.
+            X509Certificate workload = leafSignedByCa("CN=bundle-app");
+            String forwarded = Base64.getEncoder().encodeToString(workload.getEncoded());
+            X509Certificate unrelated = leafSignedBy(rotatedCaSubject, rotatedCaKeyPair, "CN=locket-client");
+            MvcResult denied = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, unrelated)
+                    .header("X-Forwarded-Client-Cert", forwarded));
+            assertThat(denial(denied)).as("Actual: %s", outcome(denied))
+                    .isEqualTo(new Denial(401, "invalid_client", "tls_client_auth: certificate validation failed"));
+            // Positive control: the registered proxy can still forward that exact certificate.
+            X509Certificate proxy = leafSignedBy(rotatedCaSubject, rotatedCaKeyPair, "CN=gorouter_backend_tls");
+            MvcResult issued = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, proxy)
+                    .header("X-Forwarded-Client-Cert", forwarded));
+            assertThat(issued.getResponse().getStatus()).as("Actual: %s", outcome(issued)).isEqualTo(200);
+            assertThat(claimsOf(issued)).containsEntry("client_auth_method", "tls_client_auth");
+            assertThat(claimsOf(issued).containsKey("cnf")).isEqualTo(bound);
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void proxyCaWithoutIdentityIsRejectedAtRegistration(boolean reference) throws Exception {
+            Map<String, Object> config = proxyConfig(reference);
+            config.remove(PROXY_SUBJECT_DN);
+            MvcResult created = createClientViaAdminApi(trackedId("missingproxyidentity"), config);
+            assertThat(denial(created)).as("Actual: %s", outcome(created))
+                    .extracting(Denial::status, Denial::error).containsExactly(400, "invalid_client");
+            assertThat(denial(created).description()).contains(PROXY_SUBJECT_DN);
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void storedProxyCaWithoutIdentityCannotAuthenticate(boolean reference) throws Exception {
+            Map<String, Object> config = proxyConfig(reference);
+            config.remove(PROXY_SUBJECT_DN);
+            String id = mtlsClient("missingstoredproxyidentity", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+            createdIds.add(id);
+            X509Certificate proxy = leafSignedBy(rotatedCaSubject, rotatedCaKeyPair, "CN=gorouter_backend_tls");
+            X509Certificate workload = leafSignedByCa("CN=bundle-app");
+            MvcResult denied = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, proxy)
+                    .header("X-Forwarded-Client-Cert", Base64.getEncoder().encodeToString(workload.getEncoded())));
+            assertThat(denial(denied)).as("Actual: %s", outcome(denied))
+                    .extracting(Denial::status, Denial::error).containsExactly(401, "invalid_client");
+        }
+
+        @ParameterizedTest
+        @MethodSource("invalidProxyIdentities")
+        void invalidProxyIdentityIsRejectedAtRegistration(Object identity) throws Exception {
+            Map<String, Object> config = proxyConfig(false);
+            config.put(PROXY_SUBJECT_DN, identity);
+            MvcResult created = createClientViaAdminApi(trackedId("invalidproxyidentity"), config);
+            assertThat(denial(created)).as("Actual: %s", outcome(created))
+                    .extracting(Denial::status, Denial::error).containsExactly(400, "invalid_client");
+            assertThat(denial(created).description()).contains(PROXY_SUBJECT_DN);
+        }
+
+        @ParameterizedTest
+        @MethodSource("invalidProxyIdentities")
+        void storedInvalidProxyIdentityCannotAuthenticate(Object identity) throws Exception {
+            Map<String, Object> config = proxyConfig(false);
+            config.put(PROXY_SUBJECT_DN, identity);
+            String id = mtlsClient("storedproxyidentity", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+            createdIds.add(id);
+            X509Certificate proxy = leafSignedBy(rotatedCaSubject, rotatedCaKeyPair, "CN=gorouter_backend_tls");
+            X509Certificate workload = leafSignedByCa("CN=bundle-app");
+            MvcResult denied = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, proxy)
+                    .header("X-Forwarded-Client-Cert", Base64.getEncoder().encodeToString(workload.getEncoded())));
+            assertThat(denial(denied)).as("Actual: %s", outcome(denied))
+                    .extracting(Denial::status, Denial::error).containsExactly(401, "invalid_client");
+        }
+
+        @Test
+        void proxyIdentityWithoutProxyTrustIsRejectedAtRegistration() throws Exception {
+            Map<String, Object> config = new HashMap<>(referenceConfig());
+            config.put(PROXY_SUBJECT_DN, "CN=gorouter_backend_tls");
+            MvcResult created = createClientViaAdminApi(trackedId("proxyidentityonly"), config);
+            assertThat(denial(created)).as("Actual: %s", outcome(created))
+                    .extracting(Denial::status, Denial::error).containsExactly(400, "invalid_client");
+            assertThat(denial(created).description()).contains(PROXY_SUBJECT_DN);
+        }
+
+        @Test
+        void storedProxyIdentityWithoutProxyTrustCannotBecomeADirectClient() throws Exception {
+            Map<String, Object> config = new HashMap<>(referenceConfig());
+            config.put(PROXY_SUBJECT_DN, "CN=gorouter_backend_tls");
+            String id = mtlsClient("orphanproxyidentity", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+            createdIds.add(id);
+            MvcResult denied = perform(mtlsPost(id, GRANT_TYPE_CLIENT_CREDENTIALS, leafSignedByCa("CN=bundle-app")));
+            assertThat(denial(denied)).as("Actual: %s", outcome(denied))
+                    .extracting(Denial::status, Denial::error).containsExactly(401, "invalid_client");
+        }
+
+        private Map<String, Object> proxyConfig(boolean reference) throws Exception {
+            Map<String, Object> config = new HashMap<>(referenceConfig());
+            config.put(reference ? PROXY_REF : TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                    reference ? "proxy" : toPem(rotatedCaCert));
+            config.put(PROXY_SUBJECT_DN, "CN=gorouter_backend_tls");
+            return config;
+        }
+
+        static java.util.stream.Stream<Object> invalidProxyIdentities() {
+            return java.util.stream.Stream.of(null, "", "   ", 42, "CN=gorouter,broken");
         }
 
         @Test
