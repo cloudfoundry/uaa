@@ -75,6 +75,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @TestPropertySource(properties = {"uaa.mtls.enabled=false"})
 class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
 
+    @Test
+    void trustBundleReferencesAreRejectedWhenMtlsIsDisabled() throws Exception {
+        String id = "disabled-bundle" + generator.generate();
+        MvcResult result = mockMvc.perform(post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(Map.of("client_id", id,
+                        "client_secret", SECRET, "authorized_grant_types", List.of("client_credentials"),
+                        "scope", List.of("uaa.none"), "authorities", List.of("uaa.resource"),
+                        "tls-client-auth-ca-ref", "workload", "tls_client_auth_subject_dn", "CN=app"))))
+                .andReturn();
+        assertThat(result.getResponse().getStatus())
+                .as("a CA reference must not bypass the deployment's mTLS off-switch")
+                .isEqualTo(400);
+    }
+
     private static final String MTLS_PATH = "/oauth/mtls/token";
     private static final String DISCOVERY_PATH = "/.well-known/openid-configuration";
 

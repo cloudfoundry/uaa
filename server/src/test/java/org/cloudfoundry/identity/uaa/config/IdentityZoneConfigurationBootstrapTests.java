@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator;
 import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator;
@@ -88,6 +89,19 @@ public class IdentityZoneConfigurationBootstrapTests {
         assertThat(uaa.getConfig().getClientSecretPolicy().getRequireDigit()).isOne();
         assertThat(uaa.getConfig().getClientSecretPolicy().getRequireSpecialCharacter()).isOne();
         assertThat(uaa.getConfig().getClientSecretPolicy().getExpireSecretInMonths()).isEqualTo(-1);
+    }
+
+    @Test
+    void bootstrapCopiesNamedTrustBundlesToDefaultZone() throws Exception {
+        org.springframework.beans.BeanWrapper properties = new org.springframework.beans.BeanWrapperImpl(bootstrap);
+        assertThat(properties.isWritableProperty("mtlsTrustBundles"))
+                .as("the default-zone bootstrap must accept the uaa.yml trust bundles")
+                .isTrue();
+        properties.setPropertyValue("mtlsTrustBundles", Map.of("configured-ca", certificate1()));
+        bootstrap.afterPropertiesSet();
+        Map<String, Object> config = JsonUtils.convertValue(
+                provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig(), Map.class);
+        assertThat(config).containsEntry("mtlsTrustBundles", Map.of("configured-ca", certificate1()));
     }
 
     @Test
