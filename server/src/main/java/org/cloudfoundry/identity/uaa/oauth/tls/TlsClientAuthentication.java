@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.servlet.http.HttpServletRequest;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
@@ -46,6 +49,14 @@ import java.util.regex.Pattern;
 public class TlsClientAuthentication {
 
     private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthentication.class);
+
+    @Autowired
+    private IdentityZoneManager identityZoneManager =
+            new IdentityZoneManagerImpl();
+
+    private Map<String, String> trustBundles() {
+        return identityZoneManager.getCurrentIdentityZone().getConfig().getMtlsTrustBundles();
+    }
 
     private static final String XFCC_HEADER = "X-Forwarded-Client-Cert";
 
@@ -147,8 +158,8 @@ public class TlsClientAuthentication {
         }
         HttpServletRequest request = attrs.getRequest();
         boolean trustedProxyConfigured = clientConfig != null
-                && clientConfig.getTrustedProxyCaPem() != null
-                && !clientConfig.getTrustedProxyCaPem().isBlank();
+                && ((clientConfig.getTrustedProxyCaPem() != null && !clientConfig.getTrustedProxyCaPem().isBlank())
+                        || clientConfig.getTrustedProxyCaRef() != null);
 
         if (!trustedProxyConfigured) {
             // Direct-connection-only client: always use the genuine TLS-handshake peer
@@ -218,7 +229,10 @@ public class TlsClientAuthentication {
      *         proxy CA, or the validated peer leaf fails an end-entity constraint check
      */
     public boolean isCertificateFromTrustedProxy(TlsClientAuthConfiguration clientConfig) {
-        String trustedProxyCaPem = clientConfig != null ? clientConfig.getTrustedProxyCaPem() : null;
+        String trustedProxyCaPem = clientConfig == null ? null : MtlsTrustBundles.resolve(
+                clientConfig.getTrustedProxyCaPem(), clientConfig.getTrustedProxyCaRef(),
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF, trustBundles());
         if (trustedProxyCaPem == null || trustedProxyCaPem.isBlank()) {
             return false;
         }
@@ -356,7 +370,9 @@ public class TlsClientAuthentication {
         }
 
         try {
-            List<X509Certificate> caCerts = PemCertificateParser.parseCertificateChain(config.getTrustedCaPem());
+            List<X509Certificate> caCerts = PemCertificateParser.parseCertificateChain(MtlsTrustBundles.resolve(
+                    config.getTrustedCaPem(), config.getTrustedCaRef(), TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, trustBundles()));
             Optional<X509Certificate> validated = validateCertPath(chain, caCerts);
             if (validated.isPresent()) {
                 validateEndEntityConstraints(validated.get());

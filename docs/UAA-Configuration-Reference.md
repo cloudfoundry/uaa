@@ -128,6 +128,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#oauthuserauthorities"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.user.authorities` | (see details)| Default authorities for new users|
 | <a href="#clientmaxcount"><img src="images/click-me.png" width="14" height="14"/></a> `clientMaxCount` | `500`| Max clients returned by list endpoint|
 | <a href="#uaamtlsenabled"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.mtls.enabled` | `false`| Enables RFC 8705 mutual-TLS client authentication|
+| [↪](#uaamtlstrust_bundles) `uaa.mtls.trust_bundles` | `{}` | Named mTLS CA bundles for the default identity zone |
 
 ### Password Policy
 
@@ -1285,7 +1286,7 @@ client configured with a `tls-client-auth-ca` property fails validation at creat
 `tls_client_auth` and no `mtls_endpoint_aliases`.
 
 Registering `tls_client_certificate_bound_access_tokens=true` also requires this switch to be enabled,
-a nonblank per-client `tls-client-auth-ca`, and exactly one certificate subject binding. UAA refuses
+a nonblank per-client `tls-client-auth-ca` or valid `tls-client-auth-ca-ref`, and exactly one subject binding. UAA refuses
 secret-only authentication for a stored client that requires binding and checks for certificate confirmation
 before signing its access tokens.
 
@@ -1313,6 +1314,44 @@ uaa:
 ```
 
 The `uaa.mtls` namespace is reserved for this feature's deployment-wide options.
+
+[Back to table](#oauth-clients--users)
+
+---
+
+### `uaa.mtls.trust_bundles`
+
+**Default:** `{}`
+**Type:** `Map<String, String>`
+**Source:** `Binder` in
+[configuration wiring](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
+
+Defines named PEM CA trust bundles for the default UAA identity zone. Each value is a single X.509 certificate
+or multiple concatenated PEM certificates, allowing an old/new CA overlap during rotation. Names are case-sensitive,
+1 to 128 characters, use letters, digits, dots, underscores or hyphens, and start with a letter or digit.
+Malformed definitions prevent startup. These settings are reapplied on restart.
+Use quoted bracket notation for YAML bundle names containing underscores, for example `"[instance_identity]"`,
+to preserve the literal name during Spring Boot map binding.
+
+```yaml
+uaa:
+  mtls:
+    enabled: true
+    trust_bundles:
+      instance-identity: <CA certificate PEM>
+      backend-proxy: <proxy CA certificate PEM>
+```
+
+Clients use `tls-client-auth-ca-ref` or `tls-client-auth-trusted-proxy-ca-ref`; the corresponding inline PEM property
+and reference are mutually exclusive. Referencing clients require `uaa.mtls.enabled=true` and still require their
+individual certificate subject binding. Unknown references are rejected at registration and at startup; removing
+a bundle denies referencing clients at token time. Trust is resolved from the client's current zone only.
+
+Other zones use `config.mtlsTrustBundles` in the identity-zone API and do not inherit the default zone's bundles.
+An authenticated client administrator can list names through `GET /oauth/mtls/trust-bundles`; PEM contents are
+not returned. See [Named CA trust bundles](UAA-Client-Authentication.md#named-ca-trust-bundles).
+
+**Related Properties:** `uaa.mtls.enabled`
 
 [Back to table](#oauth-clients--users)
 

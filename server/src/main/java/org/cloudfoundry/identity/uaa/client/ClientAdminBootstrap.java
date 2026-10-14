@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.beans.factory.annotation.Autowired;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWT_CREDS;
 import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS;
@@ -47,6 +51,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 @Component
+@DependsOn("identityZoneConfigurationBootstrap")
 public class ClientAdminBootstrap implements
         InitializingBean,
         ApplicationListener<ContextRefreshedEvent>,
@@ -66,6 +71,9 @@ public class ClientAdminBootstrap implements
     private final Set<String> allowPublicClients;
     private final boolean defaultOverride;
     private final boolean mtlsEnabled;
+    @Autowired
+    private IdentityZoneManager identityZoneManager =
+            new IdentityZoneManagerImpl();
 
     /**
      * @param defaultOverride    the default override flag to set. Flag to indicate
@@ -228,7 +236,8 @@ public class ClientAdminBootstrap implements
             }
 
             client.setAdditionalInformation(info);
-            ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, clientId);
+            ClientAdminEndpointsValidator.checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, clientId,
+                    identityZoneManager.getCurrentIdentityZone().getConfig().getMtlsTrustBundles());
             ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(
                     client.getAdditionalInformation(), clientId);
 

@@ -314,7 +314,9 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             return null;
         }
         Object raw = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-        if (raw instanceof String pem) {
+        Object rawReference = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
+        if (raw instanceof String || rawReference instanceof String) {
+            String pem = raw instanceof String value ? value : null;
             try {
                 List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
                 Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
@@ -378,6 +380,9 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                 }
 
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
+                cfg.setTrustedCaRef(rawReference instanceof String name ? name : null);
+                Object proxyReference = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
+                cfg.setTrustedProxyCaRef(proxyReference instanceof String name ? name : null);
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);

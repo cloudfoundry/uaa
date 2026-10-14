@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
@@ -137,7 +138,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
 
-        checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, client.getClientId());
+        checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, client.getClientId(),
+                identityZoneManager.getCurrentIdentityZone().getConfig().getMtlsTrustBundles());
         validateTlsClientAuthClaimConfig(client.getAdditionalInformation(), client.getClientId());
 
         String clientId = client.getClientId();
@@ -369,50 +371,45 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
     }
 
-    public static void checkMtlsClientConfigAllowed(Map<String, Object> additionalInfo, boolean mtlsEnabled, String clientId) {
-        if (!mtlsEnabled
-                && (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
-                        || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA))) {
+    public static void checkMtlsClientConfigAllowed(Map<String, Object> info, boolean enabled, String clientId) {
+        checkMtlsClientConfigAllowed(info, enabled, clientId, Map.of());
+    }
+
+    public static void checkMtlsClientConfigAllowed(Map<String, Object> info, boolean enabled, String clientId,
+            Map<String, String> bundles) {
+        boolean hasCa = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
+        boolean hasProxy = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
+                || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
+        if (!enabled && (hasCa || hasProxy)) {
             throw new InvalidClientDetailsException(
                     "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls.enabled "
                             + "to be true on this UAA deployment. ClientID: " + clientId);
         }
-        Boolean boundAccessTokens = TlsClientAuthConfiguration.parseBoundAccessTokens(additionalInfo.get(
+        Boolean bound = TlsClientAuthConfiguration.parseBoundAccessTokens(info.get(
                 TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS));
-        if (boundAccessTokens == null) {
-            throw new InvalidClientDetailsException(
-                    "Invalid " + TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
-                            + " for client_id=" + clientId + ": must be true or false.");
+        if (bound == null) {
+            throw new InvalidClientDetailsException("Invalid "
+                    + TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                    + " for client_id=" + clientId + ": must be true or false.");
         }
-        if (boundAccessTokens && (!mtlsEnabled
-                || !(additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String caPem
-                        && !caPem.isBlank()))) {
-            throw new InvalidClientDetailsException(
-                    TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
-                            + "=true for client_id=" + clientId
-                            + " requires uaa.mtls.enabled=true and a nonblank tls-client-auth-ca.");
+        if (bound && (!enabled || !hasCa)) {
+            throw new InvalidClientDetailsException(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                    + "=true for client_id=" + clientId + " requires uaa.mtls.enabled=true and TLS client trust configuration.");
         }
-        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
-            try {
-                PemCertificateParser.parseCertificate((String) additionalInfo.get(
-                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA));
-            } catch (Exception e) {
-                throw new InvalidClientDetailsException(
-                        "Invalid tls-client-auth-trusted-proxy-ca for client_id=" + clientId + ": " + e.getMessage(), e);
+        for (String inline : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
+            String pem = MtlsTrustBundles.resolve(info, inline, inline + "-ref", bundles);
+            if (pem != null) {
+                try {
+                    PemCertificateParser.parseCertificateChain(pem);
+                } catch (IllegalArgumentException e) {
+                    throw new InvalidClientDetailsException("Invalid " + inline + " for client_id=" + clientId + ": " + e.getMessage(), e);
+                }
             }
         }
-        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)) {
-            if (!(additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String)) {
-                throw new InvalidClientDetailsException(
-                        "Invalid tls-client-auth-ca for client_id=" + clientId + ": must be a PEM string.");
-            }
-            try {
-                PemCertificateParser.parseCertificate(getTlsClientAuthCaPem(additionalInfo));
-            } catch (Exception e) {
-                throw new InvalidClientDetailsException(
-                        "Invalid tls-client-auth-ca for client_id=" + clientId + ": " + e.getMessage(), e);
-            }
-            requireExactlyOneSubjectBinding(additionalInfo, clientId);
+        if (hasCa) {
+            requireExactlyOneSubjectBinding(info, clientId);
         }
     }
 
@@ -458,14 +455,6 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                         + "value is what identifies this particular client, so on a shared CA -- such as the "
                         + "Diego instance-identity CA, which issues to every app in the foundation -- any "
                         + "certificate holder could otherwise authenticate as this client.");
-    }
-
-    private static String getTlsClientAuthCaPem(Map<String, Object> additionalInfo) {
-        Object rawConfig = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-        if (rawConfig instanceof String pem) {
-            return pem;
-        }
-        throw new IllegalArgumentException("Not a supported tls-client-auth-ca configuration.");
     }
 
     /**

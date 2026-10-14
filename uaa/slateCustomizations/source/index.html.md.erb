@@ -319,7 +319,7 @@ claim is also returned unchanged by [Introspect Token](#introspect-token) and [C
 
 #### Registering a client for mutual TLS
 
-Set `tls-client-auth-ca` together with exactly one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`,
+Set `tls-client-auth-ca` or `tls-client-auth-ca-ref` together with exactly one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`,
 `tls_client_auth_san_uri`, `tls_client_auth_san_ip` or `tls_client_auth_san_email` when creating or updating a
 client (see Clients, Create). The full list of `tls-client-auth-*` keys, with their descriptions, is in the client request fields. A client that
 sets `tls-client-auth-ca` authenticates only at `/oauth/mtls/token` and cannot also use a `client_secret`. These keys are
@@ -2539,6 +2539,23 @@ _Response Fields_
 
 
 # Clients
+
+## List mTLS trust bundles
+
+`GET /oauth/mtls/trust-bundles` lists only the names of CA trust bundles in the current identity zone.
+The request needs `clients.read`, `clients.admin`, or zone/UAA admin authority. PEM contents are never returned.
+This endpoint is unavailable when `uaa.mtls.enabled` is false.
+
+<%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/curl-request.md') %>
+<%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/http-response.md') %>
+
+_Request Headers_
+
+<%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/request-headers.md') %>
+
+_Response Fields_
+
+<%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/response-fields.md') %>
 
 A client can carry JWT trust for `private_key_jwt` (client assertion) in several shapes. The **preferred** approach is a single top-level `client_jwt_config` string (one JSON value in the `client_jwt_config` column) that can contain `jwks`, `jwks_uri`, and/or an embedded `jwt_creds` array, as needed. For **backward compatibility**, a separate top-level `jwt_creds` field is still accepted and is **merged** with `client_jwt_config` to form the effective `ClientJwtConfiguration` the UAA uses for `private_key_jwt` and for the admin **GET** response. **At authentication time** (`private_key_jwt`), a client assertion is accepted if it **matches and verifies** against the merged trust (e.g. federated claims match a configured credential, or OIDC-style keys verify against the configured JWKS). A nested `client_jwt_config` object under extra keys may also be merged; **still prefer** one `client_jwt_config` string at the top level for clarity. The **decomposed** top-level `jwks` / `jwks_uri` / `jwt_creds` fields in **responses** (retrieve/list) are a convenience view derived from the stored `client_jwt_config` JSON.
 

@@ -73,6 +73,10 @@ public class MtlsEndpointAvailabilityFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
+        if (MtlsTrustBundleEndpoints.PATH.equals(httpRequest.getServletPath()) && !mtlsEnabled) {
+            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         if (!RawPeerCertificateCaptureFilter.isMtlsTokenPath(httpRequest.getServletPath())) {
             chain.doFilter(request, response);
             return;

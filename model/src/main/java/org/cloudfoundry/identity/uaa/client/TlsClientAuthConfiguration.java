@@ -13,6 +13,8 @@ import java.util.Objects;
 public class TlsClientAuthConfiguration {
 
     public static final String TLS_CLIENT_AUTH_CA = "tls-client-auth-ca";
+    public static final String TLS_CLIENT_AUTH_CA_REF = "tls-client-auth-ca-ref";
+    public static final String TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF = "tls-client-auth-trusted-proxy-ca-ref";
     public static final String TLS_CLIENT_AUTH_CLAIM_MAPPINGS = "tls-client-auth-claim-mappings";
     public static final String TLS_CLIENT_AUTH_SUB_TEMPLATE = "tls-client-auth-sub-template";
     public static final String TLS_CLIENT_AUTH_AUD_TEMPLATES = "tls-client-auth-aud-templates";
@@ -166,6 +168,12 @@ public class TlsClientAuthConfiguration {
     @JsonProperty(TLS_CLIENT_AUTH_CA)
     private String trustedCaPem;
 
+    @JsonProperty(TLS_CLIENT_AUTH_CA_REF)
+    private String trustedCaRef;
+
+    @JsonProperty(TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF)
+    private String trustedProxyCaRef;
+
     @JsonProperty(TLS_CLIENT_AUTH_CLAIM_MAPPINGS)
     private List<ClaimMapping> claimMappings;
 
@@ -207,6 +215,10 @@ public class TlsClientAuthConfiguration {
     }
 
     public String getTrustedCaPem() { return trustedCaPem; }
+    public String getTrustedCaRef() { return trustedCaRef; }
+    public void setTrustedCaRef(String trustedCaRef) { this.trustedCaRef = trustedCaRef; }
+    public String getTrustedProxyCaRef() { return trustedProxyCaRef; }
+    public void setTrustedProxyCaRef(String trustedProxyCaRef) { this.trustedProxyCaRef = trustedProxyCaRef; }
     public void setTrustedCaPem(String trustedCaPem) { this.trustedCaPem = trustedCaPem; }
 
     public List<ClaimMapping> getClaimMappings() { return claimMappings; }
@@ -268,6 +280,8 @@ public class TlsClientAuthConfiguration {
         if (this == o) return true;
         if (!(o instanceof TlsClientAuthConfiguration that)) return false;
         return Objects.equals(trustedCaPem, that.trustedCaPem) &&
+               Objects.equals(trustedCaRef, that.trustedCaRef) &&
+               Objects.equals(trustedProxyCaRef, that.trustedProxyCaRef) &&
                Objects.equals(claimMappings, that.claimMappings) &&
                Objects.equals(subTemplate, that.subTemplate) &&
                Objects.equals(audTemplates, that.audTemplates) &&
@@ -283,12 +297,13 @@ public class TlsClientAuthConfiguration {
 
     @Override
     public int hashCode() {
-        return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates, trustedProxyCaPem,
+        return Objects.hash(trustedCaPem, trustedCaRef, trustedProxyCaRef, claimMappings, subTemplate, audTemplates, trustedProxyCaPem,
                 requiredClaims, subjectDn, sanDns, sanUri, sanIp, sanEmail, allowedResources);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {
-        return config != null && config.getTrustedCaPem() != null && !config.getTrustedCaPem().isBlank();
+        return config != null && ((config.getTrustedCaPem() != null && !config.getTrustedCaPem().isBlank())
+                || (config.getTrustedCaRef() != null && !config.getTrustedCaRef().isBlank()));
     }
 
 

@@ -56,7 +56,7 @@ fields (e.g. mapping a Cloud Foundry app instance identity certificate to `app_g
 `space_guid`/`org_guid` claims).
 
 The client is authenticated on the fixed dedicated endpoint, `/oauth/mtls/token`, rather than
-the regular `/oauth/token`. A nonblank `tls-client-auth-ca` is the sole inbound mTLS selector
+the regular `/oauth/token`. A nonblank `tls-client-auth-ca` or valid `tls-client-auth-ca-ref` selects inbound mTLS
 for a client, and configuring it is exclusive: the client must authenticate at
 `/oauth/mtls/token` with its certificate, and every other credential path is refused, including
 at the regular `/oauth/token` -- a client that keeps a `client_secret` alongside
@@ -165,16 +165,19 @@ Per-client properties (set via the client-admin API, `oauth.clients` bootstrap, 
 admin UI, alongside the client's other properties such as `authorized-grant-types`):
 
 The mTLS token endpoint is fixed at `/oauth/mtls/token`; it is not configurable. A client opts
-into mTLS by configuring a nonblank `tls-client-auth-ca`. The client must use that endpoint and
+into mTLS by configuring a nonblank `tls-client-auth-ca` or a valid `tls-client-auth-ca-ref`.
+The client must use that endpoint and
 present a certificate whose chain validates to the configured CA; no separate
 `token-endpoint-auth-method` property is used or supported.
 
 | Property | Required | Description |
 |----------|----------|--------------|
-| `tls-client-auth-ca` | yes | PEM-encoded CA certificate. This is the per-client mTLS selector: requests to the fixed `/oauth/mtls/token` endpoint authenticate with a presented leaf certificate only when it chains to this CA. |
+| `tls-client-auth-ca` | CA or reference required | PEM-encoded CA certificate. Mutually exclusive with `tls-client-auth-ca-ref`. Requests to `/oauth/mtls/token` authenticate with a presented leaf certificate only when it chains to this CA. |
+| `tls-client-auth-ca-ref` | CA or reference required | Name of a CA bundle in this client's identity zone. Selects certificate-only authentication just like inline PEM; unknown or blank references are rejected. |
+| `tls-client-auth-trusted-proxy-ca-ref` | no | Name of a bundle in this zone for the TLS proxy peer. Mutually exclusive with `tls-client-auth-trusted-proxy-ca`; the same proxy and XFCC checks apply. |
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. |
 | one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`, `tls_client_auth_san_email` | yes -- exactly one | The expected certificate subject value (RFC 8705 section 2.1.2). `tls_client_auth_san_ip` must be an IPv4 or IPv6 address literal, never a hostname (it is compared in binary form and is never resolved through DNS). Chain validation proves only that the CA issued the certificate; this is what identifies *this* client. See "Scoping a client" above. |
-| `tls_client_certificate_bound_access_tokens` | no | [RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4) client metadata, named verbatim. `true` makes the access tokens issued to this client certificate-bound (`cnf.x5t#S256`) and requires `uaa.mtls.enabled=true`, a nonblank `tls-client-auth-ca`, and the subject binding. Registration is rejected without these prerequisites; stored clients cannot fall back to secret authentication, and issuance fails if the token has no certificate confirmation. `false` or absent -- the RFC default -- issues an ordinary bearer JWT. Must be a boolean (`true`/`false`, or the same strings). Certificate authentication, chain validation and the subject binding are identical either way. Set at registration only; a token request parameter or claim template cannot change it. See "Certificate-bound access tokens" below. |
+| `tls_client_certificate_bound_access_tokens` | no | [RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4) client metadata, named verbatim. `true` makes the access tokens issued to this client certificate-bound (`cnf.x5t#S256`) and requires `uaa.mtls.enabled=true`, a nonblank `tls-client-auth-ca` or valid `tls-client-auth-ca-ref`, and the subject binding. Registration is rejected without these prerequisites; stored clients cannot fall back to secret authentication, and issuance fails if the token has no certificate confirmation. `false` or absent -- the RFC default -- issues an ordinary bearer JWT. Must be a boolean (`true`/`false`, or the same strings). Certificate authentication, chain validation and the subject binding are identical either way. Set at registration only; a token request parameter or claim template cannot change it. See "Certificate-bound access tokens" below. |
 | `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values produced by `tls-client-auth-claim-mappings`. A UAA extension applied in addition to the subject binding, not instead of it -- authentication fails unless every entry matches exactly. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to JWT claim names. `subject_cn` and `subject_o` map their values directly; `pattern` is rejected for either, since it is applied only to `subject_ou`, where it must contain at least one capturing group -- a pattern that only matches without capturing (e.g. `space:.+` instead of `space:(.+)`) is rejected too, since it would never produce a value. Patterns are administrator-controlled configuration and are evaluated against certificate OU values on every mTLS token request, so they are bounded: an OU longer than 256 characters is not matched, and a match that reads more than 100 000 characters is abandoned, after which that mapping yields no claim (a warning is logged; a claim that `tls-client-auth-required-claims` depends on is then absent, so the client is refused). Prefer simple anchored patterns such as `^space:(.+)$`; nested quantifiers like `((a+)+)+` will be cut off by the limit. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. At most 256 characters; must contain at least one `{claim}` placeholder; every placeholder must name a claim declared in `tls-client-auth-claim-mappings`. |
@@ -215,6 +218,70 @@ Claim mappings cannot target reserved token or authentication claims, including 
 token enhancement also omits them from previously stored configurations. Delegation context must come from
 the token-exchange flow, not from certificate subject fields.
 
+#### Named CA trust bundles
+
+Operators can define shared trust anchors for the default zone in `uaa.yml`:
+
+```yaml
+uaa:
+  mtls:
+    enabled: true
+    trust_bundles:
+      instance-identity: |
+        -----BEGIN CERTIFICATE-----
+        <CA certificate PEM>
+        -----END CERTIFICATE-----
+```
+
+For other zones, set `config.mtlsTrustBundles` through the identity-zone API:
+
+```json
+{
+  "config": {
+    "mtlsTrustBundles": {
+      "instance-identity": "<CA certificate PEM>"
+    }
+  }
+}
+```
+
+This fragment belongs in a complete identity-zone update. Bundle names are case-sensitive, contain 1 to 128 letters,
+digits, dots, underscores or hyphens, and start with a letter or digit. Each value is a PEM certificate or a
+concatenated bundle. Names and contents are isolated per zone: no lookup falls back to the default zone.
+The default zone's definitions are reapplied from `uaa.yml` on restart; other zones persist their definitions.
+For YAML names containing underscores, use quoted bracket notation, such as `"[instance_identity]": |`,
+to preserve the name through [Spring Boot map binding](https://docs.spring.io/spring-boot/3.3/reference/features/external-config.html#features.external-config.typesafe-configuration-properties.relaxed-binding.maps).
+Identity-zone JSON uses the literal name, such as `"instance_identity"`.
+
+Clients reference a bundle without storing its PEM:
+
+```json
+{
+  "client_id": "payments-worker",
+  "authorized_grant_types": ["client_credentials"],
+  "authorities": ["uaa.resource"],
+  "tls-client-auth-ca-ref": "instance-identity",
+  "tls_client_auth_san_dns": "payments-worker.svc.identity",
+  "tls_client_certificate_bound_access_tokens": true
+}
+```
+
+The same exactly-one subject binding and required-claim checks still identify the individual client. Inline PEM
+remains supported. To switch an existing client to a reference, clear its inline property explicitly with `null`
+in the client update. A proxy bundle uses `tls-client-auth-trusted-proxy-ca-ref` and remains separate from client trust.
+
+Rotate a bundle by replacing its value with old and new CA PEMs concatenated together, then with the new CA alone.
+Every referencing client uses the current zone configuration; registrations do not need rewriting. Changing the
+default zone's YAML requires a UAA restart, while another zone's API update applies to subsequent requests.
+An unknown reference is rejected at registration. Removing a referenced bundle denies subsequent authentication,
+and startup checks refuse persisted references that no longer resolve, identifying the client and zone.
+Invalid bundle definitions are rejected at startup or zone update.
+
+`GET /oauth/mtls/trust-bundles` returns only sorted names, for example
+`{"trust_bundles":["instance-identity"]}`. It requires a bearer token with `clients.read`, `clients.admin`, or zone/UAA
+admin authority. Missing authentication returns `401`, insufficient permission returns `403`, and mTLS disabled
+returns `404`. This endpoint never returns the bundle contents.
+
 #### RFC 8707 resource indicators
 
 A client configured with `tls-client-auth-allowed-resources` may pass a `resource` parameter to
@@ -240,7 +307,7 @@ as `invalid_target`, and no token is issued.
 
 #### Registering a `tls_client_auth` client
 
-A client opts in by setting `tls-client-auth-ca` together with exactly one of the five subject parameters
+A client opts in by setting `tls-client-auth-ca` or `tls-client-auth-ca-ref` together with exactly one subject parameter
 (`tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`,
 `tls_client_auth_san_email`). The same keys are accepted by every registration path, and every path enforces the same
 rules:
@@ -248,11 +315,11 @@ rules:
 | Path | Notes |
 |---|---|
 | Client admin API (`POST`/`PUT /oauth/clients`) | The keys are top-level JSON properties of the client. The field reference is generated from the API docs. |
-| Zone client API (`/identity-zones/{id}/clients`) | A client with a non-blank `tls-client-auth-ca` may omit `client_secret`; a supplied secret is still checked against the zone's secret policy. |
+| Zone client API (`/identity-zones/{id}/clients`) | A client with a nonblank `tls-client-auth-ca` or valid `tls-client-auth-ca-ref` may omit `client_secret`; a supplied secret is still checked against the zone's secret policy. |
 | `oauth.clients` bootstrap (BOSH / `uaa.yml`) | Validated at startup with the same rules; an invalid mTLS client prevents the bootstrap from completing. |
 
 With `uaa.mtls.enabled` off, a request carrying `tls-client-auth-ca` or `tls-client-auth-trusted-proxy-ca` is rejected
-with `400` ("require uaa.mtls.enabled to be true"). A client that sets `tls-client-auth-ca` authenticates **only** at
+with `400` ("require uaa.mtls.enabled to be true"). A client that sets either trust selector authenticates **only** at
 `/oauth/mtls/token` and may not combine the certificate with a `client_secret`, so it cannot also be used at
 `/oauth/token`.
 
