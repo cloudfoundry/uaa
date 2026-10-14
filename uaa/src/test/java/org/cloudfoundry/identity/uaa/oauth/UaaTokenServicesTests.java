@@ -16,6 +16,9 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -1167,6 +1170,25 @@ class UaaTokenServicesTests {
     @Nested
     @DisplayName("when MtlsClaimsEnhancer shares the enhancer list with other enhancers")
     class WhenMtlsClaimsEnhancerSharesTheEnhancerList {
+
+        @Test
+        void bindingPolicyIsEnforcedWhenIssuanceBypassesClientAuthentication() {
+            UaaClientDetails client = (UaaClientDetails) jdbcClientDetailsService.loadClientByClientId(clientId);
+            Map<String, Object> previous = new HashMap<>(client.getAdditionalInformation());
+            Map<String, Object> requiringBinding = new HashMap<>(previous);
+            requiringBinding.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+            client.setAdditionalInformation(requiringBinding);
+            jdbcClientDetailsService.updateClientDetails(client);
+            try {
+                assertThatThrownBy(() -> clientCredentialsTokenClaims())
+                        .as("the signing boundary must refuse an unbound JWT even without an mTLS enhancer")
+                        .isInstanceOf(InvalidClientDetailsException.class)
+                        .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+            } finally {
+                client.setAdditionalInformation(previous);
+                jdbcClientDetailsService.updateClientDetails(client);
+            }
+        }
 
         private UaaTokenEnhancer enhancerReturning(Map<String, Object> claims) {
             return new UaaTokenEnhancer() {

@@ -70,11 +70,12 @@ public class TlsClientAuthConfiguration {
      * <p>Two groups. The first is UAA's own token vocabulary, which {@code UaaTokenServices} already
      * refuses to let an enhancer overwrite; rejecting those names at configuration time turns a
      * silently ignored mapping into an error the operator sees. The second is the group that was
-     * genuinely reachable: authentication-context claims ({@code amr}, {@code acr},
+     * reachable: authentication-context claims ({@code amr}, {@code acr},
      * {@code auth_time}, {@code client_auth_method}) and the RFC 8705 confirmation claim
-     * ({@code cnf}). Those are not part of UAA's protected set, so a certificate subject field could
+     * ({@code cnf}), plus delegation context ({@code act}, {@code may_act}). Those are not part of
+     * UAA's protected set, so a certificate subject field could
      * be mapped straight onto them -- letting a client admin assert, in a signed token, how the
-     * caller authenticated. Downstream policy engines read exactly those claims.
+     * caller authenticated or who may act on its behalf. Downstream policy engines read these claims.
      *
      * <p>{@code sub} and {@code aud} appear here as mapping targets only. They remain settable
      * through {@code tls-client-auth-sub-template} / {@code tls-client-auth-aud-templates}, which is
@@ -87,7 +88,9 @@ public class TlsClientAuthConfiguration {
             "grant_type", "user_id", "user_name", "origin", "email", "revocable",
             "rev_sig", "previous_logon_time",
             // authentication context and certificate binding
-            "amr", "acr", "auth_time", "cnf", "client_auth_method");
+            "amr", "acr", "auth_time", "cnf", "client_auth_method",
+            // delegation context must come from token exchange, never from certificate mappings
+            "act", "may_act");
 
     /**
      * True when {@code claim} is itself a reserved name, or when it is a dotted claim (e.g.
@@ -114,8 +117,8 @@ public class TlsClientAuthConfiguration {
      * Reads {@link #TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS} from a client's flat configuration:
      * a {@link Boolean} or the string {@code true}/{@code false} (any case, as BOSH/YAML bootstrap
      * and JSON registration both produce). Absent is {@code false}, the RFC 8705 section 3.4 default.
-     * Anything else is {@code null}, so a validator can refuse it; a caller that must decide anyway
-     * treats {@code null} as {@code false} only after registration validation has had its say.
+     * Anything else is {@code null}, so registration and issuance can refuse an unreadable policy
+     * instead of silently issuing a bearer token.
      */
     public static Boolean parseBoundAccessTokens(Object raw) {
         if (raw == null) {

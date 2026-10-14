@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ClientCertificateMapperFilterTest {
 
@@ -69,6 +70,19 @@ class ClientCertificateMapperFilterTest {
         assertThat(request.getAttribute("jakarta.servlet.request.X509Certificate"))
                 .as("ClientCertificateMapper must not run for a path other than /oauth/mtls/token/**")
                 .isNull();
+    }
+
+    @Test
+    void downstreamIllegalArgumentExceptionIsNotTreatedAsMalformedXfcc() {
+        Filter mapper = new SpringServletXmlFiltersConfiguration().clientCertificateMapperFilter(true).getFilter();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/oauth/mtls/token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        IllegalArgumentException downstreamFailure = new IllegalArgumentException("downstream handler failed");
+
+        assertThatThrownBy(() -> mapper.doFilter(request, response, (req, res) -> {
+            throw downstreamFailure;
+        })).isSameAs(downstreamFailure);
     }
 
     @Test

@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.event.TokenRevocationEvent;
@@ -493,9 +495,21 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 isRevocable,
                 additionalRootClaims,
                 lateOverrideClaims);
+        UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
+        // The signing boundary also covers flows that do not use client authentication and deployments
+        // with no mTLS enhancer. Never sign an unbound token for a client that requires certificate binding.
+        Boolean boundAccessTokens = TlsClientAuthConfiguration.parseBoundAccessTokens(
+                clientDetails.getAdditionalInformation().get(
+                        TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS));
+        if (boundAccessTokens == null || (boundAccessTokens
+                && !(jwtAccessToken.get(CNF) instanceof Map<?, ?> confirmation
+                        && confirmation.get("x5t#S256") instanceof String thumbprint && !thumbprint.isBlank()))) {
+            throw new InvalidClientDetailsException(
+                    TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                            + " for client_id=" + clientId + " requires a valid certificate-bound access token");
+        }
         String token = JwtHelper.encode(jwtAccessToken, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
-        UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         if (idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopes, grantType)) {
             IdToken idTokenContent;

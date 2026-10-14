@@ -90,6 +90,16 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                 TlsClientAuthConfiguration tlsClientAuthConfiguration = getTlsClientAuthConfiguration(uaaClient);
                 boolean tlsClientAuthConfigured =
                         TlsClientAuthConfiguration.isConfigured(tlsClientAuthConfiguration);
+                // Stored clients can bypass registration validation. A binding policy must never
+                // fall through to secret, public-client or private_key_jwt authentication.
+                Map<String, Object> info = uaaClient.getAdditionalInformation();
+                Boolean boundAccessTokens = TlsClientAuthConfiguration.parseBoundAccessTokens(info == null ? null
+                        : info.get(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS));
+                if (!tlsClientAuthConfigured && !Boolean.FALSE.equals(boundAccessTokens)) {
+                    throw new BadCredentialsException(
+                            TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                                    + " requires a client configured for tls_client_auth");
+                }
                 // /oauth/mtls/token is advertised in OIDC discovery as
                 // mtls_endpoint_aliases.token_endpoint (RFC 8705 section 5), so it must serve mutual-TLS
                 // client authentication and nothing else. Without this check the endpoint is an
