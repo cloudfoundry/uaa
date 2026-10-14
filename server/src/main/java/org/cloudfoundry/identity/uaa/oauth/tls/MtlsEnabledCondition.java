@@ -5,14 +5,14 @@ import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
 /**
- * Gates a bean on {@code uaa.mtls-enabled} using <em>exactly</em> the same interpretation of the
- * value as {@code @Value("${uaa.mtls-enabled:false}") boolean}.
+ * Gates a bean on {@code uaa.mtls.enabled} using <em>exactly</em> the same interpretation of the
+ * value as {@code @Value("${uaa.mtls.enabled:false}") boolean}.
  *
  * <p>This exists because the two are otherwise not the same test.
- * {@code @ConditionalOnProperty(name = "uaa.mtls-enabled", havingValue = "true")} compares the raw
+ * {@code @ConditionalOnProperty(name = "uaa.mtls.enabled", havingValue = "true")} compares the raw
  * value to the literal string {@code "true"}, while a {@code boolean} injection point is converted by
  * the environment's conversion service, which also accepts {@code 1}, {@code yes} and {@code on}. So
- * a plain {@code @ConditionalOnProperty} would let {@code uaa.mtls-enabled=1} switch on the seven {@code @Value}-gated components -- the
+ * a plain {@code @ConditionalOnProperty} would let {@code uaa.mtls.enabled=1} switch on the seven {@code @Value}-gated components -- the
  * availability filter, the certificate-mapper filter, both client validators, the bootstrap, the
  * Tomcat connector customizer and the discovery endpoint -- while leaving the two
  * {@code @ConditionalOnProperty} ones off: {@link MtlsClaimsEnhancer}, which stamps the RFC 8705
@@ -29,7 +29,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  */
 public class MtlsEnabledCondition implements Condition {
 
-    static final String MTLS_ENABLED_PROPERTY = "uaa.mtls-enabled";
+    static final String MTLS_ENABLED_PROPERTY = "uaa.mtls.enabled";
 
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {

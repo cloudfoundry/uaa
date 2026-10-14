@@ -43,7 +43,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  * {@link org.cloudfoundry.identity.uaa.oauth.UaaTokenServices#setUaaTokenEnhancers} via
  * {@code @Autowired(required = false)}.
  *
- * <p>Gated on {@code uaa.mtls-enabled} via {@link MtlsEnabledCondition} -- which reads the flag the
+ * <p>Gated on {@code uaa.mtls.enabled} via {@link MtlsEnabledCondition} -- which reads the flag the
  * same way the feature's {@code @Value}-injected gates do, so the whole feature switches together --
  * so that a deployment which has not turned the feature on
  * registers no {@link UaaTokenEnhancer} at all. That keeps {@code uaaTokenEnhancers} empty, which

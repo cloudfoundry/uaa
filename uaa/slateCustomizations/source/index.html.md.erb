@@ -277,7 +277,7 @@ rejects the registration. Take a subject DN from
 
 See
 [UAA Client Authentication](https://github.com/cloudfoundry/uaa/blob/develop/docs/UAA-Client-Authentication.md#tls_client_auth-rfc-8705)
-for deployment and configuration details, including the connector-wide `uaa.mtls-enabled`
+for deployment and configuration details, including the connector-wide `uaa.mtls.enabled`
 requirement.
 
 The certificate and private key are TLS-layer credentials, not form parameters. Substitute paths
@@ -323,7 +323,7 @@ Set `tls-client-auth-ca` together with exactly one of `tls_client_auth_subject_d
 `tls_client_auth_san_uri`, `tls_client_auth_san_ip` or `tls_client_auth_san_email` when creating or updating a
 client (see Clients, Create). The full list of `tls-client-auth-*` keys, with their descriptions, is in the client request fields. A client that
 sets `tls-client-auth-ca` authenticates only at `/oauth/mtls/token` and cannot also use a `client_secret`. These keys are
-rejected unless the deployment sets `uaa.mtls-enabled`.
+rejected unless the deployment sets `uaa.mtls.enabled`.
 
 #### Errors from `/oauth/mtls/token`
 

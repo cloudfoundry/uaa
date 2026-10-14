@@ -27,7 +27,7 @@ import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
  * own (package-private) {@code JSSESSLContext} but sources the underlying {@code javax.net.ssl.SSLContext}
  * from the registered {@link BouncyCastleJsseProvider} instead of the default (SunJSSE) provider.
  *
- * <p>This is what lets the {@code uaa.mtls-enabled} connector both negotiate TLS 1.3 and request an
+ * <p>This is what lets the {@code uaa.mtls.enabled} connector both negotiate TLS 1.3 and request an
  * optional client certificate: unlike SunJSSE (which sends no {@code CertificateRequest} under TLS 1.3,
  * JDK-8206923), BCJSSE sends an in-handshake TLS 1.3 {@code CertificateRequest}.
  *

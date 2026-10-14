@@ -127,7 +127,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | <a href="#oauthclientallowpublic"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.allowpublic` | `[]`| Clients allowed to authenticate without a client secret (PKCE S256)|
 | <a href="#oauthuserauthorities"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.user.authorities` | (see details)| Default authorities for new users|
 | <a href="#clientmaxcount"><img src="images/click-me.png" width="14" height="14"/></a> `clientMaxCount` | `500`| Max clients returned by list endpoint|
-| <a href="#uaamtls-enabled"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.mtls-enabled` | `false`| Enables RFC 8705 mutual-TLS client authentication|
+| <a href="#uaamtlsenabled"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.mtls.enabled` | `false`| Enables RFC 8705 mutual-TLS client authentication|
 
 ### Password Policy
 
@@ -1257,10 +1257,10 @@ client admin API (`/oauth/clients`).
 
 ---
 
-### `uaa.mtls-enabled`
+### `uaa.mtls.enabled`
 
 **Default:** `false`
-**Source:** `@Value("${uaa.mtls-enabled:false}")` in [`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java), [`SpringServletXmlFiltersConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlFiltersConfiguration.java), [`ClientAdminBootstrap`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminBootstrap.java), [`ZoneEndpointsClientDetailsValidator`](../server/src/main/java/org/cloudfoundry/identity/uaa/zone/ZoneEndpointsClientDetailsValidator.java), [`OpenIdConnectEndpoints`](../server/src/main/java/org/cloudfoundry/identity/uaa/account/OpenIdConnectEndpoints.java), [`MtlsClientAuthTomcatCustomizer`](../server/src/main/java/org/cloudfoundry/identity/uaa/web/tomcat/MtlsClientAuthTomcatCustomizer.java); and, for the beans that are conditional rather than parameterised, [`MtlsEnabledCondition`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/tls/MtlsEnabledCondition.java)
+**Source:** `@Value("${uaa.mtls.enabled:false}")` in [`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java), [`SpringServletXmlFiltersConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlFiltersConfiguration.java), [`ClientAdminBootstrap`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminBootstrap.java), [`ZoneEndpointsClientDetailsValidator`](../server/src/main/java/org/cloudfoundry/identity/uaa/zone/ZoneEndpointsClientDetailsValidator.java), [`OpenIdConnectEndpoints`](../server/src/main/java/org/cloudfoundry/identity/uaa/account/OpenIdConnectEndpoints.java), [`MtlsClientAuthTomcatCustomizer`](../server/src/main/java/org/cloudfoundry/identity/uaa/web/tomcat/MtlsClientAuthTomcatCustomizer.java); and, for the beans that are conditional rather than parameterised, [`MtlsEnabledCondition`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/tls/MtlsEnabledCondition.java)
 **Type:** `boolean`
 
 Master switch enabling RFC 8705 mutual-TLS client authentication (`tls_client_auth`)
@@ -1296,8 +1296,18 @@ and `aud` survive UAA's defaults, which it does through the opt-in
 claim, the later one in the list wins; `MtlsClaimsEnhancer` has no explicit order.
 
 ```yaml
-uaa.mtls-enabled: true
+uaa.mtls.enabled: true
 ```
+
+or, nested, which resolves to the same property:
+
+```yaml
+uaa:
+  mtls:
+    enabled: true
+```
+
+The `uaa.mtls` namespace is reserved for this feature's deployment-wide options.
 
 [Back to table](#oauth-clients--users)
 

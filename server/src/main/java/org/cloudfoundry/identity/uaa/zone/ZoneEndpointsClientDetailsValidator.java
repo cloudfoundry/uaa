@@ -35,7 +35,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
 
     public ZoneEndpointsClientDetailsValidator(
             final ClientSecretValidator clientSecretValidator,
-            @Value("${uaa.mtls-enabled:false}") final boolean mtlsEnabled) {
+            @Value("${uaa.mtls.enabled:false}") final boolean mtlsEnabled) {
         this.clientSecretValidator = clientSecretValidator;
         this.mtlsEnabled = mtlsEnabled;
     }
