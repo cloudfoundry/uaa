@@ -373,6 +373,74 @@ class UaaClientDetailsTest {
     }
 
     @Nested
+    class TlsClientAuthConfigurationMirroring {
+        private static final String CA = "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n";
+
+        private TlsClientAuthConfiguration fullConfiguration() {
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(CA, null);
+            config.setAllowedResources(List.of("https://api.example.com"));
+            config.setSubjectDn("CN=app");
+            config.setSanDns("app.example.com");
+            config.setSanUri("spiffe://acme/app");
+            config.setSanIp("10.0.0.7");
+            config.setSanEmail("svc@example.com");
+            return config;
+        }
+
+        @Test
+        void everyTypedFieldIsMirroredIntoAdditionalInformation() {
+            UaaClientDetails client = new UaaClientDetails();
+            client.setTlsClientAuthConfiguration(fullConfiguration());
+
+            assertThat(client.getAdditionalInformation())
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, CA)
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                            List.of("https://api.example.com"))
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app")
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "app.example.com")
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "spiffe://acme/app")
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP, "10.0.0.7")
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL, "svc@example.com");
+        }
+
+        @Test
+        void replacingTheConfigurationRemovesFieldsTheNewOneDoesNotSet() {
+            UaaClientDetails client = new UaaClientDetails();
+            client.setTlsClientAuthConfiguration(fullConfiguration());
+
+            TlsClientAuthConfiguration replacement = new TlsClientAuthConfiguration(CA, null);
+            replacement.setSubjectDn("CN=other");
+            client.setTlsClientAuthConfiguration(replacement);
+
+            assertThat(client.getAdditionalInformation())
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=other")
+                    .doesNotContainKeys(
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS,
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI,
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP,
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL);
+        }
+
+        @Test
+        void clearingTheConfigurationRemovesEveryField() {
+            UaaClientDetails client = new UaaClientDetails();
+            client.setTlsClientAuthConfiguration(fullConfiguration());
+
+            client.setTlsClientAuthConfiguration(null);
+
+            assertThat(client.getAdditionalInformation()).doesNotContainKeys(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL);
+        }
+    }
+
+    @Nested
     class Serialization {
         @Test
         void aClientWithATlsClientAuthConfigurationIsJavaSerializable() throws Exception {

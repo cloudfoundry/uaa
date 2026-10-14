@@ -1231,6 +1231,25 @@ class UaaTokenServicesTests {
         }
 
         @Test
+        @DisplayName("jwt.token.claims.exclude cannot strip cnf and turn a certificate-bound token into a bearer token")
+        void excludedClaimsCannotRemoveTheCertificateBinding() {
+            Set<String> previous = tokenServices.getExcludedClaims();
+            tokenServices.setExcludedClaims(Set.of("cnf", "tenant"));
+            try {
+                Map<String, Object> claims = clientCredentialsTokenClaims(enhancerReturning(Map.of(
+                        "cnf", Map.of("x5t#S256", "thumbprint"), "tenant", "acme")));
+
+                assertThat(claims)
+                        .as("the binding must survive the exclusion list")
+                        .containsEntry("cnf", Map.of("x5t#S256", "thumbprint"))
+                        .as("other excluded claims are still removed")
+                        .doesNotContainKey("tenant");
+            } finally {
+                tokenServices.setExcludedClaims(previous);
+            }
+        }
+
+        @Test
         @DisplayName("when two enhancers emit the same custom claim the later one in the list wins")
         void laterEnhancerWinsACustomClaimCollision() {
             UaaTokenEnhancer first = enhancerReturning(Map.of("tenant", "first"));
