@@ -46,344 +46,344 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#issueruri"><img src="images/click-me.png" width="14" height="14"/></a> `issuer.uri` | — (required)| Token issuer URI|
-| <a href="#uaaurl"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.url` | `http://localhost:8080/uaa`| Public URL of the UAA|
-| <a href="#loginurl"><img src="images/click-me.png" width="14" height="14"/></a> `login.url` | `http://localhost:8080/uaa`| URL of the login server|
-| <a href="#spring_profiles"><img src="images/click-me.png" width="14" height="14"/></a> `spring_profiles` | —| Active Spring profiles|
-| <a href="#require_https"><img src="images/click-me.png" width="14" height="14"/></a> `require_https` | `false`| Require HTTPS for cookies|
-| <a href="#https_port"><img src="images/click-me.png" width="14" height="14"/></a> `https_port` | `443`| HTTPS port|
-| <a href="#login_secret"><img src="images/click-me.png" width="14" height="14"/></a> `LOGIN_SECRET` | `loginsecret`| Shared secret for login server auth|
-| <a href="#dump_requests"><img src="images/click-me.png" width="14" height="14"/></a> `dump_requests` | `false`| Dump HTTP requests for debugging|
-| <a href="#environmentyamlkey"><img src="images/click-me.png" width="14" height="14"/></a> `environmentYamlKey` | —| YAML config string for validation|
-| <a href="#disableinternalauth"><img src="images/click-me.png" width="14" height="14"/></a> `disableInternalAuth` | `false`| Disable internal IDP authentication|
-| <a href="#disableinternalusermanagement"><img src="images/click-me.png" width="14" height="14"/></a> `disableInternalUserManagement` | `false`| Disable internal user management endpoints|
-| <a href="#allowunverifiedusers"><img src="images/click-me.png" width="14" height="14"/></a> `allowUnverifiedUsers` | `true`| Allow login for unverified users|
+| [↪](#issueruri) `issuer.uri` | — (required)| Token issuer URI|
+| [↪](#uaaurl) `uaa.url` | `http://localhost:8080/uaa`| Public URL of the UAA|
+| [↪](#loginurl) `login.url` | `http://localhost:8080/uaa`| URL of the login server|
+| [↪](#spring_profiles) `spring_profiles` | —| Active Spring profiles|
+| [↪](#require_https) `require_https` | `false`| Require HTTPS for cookies|
+| [↪](#https_port) `https_port` | `443`| HTTPS port|
+| [↪](#login_secret) `LOGIN_SECRET` | `loginsecret`| Shared secret for login server auth|
+| [↪](#dump_requests) `dump_requests` | `false`| Dump HTTP requests for debugging|
+| [↪](#environmentyamlkey) `environmentYamlKey` | —| YAML config string for validation|
+| [↪](#disableinternalauth) `disableInternalAuth` | `false`| Disable internal IDP authentication|
+| [↪](#disableinternalusermanagement) `disableInternalUserManagement` | `false`| Disable internal user management endpoints|
+| [↪](#allowunverifiedusers) `allowUnverifiedUsers` | `true`| Allow login for unverified users|
 
 ### Database
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#databasedriverclassname"><img src="images/click-me.png" width="14" height="14"/></a> `database.driverClassName` | (per profile)| JDBC driver class|
-| <a href="#databaseurl"><img src="images/click-me.png" width="14" height="14"/></a> `database.url` | (per profile)| JDBC connection URL|
-| <a href="#databaseusername"><img src="images/click-me.png" width="14" height="14"/></a> `database.username` | —| Database user|
-| <a href="#databasepassword"><img src="images/click-me.png" width="14" height="14"/></a> `database.password` | —| Database password|
-| <a href="#databasemaxactive"><img src="images/click-me.png" width="14" height="14"/></a> `database.maxactive` | `100`| Max active connections|
-| <a href="#databasemaxidle"><img src="images/click-me.png" width="14" height="14"/></a> `database.maxidle` | `10`| Max idle connections|
-| <a href="#databaseminidle"><img src="images/click-me.png" width="14" height="14"/></a> `database.minidle` | `0`| Min idle connections|
-| <a href="#databasemaxwait"><img src="images/click-me.png" width="14" height="14"/></a> `database.maxwait` | `30000`| Max wait for connection (ms)|
-| <a href="#databaseinitialsize"><img src="images/click-me.png" width="14" height="14"/></a> `database.initialsize` | `10`| Initial pool size|
-| <a href="#databasevalidationquerytimeout"><img src="images/click-me.png" width="14" height="14"/></a> `database.validationquerytimeout` | `10`| Validation query timeout (s)|
-| <a href="#databasevalidationinterval"><img src="images/click-me.png" width="14" height="14"/></a> `database.validationinterval` | `5000`| Validation interval (ms)|
-| <a href="#databaseconnecttimeout"><img src="images/click-me.png" width="14" height="14"/></a> `database.connecttimeout` | `10`| Connection timeout (s)|
-| <a href="#databasetestwhileidle"><img src="images/click-me.png" width="14" height="14"/></a> `database.testwhileidle` | `false`| Test connections while idle|
-| <a href="#databaseremovedabandoned"><img src="images/click-me.png" width="14" height="14"/></a> `database.removedAbandoned` | `false`| Remove abandoned connections|
-| <a href="#databaselogabandoned"><img src="images/click-me.png" width="14" height="14"/></a> `database.logabandoned` | `true`| Log abandoned connections|
-| <a href="#databaseabandonedtimeout"><img src="images/click-me.png" width="14" height="14"/></a> `database.abandonedtimeout` | `300`| Abandoned timeout (s)|
-| <a href="#databaseevictionintervalms"><img src="images/click-me.png" width="14" height="14"/></a> `database.evictionintervalms` | `15000`| Eviction interval (ms)|
-| <a href="#databaseminevictionidlems"><img src="images/click-me.png" width="14" height="14"/></a> `database.minevictionidlems` | `60000`| Min eviction idle time (ms)|
-| <a href="#databasecaseinsensitive"><img src="images/click-me.png" width="14" height="14"/></a> `database.caseinsensitive` | `false`| Case-insensitive queries|
-| <a href="#databaseuseskiplocked"><img src="images/click-me.png" width="14" height="14"/></a> `database.useSkipLocked` | `false`| Use SKIP LOCKED in queries|
-| <a href="#databasemaxparameters"><img src="images/click-me.png" width="14" height="14"/></a> `database.maxParameters` | `-1`| Max SQL parameters (-1 = unlimited)|
+| [↪](#databasedriverclassname) `database.driverClassName` | (per profile)| JDBC driver class|
+| [↪](#databaseurl) `database.url` | (per profile)| JDBC connection URL|
+| [↪](#databaseusername) `database.username` | —| Database user|
+| [↪](#databasepassword) `database.password` | —| Database password|
+| [↪](#databasemaxactive) `database.maxactive` | `100`| Max active connections|
+| [↪](#databasemaxidle) `database.maxidle` | `10`| Max idle connections|
+| [↪](#databaseminidle) `database.minidle` | `0`| Min idle connections|
+| [↪](#databasemaxwait) `database.maxwait` | `30000`| Max wait for connection (ms)|
+| [↪](#databaseinitialsize) `database.initialsize` | `10`| Initial pool size|
+| [↪](#databasevalidationquerytimeout) `database.validationquerytimeout` | `10`| Validation query timeout (s)|
+| [↪](#databasevalidationinterval) `database.validationinterval` | `5000`| Validation interval (ms)|
+| [↪](#databaseconnecttimeout) `database.connecttimeout` | `10`| Connection timeout (s)|
+| [↪](#databasetestwhileidle) `database.testwhileidle` | `false`| Test connections while idle|
+| [↪](#databaseremovedabandoned) `database.removedAbandoned` | `false`| Remove abandoned connections|
+| [↪](#databaselogabandoned) `database.logabandoned` | `true`| Log abandoned connections|
+| [↪](#databaseabandonedtimeout) `database.abandonedtimeout` | `300`| Abandoned timeout (s)|
+| [↪](#databaseevictionintervalms) `database.evictionintervalms` | `15000`| Eviction interval (ms)|
+| [↪](#databaseminevictionidlems) `database.minevictionidlems` | `60000`| Min eviction idle time (ms)|
+| [↪](#databasecaseinsensitive) `database.caseinsensitive` | `false`| Case-insensitive queries|
+| [↪](#databaseuseskiplocked) `database.useSkipLocked` | `false`| Use SKIP LOCKED in queries|
+| [↪](#databasemaxparameters) `database.maxParameters` | `-1`| Max SQL parameters (-1 = unlimited)|
 
 ### Servlet & Session
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#servletsession-store"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.session-store` | `memory`| Session store type|
-| <a href="#servletsession-cookieencode-base64"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.session-cookie.encode-base64` | `true`| Base64-encode session cookie|
-| <a href="#servletsession-cookiemax-age"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.session-cookie.max-age` | — (null)| Session cookie max age|
-| <a href="#servletidle-timeout"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.idle-timeout` | `1800`| Session idle timeout (s)|
-| <a href="#servletfiltered-headers"><img src="images/click-me.png" width="14" height="14"/></a> `servlet.filtered-headers` | `X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Proto, X-Forwarded-Prefix, Forwarded, X-Client-IP, X-Real-IP`| Headers to filter|
+| [↪](#servletsession-store) `servlet.session-store` | `memory`| Session store type|
+| [↪](#servletsession-cookieencode-base64) `servlet.session-cookie.encode-base64` | `true`| Base64-encode session cookie|
+| [↪](#servletsession-cookiemax-age) `servlet.session-cookie.max-age` | — (null)| Session cookie max age|
+| [↪](#servletidle-timeout) `servlet.idle-timeout` | `1800`| Session idle timeout (s)|
+| [↪](#servletfiltered-headers) `servlet.filtered-headers` | `X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Proto, X-Forwarded-Prefix, Forwarded, X-Client-IP, X-Real-IP`| Headers to filter|
 
 ### JWT Token Policy
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#jwttokensigning-key"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.signing-key` | — (null)| Legacy token signing key|
-| <a href="#jwttokensigning-alg"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.signing-alg` | — (null)| Legacy signing algorithm|
-| <a href="#jwttokensigning-cert"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.signing-cert` | — (null)| Legacy signing certificate|
-| <a href="#jwttokenrevocable"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.revocable` | `false`| Make JWT tokens revocable|
-| <a href="#jwttokenquerystringenabled"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.queryString.enabled` | `true`| Allow tokens via query string|
-| <a href="#jwttokenpolicyactivekeyid"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.policy.activeKeyId` | — (null)| Active signing key ID|
-| <a href="#jwttokenpolicykeys"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.policy.keys` | `{}`| Map of signing keys|
-| <a href="#jwttokenpolicyaccesstokenvalidityseconds"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.policy.accessTokenValiditySeconds` | falls back to global| Access token validity (s)|
-| <a href="#jwttokenpolicyrefreshtokenvalidityseconds"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.policy.refreshTokenValiditySeconds` | falls back to global| Refresh token validity (s)|
-| <a href="#jwttokenpolicyglobalaccesstokenvalidityseconds"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.policy.global.accessTokenValiditySeconds` | `43200`| Global access token validity (s)|
-| <a href="#jwttokenpolicyglobalrefreshtokenvalidityseconds"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.policy.global.refreshTokenValiditySeconds` | `2592000`| Global refresh token validity (s)|
-| <a href="#jwttokenrefreshformat"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.format` | `opaque`| Refresh token format|
-| <a href="#jwttokenrefreshunique"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.unique` | `-1`| Max concurrent refresh-token sessions per user/client|
-| <a href="#jwttokenrefreshrotate"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.rotate` | `false`| Rotate refresh tokens|
-| <a href="#jwttokenrefreshrestrict_grant"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.refresh.restrict_grant` | —| Restrict refresh token grant|
-| <a href="#jwttokenclaimsexclude"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.claims.exclude` | `[]`| Claims excluded from tokens|
-| <a href="#jwttokenidtokenenhancerallowclaimmodification"><img src="images/click-me.png" width="14" height="14"/></a> `jwt.token.idToken.enhancer.allowClaimModification` | `false`| Allow id_token enhancers to modify existing claims|
+| [↪](#jwttokensigning-key) `jwt.token.signing-key` | — (null)| Legacy token signing key|
+| [↪](#jwttokensigning-alg) `jwt.token.signing-alg` | — (null)| Legacy signing algorithm|
+| [↪](#jwttokensigning-cert) `jwt.token.signing-cert` | — (null)| Legacy signing certificate|
+| [↪](#jwttokenrevocable) `jwt.token.revocable` | `false`| Make JWT tokens revocable|
+| [↪](#jwttokenquerystringenabled) `jwt.token.queryString.enabled` | `true`| Allow tokens via query string|
+| [↪](#jwttokenpolicyactivekeyid) `jwt.token.policy.activeKeyId` | — (null)| Active signing key ID|
+| [↪](#jwttokenpolicykeys) `jwt.token.policy.keys` | `{}`| Map of signing keys|
+| [↪](#jwttokenpolicyaccesstokenvalidityseconds) `jwt.token.policy.accessTokenValiditySeconds` | falls back to global| Access token validity (s)|
+| [↪](#jwttokenpolicyrefreshtokenvalidityseconds) `jwt.token.policy.refreshTokenValiditySeconds` | falls back to global| Refresh token validity (s)|
+| [↪](#jwttokenpolicyglobalaccesstokenvalidityseconds) `jwt.token.policy.global.accessTokenValiditySeconds` | `43200`| Global access token validity (s)|
+| [↪](#jwttokenpolicyglobalrefreshtokenvalidityseconds) `jwt.token.policy.global.refreshTokenValiditySeconds` | `2592000`| Global refresh token validity (s)|
+| [↪](#jwttokenrefreshformat) `jwt.token.refresh.format` | `opaque`| Refresh token format|
+| [↪](#jwttokenrefreshunique) `jwt.token.refresh.unique` | `-1`| Max concurrent refresh-token sessions per user/client|
+| [↪](#jwttokenrefreshrotate) `jwt.token.refresh.rotate` | `false`| Rotate refresh tokens|
+| [↪](#jwttokenrefreshrestrict_grant) `jwt.token.refresh.restrict_grant` | —| Restrict refresh token grant|
+| [↪](#jwttokenclaimsexclude) `jwt.token.claims.exclude` | `[]`| Claims excluded from tokens|
+| [↪](#jwttokenidtokenenhancerallowclaimmodification) `jwt.token.idToken.enhancer.allowClaimModification` | `false`| Allow id_token enhancers to modify existing claims|
 
 ### OAuth Clients & Users
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#oauthclients"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.clients` | `{}`| Bootstrap OAuth client definitions|
-| <a href="#oauthclientoverride"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.override` | —| Override existing client on bootstrap|
-| <a href="#oauthclientautoapprove"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.autoapprove` | `[]`| Clients auto-approved for all scopes|
-| <a href="#oauthclientallowpublic"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.allowpublic` | `[]`| Clients allowed to authenticate without a client secret (PKCE S256)|
-| <a href="#oauthuserauthorities"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.user.authorities` | (see details)| Default authorities for new users|
-| <a href="#clientmaxcount"><img src="images/click-me.png" width="14" height="14"/></a> `clientMaxCount` | `500`| Max clients returned by list endpoint|
-| <a href="#uaamtlsenabled"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.mtls.enabled` | `false`| Enables RFC 8705 mutual-TLS client authentication|
+| [↪](#oauthclients) `oauth.clients` | `{}`| Bootstrap OAuth client definitions|
+| [↪](#oauthclientoverride) `oauth.client.override` | —| Override existing client on bootstrap|
+| [↪](#oauthclientautoapprove) `oauth.client.autoapprove` | `[]`| Clients auto-approved for all scopes|
+| [↪](#oauthclientallowpublic) `oauth.client.allowpublic` | `[]`| Clients allowed to authenticate without a client secret (PKCE S256)|
+| [↪](#oauthuserauthorities) `oauth.user.authorities` | (see details)| Default authorities for new users|
+| [↪](#clientmaxcount) `clientMaxCount` | `500`| Max clients returned by list endpoint|
+| [↪](#uaamtlsenabled) `uaa.mtls.enabled` | `false`| Enables RFC 8705 mutual-TLS client authentication|
 | [↪](#uaamtlstrust_bundles) `uaa.mtls.trust_bundles` | `{}` | Named mTLS CA bundles for the default identity zone |
 
 ### Password Policy
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#passwordpolicyglobalminlength"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.global.minLength` | `0`| Global min password length|
-| <a href="#passwordpolicyglobalmaxlength"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.global.maxLength` | `255`| Global max password length|
-| <a href="#passwordpolicyglobalrequireuppercasecharacter"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.global.requireUpperCaseCharacter` | `0`| Global required uppercase chars|
-| <a href="#passwordpolicyglobalrequirelowercasecharacter"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.global.requireLowerCaseCharacter` | `0`| Global required lowercase chars|
-| <a href="#passwordpolicyglobalrequiredigit"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.global.requireDigit` | `0`| Global required digits|
-| <a href="#passwordpolicyglobalrequirespecialcharacter"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.global.requireSpecialCharacter` | `0`| Global required special chars|
-| <a href="#passwordpolicyglobalexpirepasswordinmonths"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.global.expirePasswordInMonths` | `0`| Global password expiry (months)|
-| <a href="#passwordpolicyminlength"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.minLength` | (falls back to global)| Default zone min password length|
-| <a href="#passwordpolicymaxlength"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.maxLength` | (falls back to global)| Default zone max password length|
-| <a href="#passwordpolicyrequireuppercasecharacter"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.requireUpperCaseCharacter` | (falls back to global)| Default zone required uppercase|
-| <a href="#passwordpolicyrequirelowercasecharacter"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.requireLowerCaseCharacter` | (falls back to global)| Default zone required lowercase|
-| <a href="#passwordpolicyrequiredigit"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.requireDigit` | (falls back to global)| Default zone required digits|
-| <a href="#passwordpolicyrequirespecialcharacter"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.requireSpecialCharacter` | (falls back to global)| Default zone required special chars|
-| <a href="#passwordpolicyexpirepasswordinmonths"><img src="images/click-me.png" width="14" height="14"/></a> `password.policy.expirePasswordInMonths` | (falls back to global)| Default zone password expiry|
+| [↪](#passwordpolicyglobalminlength) `password.policy.global.minLength` | `0`| Global min password length|
+| [↪](#passwordpolicyglobalmaxlength) `password.policy.global.maxLength` | `255`| Global max password length|
+| [↪](#passwordpolicyglobalrequireuppercasecharacter) `password.policy.global.requireUpperCaseCharacter` | `0`| Global required uppercase chars|
+| [↪](#passwordpolicyglobalrequirelowercasecharacter) `password.policy.global.requireLowerCaseCharacter` | `0`| Global required lowercase chars|
+| [↪](#passwordpolicyglobalrequiredigit) `password.policy.global.requireDigit` | `0`| Global required digits|
+| [↪](#passwordpolicyglobalrequirespecialcharacter) `password.policy.global.requireSpecialCharacter` | `0`| Global required special chars|
+| [↪](#passwordpolicyglobalexpirepasswordinmonths) `password.policy.global.expirePasswordInMonths` | `0`| Global password expiry (months)|
+| [↪](#passwordpolicyminlength) `password.policy.minLength` | (falls back to global)| Default zone min password length|
+| [↪](#passwordpolicymaxlength) `password.policy.maxLength` | (falls back to global)| Default zone max password length|
+| [↪](#passwordpolicyrequireuppercasecharacter) `password.policy.requireUpperCaseCharacter` | (falls back to global)| Default zone required uppercase|
+| [↪](#passwordpolicyrequirelowercasecharacter) `password.policy.requireLowerCaseCharacter` | (falls back to global)| Default zone required lowercase|
+| [↪](#passwordpolicyrequiredigit) `password.policy.requireDigit` | (falls back to global)| Default zone required digits|
+| [↪](#passwordpolicyrequirespecialcharacter) `password.policy.requireSpecialCharacter` | (falls back to global)| Default zone required special chars|
+| [↪](#passwordpolicyexpirepasswordinmonths) `password.policy.expirePasswordInMonths` | (falls back to global)| Default zone password expiry|
 
 ### Client Secret Policy
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#oauthclientsecretpolicyglobalminlength"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.global.minLength` | `0`| Global min secret length|
-| <a href="#oauthclientsecretpolicyglobalmaxlength"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.global.maxLength` | `255`| Global max secret length|
-| <a href="#oauthclientsecretpolicyglobalrequireuppercasecharacter"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.global.requireUpperCaseCharacter` | `0`| Global required uppercase|
-| <a href="#oauthclientsecretpolicyglobalrequirelowercasecharacter"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.global.requireLowerCaseCharacter` | `0`| Global required lowercase|
-| <a href="#oauthclientsecretpolicyglobalrequiredigit"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.global.requireDigit` | `0`| Global required digits|
-| <a href="#oauthclientsecretpolicyglobalrequirespecialcharacter"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.global.requireSpecialCharacter` | `0`| Global required special chars|
-| <a href="#oauthclientsecretpolicyglobalexpiresecretinmonths"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.global.expireSecretInMonths` | `0`| Global secret expiry (months)|
-| <a href="#oauthclientsecretpolicyminlength"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.minLength` | (falls back to global)| Default zone min secret length|
-| <a href="#oauthclientsecretpolicymaxlength"><img src="images/click-me.png" width="14" height="14"/></a> `oauth.client.secret.policy.maxLength` | (falls back to global)| Default zone max secret length|
+| [↪](#oauthclientsecretpolicyglobalminlength) `oauth.client.secret.policy.global.minLength` | `0`| Global min secret length|
+| [↪](#oauthclientsecretpolicyglobalmaxlength) `oauth.client.secret.policy.global.maxLength` | `255`| Global max secret length|
+| [↪](#oauthclientsecretpolicyglobalrequireuppercasecharacter) `oauth.client.secret.policy.global.requireUpperCaseCharacter` | `0`| Global required uppercase|
+| [↪](#oauthclientsecretpolicyglobalrequirelowercasecharacter) `oauth.client.secret.policy.global.requireLowerCaseCharacter` | `0`| Global required lowercase|
+| [↪](#oauthclientsecretpolicyglobalrequiredigit) `oauth.client.secret.policy.global.requireDigit` | `0`| Global required digits|
+| [↪](#oauthclientsecretpolicyglobalrequirespecialcharacter) `oauth.client.secret.policy.global.requireSpecialCharacter` | `0`| Global required special chars|
+| [↪](#oauthclientsecretpolicyglobalexpiresecretinmonths) `oauth.client.secret.policy.global.expireSecretInMonths` | `0`| Global secret expiry (months)|
+| [↪](#oauthclientsecretpolicyminlength) `oauth.client.secret.policy.minLength` | (falls back to global)| Default zone min secret length|
+| [↪](#oauthclientsecretpolicymaxlength) `oauth.client.secret.policy.maxLength` | (falls back to global)| Default zone max secret length|
 
 ### Authentication / Lockout Policy
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#authenticationpolicygloballockoutafterfailures"><img src="images/click-me.png" width="14" height="14"/></a> `authentication.policy.global.lockoutAfterFailures` | `5`| Global lockout threshold|
-| <a href="#authenticationpolicyglobalcountfailureswithinseconds"><img src="images/click-me.png" width="14" height="14"/></a> `authentication.policy.global.countFailuresWithinSeconds` | `1200`| Global failure counting window (s)|
-| <a href="#authenticationpolicygloballockoutperiodseconds"><img src="images/click-me.png" width="14" height="14"/></a> `authentication.policy.global.lockoutPeriodSeconds` | `300`| Global lockout duration (s)|
-| <a href="#authenticationpolicylockoutafterfailures"><img src="images/click-me.png" width="14" height="14"/></a> `authentication.policy.lockoutAfterFailures` | (falls back to global)| Default zone lockout threshold|
-| <a href="#authenticationpolicycountfailureswithinseconds"><img src="images/click-me.png" width="14" height="14"/></a> `authentication.policy.countFailuresWithinSeconds` | (falls back to global)| Default zone failure window (s)|
-| <a href="#authenticationpolicylockoutperiodseconds"><img src="images/click-me.png" width="14" height="14"/></a> `authentication.policy.lockoutPeriodSeconds` | (falls back to global)| Default zone lockout duration (s)|
-| <a href="#authenticationenableuriencodingcompatibilitymode"><img src="images/click-me.png" width="14" height="14"/></a> `authentication.enableUriEncodingCompatibilityMode` | `false`| URI encoding compat mode|
+| [↪](#authenticationpolicygloballockoutafterfailures) `authentication.policy.global.lockoutAfterFailures` | `5`| Global lockout threshold|
+| [↪](#authenticationpolicyglobalcountfailureswithinseconds) `authentication.policy.global.countFailuresWithinSeconds` | `1200`| Global failure counting window (s)|
+| [↪](#authenticationpolicygloballockoutperiodseconds) `authentication.policy.global.lockoutPeriodSeconds` | `300`| Global lockout duration (s)|
+| [↪](#authenticationpolicylockoutafterfailures) `authentication.policy.lockoutAfterFailures` | (falls back to global)| Default zone lockout threshold|
+| [↪](#authenticationpolicycountfailureswithinseconds) `authentication.policy.countFailuresWithinSeconds` | (falls back to global)| Default zone failure window (s)|
+| [↪](#authenticationpolicylockoutperiodseconds) `authentication.policy.lockoutPeriodSeconds` | (falls back to global)| Default zone lockout duration (s)|
+| [↪](#authenticationenableuriencodingcompatibilitymode) `authentication.enableUriEncodingCompatibilityMode` | `false`| URI encoding compat mode|
 
 ### SCIM (User Provisioning)
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#scimusers"><img src="images/click-me.png" width="14" height="14"/></a> `scim.users` | `[]`| Bootstrap users|
-| <a href="#scimgroups"><img src="images/click-me.png" width="14" height="14"/></a> `scim.groups` | `{}`| Bootstrap groups and descriptions|
-| <a href="#scimexternal_groups"><img src="images/click-me.png" width="14" height="14"/></a> `scim.external_groups` | `[]`| External group mappings|
-| <a href="#scimuserids_enabled"><img src="images/click-me.png" width="14" height="14"/></a> `scim.userids_enabled` | `true`| Enable /ids/Users endpoint|
-| <a href="#scimuseroverride"><img src="images/click-me.png" width="14" height="14"/></a> `scim.user.override` | `false`| Override existing bootstrap users|
-| <a href="#scimdeletedeactivate"><img src="images/click-me.png" width="14" height="14"/></a> `scim.delete.deactivate` | `false`| Deactivate instead of delete|
-| <a href="#usermaxcount"><img src="images/click-me.png" width="14" height="14"/></a> `userMaxCount` | `500`| Max users returned by list endpoint|
-| <a href="#groupmaxcount"><img src="images/click-me.png" width="14" height="14"/></a> `groupMaxCount` | `500`| Max groups returned by list endpoint|
-| <a href="#deleteusers"><img src="images/click-me.png" width="14" height="14"/></a> `delete.users` | — (null)| Users to delete on bootstrap|
+| [↪](#scimusers) `scim.users` | `[]`| Bootstrap users|
+| [↪](#scimgroups) `scim.groups` | `{}`| Bootstrap groups and descriptions|
+| [↪](#scimexternal_groups) `scim.external_groups` | `[]`| External group mappings|
+| [↪](#scimuserids_enabled) `scim.userids_enabled` | `true`| Enable /ids/Users endpoint|
+| [↪](#scimuseroverride) `scim.user.override` | `false`| Override existing bootstrap users|
+| [↪](#scimdeletedeactivate) `scim.delete.deactivate` | `false`| Deactivate instead of delete|
+| [↪](#usermaxcount) `userMaxCount` | `500`| Max users returned by list endpoint|
+| [↪](#groupmaxcount) `groupMaxCount` | `500`| Max groups returned by list endpoint|
+| [↪](#deleteusers) `delete.users` | — (null)| Users to delete on bootstrap|
 
 ### Login & Branding
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#loginselfservicelinksenabled"><img src="images/click-me.png" width="14" height="14"/></a> `login.selfServiceLinksEnabled` | `true`| Show self-service links|
-| <a href="#loginhomeredirect"><img src="images/click-me.png" width="14" height="14"/></a> `login.homeRedirect` | — (null)| Home page redirect URL|
-| <a href="#loginidpdiscoveryenabled"><img src="images/click-me.png" width="14" height="14"/></a> `login.idpDiscoveryEnabled` | `false`| Enable IDP discovery|
-| <a href="#loginaccountchooserenabled"><img src="images/click-me.png" width="14" height="14"/></a> `login.accountChooserEnabled` | `false`| Enable account chooser|
-| <a href="#loginentitybaseurl"><img src="images/click-me.png" width="14" height="14"/></a> `login.entityBaseURL` | `http://localhost:8080/uaa`| SAML SP entity base URL|
-| <a href="#loginentityid"><img src="images/click-me.png" width="14" height="14"/></a> `login.entityID` | `unit-test-sp`| SAML SP entity ID|
-| <a href="#loginpromptusernameteext"><img src="images/click-me.png" width="14" height="14"/></a> `login.prompt.username.text` | `Email`| Username field label|
-| <a href="#loginpromptpasswordtext"><img src="images/click-me.png" width="14" height="14"/></a> `login.prompt.password.text` | `Password`| Password field label|
-| <a href="#loginbranding"><img src="images/click-me.png" width="14" height="14"/></a> `login.branding` | —| UI branding configuration|
-| <a href="#logindefaultidentityprovider"><img src="images/click-me.png" width="14" height="14"/></a> `login.defaultIdentityProvider` | — (null)| Default IDP origin key|
-| <a href="#loginallowedgroups"><img src="images/click-me.png" width="14" height="14"/></a> `login.allowedGroups` | — (null)| Restrict login to group members|
-| <a href="#logincheckoriginenabled"><img src="images/click-me.png" width="14" height="14"/></a> `login.checkOriginEnabled` | `false`| Check user origin on auth|
-| <a href="#loginmaxusers"><img src="images/click-me.png" width="14" height="14"/></a> `login.maxUsers` | `-1`| Max users (-1 = unlimited)|
-| <a href="#loginalloworiginloop"><img src="images/click-me.png" width="14" height="14"/></a> `login.allowOriginLoop` | `true`| Allow origin loop|
-| <a href="#loginaliasEntitiesenabled"><img src="images/click-me.png" width="14" height="14"/></a> `login.aliasEntitiesEnabled` | `false`| Enable alias entities|
-| <a href="#loginoauthproviders"><img src="images/click-me.png" width="14" height="14"/></a> `login.oauth.providers` | —| External OAuth/OIDC providers|
-| <a href="#loginoauthexternalgroupsfrommappedauthorities"><img src="images/click-me.png" width="14" height="14"/></a> `login.oauth.externalGroupsFromMappedAuthorities` | `false`| Use mapped UAA authorities for external OAuth external groups|
+| [↪](#loginselfservicelinksenabled) `login.selfServiceLinksEnabled` | `true`| Show self-service links|
+| [↪](#loginhomeredirect) `login.homeRedirect` | — (null)| Home page redirect URL|
+| [↪](#loginidpdiscoveryenabled) `login.idpDiscoveryEnabled` | `false`| Enable IDP discovery|
+| [↪](#loginaccountchooserenabled) `login.accountChooserEnabled` | `false`| Enable account chooser|
+| [↪](#loginentitybaseurl) `login.entityBaseURL` | `http://localhost:8080/uaa`| SAML SP entity base URL|
+| [↪](#loginentityid) `login.entityID` | `unit-test-sp`| SAML SP entity ID|
+| [↪](#loginpromptusernametext) `login.prompt.username.text` | `Email`| Username field label|
+| [↪](#loginpromptpasswordtext) `login.prompt.password.text` | `Password`| Password field label|
+| [↪](#loginbranding) `login.branding` | —| UI branding configuration|
+| [↪](#logindefaultidentityprovider) `login.defaultIdentityProvider` | — (null)| Default IDP origin key|
+| [↪](#loginallowedgroups) `login.allowedGroups` | — (null)| Restrict login to group members|
+| [↪](#logincheckoriginenabled) `login.checkOriginEnabled` | `false`| Check user origin on auth|
+| [↪](#loginmaxusers) `login.maxUsers` | `-1`| Max users (-1 = unlimited)|
+| [↪](#loginalloworiginloop) `login.allowOriginLoop` | `true`| Allow origin loop|
+| [↪](#loginaliasentitiesenabled) `login.aliasEntitiesEnabled` | `false`| Enable alias entities|
+| [↪](#loginoauthproviders) `login.oauth.providers` | —| External OAuth/OIDC providers|
+| [↪](#loginoauthexternalgroupsfrommappedauthorities) `login.oauth.externalGroupsFromMappedAuthorities` | `false`| Use mapped UAA authorities for external OAuth external groups|
 
 ### SAML Service Provider
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#loginsamlactivekeyid"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.activeKeyId` | —| Active SAML signing key ID|
-| <a href="#loginsamlkeys"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.keys` | `{}`| Map of SAML keys|
-| <a href="#loginsamlentityidalias"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.entityIDAlias` | — (null)| SAML entity ID alias|
-| <a href="#loginsamlnameid"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.nameID` | `urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified`| Default SAML NameID format|
-| <a href="#loginsamlassertionconsumerindex"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.assertionConsumerIndex` | `0`| Assertion consumer index|
-| <a href="#loginsamlsignmetadata"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.signMetaData` | `true`| Sign SAML SP metadata|
-| <a href="#loginsamlsignrequest"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.signRequest` | `true`| Sign SAML auth requests|
-| <a href="#loginsamlwantassertionsigned"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.wantAssertionSigned` | `true`| **Deprecated** (since 78.13.0). Only controls SAML SP metadata `WantAssertionsSigned` attribute. No longer affects authentication behavior.|
-| <a href="#loginsamlsignaturealgorithm"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.signatureAlgorithm` | `SHA256`| SAML signature algorithm|
-| <a href="#loginsamldisableinresponsetocheck"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.disableInResponseToCheck` | `false`| Disable InResponseTo validation|
-| <a href="#loginsamlproviders"><img src="images/click-me.png" width="14" height="14"/></a> `login.saml.providers` | —| SAML IDP definitions|
-| <a href="#loginserviceproviderkey"><img src="images/click-me.png" width="14" height="14"/></a> `login.serviceProviderKey` | —| Legacy SP private key|
-| <a href="#loginserviceproviderkey"><img src="images/click-me.png" width="14" height="14"/></a> `login.serviceProviderKeyPassword` | —| Legacy SP key password|
-| <a href="#loginserviceproviderkey"><img src="images/click-me.png" width="14" height="14"/></a> `login.serviceProviderCertificate` | —| Legacy SP certificate|
+| [↪](#loginsamlactivekeyid) `login.saml.activeKeyId` | —| Active SAML signing key ID|
+| [↪](#loginsamlkeys) `login.saml.keys` | `{}`| Map of SAML keys|
+| [↪](#loginsamlentityidalias) `login.saml.entityIDAlias` | — (null)| SAML entity ID alias|
+| [↪](#loginsamlnameid) `login.saml.nameID` | `urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified`| Default SAML NameID format|
+| [↪](#loginsamlassertionconsumerindex) `login.saml.assertionConsumerIndex` | `0`| Assertion consumer index|
+| [↪](#loginsamlsignmetadata) `login.saml.signMetaData` | `true`| Sign SAML SP metadata|
+| [↪](#loginsamlsignrequest) `login.saml.signRequest` | `true`| Sign SAML auth requests|
+| [↪](#loginsamlwantassertionsigned) `login.saml.wantAssertionSigned` | `true`| **Deprecated** (since 78.13.0). Only controls SAML SP metadata `WantAssertionsSigned` attribute. No longer affects authentication behavior.|
+| [↪](#loginsamlsignaturealgorithm) `login.saml.signatureAlgorithm` | `SHA256`| SAML signature algorithm|
+| [↪](#loginsamldisableinresponsetocheck) `login.saml.disableInResponseToCheck` | `false`| Disable InResponseTo validation|
+| [↪](#loginsamlproviders) `login.saml.providers` | —| SAML IDP definitions|
+| [↪](#loginserviceproviderkey) `login.serviceProviderKey` | —| Legacy SP private key|
+| [↪](#loginserviceproviderkey) `login.serviceProviderKeyPassword` | —| Legacy SP key password|
+| [↪](#loginserviceproviderkey) `login.serviceProviderCertificate` | —| Legacy SP certificate|
 
 ### Logout
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#logoutredirecturl"><img src="images/click-me.png" width="14" height="14"/></a> `logout.redirect.url` | `/login`| Post-logout redirect URL|
-| <a href="#logoutredirectparameterdisable"><img src="images/click-me.png" width="14" height="14"/></a> `logout.redirect.parameter.disable` | `false`| Disable redirect parameter|
-| <a href="#logoutredirectparameterwhitelist"><img src="images/click-me.png" width="14" height="14"/></a> `logout.redirect.parameter.whitelist` | `[]`| Allowed redirect URLs|
+| [↪](#logoutredirecturl) `logout.redirect.url` | `/login`| Post-logout redirect URL|
+| [↪](#logoutredirectparameterdisable) `logout.redirect.parameter.disable` | `false`| Disable redirect parameter|
+| [↪](#logoutredirectparameterwhitelist) `logout.redirect.parameter.whitelist` | `[]`| Allowed redirect URLs|
 
 ### Links
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#linksglobalpasswd"><img src="images/click-me.png" width="14" height="14"/></a> `links.global.passwd` | — (null)| Custom forgot-password link|
-| <a href="#linksglobalsignup"><img src="images/click-me.png" width="14" height="14"/></a> `links.global.signup` | — (null)| Custom signup link|
-| <a href="#linksglobalhomeredirect"><img src="images/click-me.png" width="14" height="14"/></a> `links.global.homeRedirect` | — (null)| Home redirect URL|
+| [↪](#linksglobalpasswd) `links.global.passwd` | — (null)| Custom forgot-password link|
+| [↪](#linksglobalsignup) `links.global.signup` | — (null)| Custom signup link|
+| [↪](#linksglobalhomeredirect) `links.global.homeRedirect` | — (null)| Home redirect URL|
 
 ### CORS
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#corsenforcessystemzonepolicyinallzones"><img src="images/click-me.png" width="14" height="14"/></a> `cors.enforceSystemZonePolicyInAllZones` | `false`| Enforce system CORS in all zones|
-| <a href="#corsdefaultmax_age"><img src="images/click-me.png" width="14" height="14"/></a> `cors.default.max_age` | `1728000`| Default CORS max age (s)|
-| <a href="#corsdefaultalloweduris"><img src="images/click-me.png" width="14" height="14"/></a> `cors.default.allowed.uris` | `[".*"]`| Default allowed URI patterns|
-| <a href="#corsdefaultallowedorigins"><img src="images/click-me.png" width="14" height="14"/></a> `cors.default.allowed.origins` | `[".*"]`| Default allowed origins|
-| <a href="#corsdefaultallowedheaders"><img src="images/click-me.png" width="14" height="14"/></a> `cors.default.allowed.headers` | `[Accept, Authorization, Content-Type, Accept-Language, Content-Language]`| Default allowed headers|
-| <a href="#corsdefaultallowedmethods"><img src="images/click-me.png" width="14" height="14"/></a> `cors.default.allowed.methods` | `[GET, POST, PUT, OPTIONS, DELETE, PATCH]`| Default allowed methods|
-| <a href="#corsdefaultallowedcredentials"><img src="images/click-me.png" width="14" height="14"/></a> `cors.default.allowed.credentials` | `false`| Default allow credentials|
-| <a href="#corsxhrmax_age"><img src="images/click-me.png" width="14" height="14"/></a> `cors.xhr.max_age` | `1728000`| XHR CORS max age (s)|
-| <a href="#corsxhralloweduris"><img src="images/click-me.png" width="14" height="14"/></a> `cors.xhr.allowed.uris` | `[".*"]`| XHR allowed URI patterns|
-| <a href="#corsxhrallowedorigins"><img src="images/click-me.png" width="14" height="14"/></a> `cors.xhr.allowed.origins` | `[".*"]`| XHR allowed origins|
-| <a href="#corsxhrallowedheaders"><img src="images/click-me.png" width="14" height="14"/></a> `cors.xhr.allowed.headers` | `[Accept, Authorization, Content-Type, Accept-Language, Content-Language, X-Requested-With]`| XHR allowed headers|
-| <a href="#corsxhrallowedmethods"><img src="images/click-me.png" width="14" height="14"/></a> `cors.xhr.allowed.methods` | `[GET, OPTIONS]`| XHR allowed methods|
-| <a href="#corsxhrallowedcredentials"><img src="images/click-me.png" width="14" height="14"/></a> `cors.xhr.allowed.credentials` | `true`| XHR allow credentials|
+| [↪](#corsenforcesystemzonepolicyinallzones) `cors.enforceSystemZonePolicyInAllZones` | `false`| Enforce system CORS in all zones|
+| [↪](#corsdefaultmax_age) `cors.default.max_age` | `1728000`| Default CORS max age (s)|
+| [↪](#corsdefaultalloweduris) `cors.default.allowed.uris` | `[".*"]`| Default allowed URI patterns|
+| [↪](#corsdefaultallowedorigins) `cors.default.allowed.origins` | `[".*"]`| Default allowed origins|
+| [↪](#corsdefaultallowedheaders) `cors.default.allowed.headers` | `[Accept, Authorization, Content-Type, Accept-Language, Content-Language]`| Default allowed headers|
+| [↪](#corsdefaultallowedmethods) `cors.default.allowed.methods` | `[GET, POST, PUT, OPTIONS, DELETE, PATCH]`| Default allowed methods|
+| [↪](#corsdefaultallowedcredentials) `cors.default.allowed.credentials` | `false`| Default allow credentials|
+| [↪](#corsxhrmax_age) `cors.xhr.max_age` | `1728000`| XHR CORS max age (s)|
+| [↪](#corsxhralloweduris) `cors.xhr.allowed.uris` | `[".*"]`| XHR allowed URI patterns|
+| [↪](#corsxhrallowedorigins) `cors.xhr.allowed.origins` | `[".*"]`| XHR allowed origins|
+| [↪](#corsxhrallowedheaders) `cors.xhr.allowed.headers` | `[Accept, Authorization, Content-Type, Accept-Language, Content-Language, X-Requested-With]`| XHR allowed headers|
+| [↪](#corsxhrallowedmethods) `cors.xhr.allowed.methods` | `[GET, OPTIONS]`| XHR allowed methods|
+| [↪](#corsxhrallowedcredentials) `cors.xhr.allowed.credentials` | `true`| XHR allow credentials|
 
 ### SMTP / Notifications
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#smtphost"><img src="images/click-me.png" width="14" height="14"/></a> `smtp.host` | `localhost`| SMTP server hostname|
-| <a href="#smtpport"><img src="images/click-me.png" width="14" height="14"/></a> `smtp.port` | `25`| SMTP server port|
-| <a href="#smtpuser"><img src="images/click-me.png" width="14" height="14"/></a> `smtp.user` | `""`| SMTP username|
-| <a href="#smtppassword"><img src="images/click-me.png" width="14" height="14"/></a> `smtp.password` | `""`| SMTP password|
-| <a href="#smtpauth"><img src="images/click-me.png" width="14" height="14"/></a> `smtp.auth` | `false`| Enable SMTP auth|
-| <a href="#smtpstarttls"><img src="images/click-me.png" width="14" height="14"/></a> `smtp.starttls` | `false`| Enable STARTTLS|
-| <a href="#smtpsslprotocols"><img src="images/click-me.png" width="14" height="14"/></a> `smtp.sslprotocols` | `TLSv1.2`| SSL/TLS protocol versions|
-| <a href="#smtpfromaddress"><img src="images/click-me.png" width="14" height="14"/></a> `smtp.fromAddress` | `""`| From address for emails|
-| <a href="#notificationsurl"><img src="images/click-me.png" width="14" height="14"/></a> `notifications.url` | — (null)| Notification service URL|
-| <a href="#notificationssendindefaultzone"><img src="images/click-me.png" width="14" height="14"/></a> `notifications.sendInDefaultZone` | `true`| Send in default zone|
-| <a href="#notificationsverify_ssl"><img src="images/click-me.png" width="14" height="14"/></a> `notifications.verify_ssl` | `false`| Verify SSL for notifications|
+| [↪](#smtphost) `smtp.host` | `localhost`| SMTP server hostname|
+| [↪](#smtpport) `smtp.port` | `25`| SMTP server port|
+| [↪](#smtpuser) `smtp.user` | `""`| SMTP username|
+| [↪](#smtppassword) `smtp.password` | `""`| SMTP password|
+| [↪](#smtpauth) `smtp.auth` | `false`| Enable SMTP auth|
+| [↪](#smtpstarttls) `smtp.starttls` | `false`| Enable STARTTLS|
+| [↪](#smtpsslprotocols) `smtp.sslprotocols` | `TLSv1.2`| SSL/TLS protocol versions|
+| [↪](#smtpfromaddress) `smtp.fromAddress` | `""`| From address for emails|
+| [↪](#notificationsurl) `notifications.url` | — (null)| Notification service URL|
+| [↪](#notificationssendindefaultzone) `notifications.sendInDefaultZone` | `true`| Send in default zone|
+| [↪](#notificationsverify_ssl) `notifications.verify_ssl` | `false`| Verify SSL for notifications|
 
 ### LDAP
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#ldapprofilefile"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.profile.file` | —| LDAP profile configuration file|
-| <a href="#ldapbaseurl"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.url` | —| LDAP server URL|
-| <a href="#ldapbaseuserdn"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.userDn` | —| LDAP bind DN|
-| <a href="#ldapbasepassword"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.password` | —| LDAP bind password|
-| <a href="#ldapbasesearchbase"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.searchBase` | —| LDAP search base DN|
-| <a href="#ldapbasesearchfilter"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.searchFilter` | —| LDAP user search filter|
-| <a href="#ldapbaseuserdnpattern"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.userDnPattern` | —| DN pattern for simple bind|
-| <a href="#ldapbasereferral"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.base.referral` | —| LDAP referral handling|
-| <a href="#ldapsslskipverification"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.ssl.skipverification` | `false`| Skip LDAP SSL verification|
-| <a href="#ldapsslcacertificates"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.ssl.caCertificates` | —| PEM-encoded CA certificates to trust for LDAPS connections|
-| <a href="#ldapexternalgroupswhitelist"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.externalGroupsWhitelist` | — (all groups at login)| Whitelist of LDAP groups to include in the ID token/userinfo|
-| <a href="#ldapgroupsfile"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.file` | —| LDAP groups configuration file|
-| <a href="#ldapgroupssearchbase"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.searchBase` | —| LDAP group search base|
-| <a href="#ldapgroupsgroupsearchfilter"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.groupSearchFilter` | —| Group membership filter|
-| <a href="#ldapgroupsmaxsearchdepth"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.maxSearchDepth` | `10`| Max nested group depth|
-| <a href="#ldapgroupsautoadd"><img src="images/click-me.png" width="14" height="14"/></a> `ldap.groups.autoAdd` | —| Auto-add LDAP groups|
+| [↪](#ldapprofilefile) `ldap.profile.file` | —| LDAP profile configuration file|
+| [↪](#ldapbaseurl) `ldap.base.url` | —| LDAP server URL|
+| [↪](#ldapbaseuserdn) `ldap.base.userDn` | —| LDAP bind DN|
+| [↪](#ldapbasepassword) `ldap.base.password` | —| LDAP bind password|
+| [↪](#ldapbasesearchbase) `ldap.base.searchBase` | —| LDAP search base DN|
+| [↪](#ldapbasesearchfilter) `ldap.base.searchFilter` | —| LDAP user search filter|
+| [↪](#ldapbaseuserdnpattern) `ldap.base.userDnPattern` | —| DN pattern for simple bind|
+| [↪](#ldapbasereferral) `ldap.base.referral` | —| LDAP referral handling|
+| [↪](#ldapsslskipverification) `ldap.ssl.skipverification` | `false`| Skip LDAP SSL verification|
+| [↪](#ldapsslcacertificates) `ldap.ssl.caCertificates` | —| PEM-encoded CA certificates to trust for LDAPS connections|
+| [↪](#ldapexternalgroupswhitelist) `ldap.externalGroupsWhitelist` | — (all groups at login)| Whitelist of LDAP groups to include in the ID token/userinfo|
+| [↪](#ldapgroupsfile) `ldap.groups.file` | —| LDAP groups configuration file|
+| [↪](#ldapgroupssearchbase) `ldap.groups.searchBase` | —| LDAP group search base|
+| [↪](#ldapgroupsgroupsearchfilter) `ldap.groups.groupSearchFilter` | —| Group membership filter|
+| [↪](#ldapgroupsmaxsearchdepth) `ldap.groups.maxSearchDepth` | `10`| Max nested group depth|
+| [↪](#ldapgroupsautoadd) `ldap.groups.autoAdd` | —| Auto-add LDAP groups|
 
 ### Encryption
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#encryptionactive_key_label"><img src="images/click-me.png" width="14" height="14"/></a> `encryption.active_key_label` | — (required)| Active encryption key label|
-| <a href="#encryptionencryption_keys"><img src="images/click-me.png" width="14" height="14"/></a> `encryption.encryption_keys` | — (required)| List of encryption keys|
+| [↪](#encryptionactive_key_label) `encryption.active_key_label` | — (required)| Active encryption key label|
+| [↪](#encryptionencryption_keys) `encryption.encryption_keys` | — (required)| List of encryption keys|
 
 ### Rate Limiting
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#ratelimitloggingoption"><img src="images/click-me.png" width="14" height="14"/></a> `ratelimit.loggingOption` | `OnlyLimited`| Rate-limit logging mode|
-| <a href="#ratelimitcredentialid"><img src="images/click-me.png" width="14" height="14"/></a> `ratelimit.credentialID` | —| Regex for credential extraction|
-| <a href="#ratelimitlimitermappings"><img src="images/click-me.png" width="14" height="14"/></a> `ratelimit.limiterMappings` | `[]`| Rate-limit rules|
+| [↪](#ratelimitloggingoption) `ratelimit.loggingOption` | `OnlyLimited`| Rate-limit logging mode|
+| [↪](#ratelimitcredentialid) `ratelimit.credentialID` | —| Regex for credential extraction|
+| [↪](#ratelimitlimitermappings) `ratelimit.limiterMappings` | `[]`| Rate-limit rules|
 
 ### REST Template (HTTP Client)
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#resttemplatetimeout"><img src="images/click-me.png" width="14" height="14"/></a> `rest.template.timeout` | `10000`| HTTP client timeout (ms)|
-| <a href="#resttemplatemaxtotal"><img src="images/click-me.png" width="14" height="14"/></a> `rest.template.maxTotal` | `10`| Max total connections|
-| <a href="#resttemplatemaxperroute"><img src="images/click-me.png" width="14" height="14"/></a> `rest.template.maxPerRoute` | `5`| Max connections per route|
-| <a href="#resttemplatemaxkeepalive"><img src="images/click-me.png" width="14" height="14"/></a> `rest.template.maxKeepAlive` | `0`| Max keep-alive (ms)|
-| <a href="#resttemplatevalidateafterinactivity"><img src="images/click-me.png" width="14" height="14"/></a> `rest.template.validateAfterInactivity` | `2000`| Validate after inactivity (ms)|
-| <a href="#resttemplateretrycount"><img src="images/click-me.png" width="14" height="14"/></a> `rest.template.retryCount` | `0`| HTTP retry count|
+| [↪](#resttemplatetimeout) `rest.template.timeout` | `10000`| HTTP client timeout (ms)|
+| [↪](#resttemplatemaxtotal) `rest.template.maxTotal` | `10`| Max total connections|
+| [↪](#resttemplatemaxperroute) `rest.template.maxPerRoute` | `5`| Max connections per route|
+| [↪](#resttemplatemaxkeepalive) `rest.template.maxKeepAlive` | `0`| Max keep-alive (ms)|
+| [↪](#resttemplatevalidateafterinactivity) `rest.template.validateAfterInactivity` | `2000`| Validate after inactivity (ms)|
+| [↪](#resttemplateretrycount) `rest.template.retryCount` | `0`| HTTP retry count|
 
 ### Tracing (Brave/Zipkin)
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#bravelocalservicename"><img src="images/click-me.png" width="14" height="14"/></a> `brave.localServiceName` | `uaa`| Service name in traces|
-| <a href="#bravesupportsjoin"><img src="images/click-me.png" width="14" height="14"/></a> `brave.supportsJoin` | `true`| Support span joining|
-| <a href="#bravetraceid128bit"><img src="images/click-me.png" width="14" height="14"/></a> `brave.traceId128Bit` | `false`| Use 128-bit trace IDs|
+| [↪](#bravelocalservicename) `brave.localServiceName` | `uaa`| Service name in traces|
+| [↪](#bravesupportsjoin) `brave.supportsJoin` | `true`| Support span joining|
+| [↪](#bravetraceid128bit) `brave.traceId128Bit` | `false`| Use 128-bit trace IDs|
 
 ### Health & Shutdown
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#uaashutdownsleep"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.shutdown.sleep` | `10000`| Shutdown sleep time (ms)|
-| <a href="#uaahealthdbrate"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.health.db.rate` | `10000`| DB health check interval (ms)|
-| <a href="#deleteexpirationruntime"><img src="images/click-me.png" width="14" height="14"/></a> `delete.expirationRunTime` | `2500`| Token expiration cleanup timeout (ms)|
+| [↪](#uaashutdownsleep) `uaa.shutdown.sleep` | `10000`| Shutdown sleep time (ms)|
+| [↪](#uaahealthdbrate) `uaa.health.db.rate` | `10000`| DB health check interval (ms)|
+| [↪](#deleteexpirationruntime) `delete.expirationRunTime` | `2500`| Token expiration cleanup timeout (ms)|
 
 ### Limited Mode
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#uaalimitedfunctionalitystatusfile"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.limitedFunctionality.statusFile` | — (null)| Limited mode status file|
-| <a href="#uaalimitedfunctionalitywhitelistendpoints"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.limitedFunctionality.whitelist.endpoints` | `{}`| Whitelisted endpoints|
-| <a href="#uaalimitedfunctionalitywhitelistmethods"><img src="images/click-me.png" width="14" height="14"/></a> `uaa.limitedFunctionality.whitelist.methods` | `{}`| Whitelisted HTTP methods|
+| [↪](#uaalimitedfunctionalitystatusfile) `uaa.limitedFunctionality.statusFile` | — (null)| Limited mode status file|
+| [↪](#uaalimitedfunctionalitywhitelistendpoints) `uaa.limitedFunctionality.whitelist.endpoints` | `{}`| Whitelisted endpoints|
+| [↪](#uaalimitedfunctionalitywhitelistmethods) `uaa.limitedFunctionality.whitelist.methods` | `{}`| Whitelisted HTTP methods|
 
 ### Metrics
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#metricsenabled"><img src="images/click-me.png" width="14" height="14"/></a> `metrics.enabled` | `true`| Enable metrics collection|
-| <a href="#metricsperrequestmetrics"><img src="images/click-me.png" width="14" height="14"/></a> `metrics.perRequestMetrics` | `false`| Per-request metrics|
+| [↪](#metricsenabled) `metrics.enabled` | `true`| Enable metrics collection|
+| [↪](#metricsperrequestmetrics) `metrics.perRequestMetrics` | `false`| Per-request metrics|
 
 ### Zone Paths
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#zonespathsenabled"><img src="images/click-me.png" width="14" height="14"/></a> `zones.paths.enabled` | `false`| Enable zone path routing|
-| <a href="#zonesinternalhostnames"><img src="images/click-me.png" width="14" height="14"/></a> `zones.internal.hostnames` | `[]`| Hostnames for default zone|
+| [↪](#zonespathsenabled) `zones.paths.enabled` | `false`| Enable zone path routing|
+| [↪](#zonesinternalhostnames) `zones.internal.hostnames` | `[]`| Hostnames for default zone|
 
 ### CSP (Content Security Policy)
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#cspscript-src"><img src="images/click-me.png" width="14" height="14"/></a> `csp.script-src` | `['self']`| CSP script-src directive|
+| [↪](#cspscript-src) `csp.script-src` | `['self']`| CSP script-src directive|
 
 ### Logged Out Page
 
 | Property                                                                                                          | Default | Description |
 |-------------------------------------------------------------------------------------------------------------------|---------|-------------|
-| <a href="#logged_outmessage"><img src="images/click-me.png" width="14" height="14"/></a> `logged_out.message`     | `You have successfully logged out.`| Logged out page message|
-| <a href="#logged_outlink_text"><img src="images/click-me.png" width="14" height="14"/></a> `logged_out.link_text` | `Back to Sign In`| Logged out page link text|
-| <a href="#logged_outlink_url"><img src="images/click-me.png" width="14" height="14"/></a> `logged_out.link_url`   | `/login`| Logged out page link URL|
+| [↪](#logged_outmessage) `logged_out.message`     | `You have successfully logged out.`| Logged out page message|
+| [↪](#logged_outlink_text) `logged_out.link_text` | `Back to Sign In`| Logged out page link text|
+| [↪](#logged_outlink_url) `logged_out.link_url`   | `/login`| Logged out page link URL|
 
 ### Miscellaneous
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| <a href="#loggingfilenamepath"><img src="images/click-me.png" width="14" height="14"/></a> `logging.file.name.path` | —| Log file directory|
+| [↪](#loggingfilenamepath) `logging.file.name.path` | —| Log file directory|
 
 ---
 
@@ -394,7 +394,9 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 ### `issuer.uri`
 
 **Default:** — (required, no default)
-**Source:** `@Value("${issuer.uri}")` in [`TokenEndpointBuilder`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/TokenEndpointBuilder.java), [`OpenIdConnectEndpoints`](../server/src/main/java/org/cloudfoundry/identity/uaa/account/OpenIdConnectEndpoints.java)
+**Source:** `@Value("${issuer.uri}")` in
+[`TokenEndpointBuilder`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/TokenEndpointBuilder.java),
+[`OpenIdConnectEndpoints`](../server/src/main/java/org/cloudfoundry/identity/uaa/account/OpenIdConnectEndpoints.java)
 **Type:** `String`
 
 The URI that identifies this UAA instance as an OAuth 2.0 / OIDC token issuer. This value appears
@@ -408,7 +410,9 @@ It must be a fully-qualified URL (e.g. `http://localhost:8080/uaa`).
 ### `uaa.url`
 
 **Default:** `http://localhost:8080/uaa`
-**Source:** `@ConfigurationProperties(prefix = "uaa")` in [`UaaProperties.Uaa`](../server/src/main/java/org/cloudfoundry/identity/uaa/UaaProperties.java), `@Value("${uaa.url}")` in multiple beans
+**Source:** `@ConfigurationProperties(prefix = "uaa")` in
+[`UaaProperties.Uaa`](../server/src/main/java/org/cloudfoundry/identity/uaa/UaaProperties.java), `@Value("${uaa.url}")`
+in multiple beans
 **Type:** `String`
 
 The externally-reachable URL of the UAA. Used for constructing token endpoint URLs, JWKS URIs,
@@ -421,7 +425,9 @@ and other self-referencing links in API responses.
 ### `login.url`
 
 **Default:** `http://localhost:8080/uaa`
-**Source:** `@Value("${login.url:http://localhost:8080/uaa}")` in [`MessagingConfig`](../server/src/main/java/org/cloudfoundry/identity/uaa/login/MessagingConfig.java), [`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
+**Source:** `@Value("${login.url:http://localhost:8080/uaa}")` in
+[`MessagingConfig`](../server/src/main/java/org/cloudfoundry/identity/uaa/login/MessagingConfig.java),
+[`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
 **Type:** `String`
 
 The base URL of the login server. Used in email templates (e.g. password reset links) and
@@ -802,7 +808,9 @@ Supported by PostgreSQL and MySQL 8+.
 ### `database.maxParameters`
 
 **Default:** `-1` (unlimited)
-**Source:** `@Value("${database.maxParameters:-1}")` in [`JdbcUaaUserDatabase`](../server/src/main/java/org/cloudfoundry/identity/uaa/user/JdbcUaaUserDatabase.java), [`JdbcScimGroupMembershipManager`](../server/src/main/java/org/cloudfoundry/identity/uaa/scim/jdbc/JdbcScimGroupMembershipManager.java)
+**Source:** `@Value("${database.maxParameters:-1}")` in
+[`JdbcUaaUserDatabase`](../server/src/main/java/org/cloudfoundry/identity/uaa/user/JdbcUaaUserDatabase.java),
+[`JdbcScimGroupMembershipManager`](../server/src/main/java/org/cloudfoundry/identity/uaa/scim/jdbc/JdbcScimGroupMembershipManager.java)
 **Type:** `int`
 
 Maximum number of SQL parameters allowed in IN clauses. `-1` means no limit.
@@ -815,7 +823,8 @@ Use this to work around database driver parameter limits.
 ### `servlet.session-store`
 
 **Default:** `memory`
-**Source:** [`UaaSessionConfig`](../server/src/main/java/org/cloudfoundry/identity/uaa/web/beans/UaaSessionConfig.java) (reads `servlet.session-store` from environment)
+**Source:** [`UaaSessionConfig`](../server/src/main/java/org/cloudfoundry/identity/uaa/web/beans/UaaSessionConfig.java)
+(reads `servlet.session-store` from environment)
 **Type:** `String`
 
 The session storage mechanism. Accepted values:
@@ -1057,7 +1066,8 @@ Format of issued refresh tokens. Accepted values:
 
 Maximum number of concurrent active refresh tokens (sessions) allowed per user/client pair.
 
-This property was originally a boolean. It has been changed to an integer to support arbitrary limits, but the legacy boolean values are still supported and parsed as follows:
+This property was originally a boolean. It has been changed to an integer to support arbitrary limits, but the legacy
+boolean values are still supported and parsed as follows:
 
 - `false` (or any non-positive integer like `0` or `-1`) — no limit (default behaviour)
 - `true` — equivalent to `1`; at most one active refresh token per user/client pair
@@ -1204,8 +1214,6 @@ List of client IDs that are auto-approved for all scopes (user consent is not re
 
 ### `oauth.client.allowpublic`
 
-<a name="oauthclientallowpublic"></a>
-
 **Default:** `[]` (empty — no clients allowed without a secret)
 **Source:** `@config['oauth']['client']['allowpublic']` resolved by
 [`ClientAdminBootstrap`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminBootstrap.java)
@@ -1235,7 +1243,9 @@ oauth:
 
 ### `oauth.user.authorities`
 
-**Default:** `[openid, scim.me, cloud_controller.read, cloud_controller.write, cloud_controller_service_permissions.read, password.write, scim.userids, uaa.user, approvals.me, oauth.approvals, profile, roles, user_attributes, uaa.offline_token]`
+**Default:** `[openid, scim.me, cloud_controller.read, cloud_controller.write,
+cloud_controller_service_permissions.read, password.write, scim.userids, uaa.user, approvals.me, oauth.approvals,
+profile, roles, user_attributes, uaa.offline_token]`
 **Source:** `@config['oauth']['user']['authorities']` in [`OauthEndpointBeanConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java)
 **Type:** `List<String>`
 
@@ -1918,13 +1928,17 @@ When `true`, users see an account chooser UI that lets them pick from previously
 ### `login.entityBaseURL`
 
 **Default:** `http://localhost:8080/uaa`
-**Source:** `@Value("${login.entityBaseURL:http://localhost:8080/uaa}")` in [`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java), [`SamlRelyingPartyRegistrationRepositoryConfig`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlRelyingPartyRegistrationRepositoryConfig.java)
+**Source:** `@Value("${login.entityBaseURL:http://localhost:8080/uaa}")` in
+[`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java),
+[`SamlRelyingPartyRegistrationRepositoryConfig`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlRelyingPartyRegistrationRepositoryConfig.java)
 **Type:** `String`
 
 The base URL of this UAA instance for SAML SP metadata generation. This URL appears in the
-SAML metadata as the service provider's base location and is used to construct AssertionConsumerService (ACS) and SingleLogoutService (SLS) endpoints.
+SAML metadata as the service provider's base location and is used to construct AssertionConsumerService (ACS) and
+SingleLogoutService (SLS) endpoints.
 
-**When `null` or empty:** UAA derives the base URL from the incoming HTTP request, which works for subdomain-based zones but provides automatic hostname resolution.
+**When `null` or empty:** UAA derives the base URL from the incoming HTTP request, which works for subdomain-based zones
+but provides automatic hostname resolution.
 
 **Important:** The behavior of `entityBaseURL` varies depending on the identity zone access pattern:
 
@@ -1934,9 +1948,15 @@ SAML metadata as the service provider's base location and is used to construct A
 | **Non-default zone, subdomain access** | Prepends zone subdomain to `entityBaseURL` host | `http://localhost:8080/uaa` + zone `myzone` → ACS: `http://myzone.localhost:8080/uaa/saml/SSO/alias/...` |
 | **Non-default zone, path access** (`zones.paths.enabled=true`) | **Ignores** `entityBaseURL`; derives from request | Request to `/z/myzone/saml/metadata` → ACS: `http://localhost/z/myzone/saml/SSO/alias/...` |
 
-**Zone Path Access Pattern:** When [`zones.paths.enabled=true`](#zonespathsenabled) and zones are accessed via `/z/{subdomain}/` URLs, `entityBaseURL` is ignored because it's a static configuration value that cannot encode the dynamic zone path. The SAML metadata URLs are derived from the incoming request, which already contains the zone path information thanks to the [`ZonePathContextRewritingFilter`](../server/src/main/java/org/cloudfoundry/identity/uaa/zone/ZonePathContextRewritingFilter.java).
+**Zone Path Access Pattern:** When [`zones.paths.enabled=true`](#zonespathsenabled) and zones are accessed via
+`/z/{subdomain}/` URLs, `entityBaseURL` is ignored because it's a static configuration value that cannot encode the
+dynamic zone path. The SAML metadata URLs are derived from the incoming request, which already contains the zone path
+information thanks to the
+[`ZonePathContextRewritingFilter`](../server/src/main/java/org/cloudfoundry/identity/uaa/zone/ZonePathContextRewritingFilter.java).
 
-**When to set `entityBaseURL`:** Configure this when deploying behind load balancers or proxies where the internal server hostname/port differs from the externally accessible URL. This ensures SAML metadata contains stable, publicly reachable endpoints.
+**When to set `entityBaseURL`:** Configure this when deploying behind load balancers or proxies where the internal
+server hostname/port differs from the externally accessible URL. This ensures SAML metadata contains stable, publicly
+reachable endpoints.
 
 [Back to table](#login--branding)
 
@@ -2007,7 +2027,8 @@ Customizes the visual branding of the login UI. Supports the following sub-keys:
 - `acceptButtonText` — (string, default: `"I Agree"`) Text for the accept button
 - `declineButtonText` — (string, default: `"Decline"`) Text for the decline button when `declineLink` is provided
 - `declineLink` — (string, optional) If set, must be a valid HTTP/HTTPS URL; displays as a decline link
-- `consentValidDuration` — (string, default: `"1d"`) How long acceptance is remembered (e.g., `"12h"`, `"7d"`, `"0"` for always prompt)
+- `consentValidDuration` — (string, default: `"1d"`) How long acceptance is remembered (e.g., `"12h"`, `"7d"`, `"0"` for
+  always prompt)
 
 [Back to table](#login--branding)
 
@@ -2108,7 +2129,10 @@ External OAuth 2.0 and OIDC provider definitions. Each provider entry includes:
   certificate chain validation and hostname verification, offering no protection against
   man-in-the-middle attacks; it is intended for development and diagnostics. To trust a private
   CA in production, use `caCertificates` instead, which keeps validation enabled. Default `false`
-- `caCertificates` — List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when calling the provider. Each entry may contain a single certificate or multiple concatenated PEM certificates (e.g. a full chain); use multiple entries to supply independent trust anchors, such as during a CA rotation. Ignored if `skipSslValidation` is `true`
+- `caCertificates` — List of PEM-encoded CA certificates to trust, in addition to the JVM's default trust store, when
+  calling the provider. Each entry may contain a single certificate or multiple concatenated PEM certificates (e.g. a
+  full chain); use multiple entries to supply independent trust anchors, such as during a CA rotation. Ignored if
+  `skipSslValidation` is `true`
 
 [Back to table](#login--branding)
 
@@ -2117,10 +2141,15 @@ External OAuth 2.0 and OIDC provider definitions. Each provider entry includes:
 ### `login.oauth.externalGroupsFromMappedAuthorities`
 
 **Default:** `false`
-**Source:** `@Value("${login.oauth.externalGroupsFromMappedAuthorities:false}")` in [`OauthEndpointBeanConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java) (bean `externalOAuthAuthenticationManager`)
+**Source:** `@Value("${login.oauth.externalGroupsFromMappedAuthorities:false}")` in
+[`OauthEndpointBeanConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/oauth/beans/OauthEndpointBeanConfiguration.java)
+(bean `externalOAuthAuthenticationManager`)
 **Type:** `boolean`
 
-When `false` (default), external OAuth login populates `UaaAuthentication` external group names from IdP token authorities **before** UAA group mapping (`externalAuthorities`). When `true`, external group names are taken from **mapped** UAA authorities (`authorities` after `mapExternalGroups`), for deployments that want downstream external-group membership logic to follow mapped group or scope names instead of raw IdP values.
+When `false` (default), external OAuth login populates `UaaAuthentication` external group names from IdP token
+authorities **before** UAA group mapping (`externalAuthorities`). When `true`, external group names are taken from
+**mapped** UAA authorities (`authorities` after `mapExternalGroups`), for deployments that want downstream
+external-group membership logic to follow mapped group or scope names instead of raw IdP values.
 
 [Back to table](#login--branding)
 
@@ -2171,7 +2200,10 @@ If not set, falls back to the host portion of `login.entityID`.
 ### `login.saml.nameID`
 
 **Default:** `urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified`
-**Source:** [`SamlConfigProps`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlConfigProps.java), `@Value("${login.saml.nameID:...}")` in [`SamlRelyingPartyRegistrationRepositoryConfig`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlRelyingPartyRegistrationRepositoryConfig.java)
+**Source:**
+[`SamlConfigProps`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlConfigProps.java),
+`@Value("${login.saml.nameID:...}")` in
+[`SamlRelyingPartyRegistrationRepositoryConfig`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlRelyingPartyRegistrationRepositoryConfig.java)
 **Type:** `String`
 
 Default SAML NameID format requested in authentication requests.
@@ -2225,7 +2257,10 @@ When `true`, SAML authentication requests (AuthnRequest) sent to IDPs are signed
 **Source:** [`SamlConfigProps`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlConfigProps.java)
 **Type:** `Boolean`
 
-**Deprecated since 78.13.0 - scheduled for removal.** When `true`, the SP metadata declares that it wants incoming SAML assertions to be signed (`WantAssertionsSigned`). This flag **no longer affects authentication behavior** - UAA always attempts to decrypt encrypted assertions regardless of this setting. Authentication always requires a **verifiable IdP XML signature** on the response or on every assertion after decryption.
+**Deprecated since 78.13.0 - scheduled for removal.** When `true`, the SP metadata declares that it wants incoming SAML
+assertions to be signed (`WantAssertionsSigned`). This flag **no longer affects authentication behavior** - UAA always
+attempts to decrypt encrypted assertions regardless of this setting. Authentication always requires a **verifiable IdP
+XML signature** on the response or on every assertion after decryption.
 
 [Back to table](#saml-service-provider)
 
@@ -2259,7 +2294,9 @@ Useful for IDP-initiated SSO flows.
 ### `login.saml.providers`
 
 **Default:** — (not configured)
-**Source:** [`BootstrapSamlIdentityProviderData`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/BootstrapSamlIdentityProviderData.java) (via `EnvironmentAware`)
+**Source:**
+[`BootstrapSamlIdentityProviderData`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/BootstrapSamlIdentityProviderData.java)
+(via `EnvironmentAware`)
 **Type:** `Map<String, Map<String, Object>>`
 
 Bootstrap SAML Identity Provider definitions. Each entry is keyed by a provider alias (the IDP origin key) and supports:
@@ -2312,7 +2349,9 @@ The value of `idpMetadata` determines how UAA parses the IDP's entity ID:
 ### `login.serviceProviderKey`
 
 **Default:** — (none)
-**Source:** [`UaaProperties.Login`](../server/src/main/java/org/cloudfoundry/identity/uaa/UaaProperties.java), [`SamlConfigProps`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlConfigProps.java) (deprecated since 77.20.0)
+**Source:** [`UaaProperties.Login`](../server/src/main/java/org/cloudfoundry/identity/uaa/UaaProperties.java),
+[`SamlConfigProps`](../server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/SamlConfigProps.java)
+(deprecated since 77.20.0)
 **Type:** `String`
 
 Legacy property for the SAML SP private key. Use `login.saml.keys` instead.
@@ -3245,7 +3284,9 @@ URL paths instead of different subdomains.
 - Subdomain access (default): `https://myzone.uaa.example.com/login`
 - Path access (when enabled): `https://uaa.example.com/z/myzone/login`
 
-**Important:** When path-based zone access is enabled, [`login.entityBaseURL`](#loginentitybaseurl) is ignored for SAML metadata generation in non-default zones, as the zone information is already encoded in the URL path. See the `login.entityBaseURL` documentation for details on how this affects SAML endpoint URLs.
+**Important:** When path-based zone access is enabled, [`login.entityBaseURL`](#loginentitybaseurl) is ignored for SAML
+metadata generation in non-default zones, as the zone information is already encoded in the URL path. See the
+`login.entityBaseURL` documentation for details on how this affects SAML endpoint URLs.
 
 [Back to table](#zone-paths)
 
@@ -3316,7 +3357,8 @@ Customizable text for the link displayed on the logged out page that takes users
 **Source:** `@Value("${logged_out.link_url:/login}")` in [`LoggedOutEndpoint`](../server/src/main/java/org/cloudfoundry/identity/uaa/logout/LoggedOutEndpoint.java)
 **Type:** `String`
 
-Customizable URL for the link displayed on the logged out page. Can be a relative path (e.g., `/login`) or an absolute URL (e.g., `http://localhost:8080/uaa/login`). Relative URLs are resolved against the UAA base URL.
+Customizable URL for the link displayed on the logged out page. Can be a relative path (e.g., `/login`) or an absolute
+URL (e.g., `http://localhost:8080/uaa/login`). Relative URLs are resolved against the UAA base URL.
 
 [Back to table](#logged-out-page)
 
