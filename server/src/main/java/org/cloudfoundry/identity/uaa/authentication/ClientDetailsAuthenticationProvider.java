@@ -322,7 +322,8 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         }
         // The key being present is what makes the client mTLS-only. A value that is blank or not a string -- a row
         // that bypassed registration validation -- must not turn it back into an ordinary client whose secret works.
-        if (rawConfig != null && !(rawConfig instanceof String pem && !pem.isBlank())) {
+        if (info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                && !(rawConfig instanceof String pem && !pem.isBlank())) {
             throw new BadCredentialsException("tls_client_auth: the client's tls-client-auth-ca cannot be read");
         }
         if (rawConfig instanceof String || rawReference instanceof String) {
