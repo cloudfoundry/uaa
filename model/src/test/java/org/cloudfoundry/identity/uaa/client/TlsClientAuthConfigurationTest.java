@@ -177,6 +177,27 @@ class TlsClientAuthConfigurationTest {
     }
 
     @Test
+    void proxySubjectSurvivesTypedConfigurationCopyAndClearing() {
+        String key = "tls-client-auth-trusted-proxy-subject-dn";
+        TlsClientAuthConfiguration config = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                Map.of(key, "CN=gorouter_backend_tls"), TlsClientAuthConfiguration.class);
+        UaaClientDetails client = new UaaClientDetails();
+        client.setTlsClientAuthConfiguration(config);
+        assertThat(new UaaClientDetails(client).getAdditionalInformation()).containsEntry(key, "CN=gorouter_backend_tls");
+        client.setTlsClientAuthConfiguration(null);
+        assertThat(client.getAdditionalInformation()).doesNotContainKey(key);
+    }
+
+    @Test
+    void proxySubjectParticipatesInConfigurationEquality() {
+        TlsClientAuthConfiguration router = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                Map.of("tls-client-auth-trusted-proxy-subject-dn", "CN=router"), TlsClientAuthConfiguration.class);
+        TlsClientAuthConfiguration other = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                Map.of("tls-client-auth-trusted-proxy-subject-dn", "CN=other"), TlsClientAuthConfiguration.class);
+        assertThat(router).isNotEqualTo(other);
+    }
+
+    @Test
     void unequalWhenTrustedProxyCaPemDiffers() {
         TlsClientAuthConfiguration config1 = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
         config1.setTrustedProxyCaPem("proxy-ca-1");

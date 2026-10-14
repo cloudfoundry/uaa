@@ -530,6 +530,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -555,6 +556,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, attackerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -621,6 +623,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, intermediateCaCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -646,6 +649,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -672,6 +676,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -699,6 +704,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -829,6 +835,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         X509Certificate[] xfccDerivedChain = new X509Certificate[]{mock(X509Certificate.class)};
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -862,6 +869,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, directPeerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -890,6 +898,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -930,6 +939,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -946,6 +956,13 @@ class TlsClientAuthenticationTest {
         } finally {
             RequestContextHolder.resetRequestAttributes();
         }
+    }
+
+    private static TlsClientAuthConfiguration withProxyIdentity(TlsClientAuthConfiguration config, String subject) {
+        Map<String, Object> info = new java.util.HashMap<>(
+                org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(config, Map.class));
+        info.put("tls-client-auth-trusted-proxy-subject-dn", subject);
+        return org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(info, TlsClientAuthConfiguration.class);
     }
 
     private static KeyPair generateKeyPair() throws Exception {
