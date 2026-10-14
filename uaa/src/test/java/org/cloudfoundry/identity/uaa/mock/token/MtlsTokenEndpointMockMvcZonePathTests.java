@@ -91,6 +91,125 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
     private static final String MTLS_PATH = "/oauth/mtls/token";
     private static final String DISCOVERY_PATH = "/.well-known/openid-configuration";
 
+    @Nested
+    class ZoneMtlsPolicy {
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void disablingAndReenablingZoneAffectsOnlyItsOwnEndpoint(ZoneResolutionMode mode) throws Exception {
+            IdentityZone zone = newZone();
+            IdentityZone sibling = newZone();
+            String client = mtlsClientInZone(zone, "policy", zoneACaCert, "CN=policy-app");
+            String siblingClient = mtlsClientInZone(sibling, "sibling", zoneACaCert, "CN=policy-app");
+            X509Certificate cert = leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=policy-app");
+            assertThat(perform(mtlsPost(mode, zone, client, cert)).getResponse().getStatus()).isEqualTo(200);
+
+            updateMtlsPolicy(zone, false);
+            assertThat(perform(mtlsPost(mode, zone, client, cert)).getResponse().getStatus())
+                    .as("a valid persisted client must stop authenticating as soon as its zone disables mTLS")
+                    .isEqualTo(404);
+            assertThat(perform(mtlsPost(mode, sibling, siblingClient, cert)).getResponse().getStatus()).isEqualTo(200);
+
+            updateMtlsPolicy(zone, true);
+            MvcResult enabled = perform(mtlsPost(mode, zone, client, cert));
+            assertThat(enabled.getResponse().getStatus()).as("Actual: %s", outcome(enabled)).isEqualTo(200);
+            assertThat(claimsOf(enabled)).containsKey("cnf");
+        }
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void disabledZonesDoNotAdvertiseMtlsAndCanRestoreDiscovery(ZoneResolutionMode mode) throws Exception {
+            IdentityZone zone = newZone();
+            updateMtlsPolicy(zone, false);
+            Map<String, Object> disabled = discovery(mode, zone);
+            assertThat((List<String>) disabled.get("token_endpoint_auth_methods_supported"))
+                    .doesNotContain("tls_client_auth");
+            assertThat(disabled).doesNotContainKey("mtls_endpoint_aliases")
+                    .containsEntry("tls_client_certificate_bound_access_tokens", false);
+            updateMtlsPolicy(zone, true);
+            assertThat(discovery(mode, zone)).containsKey("mtls_endpoint_aliases")
+                    .containsEntry("tls_client_certificate_bound_access_tokens", true);
+        }
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void bundleDiscoveryUsesTheZoneAfterAuthorizedHeaderSwitching(ZoneResolutionMode mode) throws Exception {
+            IdentityZone zone = newZone();
+            configureTrustBundle(zone, toPem(zoneACaCert));
+            String path = "/oauth/mtls/trust-bundles";
+            MockHttpServletRequestBuilder request = withServletPath(
+                    mode.createRequestBuilder(null, HttpMethod.GET, path), mode, null, path)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .header("X-Identity-Zone-Id", zone.getId());
+            MvcResult enabled = perform(request);
+            assertThat(enabled.getResponse().getStatus()).as("Actual: %s", outcome(enabled)).isEqualTo(200);
+            updateMtlsPolicy(zone, false);
+            assertThat(perform(request).getResponse().getStatus())
+                    .as("header-selected zones must enforce their own mTLS off-switch")
+                    .isEqualTo(404);
+            updateMtlsPolicy(zone, true);
+            assertThat(JsonUtils.readValueAsMap(perform(request).getResponse().getContentAsString()))
+                    .containsEntry("trust_bundles", List.of("shared-name"));
+        }
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void disabledZonesRejectNewMtlsRegistrations(ZoneResolutionMode mode) throws Exception {
+            IdentityZone zone = newZone();
+            String path = "/oauth/clients";
+            Map<String, Object> registration = new java.util.HashMap<>(tlsConfig(zoneACaCert, "CN=policy-app"));
+            registration.put("client_id", "disabled-zone" + generator.generate());
+            registration.put("authorized_grant_types", List.of(GRANT_TYPE_CLIENT_CREDENTIALS));
+            registration.put("authorities", List.of("uaa.resource"));
+            MockHttpServletRequestBuilder request = withServletPath(
+                    mode.createRequestBuilder(null, HttpMethod.POST, path), mode, null, path)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .header("X-Identity-Zone-Id", zone.getId())
+                    .contentType(APPLICATION_JSON).content(JsonUtils.writeValueAsString(registration));
+            updateMtlsPolicy(zone, false);
+            MvcResult rejected = perform(request);
+            assertThat(rejected.getResponse().getStatus()).as("Actual: %s", outcome(rejected)).isEqualTo(400);
+            assertThat(rejected.getResponse().getContentAsString()).contains("mTLS");
+            updateMtlsPolicy(zone, true);
+            assertThat(perform(request).getResponse().getStatus()).isEqualTo(201);
+        }
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void disablingDefaultZoneDoesNotDisableTenantZone(ZoneResolutionMode mode) throws Exception {
+            IdentityZone tenant = newZone();
+            String client = mtlsClientInZone(tenant, "default-off", zoneACaCert, "CN=policy-app");
+            X509Certificate cert = leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=policy-app");
+            IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
+            String defaultClient = mtlsClientInZone(defaultZone, "default-client", zoneACaCert, "CN=policy-app");
+            var previous = defaultZone.getConfig();
+            try {
+                updateMtlsPolicy(defaultZone, false);
+                assertThat(perform(mtlsPost(mode, null, defaultClient, cert)).getResponse().getStatus()).isEqualTo(404);
+                assertThat(perform(mtlsPost(mode, tenant, client, cert)).getResponse().getStatus()).isEqualTo(200);
+            } finally {
+                defaultZone.setConfig(previous);
+                identityZoneProvisioning.update(defaultZone);
+            }
+        }
+
+        private Map<String, Object> discovery(ZoneResolutionMode mode, IdentityZone zone) throws Exception {
+            MvcResult result = perform(withServletPath(mode.createRequestBuilder(zone.getSubdomain(),
+                    HttpMethod.GET, DISCOVERY_PATH), mode, zone.getSubdomain(), DISCOVERY_PATH));
+            assertThat(result.getResponse().getStatus()).isEqualTo(200);
+            return JsonUtils.readValueAsMap(result.getResponse().getContentAsString());
+        }
+    }
+
+    private void updateMtlsPolicy(IdentityZone zone, boolean enabled) {
+        IdentityZone current = identityZoneProvisioning.retrieve(zone.getId());
+        Map<String, Object> config = new java.util.HashMap<>(JsonUtils.convertValue(current.getConfig(), Map.class));
+        Map<String, Object> mtls = new java.util.HashMap<>((Map<String, Object>) config.getOrDefault("mtls", Map.of()));
+        mtls.put("enabled", enabled);
+        config.put("mtls", mtls);
+        current.setConfig(JsonUtils.convertValue(config, org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
+        identityZoneProvisioning.update(current);
+    }
+
     /** Stands in for tenant A's certificate authority. */
     private static KeyPair zoneACaKeyPair;
     private static X500Name zoneACaSubject;
@@ -366,7 +485,7 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
 
     private void configureTrustBundle(IdentityZone zone, String caPem) {
         Map<String, Object> config = new java.util.HashMap<>(JsonUtils.convertValue(zone.getConfig(), Map.class));
-        config.put("mtlsTrustBundles", Map.of("shared-name", caPem));
+        config.put("mtls", Map.of("enabled", true, "trustBundles", Map.of("shared-name", caPem)));
         zone.setConfig(JsonUtils.convertValue(config, org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
         identityZoneProvisioning.update(zone);
     }

@@ -23,10 +23,12 @@ class MtlsTrustBundleConfigurationTests {
         Map<String, Object> config = JsonUtils.convertValue(
                 provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig(), Map.class);
         assertThat(config).as("uaa.mtls.trust_bundles must populate the default zone at startup")
-                .containsKey("mtlsTrustBundles");
-        assertThat((Map<String, Object>) config.get("mtlsTrustBundles")).containsKey("configured-ca");
+                .containsKey("mtls").doesNotContainKey("mtlsTrustBundles");
+        Map<String, Object> mtls = (Map<String, Object>) config.get("mtls");
+        assertThat(mtls).containsEntry("enabled", true);
+        assertThat((Map<String, Object>) mtls.get("trustBundles")).containsKey("configured-ca");
         IdentityZone other = new IdentityZone();
         assertThat(JsonUtils.convertValue(other.getConfig(), Map.class))
-                .containsEntry("mtlsTrustBundles", Map.of());
+                .containsEntry("mtls", Map.of("enabled", true, "trustBundles", Map.of()));
     }
 }

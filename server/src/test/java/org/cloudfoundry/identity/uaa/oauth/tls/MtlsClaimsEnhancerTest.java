@@ -53,6 +53,22 @@ class MtlsClaimsEnhancerTest {
     }
 
     @Test
+    void disabledZoneRefusesTlsAuthenticationAtTokenIssuanceEvenWithoutACertificate() {
+        var previous = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
+        var zone = new org.cloudfoundry.identity.uaa.zone.IdentityZone();
+        zone.setConfig(org.cloudfoundry.identity.uaa.util.JsonUtils.readValue("{\"mtls\":{\"enabled\":false}}",
+                org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
+        try {
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
+            assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), mockAuthentication("persisted-client")))
+                    .isInstanceOf(org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException.class)
+                    .hasMessageContaining("mTLS is disabled");
+        } finally {
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(previous);
+        }
+    }
+
+    @Test
     void extractsClaimsFromCertOuFields() throws Exception {
         X509Certificate cert = mock(X509Certificate.class);
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});

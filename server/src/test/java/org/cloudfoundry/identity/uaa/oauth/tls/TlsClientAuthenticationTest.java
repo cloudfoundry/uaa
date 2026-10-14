@@ -51,6 +51,28 @@ class TlsClientAuthenticationTest {
     }
 
     @Test
+    void disabledZoneRejectsOtherwiseValidCertificateWithoutHttpGuard() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Policy Root CA");
+        X509Certificate root = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate leaf = signCert(new X500Name("CN=policy-app"), rootName,
+                leafKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+        var previous = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
+        var zone = new org.cloudfoundry.identity.uaa.zone.IdentityZone();
+        zone.setConfig(org.cloudfoundry.identity.uaa.util.JsonUtils.readValue("{\"mtls\":{\"enabled\":false}}",
+                org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
+        try {
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
+            assertThatThrownBy(() -> service.validateClientCert(leaf, new TlsClientAuthConfiguration(toPem(root), null)))
+                    .isInstanceOf(org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException.class)
+                    .hasMessageContaining("mTLS is disabled");
+        } finally {
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(previous);
+        }
+    }
+
+    @Test
     void nullCertReturnsEmptyOptional() {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("...", null);
         assertThat(service.validateClientCert((X509Certificate) null, config)).isEmpty();

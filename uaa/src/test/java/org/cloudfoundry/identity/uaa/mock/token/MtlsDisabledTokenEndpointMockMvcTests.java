@@ -76,6 +76,30 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
+    void mtlsBeansExistEvenWhenDeploymentSwitchIsOff() {
+        assertThat(webApplicationContext.getBeansOfType(org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer.class))
+                .as("mTLS beans must be available independently of configuration")
+                .hasSize(1);
+        assertThat(webApplicationContext.getBeansOfType(org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundleEndpoints.class))
+                .hasSize(1);
+        assertThat(webApplicationContext.containsBean("mtlsTokenEndpointSecurity")).isTrue();
+    }
+
+    @Test
+    void zoneCannotOverrideDeploymentOffSwitch() throws Exception {
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(
+                generator.generate().toLowerCase(), mockMvc, webApplicationContext, IdentityZone.getUaaZoneId());
+        Map<String, Object> config = new java.util.HashMap<>(JsonUtils.convertValue(zone.getConfig(), Map.class));
+        config.put("mtls", Map.of("enabled", true, "trustBundles", Map.of()));
+        zone.setConfig(JsonUtils.convertValue(config, org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
+        identityZoneProvisioning.update(zone);
+        MvcResult result = mockMvc.perform(ZoneResolutionMode.SUBDOMAIN.createRequestBuilder(
+                zone.getSubdomain(), HttpMethod.POST, MTLS_PATH).servletPath(MTLS_PATH)
+                .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS)).andReturn();
+        assertThat(result.getResponse().getStatus()).isEqualTo(404);
+    }
+
+    @Test
     void trustBundleReferencesAreRejectedWhenMtlsIsDisabled() throws Exception {
         String id = "disabled-bundle" + generator.generate();
         MvcResult result = mockMvc.perform(post("/oauth/clients")
