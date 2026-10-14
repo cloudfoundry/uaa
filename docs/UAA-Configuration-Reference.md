@@ -1121,7 +1121,9 @@ in their scopes for offline access.
 **Type:** `List<String>`
 
 A list of claim names to exclude from issued JWT tokens. For example, to omit
-the `authorities` claim: `exclude: [authorities]`.
+the `authorities` claim: `exclude: [authorities]`. `cnf` cannot be excluded: it is the
+RFC 8705 certificate binding of a token issued to a client registered with
+`tls_client_certificate_bound_access_tokens: true`, and removing it would turn that token into a bearer token.
 
 [Back to table](#jwt-token-policy)
 

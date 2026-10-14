@@ -306,8 +306,11 @@ _Response Fields_
 
 #### Certificate-bound tokens
 
-A token issued here is bound to the client certificate ([RFC 8705 section 3](https://www.rfc-editor.org/rfc/rfc8705#section-3)).
-It carries `cnf` with `x5t#S256`, the base64url (no padding) SHA-256 thumbprint of the certificate's DER encoding, and
+A token issued here is bound to the client certificate ([RFC 8705 section 3](https://www.rfc-editor.org/rfc/rfc8705#section-3))
+only when the client is registered with `tls_client_certificate_bound_access_tokens: true`. It then carries `cnf` with
+`x5t#S256`, the base64url (no padding) SHA-256 thumbprint of the certificate's DER encoding. When the setting is `false`
+or absent (the [RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4) default) the same
+certificate checks apply and the token is an ordinary bearer token without `cnf`. Every token issued here carries
 `client_auth_method: tls_client_auth`. Only `client_credentials` is issued and no refresh token is returned.
 
 **UAA does not enforce the binding.** A resource server must compute the thumbprint of the certificate presented on its

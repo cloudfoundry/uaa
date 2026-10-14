@@ -154,6 +154,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private ApplicationEventPublisher applicationEventPublisher;
     private final TokenPolicy tokenPolicy;
     private final RevocableTokenProvisioning tokenProvisioning;
+    private static final String CNF = "cnf";
+
     private Set<String> excludedClaims;
     private List<UaaTokenEnhancer> uaaTokenEnhancers = new ArrayList<>();
     private IdTokenClaimEnhancer idTokenClaimEnhancer = IdTokenClaimEnhancer.noOp();
@@ -604,7 +606,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.putAll(lateOverrideClaims);
 
         for (String excludedClaim : getExcludedClaims()) {
-            claims.remove(excludedClaim);
+            // cnf is the RFC 8705 section 3.1 certificate binding. Excluding it would silently turn a token the client
+            // registered as certificate-bound into a bearer token, so the exclusion list does not apply to it.
+            if (!CNF.equals(excludedClaim)) {
+                claims.remove(excludedClaim);
+            }
         }
 
         return claims;
