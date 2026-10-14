@@ -169,6 +169,23 @@ class ClientDetailsAuthenticationProviderTests {
                 Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "pem"));
     }
 
+    @ParameterizedTest
+    @MethodSource("unreadableProxyCaValues")
+    void malformedProxyTrustCannotBecomeDirectCertificateAuthentication(Object proxyCa) {
+        Map<String, Object> persisted = new HashMap<>();
+        persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "client-ca");
+        persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, proxyCa);
+        UaaClient client = new UaaClient("proxy-only", null, List.of(), persisted, null);
+        assertThatThrownBy(() -> ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(client))
+                .as("an unreadable proxy trust entry must not silently select direct authentication")
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("tls-client-auth-trusted-proxy-ca cannot be read");
+    }
+
+    static java.util.stream.Stream<Object> unreadableProxyCaValues() {
+        return java.util.stream.Stream.of(null, "", " ", 42, List.of("pem"), Map.of("ca", "pem"));
+    }
+
     @Test
     void clientWithPersistedNullCaCannotAuthenticateWithItsSecret() {
         PasswordEncoder encoder = mock(PasswordEncoder.class);

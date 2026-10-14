@@ -36,6 +36,27 @@ import static org.mockito.Mockito.when;
 
 class MtlsClaimsEnhancerTest {
 
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("malformedProxyTrust")
+    void malformedProxyTrustCannotBeDroppedWhenClientIsReloadedForIssuance(Object proxyTrust) throws Exception {
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=workload"));
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        UaaClientDetails client = new UaaClientDetails();
+        client.setClientId("workload");
+        client.addAdditionalInformation(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "client-ca");
+        client.addAdditionalInformation(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, proxyTrust);
+        when(clientDetailsService.loadClientByClientId("workload")).thenReturn(client);
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), mockAuthentication("workload")))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("configuration cannot be resolved");
+    }
+
+    static java.util.stream.Stream<Object> malformedProxyTrust() {
+        return java.util.stream.Stream.of(null, "", " ", 42, List.of("pem"), Map.of("ca", "pem"));
+    }
+
     private TlsClientAuthentication tlsClientAuthentication;
     private ClientDetailsService clientDetailsService;
     private MtlsClaimsEnhancer enhancer;

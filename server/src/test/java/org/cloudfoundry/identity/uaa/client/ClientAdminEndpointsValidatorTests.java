@@ -642,6 +642,17 @@ class ClientAdminEndpointsValidatorTests {
                 ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(Map.of(), "client-id"));
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "((){2147483647}){2147483647}(.+)", "(?x)(){2 147483647}(.+)"})
+    void rejectsPatternsThatCanLoopWithoutReadingTheCertificate(String pattern) {
+        assertThatThrownBy(() -> ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_ou", pattern, "app"))), "unsafe-pattern"))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("invalid pattern");
+    }
+
     @Test
     void validateTlsClientAuthClaimConfig_acceptsValidNativeClaimMappings() {
         // pattern is only meaningful on subject_ou (TlsClientAuthentication.extractClaimMappingValues
