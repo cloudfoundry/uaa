@@ -31,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -54,8 +56,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -82,9 +86,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * <p>The MockMvc chain is rebuilt in {@link #setUpMtlsMockMvc()} to include
  * {@link RawPeerCertificateCaptureFilter}, which is registered in
  * {@code SpringServletXmlFiltersConfiguration} but is not added to the MockMvc chain by
- * {@code DefaultTestContext}. Requests set {@code jakarta.servlet.request.X509Certificate}
- * directly, which is the state the servlet container (or the buildpack
- * {@code ClientCertificateMapper}) leaves the request in before client authentication runs,
+ * {@code DefaultTestContext}. It also includes the real buildpack {@code ClientCertificateMapper}
+ * between the availability filter and Spring Security, so malformed XFCC headers exercise the
+ * production decoding boundary. Requests set {@code jakarta.servlet.request.X509Certificate}
+ * directly to simulate the servlet container's TLS-handshake certificate,
  * and they set {@code .servletPath("/oauth/mtls/token")} because MockMvc does not derive the
  * effective servlet path the way a real DispatcherServlet mapping would.
  */
@@ -124,6 +129,10 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     @Qualifier("mtlsEndpointAvailabilityFilter")
     @Autowired
     FilterRegistrationBean<MtlsEndpointAvailabilityFilter> mtlsEndpointAvailabilityFilterRegistration;
+
+    @Qualifier("clientCertificateMapperFilter")
+    @Autowired
+    FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilterRegistration;
 
     private static KeyPair caKeyPair;
     private static X500Name caSubject;
@@ -166,6 +175,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                 .addFilter(zoneContextPathSessionFilterRegistration.getFilter())
                 .addFilter(rawPeerCertificateCaptureFilterRegistration.getFilter())
                 .addFilter(mtlsEndpointAvailabilityFilterRegistration.getFilter())
+                .addFilter(clientCertificateMapperFilterRegistration.getFilter())
                 .addFilter(securityFilterChain)
                 .build();
         testClient = new TestClient(mockMvc);
@@ -1432,6 +1442,108 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
             MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, rogueLeaf));
 
             assertThat(denial(result).status()).as("Actual: %s", outcome(result)).isEqualTo(401);
+        }
+    }
+
+    @Nested
+    @DisplayName("L. security review regressions")
+    class SecurityReviewRegressions {
+
+        @Test
+        void boundAccessTokensWithoutTlsConfigurationAreRejectedAtRegistration() throws Exception {
+            MvcResult created = createClientViaAdminApi("mtlsl1" + generator.generate(), Map.of(
+                    "client_secret", SECRET,
+                    TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true));
+
+            assertThat(created.getResponse().getStatus())
+                    .as("a secret-only client cannot satisfy certificate binding; actual: %s", outcome(created))
+                    .isEqualTo(400);
+            assertThat(denial(created).error()).isEqualTo("invalid_client");
+            assertThat(denial(created).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+        }
+
+        @Test
+        void storedClientRequiringBoundAccessTokensCannotUseSecretWithoutCertificate() throws Exception {
+            // Write straight to the store to exercise issuance even after registration is hardened.
+            String clientId = mtlsClient("l2", GRANT_TYPE_CLIENT_CREDENTIALS, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true), true);
+            assertThat(clientDetailsService.loadClientByClientId(clientId).getAdditionalInformation())
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+
+            MvcResult issued = perform(post("/oauth/token")
+                    .servletPath("/oauth/token")
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_FORM_URLENCODED)
+                    .header("Authorization", basic(clientId, SECRET))
+                    .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS)
+                    .param("token_format", "jwt"));
+
+            assertThat(denial(issued))
+                    .as("a stored binding policy must prevent issuance without a certificate; actual: %s",
+                            outcome(issued))
+                    .extracting(Denial::status, Denial::error)
+                    .containsExactly(401, "invalid_client");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"act", "act.sub"})
+        void actorClaimMappingsAreRejectedAtRegistration(String claim) throws Exception {
+            Map<String, Object> config = new HashMap<>(tlsConfig(caCert, "CN=forged-actor"));
+            config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                    List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, claim)));
+
+            MvcResult created = createClientViaAdminApi("mtlsl3" + generator.generate(), config);
+
+            assertThat(created.getResponse().getStatus())
+                    .as("certificate mappings cannot assert token-exchange actors; actual: %s", outcome(created))
+                    .isEqualTo(400);
+            assertThat(denial(created).error()).isEqualTo("invalid_client");
+            assertThat(denial(created).description()).contains("reserved claim", claim);
+        }
+
+        @Test
+        void storedActorClaimMappingCannotForgeDelegationInIssuedToken() throws Exception {
+            // Legacy rows can bypass registration validation; token enhancement must protect act too.
+            Map<String, Object> config = new HashMap<>(tlsConfig(caCert, "CN=forged-actor"));
+            config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, List.of(
+                    new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "app_id"),
+                    new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "act.sub")));
+            String clientId = mtlsClient("l4", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult issued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=forged-actor")).param("token_format", "jwt"));
+
+            assertThat(issued.getResponse().getStatus()).as("Actual: %s", outcome(issued)).isEqualTo(200);
+            Map<String, Object> claims = claimsOf(issued);
+            assertThat(claims)
+                    .containsEntry("client_auth_method", "tls_client_auth")
+                    .containsEntry("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS)
+                    .containsEntry("app_id", "forged-actor");
+            assertThat(claims)
+                    .as("no token exchange or actor authentication occurred")
+                    .doesNotContainKey("act");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"%", "%GG"})
+        void malformedXfccWithoutCredentialsReturnsAuthenticationFailure(String header) throws Exception {
+            AtomicReference<MvcResult> response = new AtomicReference<>();
+
+            // The real mapper runs before Spring Security, just as it does in the servlet container.
+            assertThatCode(() -> response.set(perform(post(MTLS_PATH)
+                    .servletPath(MTLS_PATH)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_FORM_URLENCODED)
+                    .header("X-Forwarded-Client-Cert", header)
+                    .param("client_id", "nonexistent-security-review-client")
+                    .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS))))
+                    .as("malformed XFCC must not escape the filter chain as an unauthenticated server error")
+                    .doesNotThrowAnyException();
+
+            assertThat(denial(response.get()))
+                    .extracting(Denial::status, Denial::error)
+                    .containsExactly(401, "invalid_client");
         }
     }
 
