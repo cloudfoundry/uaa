@@ -319,6 +319,13 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         if (info == null) {
             return null;
         }
+        for (String inlineKey : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
+            if (info.containsKey(inlineKey)
+                    && !(info.get(inlineKey) instanceof String pem && !pem.isBlank())) {
+                return null;
+            }
+        }
         Object raw = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
         Object rawReference = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
         if (raw instanceof String || rawReference instanceof String) {

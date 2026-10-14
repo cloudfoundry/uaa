@@ -564,9 +564,9 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                                     + "to subject_ou -- a subject_cn/subject_o pattern would be silently "
                                     + "ignored, and the claim would take the field's raw value instead.");
                 }
-                Pattern compiled;
+                com.google.re2j.Pattern compiled;
                 try {
-                    compiled = Pattern.compile(pattern);
+                    compiled = org.cloudfoundry.identity.uaa.oauth.tls.OuClaimPattern.compile(pattern);
                 } catch (PatternSyntaxException e) {
                     throw new InvalidClientDetailsException(
                             "tls-client-auth-claim-mappings entry has an invalid pattern '" + pattern

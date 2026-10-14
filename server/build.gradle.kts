@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.javaBuildpackClientCertificateMapper)
 
     implementation(libs.guava)
+    implementation(libs.re2j)
 
     implementation(libs.aspectJWeaver)
 
