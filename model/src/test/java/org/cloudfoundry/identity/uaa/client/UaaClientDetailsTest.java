@@ -6,11 +6,14 @@ import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +22,68 @@ import java.util.TreeSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UaaClientDetailsTest {
+
+    @Nested
+    class TlsClientAuthEquality {
+        private UaaClientDetails configuredClient(boolean useReference) {
+            UaaClientDetails client = new UaaClientDetails("mtls-client", "resource", "scope",
+                    "client_credentials", "uaa.resource");
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(useReference ? null : "ca-pem", null);
+            if (useReference) {
+                config.setTrustedCaRef("workload");
+            }
+            config.setSubjectDn("CN=workload");
+            client.setTlsClientAuthConfiguration(config);
+            return client;
+        }
+
+        private UaaClientDetails loadedClient(UaaClientDetails configured) {
+            UaaClientDetails client = new UaaClientDetails("mtls-client", "resource", "scope",
+                    "client_credentials", "uaa.resource");
+            client.setAdditionalInformation(configured.getAdditionalInformation());
+            assertThat(client.getTlsClientAuthConfiguration()).isNull();
+            assertThat(client.getAdditionalInformation()).isEqualTo(configured.getAdditionalInformation());
+            return client;
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void typedAndLoadedClientsWithIdenticalPersistedSettingsAreEqual(boolean useReference) {
+            UaaClientDetails configured = configuredClient(useReference);
+            UaaClientDetails loaded = loadedClient(configured);
+            assertThat(configured).as("the transient mirror must not change persisted client equality").isEqualTo(loaded);
+            assertThat(loaded).isEqualTo(configured);
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void typedAndLoadedClientsWithIdenticalPersistedSettingsHaveEqualHashCodes(boolean useReference) {
+            UaaClientDetails configured = configuredClient(useReference);
+            UaaClientDetails loaded = loadedClient(configured);
+            assertThat(configured.hashCode()).as("hashing must use the same persisted identity as equality")
+                    .isEqualTo(loaded.hashCode());
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void loadedClientCanFindAnEquivalentTypedClientInAHashSet(boolean useReference) {
+            UaaClientDetails configured = configuredClient(useReference);
+            UaaClientDetails loaded = loadedClient(configured);
+            assertThat(new HashSet<>(Set.of(configured))).as("client cache membership must survive loading from storage")
+                    .contains(loaded);
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void differentPersistedTrustSettingsRemainUnequal(boolean useReference) {
+            UaaClientDetails configured = configuredClient(useReference);
+            UaaClientDetails loaded = loadedClient(configured);
+            loaded.addAdditionalInformation(useReference ? TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF
+                    : TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "different-trust");
+            assertThat(configured).isNotEqualTo(loaded);
+            assertThat(loaded).isNotEqualTo(configured);
+        }
+    }
 
     @Nested
     class Creation {

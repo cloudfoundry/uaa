@@ -1453,6 +1453,28 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
     class SecurityReviewRegressions {
 
         @Test
+        void persistedNullCaCannotObtainATokenUsingItsSecret() throws Exception {
+            String id = "null-ca" + generator.generate();
+            Map<String, Object> persisted = new HashMap<>();
+            persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, null);
+            setUpClients(id, "uaa.resource", "uaa.none", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    false, null, null, -1, IdentityZone.getUaa(), persisted);
+            try {
+                assertThat(clientDetailsService.loadClientByClientId(id).getAdditionalInformation())
+                        .containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                        .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, null);
+                MvcResult issued = perform(post("/oauth/token").servletPath("/oauth/token")
+                        .header("Authorization", basic(id, SECRET))
+                        .contentType(APPLICATION_FORM_URLENCODED).accept(APPLICATION_JSON)
+                        .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS).param("token_format", "jwt"));
+                assertThat(denial(issued)).as("a persisted null CA must not enable secret fallback; actual: %s", outcome(issued))
+                        .isEqualTo(new Denial(401, "invalid_client", "tls_client_auth: the client's tls-client-auth-ca cannot be read"));
+            } finally {
+                clientDetailsService.removeClientDetails(id, IdentityZone.getUaaZoneId());
+            }
+        }
+
+        @Test
         void boundAccessTokensWithoutTlsConfigurationAreRejectedAtRegistration() throws Exception {
             MvcResult created = createClientViaAdminApi("mtlsl1" + generator.generate(), Map.of(
                     "client_secret", SECRET,
