@@ -401,10 +401,9 @@ public class UaaClientDetails implements ClientDetails {
         if (!Objects.equals(additionalInformation, other.additionalInformation)) {
             return false;
         }
-        if (!Objects.equals(clientJwtConfig, other.clientJwtConfig)) {
-            return false;
-        }
-        return Objects.equals(tlsClientAuthConfiguration, other.tlsClientAuthConfiguration);
+        // additionalInformation already contains the persisted mTLS settings. Its transient
+        // typed mirror may be absent after loading from storage and must not affect identity.
+        return Objects.equals(clientJwtConfig, other.clientJwtConfig);
     }
 
     @Override
@@ -438,7 +437,6 @@ public class UaaClientDetails implements ClientDetails {
         result = prime * result + (scope == null ? 0 : scope.hashCode());
         result = prime * result + (additionalInformation == null ? 0 : additionalInformation.hashCode());
         result = prime * result + (clientJwtConfig == null ? 0 : clientJwtConfig.hashCode());
-        result = prime * result + (tlsClientAuthConfiguration == null ? 0 : tlsClientAuthConfiguration.hashCode());
         return result;
     }
 }
