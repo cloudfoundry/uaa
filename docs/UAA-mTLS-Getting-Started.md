@@ -534,6 +534,11 @@ Step 4. An operator who needs both a proxied and a direct-connection path for wh
 setting, not two ways of satisfying one requirement. See
 ["Deployment topology"](UAA-Client-Authentication.md#deployment-topology) for the full reasoning.
 
+Malformed XFCC encodings are ignored without replacing the genuine TLS peer certificate. A proxy-only
+client therefore fails authentication with `401 invalid_client` when its forwarded certificate cannot be
+decoded. A direct-connection client continues to authenticate using its TLS-handshake certificate;
+the malformed header cannot change that identity.
+
 ## Troubleshooting
 
 Every error below is a `401`/`400` with no OAuth error body unless shown, and none echo back

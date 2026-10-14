@@ -1284,6 +1284,11 @@ client configured with a `tls-client-auth-ca` property fails validation at creat
 `/oauth/mtls/token` (and everything below it) answers `404`, and OIDC discovery advertises no
 `tls_client_auth` and no `mtls_endpoint_aliases`.
 
+Registering `tls_client_certificate_bound_access_tokens=true` also requires this switch to be enabled,
+a nonblank per-client `tls-client-auth-ca`, and exactly one certificate subject binding. UAA refuses
+secret-only authentication for a stored client that requires binding and checks for certificate confirmation
+before signing its access tokens.
+
 The value is read the same way everywhere -- `true`, `1`, `yes` and `on` all enable it -- so the
 feature cannot be half-enabled by an unusual spelling.
 
