@@ -205,7 +205,7 @@ class GeneralIdentityZoneConfigurationValidatorTests {
     void malformedNamedTrustBundleIsRejected() {
         Map<String, Object> config = new HashMap<>(org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
                 zone.getConfig(), Map.class));
-        config.put("mtlsTrustBundles", Map.of("broken", "not a PEM certificate"));
+        config.put("mtls", Map.of("enabled", true, "trustBundles", Map.of("broken", "not a PEM certificate")));
         zone.setConfig(org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(config, IdentityZoneConfiguration.class));
 
         assertThatThrownBy(() -> validator.validate(zone, IdentityZoneValidator.Mode.MODIFY))

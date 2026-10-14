@@ -101,7 +101,7 @@ public class IdentityZoneConfigurationBootstrapTests {
         bootstrap.afterPropertiesSet();
         Map<String, Object> config = JsonUtils.convertValue(
                 provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig(), Map.class);
-        assertThat(config).containsEntry("mtlsTrustBundles", Map.of("configured-ca", certificate1()));
+        assertThat(config).containsEntry("mtls", Map.of("enabled", true, "trustBundles", Map.of("configured-ca", certificate1())));
     }
 
     @Test

@@ -203,21 +203,17 @@ class ClientCertificateMapperFilterTest {
                 .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
                 .getCertificate(holder);
     }
-    /**
-     * With mTLS off the mapper is pointless -- it exists only to materialise
-     * X-Forwarded-Client-Cert for /oauth/mtls/token -- and constructing it is not free: the class is
-     * package-private and loaded reflectively, so an absent buildpack jar would otherwise stop UAA
-     * from starting even on deployments that never enable the feature.
-     */
     @Test
-    void mapperFilterIsDisabledAndNotConstructedWhenMtlsIsOff() {
+    void mapperBeanExistsButRegistrationIsDisabledWhenDeploymentMtlsIsOff() {
         FilterRegistrationBean<?> bean = new SpringServletXmlFiltersConfiguration()
                 .clientCertificateMapperFilter(false);
 
         assertThat(bean.isEnabled()).isFalse();
         assertThat(bean.getFilter())
-                .as("must not be the buildpack mapper, nor a guard wrapping it")
-                .isNotInstanceOf(MtlsPathGuardedFilter.class);
+                .as("mTLS bean implementations must exist independently of the deployment switch")
+                .isInstanceOf(MtlsPathGuardedFilter.class);
+        assertThat(((MtlsPathGuardedFilter) bean.getFilter()).getDelegate().getClass().getName())
+                .isEqualTo("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
     }
 
 }

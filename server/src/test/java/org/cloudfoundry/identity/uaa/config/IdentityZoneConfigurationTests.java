@@ -50,6 +50,29 @@ class IdentityZoneConfigurationTests {
     }
 
     @Test
+    void mtlsConfigurationIsNestedAndDefaultsToEnabledWithNoBundles() {
+        java.util.Map<String, Object> config = JsonUtils.convertValue(definition, java.util.Map.class);
+        assertThat(config).containsEntry("mtls", java.util.Map.of("enabled", true, "trustBundles", java.util.Map.of()))
+                .doesNotContainKey("mtlsTrustBundles");
+    }
+
+    @Test
+    void nestedMtlsConfigurationSurvivesJsonRoundTrip() {
+        definition = JsonUtils.readValue("{\"mtls\":{\"enabled\":false,\"trustBundles\":{\"workload\":\"pem\"}}}",
+                IdentityZoneConfiguration.class);
+        assertThat(JsonUtils.convertValue(definition, java.util.Map.class))
+                .containsEntry("mtls", java.util.Map.of("enabled", false, "trustBundles", java.util.Map.of("workload", "pem")))
+                .doesNotContainKey("mtlsTrustBundles");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"{\"mtls\":null}", "{\"mtls\":{\"enabled\":null}}"})
+    void nullMtlsPolicyIsRejected(String json) {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> JsonUtils.readValue(json, IdentityZoneConfiguration.class))
+                .isInstanceOf(JsonUtils.JsonUtilException.class);
+    }
+
+    @Test
     void default_user_groups_when_json_is_deserialized() {
         definition.setUserConfig(null);
         String s = JsonUtils.writeValueAsString(definition);

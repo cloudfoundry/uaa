@@ -472,6 +472,35 @@ class UaaTokenServicesTests {
         }
 
         @Test
+        void inactiveMtlsEnhancerDoesNotCopyRefreshOnlyClaimsIntoAccessTokens() {
+            assertThat(waitForClient("jku_test", 5)).as("refresh client fixture must exist").isTrue();
+            TlsClientAuthentication noCertificate = mock(TlsClientAuthentication.class);
+            tokenServices.setUaaTokenEnhancers(List.of(new MtlsClaimsEnhancer(noCertificate, jdbcClientDetailsService)));
+            try {
+                RefreshTokenRequestData data = new RefreshTokenRequestData(
+                        GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("openid", "user_attributes"), null, "",
+                        Sets.newHashSet(""), "jku_test", false, new Date(), null,
+                        Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE, "refresh_only_marker", "private"));
+                var user = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+                refreshToken = refreshTokenCreator.createRefreshToken(user, data, null);
+                assertThat(UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class))
+                        .containsEntry("refresh_only_marker", "private");
+                OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+                OAuth2Request request = mock(OAuth2Request.class);
+                when(authentication.getOAuth2Request()).thenReturn(request);
+                when(request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                var token = tokenServices.refreshAccessToken(refreshToken.getValue(),
+                        new TokenRequest(new HashMap<>(), "jku_test", List.of("openid"), GRANT_TYPE_REFRESH_TOKEN));
+                assertThat(UaaTokenUtils.getClaims(token.getValue(), Map.class))
+                        .containsEntry(ClaimConstants.SCOPE, List.of("openid"))
+                        .doesNotContainKeys("refresh_only_marker", "cnf");
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+
+        @Test
         void happyCase() {
             assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(

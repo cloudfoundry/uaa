@@ -1590,7 +1590,7 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         private void setBundles(Map<String, String> bundles) {
             IdentityZone zone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
             Map<String, Object> config = new HashMap<>(JsonUtils.convertValue(zone.getConfig(), Map.class));
-            config.put("mtlsTrustBundles", bundles);
+            config.put("mtls", Map.of("enabled", true, "trustBundles", bundles));
             zone.setConfig(JsonUtils.convertValue(config, IdentityZoneConfiguration.class));
             IdentityZoneHolder.set(identityZoneProvisioning.update(zone));
         }
