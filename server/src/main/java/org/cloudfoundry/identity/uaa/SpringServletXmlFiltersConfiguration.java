@@ -273,6 +273,16 @@ public class SpringServletXmlFiltersConfiguration {
         // The library is designed for Spring Boot autoconfiguration or Servlet container
         // initializer use — direct instantiation from outside the package requires
         // reflection. setAccessible(true) is the only available mechanism.
+        if (!mtlsEnabled) {
+            // The registration exists but is disabled, and the third-party class is never loaded,
+            // so a deployment that does not use mTLS cannot fail startup because of it.
+            FilterRegistrationBean<jakarta.servlet.Filter> bean =
+                    new FilterRegistrationBean<>(new MtlsPathGuardedFilter((request, response, chain) ->
+                            chain.doFilter(request, response)));
+            bean.setEnabled(false);
+            bean.setOrder(-200);
+            return bean;
+        }
         try {
             Class<?> mapperClass = Class.forName("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
             java.lang.reflect.Constructor<?> ctor = mapperClass.getDeclaredConstructor();
@@ -291,7 +301,6 @@ public class SpringServletXmlFiltersConfiguration {
             // jakarta.servlet.request.X509Certificate request attribute it derives from the
             // XFCC header is already populated when ClientDetailsAuthenticationProvider /
             // TlsClientAuthentication authenticate the /oauth/mtls/token request.
-            bean.setEnabled(mtlsEnabled);
             bean.setOrder(-200);
             return bean;
         } catch (ReflectiveOperationException e) {

@@ -311,12 +311,15 @@ in the client update. A proxy bundle uses `tls-client-auth-trusted-proxy-ca-ref`
 Rotate a bundle by replacing its value with old and new CA PEMs concatenated together, then with the new CA alone.
 Every referencing client uses the current zone configuration; registrations do not need rewriting. Changing the
 default zone's YAML requires a UAA restart, while another zone's API update applies to subsequent requests.
-An unknown reference is rejected at registration. Removing a referenced bundle denies subsequent authentication,
-and default-zone startup checks refuse persisted references that no longer resolve, identifying the client and zone.
-Unresolved references in tenant zones are logged at startup and denied at token time; they do not prevent other
-zones from starting.
-Invalid default-zone bundle definitions prevent startup; invalid tenant definitions are logged and deny affected
-clients. Invalid definitions are rejected on zone updates.
+An unknown reference is rejected at registration. Removing a referenced bundle denies subsequent authentication.
+Startup checks only the default zone, and only when mTLS is enabled for both the deployment and that zone: invalid
+bundle definitions or persisted references that no longer resolve prevent startup, identifying the client and zone.
+Tenant zones are not inspected at startup, so startup time does not grow with the number of zones. Instead, a zone
+update that turns mTLS on is rejected with `422` if a client in that zone references a bundle the updated
+configuration does not define; supply the bundle in the same update. Updates that keep mTLS on, including bundle
+removal, are not revalidated. Unresolved references are always denied at token time.
+Invalid definitions are rejected on zone updates. While mTLS is disabled for the deployment or a zone, persisted
+references there are inert and never prevent startup.
 
 `GET /oauth/mtls/trust-bundles` returns only sorted names, for example
 `{"trust_bundles":["instance-identity"]}`. It requires a bearer token with `clients.read`, `clients.admin`, or zone/UAA
