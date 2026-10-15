@@ -387,6 +387,35 @@ class ClientAdminEndpointsValidatorTests {
                 .hasMessageContaining("TLS client trust configuration");
     }
 
+    /** Proxy trust only says who may forward a certificate; without workload trust nothing can authenticate. */
+    @ParameterizedTest(name = "proxy trust by reference={0}")
+    @ValueSource(booleans = {false, true})
+    void rejectsProxyTrustWithoutWorkloadTrust(boolean reference) {
+        IdentityZoneHolder.get().getConfig().getMtls().setTrustBundles(Map.of("proxy", VALID_CERT));
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                reference ? TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF
+                        : TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                reference ? "proxy" : VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router")));
+
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("requires tls-client-auth-ca or tls-client-auth-ca-ref");
+    }
+
+    @Test
+    void acceptsProxyTrustTogetherWithWorkloadTrust() {
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router")));
+
+        assertThatCode(() -> mtlsEnabledValidator().validate(client, false, false)).doesNotThrowAnyException();
+    }
+
     private ClientAdminEndpointsValidator mtlsEnabledValidator() {
         return new ClientAdminEndpointsValidator(
                 mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl());

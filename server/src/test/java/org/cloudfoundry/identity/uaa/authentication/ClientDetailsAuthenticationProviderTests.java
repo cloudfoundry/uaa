@@ -213,6 +213,43 @@ class ClientDetailsAuthenticationProviderTests {
                 .hasMessageContaining("tls-client-auth-ca cannot be read");
     }
 
+    /**
+     * Proxy trust marks a client as mTLS-only. A stored client that has it without workload trust (a row that
+     * bypassed registration validation) must not become an ordinary client whose secret works.
+     */
+    @ParameterizedTest
+    @MethodSource("proxyOnlyConfigurations")
+    void aStoredProxyOnlyClientCannotAuthenticateWithItsSecret(Map<String, Object> persisted) {
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.matches(any(), any())).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), encoder, mock(JwtClientAuthentication.class),
+                mock(TlsClientAuthentication.class));
+        UaaClient client = new UaaClient("proxy-only", "secret", List.of(), new HashMap<>(persisted), null);
+
+        for (String path : List.of("/oauth/token", "/oauth/mtls/token")) {
+            MockHttpServletRequest request = new MockHttpServletRequest("POST", path);
+            request.setServletPath(path);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken("proxy-only", "secret");
+            authentication.setDetails(new UaaAuthenticationDetails(request));
+
+            assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                    .as("at %s", path)
+                    .isInstanceOf(BadCredentialsException.class)
+                    .hasMessageContaining("requires tls-client-auth-ca or tls-client-auth-ca-ref");
+        }
+    }
+
+    static java.util.stream.Stream<Map<String, Object>> proxyOnlyConfigurations() {
+        return java.util.stream.Stream.of(
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem",
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router"),
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF, "proxy",
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router"),
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router"));
+    }
+
     @Test
     void tlsConfigIsReadFromFlatAdditionalInfo() {
         Map<String, Object> additionalInfo = new HashMap<>();
