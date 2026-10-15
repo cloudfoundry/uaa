@@ -431,10 +431,6 @@ typed mTLS mirror does not change equality, hash codes, or set membership after 
 
 * OIDC discovery gains one field, `tls_client_certificate_bound_access_tokens`, always present and `false` when the
   feature is off. RFC 8705 section 3.3 treats an omitted value as `false`, so its meaning is unchanged.
-* **Deployments that register their own `UaaTokenEnhancer` beans**
-  see one change regardless of the flag: an access token issued by a *refresh* no longer carries the
-  `granted_scopes` claim. That claim records the full consented scope set and belongs on the refresh token only; copying
-  it onto an access token whose `scope` was deliberately narrowed disclosed more than the caller was given.
 * The classes `ClientAdminEndpointsValidator`, `ClientAdminBootstrap`, `ClientDetailsAuthenticationProvider` and
   `ZoneEndpointsClientDetailsValidator` gained constructor parameters and lost their previous signatures. They are
   Spring-wired internals; only code that constructs them by hand needs the extra argument.
