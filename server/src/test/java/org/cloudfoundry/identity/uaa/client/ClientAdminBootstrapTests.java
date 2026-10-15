@@ -42,6 +42,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -679,25 +680,27 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
-    void mtlsClientConfigRejectedWhenMtlsDisabled() {
+    void validMtlsClientBootstrapsWhileMtlsIsDisabled() {
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
         clients.put((String) map.get("id"), map);
 
-        assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls.enabled");
+        assertThatCode(() -> clientAdminBootstrap.afterPropertiesSet()).doesNotThrowAnyException();
+        assertThat(multitenantJdbcClientDetailsService.loadClientByClientId((String) map.get("id"), IdentityZone.getUaaZoneId())
+                .getAdditionalInformation()).containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
     }
 
     @Test
-    void mtlsClientTrustedProxyConfigRejectedWhenMtlsDisabled() {
+    void invalidMtlsClientIsRejectedWhileMtlsIsDisabled() {
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "some-trusted-proxy-ca");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router");
         clients.put((String) map.get("id"), map);
 
         assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls.enabled");
+                .hasMessageContaining("Invalid tls-client-auth-trusted-proxy-ca");
     }
 
     @Test

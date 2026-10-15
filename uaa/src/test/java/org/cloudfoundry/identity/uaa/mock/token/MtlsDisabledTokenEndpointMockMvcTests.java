@@ -188,30 +188,38 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    @DisplayName("E2. the client admin API refuses tls-client-auth-ca when mTLS is disabled")
-    void clientAdminApiRejectsTlsConfigWhenDisabled() throws Exception {
+    @DisplayName("E2. the client admin API validates mTLS configuration even when mTLS is disabled")
+    void clientAdminApiValidatesTlsConfigWhenDisabled() throws Exception {
         String clientId = "mtlsoffe2" + generator.generate();
-        Map<String, Object> client = Map.of(
+        Map<String, Object> client = new java.util.HashMap<>(Map.of(
                 "client_id", clientId,
-                "client_secret", SECRET,
                 "authorized_grant_types", List.of(GRANT_TYPE_CLIENT_CREDENTIALS),
                 "scope", List.of("uaa.none"),
                 "authorities", List.of("uaa.resource"),
-                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, selfSignedCaPem());
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, selfSignedCaPem()));
 
-        MvcResult result = mockMvc.perform(post("/oauth/clients")
+        MvcResult missingBinding = postClient(client);
+        assertThat(missingBinding.getResponse().getStatus())
+                .as("an incomplete mTLS registration is refused whether or not the feature is on. Actual: %s",
+                        MtlsTokenEndpointHardeningMockMvcTests.outcome(missingBinding))
+                .isEqualTo(400);
+        assertThat(missingBinding.getResponse().getContentAsString()).contains("subject");
+
+        client.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=e2-app");
+        MvcResult created = postClient(client);
+        assertThat(created.getResponse().getStatus())
+                .as("a valid mTLS registration is stored while the feature is off. Actual: %s",
+                        MtlsTokenEndpointHardeningMockMvcTests.outcome(created))
+                .isEqualTo(201);
+    }
+
+    private MvcResult postClient(Map<String, Object> client) throws Exception {
+        return mockMvc.perform(post("/oauth/clients")
                         .header("Authorization", "Bearer " + adminToken)
                         .accept(APPLICATION_JSON)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(client)))
                 .andReturn();
-
-        assertThat(MtlsTokenEndpointHardeningMockMvcTests.denial(result))
-                .as("the refusal must name the platform flag, so an operator knows what to turn on "
-                        + "rather than thinking the CA itself was rejected")
-                .isEqualTo(new MtlsTokenEndpointHardeningMockMvcTests.Denial(400, "invalid_client",
-                        "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls.enabled "
-                                + "to be true on this UAA deployment. ClientID: " + clientId));
     }
 
     @Test

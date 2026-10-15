@@ -26,10 +26,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.security.Security;
 import java.util.stream.Stream;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
 import static org.mockito.Mockito.verify;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -165,20 +168,43 @@ class ZoneEndpointsClientDetailsValidatorTests {
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
-    @Test
-    void rejectsTlsClientAuthCaWhenMtlsDisabled() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, false);
+    /** Client configuration is validated on create/update whether or not mTLS is active. */
+    @ParameterizedTest(name = "deployment={0}, zone={1}")
+    @CsvSource({"false, true", "false, false", "true, false"})
+    void acceptsValidTlsClientAuthCaWhileMtlsIsInactive(boolean deploymentEnabled, boolean zoneEnabled) {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, deploymentEnabled);
+        IdentityZoneHolder.get().getConfig().getMtls().setEnabled(zoneEnabled);
 
+        assertThatCode(() -> zoneEndpointsClientDetailsValidator.validate(
+                mtlsClient(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT,
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app")), Mode.CREATE))
+                .doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest(name = "deployment={0}, zone={1}")
+    @CsvSource({"false, true", "false, false", "true, false"})
+    void rejectsInvalidTlsClientAuthCaWhileMtlsIsInactive(boolean deploymentEnabled, boolean zoneEnabled) {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, deploymentEnabled);
+        IdentityZoneHolder.get().getConfig().getMtls().setEnabled(zoneEnabled);
+
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(
+                mtlsClient(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT)), Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("subject");
+        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(
+                mtlsClient(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "not a certificate",
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app")), Mode.CREATE))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("Invalid tls-client-auth-ca");
+    }
+
+    private static UaaClientDetails mtlsClient(Map<String, Object> mtls) {
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         clientDetails.setClientSecret("secret");
-        Map<String, Object> additionalInfo = new HashMap<>();
+        Map<String, Object> additionalInfo = new HashMap<>(mtls);
         additionalInfo.put(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         clientDetails.setAdditionalInformation(additionalInfo);
-
-        assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls.enabled");
+        return clientDetails;
     }
 
     @Test
