@@ -37,6 +37,13 @@ import static org.springframework.util.StringUtils.hasText;
  */
 public class UaaAuthenticationDetails implements Serializable {
 
+    /**
+     * Pinned to the UID computed for the release before servletPath was added: instances live in
+     * Spring Session, and nodes on both versions must read each other's sessions. A session from the
+     * previous release deserializes with a null servletPath, which is treated as a non-mTLS path.
+     */
+    private static final long serialVersionUID = 4782409396359737075L;
+
     public static final String ADD_NEW = "add_new";
 
     public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
