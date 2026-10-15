@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,12 +50,18 @@ public class TlsClientAuthentication {
 
     private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthentication.class);
 
-    @Autowired
-    private IdentityZoneManager identityZoneManager =
-            new IdentityZoneManagerImpl();
+    /** The leaf certificate client authentication validated for this request; set only by UAA, never by a caller. */
+    static final String AUTHENTICATED_CERTIFICATE_ATTRIBUTE =
+            TlsClientAuthentication.class.getName() + ".AUTHENTICATED_CERTIFICATE";
+
+    private final IdentityZoneManager identityZoneManager;
+    private final MtlsFeaturePolicy featurePolicy;
 
     @Autowired
-    private MtlsFeaturePolicy featurePolicy = new MtlsFeaturePolicy(true, new IdentityZoneManagerImpl());
+    public TlsClientAuthentication(IdentityZoneManager identityZoneManager, MtlsFeaturePolicy featurePolicy) {
+        this.identityZoneManager = identityZoneManager;
+        this.featurePolicy = featurePolicy;
+    }
 
     public boolean isMtlsEnabled() {
         return featurePolicy.isEnabled();
@@ -104,6 +109,25 @@ public class TlsClientAuthentication {
         }
         Object certs = attrs.getRequest().getAttribute("jakarta.servlet.request.X509Certificate");
         return certs instanceof X509Certificate[] arr && arr.length > 0;
+    }
+
+    /** Records the leaf certificate that passed client authentication on the current request. */
+    public void setAuthenticatedCertificate(X509Certificate certificate) {
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs) {
+            attrs.getRequest().setAttribute(AUTHENTICATED_CERTIFICATE_ATTRIBUTE, certificate);
+        }
+    }
+
+    /**
+     * The certificate recorded by {@link #setAuthenticatedCertificate}, or {@code null}. Token claims such as
+     * {@code cnf} must use this rather than re-deriving a certificate from the request.
+     */
+    public X509Certificate getAuthenticatedCertificate() {
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs
+                && attrs.getRequest().getAttribute(AUTHENTICATED_CERTIFICATE_ATTRIBUTE) instanceof X509Certificate cert) {
+            return cert;
+        }
+        return null;
     }
 
     /**

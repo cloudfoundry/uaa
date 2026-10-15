@@ -46,6 +46,7 @@ import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenClaimEnhancer;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenEnhancer;
@@ -861,7 +862,8 @@ public class OauthEndpointBeanConfiguration {
             @Qualifier("globalTokenPolicy") TokenPolicy globalTokenPolicy,
             @Qualifier("keyInfoService") KeyInfoService keyInfoService,
             @Qualifier("idTokenGranter") IdTokenGranter idTokenGranter,
-            @Qualifier("idTokenClaimEnhancer") IdTokenClaimEnhancer idTokenClaimEnhancer
+            @Qualifier("idTokenClaimEnhancer") IdTokenClaimEnhancer idTokenClaimEnhancer,
+            MtlsFeaturePolicy mtlsFeaturePolicy
     ) {
         UaaTokenServices tokenServices = new UaaTokenServices(
                 idTokenCreator,
@@ -880,6 +882,7 @@ public class OauthEndpointBeanConfiguration {
                 approvalService
         );
         tokenServices.setIdTokenClaimEnhancer(idTokenClaimEnhancer);
+        tokenServices.setMtlsFeaturePolicy(mtlsFeaturePolicy);
         return tokenServices;
     }
 

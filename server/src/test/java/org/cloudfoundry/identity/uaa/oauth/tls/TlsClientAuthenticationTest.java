@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
@@ -81,7 +83,7 @@ class TlsClientAuthenticationTest {
                     new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "((){2147483647}){2147483647}(.+)", "unsafe"),
                     new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "workload")));
             System.out.println("Extracting claims using production code");
-            Map<String, String> claims = new TlsClientAuthentication().extractClaimMappingValues(cert, config);
+            Map<String, String> claims = new TlsClientAuthentication(new IdentityZoneManagerImpl(), new MtlsFeaturePolicy(true, new IdentityZoneManagerImpl())).extractClaimMappingValues(cert, config);
             if (!claims.equals(Map.of("workload", "workload"))) {
                 throw new AssertionError("Unexpected claims: " + claims);
             }
@@ -92,7 +94,7 @@ class TlsClientAuthenticationTest {
 
     @BeforeEach
     void setUp() {
-        service = new TlsClientAuthentication();
+        service = new TlsClientAuthentication(new IdentityZoneManagerImpl(), new MtlsFeaturePolicy(true, new IdentityZoneManagerImpl()));
         Security.addProvider(new BouncyCastleFipsProvider());
     }
 

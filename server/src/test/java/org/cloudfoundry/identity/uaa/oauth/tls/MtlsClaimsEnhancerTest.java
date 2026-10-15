@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
@@ -32,6 +34,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,7 +49,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=workload"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
         UaaClientDetails client = new UaaClientDetails();
         client.setClientId("workload");
         client.addAdditionalInformation(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "client-ca");
@@ -69,9 +72,9 @@ class MtlsClaimsEnhancerTest {
         // A spy (not a plain mock): extractClaimMappingValues now lives on TlsClientAuthentication,
         // and this test suite still needs it to actually run (real RDN parsing) to exercise
         // MtlsClaimsEnhancer's claim-shape-building logic end-to-end, exactly as before this class
-        // was relocated. hasCertificateFromRequest()/getCertificateFromRequest(...) remain stubbed
+        // was relocated. hasCertificateFromRequest()/getAuthenticatedCertificate() remain stubbed
         // per-test exactly as before.
-        tlsClientAuthentication = spy(new TlsClientAuthentication());
+        tlsClientAuthentication = spy(new TlsClientAuthentication(new IdentityZoneManagerImpl(), new MtlsFeaturePolicy(true, new IdentityZoneManagerImpl())));
         clientDetailsService = mock(ClientDetailsService.class);
         enhancer = new MtlsClaimsEnhancer(tlsClientAuthentication, clientDetailsService);
     }
@@ -99,7 +102,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getSubjectX500Principal()).thenReturn(
             new X500Principal("CN=instance-guid, OU=app:app-guid-123, OU=space:space-guid-456, OU=organization:org-guid-789, O=Cloud Foundry"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -129,7 +132,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=test"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -162,7 +165,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
             "CN=inst-guid, OU=app:app-guid, OU=space:space-guid, OU=organization:org-guid, O=Cloud Foundry"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -201,7 +204,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
             "CN=instance-guid, OU=app:app-guid-123, OU=space:space-guid-456, OU=organization:org-guid-789, O=Cloud Foundry"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -233,7 +236,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
             "CN=inst-guid, OU=app:app-guid, O=cf-org"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -268,7 +271,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=inst-guid, OU=app:app-guid"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -292,7 +295,7 @@ class MtlsClaimsEnhancerTest {
     void subTemplateRendered() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         config.setSubTemplate("o/{cf.org}/s/{cf.space}/a/{cf.app}");
@@ -312,7 +315,7 @@ class MtlsClaimsEnhancerTest {
     void audTemplatesRenderedAndOverrideDefault() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         config.setAudTemplates(List.of(
@@ -342,7 +345,7 @@ class MtlsClaimsEnhancerTest {
     void skipsNullAudTemplateEntryForPersistedClient() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         config.setAudTemplates(Arrays.asList(null, "o/{cf.org}"));
@@ -365,7 +368,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=only-cn"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
             "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
@@ -388,7 +391,7 @@ class MtlsClaimsEnhancerTest {
     void audEntryDroppedWhenTemplateVarMissing() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         config.setAudTemplates(List.of(
@@ -413,7 +416,7 @@ class MtlsClaimsEnhancerTest {
     void audOmittedWhenAllTemplateEntriesFail() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         config.setAudTemplates(List.of("x/{missing}", "y/{also_missing}"));
@@ -432,7 +435,7 @@ class MtlsClaimsEnhancerTest {
     void noTemplatesConfiguredLeavesSubAndAudAbsent() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         // Config with no subTemplate/audTemplates (original behaviour)
         UaaClientDetails clientDetails = new UaaClientDetails();
@@ -450,7 +453,7 @@ class MtlsClaimsEnhancerTest {
     void stringPathInAdditionalInformationLoadsSubTemplateAndAudTemplates() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -478,33 +481,30 @@ class MtlsClaimsEnhancerTest {
     }
 
     @Test
-    void stringPathInAdditionalInformationLoadsTrustedProxyCa() throws Exception {
-        X509Certificate cert = mockCfCert();
+    void cnfBindsTheCertificateThatClientAuthenticationValidated() throws Exception {
+        X509Certificate authenticated = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        // doReturn/when (not when/thenReturn) — this test verifies the exact invocation count of
-        // getCertificateFromRequest below; when/thenReturn on a spy invokes the real method once
-        // during stub setup, which would be double-counted as an extra interaction.
-        doReturn(cert).when(tlsClientAuthentication).getCertificateFromRequest(any());
+        doReturn(authenticated).when(tlsClientAuthentication).getAuthenticatedCertificate();
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
-        // Do NOT call setTlsClientAuthConfiguration — use String values directly, mirroring how
-        // additionalInformation looks once round-tripped through the DB/JDBC.
         clientDetails.setAdditionalInformation(Map.of(
             TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
                 "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
             TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
-                "-----BEGIN CERTIFICATE-----\nMIIBproxy\n-----END CERTIFICATE-----\n"
+                "-----BEGIN CERTIFICATE-----\nMIIBproxy\n-----END CERTIFICATE-----\n",
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=gorouter",
+            BOUND_TOKENS, true
         ));
         when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
 
-        enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
 
-        ArgumentCaptor<TlsClientAuthConfiguration> configCaptor =
-                ArgumentCaptor.forClass(TlsClientAuthConfiguration.class);
-        verify(tlsClientAuthentication).getCertificateFromRequest(configCaptor.capture());
-        assertThat(configCaptor.getValue().getTrustedProxyCaPem())
-                .isEqualTo("-----BEGIN CERTIFICATE-----\nMIIBproxy\n-----END CERTIFICATE-----\n");
+        String expected = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                java.security.MessageDigest.getInstance("SHA-256").digest(authenticated.getEncoded()));
+        assertThat(result).containsEntry("cnf", Map.of("x5t#S256", expected));
+        verify(tlsClientAuthentication, never()).getCertificateFromRequest(any());
+        verify(tlsClientAuthentication, never()).getCertificateChainFromRequest(any());
     }
 
     @Test
@@ -516,7 +516,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
             "CN=Smith\\, John,OU=app:app-guid-123,O=Cloud Foundry"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -545,7 +545,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
             "CN=inst-guid,OU=team\\, ops,OU=app:app-guid-123,O=Cloud Foundry"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -577,7 +577,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal(
             "CN=instance-guid, OU=app:app-guid-123, O=Cloud Foundry"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -603,7 +603,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=instance-guid"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -644,7 +644,7 @@ class MtlsClaimsEnhancerTest {
     @Test
     void enhanceFailsClosedWhenNoCertificateCanBeResolvedForAClientThatAuthenticatedWithOne() throws Exception {
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(null);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(null);
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
         clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
@@ -663,7 +663,7 @@ class MtlsClaimsEnhancerTest {
         // swallowed into an incomplete/degraded token missing identity + cnf claims.
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         when(clientDetailsService.loadClientByClientId("instance-identity"))
                 .thenThrow(new ClientRegistrationException("db unavailable"));
@@ -685,7 +685,7 @@ class MtlsClaimsEnhancerTest {
         when(cert.getEncoded()).thenThrow(new CertificateEncodingException("boom"));
         when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=test"));
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
@@ -709,7 +709,7 @@ class MtlsClaimsEnhancerTest {
         // existing "unresolved placeholder" contract.
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         String oversizedSubTemplate = "{".repeat(MtlsClaimsEnhancer.MAX_TEMPLATE_LENGTH + 1) + "cf.org}";
@@ -759,7 +759,7 @@ class MtlsClaimsEnhancerTest {
     void resourceOnTheAllowListBecomesAud() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         config.setAllowedResources(List.of("https://billing.apps.internal"));
@@ -780,7 +780,7 @@ class MtlsClaimsEnhancerTest {
     void resourceOffTheAllowListIsRefusedEvenWithoutTheEndpointCheck() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         config.setAllowedResources(List.of("https://billing.apps.internal"));
@@ -802,7 +802,7 @@ class MtlsClaimsEnhancerTest {
     void resourceIsRefusedWhenNoAllowListIsConfigured() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         // No allowed resources at all: an absent allow-list authorizes nothing, it does not mean
         // "anything goes".
@@ -821,7 +821,7 @@ class MtlsClaimsEnhancerTest {
     void resourceIsRefusedForANonWorkloadGrant() throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         TlsClientAuthConfiguration config = cfMappingsConfig();
         config.setAllowedResources(List.of("https://billing.apps.internal"));
@@ -863,7 +863,7 @@ class MtlsClaimsEnhancerTest {
     private Map<String, Object> enhanceForClientWith(Map<String, Object> extraInfo) throws Exception {
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
 
         Map<String, Object> info = new HashMap<>(extraInfo);
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
@@ -927,7 +927,7 @@ class MtlsClaimsEnhancerTest {
 
         X509Certificate cert = mockCfCert();
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
-        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        when(tlsClientAuthentication.getAuthenticatedCertificate()).thenReturn(cert);
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("instance-identity");
         clientDetails.setAdditionalInformation(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,

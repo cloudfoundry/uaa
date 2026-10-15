@@ -158,10 +158,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Set<String> excludedClaims;
     private List<UaaTokenEnhancer> uaaTokenEnhancers = new ArrayList<>();
-    @Autowired
-    private MtlsFeaturePolicy mtlsFeaturePolicy =
-            new MtlsFeaturePolicy(true,
-                    new IdentityZoneManagerImpl());
+    private MtlsFeaturePolicy mtlsFeaturePolicy = new MtlsFeaturePolicy(false, new IdentityZoneManagerImpl());
     private IdTokenClaimEnhancer idTokenClaimEnhancer = IdTokenClaimEnhancer.noOp();
     private final IdTokenCreator idTokenCreator;
     private final RefreshTokenCreator refreshTokenCreator;
@@ -208,6 +205,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setExcludedClaims(Set<String> excludedClaims) {
         this.excludedClaims = new HashSet<>(excludedClaims);
+    }
+
+    public void setMtlsFeaturePolicy(MtlsFeaturePolicy mtlsFeaturePolicy) {
+        this.mtlsFeaturePolicy = mtlsFeaturePolicy;
     }
 
     @Autowired(required = false)

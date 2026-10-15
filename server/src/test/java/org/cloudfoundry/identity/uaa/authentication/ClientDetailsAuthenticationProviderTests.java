@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
+
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
@@ -377,7 +381,7 @@ class ClientDetailsAuthenticationProviderTests {
         X500Name appSubject = new X500Name("CN=app-instance,OU=space:some-other-space-guid");
         X509Certificate appCert = signCert(appSubject, caName, appKeyPair.getPublic(), caKeyPair.getPrivate(), false, BigInteger.TWO);
 
-        TlsClientAuthentication tlsClientAuthentication = new TlsClientAuthentication();
+        TlsClientAuthentication tlsClientAuthentication = new TlsClientAuthentication(new IdentityZoneManagerImpl(), new MtlsFeaturePolicy(true, new IdentityZoneManagerImpl()));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         X509Certificate[] presentedChain = new X509Certificate[]{appCert};
@@ -417,9 +421,13 @@ class ClientDetailsAuthenticationProviderTests {
             assertThat(provider.validateTlsClientAuth(constrainedClient))
                     .as("the constrained client rejects a cert whose space_guid doesn't match its required claim")
                     .isFalse();
+            assertThat(tlsClientAuthentication.getAuthenticatedCertificate())
+                    .as("a rejected certificate is never recorded for token issuance")
+                    .isNull();
             assertThat(provider.validateTlsClientAuth(boundToThisCertClient))
                     .as("positive control: the client bound to THIS certificate's subject authenticates")
                     .isTrue();
+            assertThat(tlsClientAuthentication.getAuthenticatedCertificate()).isSameAs(appCert);
         } finally {
             RequestContextHolder.resetRequestAttributes();
         }
