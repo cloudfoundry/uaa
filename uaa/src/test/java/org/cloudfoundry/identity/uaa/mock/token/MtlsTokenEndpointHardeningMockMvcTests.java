@@ -1870,15 +1870,15 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
-        void removedBundleIsDetectedByTheStartupValidator() {
+        void removedBundleDoesNotPreventStartup() {
+            // Startup never reads clients; removedBundleFailsClosedAtTokenTime covers the denial.
             String id = mtlsClient("startup", GRANT_TYPE_CLIENT_CREDENTIALS, referenceConfig(), true);
             createdIds.add(id);
             setBundles(Map.of());
-            org.assertj.core.api.Assertions.assertThatThrownBy(() -> webApplicationContext.getBean(
+            org.assertj.core.api.Assertions.assertThatCode(() -> webApplicationContext.getBean(
                     "mtlsTrustBundleStartupValidator", org.springframework.beans.factory.SmartInitializingSingleton.class)
                     .afterSingletonsInstantiated())
-                    .isInstanceOf(org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException.class)
-                    .hasMessageContaining("workload");
+                    .doesNotThrowAnyException();
         }
 
         @Test

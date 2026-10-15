@@ -98,10 +98,18 @@ public class IdentityZoneConfigurationBootstrapTests {
                 .as("the default-zone bootstrap must accept the uaa.yml trust bundles")
                 .isTrue();
         properties.setPropertyValue("mtlsTrustBundles", Map.of("configured-ca", certificate1()));
+        bootstrap.setMtlsEnabled(true);
         bootstrap.afterPropertiesSet();
         Map<String, Object> config = JsonUtils.convertValue(
                 provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig(), Map.class);
         assertThat(config).containsEntry("mtls", Map.of("enabled", true, "trustBundles", Map.of("configured-ca", certificate1())));
+    }
+
+    @Test
+    void defaultZoneMtlsIsDisabledUnlessTheDeploymentEnablesIt() throws Exception {
+        bootstrap.afterPropertiesSet();
+
+        assertThat(provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig().getMtls().isEnabled()).isFalse();
     }
 
     @Test

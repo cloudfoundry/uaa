@@ -40,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.security.Security;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -53,6 +55,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MtlsEnabledZoneExtension.class)
 class ClientAdminEndpointsValidatorTests {
 
     private static final String VALID_CERT = """

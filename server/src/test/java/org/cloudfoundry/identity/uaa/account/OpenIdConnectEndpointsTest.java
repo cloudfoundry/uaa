@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +21,7 @@ class OpenIdConnectEndpointsTest {
     @BeforeEach
     void setUp() {
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(MtlsEnabledZoneExtension.mtlsEnabledUaaZone());
         endpoints = new OpenIdConnectEndpoints("https://uaa.example.com/oauth/token", mockIdentityZoneManager, true);
     }
 
@@ -38,6 +39,22 @@ class OpenIdConnectEndpointsTest {
         assertThat(response.getBody().getMtlsEndpointAliases())
                 .isNotNull()
                 .containsEntry("token_endpoint", "https://uaa.example.com/oauth/mtls/token");
+    }
+
+    @Test
+    void zoneThatDoesNotOptInIsNotAdvertisedEvenWhenTheDeploymentEnablesMtls() throws Exception {
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/.well-known/openid-configuration");
+        request.setScheme("https");
+        request.setServerName("uaa.example.com");
+        request.setServerPort(443);
+        request.setContextPath("");
+
+        ResponseEntity<OpenIdConfiguration> response = endpoints.getOpenIdConfiguration(request);
+
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMtlsEndpointAliases()).isNull();
+        assertThat(response.getBody().getTokenAMR()).doesNotContain(ClientAuthentication.TLS_CLIENT_AUTH);
     }
 
     @Test

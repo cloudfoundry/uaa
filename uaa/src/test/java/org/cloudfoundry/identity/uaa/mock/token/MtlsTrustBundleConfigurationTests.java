@@ -29,6 +29,7 @@ class MtlsTrustBundleConfigurationTests {
         assertThat((Map<String, Object>) mtls.get("trustBundles")).containsKey("configured-ca");
         IdentityZone other = new IdentityZone();
         assertThat(JsonUtils.convertValue(other.getConfig(), Map.class))
-                .containsEntry("mtls", Map.of("enabled", true, "trustBundles", Map.of()));
+                .as("zones opt in to mTLS")
+                .containsEntry("mtls", Map.of("enabled", false, "trustBundles", Map.of()));
     }
 }
