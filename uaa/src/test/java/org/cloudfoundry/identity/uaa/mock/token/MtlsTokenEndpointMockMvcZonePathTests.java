@@ -217,12 +217,12 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
-        void enablingZoneMtlsValidatesItsClientsTrustReferencesWhileDefaultZoneIsDisabled() throws Exception {
+        void enablingZoneMtlsWithUnresolvedReferenceDeniesAtTokenTimeWhileDefaultZoneIsDisabled() throws Exception {
             IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
             var previous = defaultZone.getConfig();
             try {
                 updateMtlsPolicy(defaultZone, false);
-                assertEnablingValidatesTrustReferences(newZone());
+                assertUnresolvedReferenceIsDeniedAtTokenTime(newZone());
             } finally {
                 defaultZone.setConfig(previous);
                 identityZoneProvisioning.update(defaultZone);
@@ -230,12 +230,12 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
-        void enablingZoneMtlsValidatesItsClientsTrustReferencesWhileDefaultZoneIsEnabled() throws Exception {
+        void enablingZoneMtlsWithUnresolvedReferenceDeniesAtTokenTimeWhileDefaultZoneIsEnabled() throws Exception {
             IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
             var previous = defaultZone.getConfig();
             try {
                 updateMtlsPolicy(defaultZone, true);
-                assertEnablingValidatesTrustReferences(newZone());
+                assertUnresolvedReferenceIsDeniedAtTokenTime(newZone());
             } finally {
                 defaultZone.setConfig(previous);
                 identityZoneProvisioning.update(defaultZone);
@@ -243,10 +243,10 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
         }
 
         /**
-         * Startup validates only the default zone, so a tenant's persisted bundle references are
-         * checked when that tenant turns mTLS on.
+         * Enabling a zone does not scan its clients. A persisted reference to a bundle the zone no
+         * longer defines fails closed at token time, and works again once the bundle is restored.
          */
-        private void assertEnablingValidatesTrustReferences(IdentityZone zone) throws Exception {
+        private void assertUnresolvedReferenceIsDeniedAtTokenTime(IdentityZone zone) throws Exception {
             configureTrustBundle(zone, toPem(zoneACaCert));
             String client = "ref-client" + generator.generate();
             setUpClients(client, "uaa.resource", "uaa.none", GRANT_TYPE_CLIENT_CREDENTIALS,
@@ -254,20 +254,19 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
                             TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=ref-app",
                             TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true));
             clientDetailsService.updateClientSecret(client, null, zone.getId());
-            // Disabling while removing the bundle is allowed: the client simply becomes inert.
             setMtls(zone, false, Map.of());
-
-            MvcResult rejected = mockMvc.perform(putZone(zone, true, Map.of())).andReturn();
-            assertThat(rejected.getResponse().getStatus()).as("Body: %s", rejected.getResponse().getContentAsString())
-                    .isEqualTo(422);
-            assertThat(rejected.getResponse().getContentAsString()).contains(client);
-            assertThat(identityZoneProvisioning.retrieve(zone.getId()).getConfig().getMtls().isEnabled()).isFalse();
-
-            MvcResult accepted = mockMvc.perform(putZone(zone, true, Map.of("shared-name", toPem(zoneACaCert))))
-                    .andReturn();
-            assertThat(accepted.getResponse().getStatus()).as("Body: %s", accepted.getResponse().getContentAsString())
-                    .isEqualTo(200);
             X509Certificate cert = leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=ref-app");
+
+            MvcResult enabled = mockMvc.perform(putZone(zone, true, Map.of())).andReturn();
+            assertThat(enabled.getResponse().getStatus()).as("Body: %s", enabled.getResponse().getContentAsString())
+                    .isEqualTo(200);
+            MvcResult denied = perform(mtlsPost(ZoneResolutionMode.SUBDOMAIN, zone, client, cert));
+            assertThat(denied.getResponse().getStatus()).as("Actual: %s", outcome(denied)).isEqualTo(401);
+
+            MvcResult restored = mockMvc.perform(putZone(zone, true, Map.of("shared-name", toPem(zoneACaCert))))
+                    .andReturn();
+            assertThat(restored.getResponse().getStatus()).as("Body: %s", restored.getResponse().getContentAsString())
+                    .isEqualTo(200);
             MvcResult token = perform(mtlsPost(ZoneResolutionMode.SUBDOMAIN, zone, client, cert));
             assertThat(token.getResponse().getStatus()).as("Actual: %s", outcome(token)).isEqualTo(200);
         }
