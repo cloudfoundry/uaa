@@ -18,7 +18,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -27,6 +29,8 @@ import static org.mockito.Mockito.when;
 
 class MtlsTrustBundleStartupValidatorTest {
     private static final String TENANT = "tenant";
+    private static final List<String> REFERENCE_KEYS = List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF,
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
     private IdentityZoneProvisioning zones;
     private MultitenantClientServices clients;
 
@@ -34,7 +38,8 @@ class MtlsTrustBundleStartupValidatorTest {
     void setUp() {
         zones = mock(IdentityZoneProvisioning.class);
         clients = mock(MultitenantClientServices.class);
-        when(clients.listClientDetails(anyString())).thenReturn(List.of(referencingClient()));
+        when(clients.listClientDetailsWithAdditionalInformationKey(anyString(), eq(REFERENCE_KEYS)))
+                .thenReturn(List.of(referencingClient()));
     }
 
     @Nested
@@ -49,13 +54,26 @@ class MtlsTrustBundleStartupValidatorTest {
         @Test
         void neverEnumeratesZones() {
             givenDefaultZone(true);
-            when(clients.listClientDetails(IdentityZone.getUaaZoneId())).thenReturn(List.of());
+            when(clients.listClientDetailsWithAdditionalInformationKey(IdentityZone.getUaaZoneId(), REFERENCE_KEYS))
+                    .thenReturn(List.of());
 
             validator(true).afterSingletonsInstantiated();
 
             verify(zones, never()).retrieveAll();
-            verify(clients).listClientDetails(IdentityZone.getUaaZoneId());
-            verify(clients, never()).listClientDetails(TENANT);
+            verify(clients).listClientDetailsWithAdditionalInformationKey(IdentityZone.getUaaZoneId(), REFERENCE_KEYS);
+            verify(clients, never()).listClientDetailsWithAdditionalInformationKey(eq(TENANT), any());
+        }
+
+        @Test
+        void neverLoadsEveryClientOfAZone() {
+            givenDefaultZone(true);
+            when(clients.listClientDetailsWithAdditionalInformationKey(IdentityZone.getUaaZoneId(), REFERENCE_KEYS))
+                    .thenReturn(List.of());
+
+            validator(true).afterSingletonsInstantiated();
+            validator(true).validateOnEnable(zone(TENANT, false), zone(TENANT, true));
+
+            verify(clients, never()).listClientDetails(anyString());
         }
 
         @Test
@@ -98,7 +116,7 @@ class MtlsTrustBundleStartupValidatorTest {
 
             assertThatCode(() -> validator(true).validateOnEnable(zone(TENANT, false), enabled))
                     .doesNotThrowAnyException();
-            verify(clients).listClientDetails(TENANT);
+            verify(clients).listClientDetailsWithAdditionalInformationKey(TENANT, REFERENCE_KEYS);
         }
 
         @Test
