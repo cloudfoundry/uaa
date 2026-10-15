@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,7 @@ import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import tools.jackson.core.type.TypeReference;
 
@@ -190,6 +192,102 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
                 defaultZone.setConfig(previous);
                 identityZoneProvisioning.update(defaultZone);
             }
+        }
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void disablingTenantZoneDoesNotDisableDefaultZone(ZoneResolutionMode mode) throws Exception {
+            IdentityZone tenant = newZone();
+            String client = mtlsClientInZone(tenant, "tenant-off", zoneACaCert, "CN=policy-app");
+            X509Certificate cert = leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=policy-app");
+            IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
+            String defaultClient = mtlsClientInZone(defaultZone, "default-on", zoneACaCert, "CN=policy-app");
+            var previous = defaultZone.getConfig();
+            try {
+                updateMtlsPolicy(defaultZone, true);
+                updateMtlsPolicy(tenant, false);
+                assertThat(perform(mtlsPost(mode, tenant, client, cert)).getResponse().getStatus()).isEqualTo(404);
+                MvcResult enabled = perform(mtlsPost(mode, null, defaultClient, cert));
+                assertThat(enabled.getResponse().getStatus()).as("Actual: %s", outcome(enabled)).isEqualTo(200);
+                assertThat(claimsOf(enabled)).containsKey("cnf");
+            } finally {
+                defaultZone.setConfig(previous);
+                identityZoneProvisioning.update(defaultZone);
+            }
+        }
+
+        @Test
+        void enablingZoneMtlsValidatesItsClientsTrustReferencesWhileDefaultZoneIsDisabled() throws Exception {
+            IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
+            var previous = defaultZone.getConfig();
+            try {
+                updateMtlsPolicy(defaultZone, false);
+                assertEnablingValidatesTrustReferences(newZone());
+            } finally {
+                defaultZone.setConfig(previous);
+                identityZoneProvisioning.update(defaultZone);
+            }
+        }
+
+        @Test
+        void enablingZoneMtlsValidatesItsClientsTrustReferencesWhileDefaultZoneIsEnabled() throws Exception {
+            IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
+            var previous = defaultZone.getConfig();
+            try {
+                updateMtlsPolicy(defaultZone, true);
+                assertEnablingValidatesTrustReferences(newZone());
+            } finally {
+                defaultZone.setConfig(previous);
+                identityZoneProvisioning.update(defaultZone);
+            }
+        }
+
+        /**
+         * Startup validates only the default zone, so a tenant's persisted bundle references are
+         * checked when that tenant turns mTLS on.
+         */
+        private void assertEnablingValidatesTrustReferences(IdentityZone zone) throws Exception {
+            configureTrustBundle(zone, toPem(zoneACaCert));
+            String client = "ref-client" + generator.generate();
+            setUpClients(client, "uaa.resource", "uaa.none", GRANT_TYPE_CLIENT_CREDENTIALS,
+                    false, null, null, -1, zone, Map.of("tls-client-auth-ca-ref", "shared-name",
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=ref-app",
+                            TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true));
+            clientDetailsService.updateClientSecret(client, null, zone.getId());
+            // Disabling while removing the bundle is allowed: the client simply becomes inert.
+            setMtls(zone, false, Map.of());
+
+            MvcResult rejected = mockMvc.perform(putZone(zone, true, Map.of())).andReturn();
+            assertThat(rejected.getResponse().getStatus()).as("Body: %s", rejected.getResponse().getContentAsString())
+                    .isEqualTo(422);
+            assertThat(rejected.getResponse().getContentAsString()).contains(client);
+            assertThat(identityZoneProvisioning.retrieve(zone.getId()).getConfig().getMtls().isEnabled()).isFalse();
+
+            MvcResult accepted = mockMvc.perform(putZone(zone, true, Map.of("shared-name", toPem(zoneACaCert))))
+                    .andReturn();
+            assertThat(accepted.getResponse().getStatus()).as("Body: %s", accepted.getResponse().getContentAsString())
+                    .isEqualTo(200);
+            X509Certificate cert = leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=ref-app");
+            MvcResult token = perform(mtlsPost(ZoneResolutionMode.SUBDOMAIN, zone, client, cert));
+            assertThat(token.getResponse().getStatus()).as("Actual: %s", outcome(token)).isEqualTo(200);
+        }
+
+        private MockHttpServletRequestBuilder putZone(IdentityZone zone, boolean enabled, Map<String, String> bundles) {
+            IdentityZone body = identityZoneProvisioning.retrieve(zone.getId());
+            body.getConfig().getMtls().setEnabled(enabled);
+            body.getConfig().getMtls().setTrustBundles(bundles);
+            return MockMvcRequestBuilders.put("/identity-zones/" + zone.getId())
+                    .header("Authorization", "Bearer " + adminToken)
+                    .contentType(APPLICATION_JSON)
+                    .accept(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(body));
+        }
+
+        private void setMtls(IdentityZone zone, boolean enabled, Map<String, String> bundles) {
+            IdentityZone current = identityZoneProvisioning.retrieve(zone.getId());
+            current.getConfig().getMtls().setEnabled(enabled);
+            current.getConfig().getMtls().setTrustBundles(bundles);
+            identityZoneProvisioning.update(current);
         }
 
         private Map<String, Object> discovery(ZoneResolutionMode mode, IdentityZone zone) throws Exception {
