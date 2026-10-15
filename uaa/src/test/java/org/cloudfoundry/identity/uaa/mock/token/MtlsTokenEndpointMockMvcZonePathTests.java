@@ -95,6 +95,26 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
 
     @Nested
     class ZoneMtlsPolicy {
+        @Test
+        void zoneApiIsUnchangedForZonesThatNeverConfigureMtls() throws Exception {
+            IdentityZone zone = newZoneWithoutMtls();
+            MvcResult read = mockMvc.perform(MockMvcRequestBuilders.get("/identity-zones/" + zone.getId())
+                    .header("Authorization", "Bearer " + adminToken).accept(APPLICATION_JSON)).andReturn();
+            assertThat(read.getResponse().getStatus()).isEqualTo(200);
+            Map<String, Object> body = JsonUtils.readValueAsMap(read.getResponse().getContentAsString());
+            assertThat((Map<String, Object>) body.get("config")).as("Body: %s", body).doesNotContainKey("mtls");
+
+            // The previous release ignored an "mtls" key, so a null value must still be accepted.
+            body.put("config", new java.util.HashMap<>((Map<String, Object>) body.get("config")));
+            ((Map<String, Object>) body.get("config")).put("mtls", null);
+            MvcResult updated = mockMvc.perform(MockMvcRequestBuilders.put("/identity-zones/" + zone.getId())
+                    .header("Authorization", "Bearer " + adminToken).contentType(APPLICATION_JSON)
+                    .accept(APPLICATION_JSON).content(JsonUtils.writeValueAsString(body))).andReturn();
+            assertThat(updated.getResponse().getStatus()).as("Body: %s", updated.getResponse().getContentAsString())
+                    .isEqualTo(200);
+            assertThat(identityZoneProvisioning.retrieve(zone.getId()).getConfig().getMtls().isEnabled()).isFalse();
+        }
+
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void newZonesHaveMtlsDisabledUntilTheyOptIn(ZoneResolutionMode mode) throws Exception {
