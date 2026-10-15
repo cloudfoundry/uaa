@@ -404,6 +404,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         "tls_client_auth: the client's tls-client-auth configuration cannot be read", e);
             }
         }
+        // Proxy trust also makes a client mTLS-only. Without workload trust it cannot authenticate at all, and must
+        // not fall back to its secret. Registration rejects this shape; this guards stored data that bypassed it.
+        if (TlsClientAuthConfiguration.PROXY_TRUST_KEYS.stream().anyMatch(info::containsKey)) {
+            throw new BadCredentialsException(
+                    "tls_client_auth: proxy trust requires tls-client-auth-ca or tls-client-auth-ca-ref");
+        }
         return null;
     }
 }

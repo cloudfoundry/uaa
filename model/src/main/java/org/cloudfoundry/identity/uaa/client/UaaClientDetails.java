@@ -351,6 +351,8 @@ public class UaaClientDetails implements ClientDetails {
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
             TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS.forEach(this.additionalInformation::remove);
+            // Not part of the typed configuration, but meaningless without TLS trust.
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
         }
     }
 
