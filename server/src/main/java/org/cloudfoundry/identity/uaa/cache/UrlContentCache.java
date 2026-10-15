@@ -34,6 +34,17 @@ public interface UrlContentCache {
     byte[] getUrlContent(String uri, RestTemplate template);
 
     /**
+     * Same as {@link #getUrlContent(String, RestTemplate)}, but rejects responses larger than {@code maxResponseBytes}
+     * with an {@link IllegalArgumentException} instead of reading them fully.
+     * @param uri - must be a valid URI
+     * @param template - RestTemplate used for content retrieval
+     * @param maxResponseBytes - maximum accepted response body size
+     * @return byte[] for the content
+     * @throws IllegalArgumentException if uri is not valid {@link URI} or the response is too large
+     */
+    byte[] getUrlContent(String uri, RestTemplate template, int maxResponseBytes);
+
+    /**
      * Retrieves and caches the content for a given URI by invoking
      * @param uri - must be a valid URI
      * @param method - HTTP Method

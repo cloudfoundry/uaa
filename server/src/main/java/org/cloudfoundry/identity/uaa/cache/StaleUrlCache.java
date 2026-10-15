@@ -7,11 +7,11 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import lombok.extern.slf4j.Slf4j;
+import org.cloudfoundry.identity.uaa.util.BoundedHttpFetch;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -19,12 +19,17 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 
 @Slf4j
 public class StaleUrlCache implements UrlContentCache {
     private static final int DEFAULT_MAX_ENTRIES = 10_000;
+    // The cache is bounded by total response bytes (maxEntries * WEIGHT_BYTES_PER_ENTRY).
+    private static final long WEIGHT_BYTES_PER_ENTRY = 10 * 1024L;
 
     private final LoadingCache<UriRequest, CacheEntry> cache;
+    // A response larger than the whole cache budget could never be retained, so it is not read either.
+    private final int defaultMaxResponseBytes;
 
     public StaleUrlCache(final TimeService timeService) {
         this(timeService, Ticker.systemTicker());
@@ -41,14 +46,17 @@ public class StaleUrlCache implements UrlContentCache {
 
     public StaleUrlCache(final Duration cacheExpiration, final TimeService timeService, final int maxEntries,
                          final Ticker ticker, RemovalListener<Object, Object> listener) {
+        long maximumWeight = maxEntries * WEIGHT_BYTES_PER_ENTRY;
+        this.defaultMaxResponseBytes = (int) Math.min(Integer.MAX_VALUE, maximumWeight);
         Caffeine<Object, Object> builder = Caffeine.newBuilder()
                 .refreshAfterWrite(cacheExpiration)
-                .maximumWeight(maxEntries == 10_000 ? 100 * 1024 * 1024L : maxEntries * 1024L * 10L) // 100MB default or 10KB per entry
+                .maximumWeight(maximumWeight)
+                // Every entry costs at least one per-entry share, so maxEntries still bounds the entry count.
                 .weigher((k, v) -> {
                     if (v instanceof CacheEntry ce && ce.data != null) {
-                        return ce.data.length;
+                        return Math.max(ce.data.length, (int) WEIGHT_BYTES_PER_ENTRY);
                     }
-                    return 1;
+                    return (int) WEIGHT_BYTES_PER_ENTRY;
                 })
                 .ticker(ticker);
         if (listener != null) {
@@ -64,10 +72,19 @@ public class StaleUrlCache implements UrlContentCache {
     }
 
     @Override
+    public byte[] getUrlContent(String uri, final RestTemplate template, final int maxResponseBytes) {
+        return get(new UriRequest(uri, template, HttpMethod.GET, null, Math.min(maxResponseBytes, defaultMaxResponseBytes)));
+    }
+
+    @Override
     public byte[] getUrlContent(String uri, final RestTemplate template, final HttpMethod method,
             HttpEntity<?> requestEntity) {
+        return get(new UriRequest(uri, template, method, requestEntity, defaultMaxResponseBytes));
+    }
+
+    private byte[] get(UriRequest request) {
         try {
-            return cache.get(new UriRequest(uri, template, method, requestEntity)).data;
+            return cache.get(request).data;
         } catch (UncheckedExecutionException e) {
             log.warn("UncheckedException {}", e.getMessage(), e);
             throw (RuntimeException) e.getCause();
@@ -95,11 +112,19 @@ public class StaleUrlCache implements UrlContentCache {
         final HttpMethod method;
         final HttpEntity<?> requestEntity;
 
+        // Part of equals/hashCode, so a caller's limit only ever decides the outcome of loads for that same limit.
+        final int maxResponseBytes;
+
         UriRequest(String uri, RestTemplate template, HttpMethod method, HttpEntity<?> requestEntity) {
+            this(uri, template, method, requestEntity, Integer.MAX_VALUE);
+        }
+
+        UriRequest(String uri, RestTemplate template, HttpMethod method, HttpEntity<?> requestEntity, int maxResponseBytes) {
             this.uri = uri;
             this.template = template;
             this.method = method;
             this.requestEntity = requestEntity;
+            this.maxResponseBytes = maxResponseBytes;
         }
 
         @Override
@@ -107,6 +132,7 @@ public class StaleUrlCache implements UrlContentCache {
             final int prime = 31;
             int result = 1;
             result = prime * result + (uri == null ? 0 : uri.hashCode());
+            result = prime * result + maxResponseBytes;
             return result;
         }
 
@@ -122,11 +148,7 @@ public class StaleUrlCache implements UrlContentCache {
                 return false;
             }
             UriRequest other = (UriRequest) obj;
-            if (uri == null) {
-                return other.uri == null;
-            } else {
-                return uri.equals(other.uri);
-            }
+            return Objects.equals(uri, other.uri) && maxResponseBytes == other.maxResponseBytes;
         }
     }
 
@@ -151,19 +173,15 @@ public class StaleUrlCache implements UrlContentCache {
         @Override
         public CacheEntry load(UriRequest request) throws RuntimeException {
             try {
-                byte[] metadata;
                 final URI netUri = new URI(request.uri);
-                if (request.requestEntity != null) {
-                    ResponseEntity<byte[]> responseEntity = request.template.exchange(netUri, request.method,
-                            request.requestEntity, byte[].class);
-                    if (responseEntity.getStatusCode() == HttpStatus.OK) {
-                        metadata = responseEntity.getBody();
-                    } else {
-                        throw new IllegalArgumentException(
-                                "Unable to fetch content, status:" + HttpStatus.resolve(responseEntity.getStatusCode().value()).getReasonPhrase());
-                    }
-                } else {
-                    metadata = request.template.getForObject(netUri, byte[].class);
+                // Same callbacks as getForObject/exchange(..., byte[].class): headers, body and Accept are unchanged.
+                RequestCallback requestCallback = request.requestEntity != null
+                        ? request.template.httpEntityCallback(request.requestEntity, byte[].class)
+                        : request.template.acceptHeaderRequestCallback(byte[].class);
+                byte[] metadata = BoundedHttpFetch.fetch(request.template, netUri, request.method, requestCallback,
+                        request.maxResponseBytes, request.requestEntity != null);
+                if (metadata.length == 0) {
+                    metadata = null;
                 }
                 Instant now = Instant.ofEpochMilli(timeService.getCurrentTimeMillis());
                 return new CacheEntry(now, metadata);

@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
+import com.nimbusds.jose.jwk.JWK;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -226,6 +227,16 @@ class ExternalOAuthAuthenticationManagerTest {
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher, false);
         authManager.setExternalMembershipManager(externalMembershipManager);
         authManager.setUserDatabase(userDatabase);
+    }
+
+    @Test
+    void getJwkSetFromOAuth_withConfiguredTokenKey_returnsSameKeysAsGetTokenKeyFromOAuth() throws Exception {
+        List<String> expectedKids = authManager.getTokenKeyFromOAuth(oidcConfig).getKeys().stream()
+                .map(JsonWebKey::getKid).toList();
+
+        assertThat(authManager.getJwkSetFromOAuth(oidcConfig).getKeys())
+                .extracting(JWK::getKeyID)
+                .containsExactlyElementsOf(expectedKids);
     }
 
     @AfterEach

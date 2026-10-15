@@ -18,6 +18,7 @@ import tools.jackson.core.type.TypeReference;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.JWTClaimsSet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -102,6 +103,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -864,6 +866,22 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
         try {
             return oidcMetadataFetcher.fetchWebKeySet(config);
+        } catch (OidcMetadataFetchingException e) {
+            throw new InvalidTokenException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Same keys as {@link #getTokenKeyFromOAuth(AbstractExternalOAuthIdentityProviderDefinition)} as a Nimbus
+     * {@link JWKSet}, reusing the instance parsed when the remote key set was cached.
+     */
+    public JWKSet getJwkSetFromOAuth(AbstractExternalOAuthIdentityProviderDefinition config) throws ParseException {
+        String tokenKey = config.getTokenKey();
+        if (StringUtils.hasText(tokenKey)) {
+            return JWKSet.parse(JsonWebKeyHelper.parseConfiguration(tokenKey).getKeySetMap());
+        }
+        try {
+            return oidcMetadataFetcher.fetchJwkSet(config);
         } catch (OidcMetadataFetchingException e) {
             throw new InvalidTokenException(e.getMessage(), e);
         }
