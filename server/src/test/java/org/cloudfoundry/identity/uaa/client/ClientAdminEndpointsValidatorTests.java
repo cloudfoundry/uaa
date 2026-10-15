@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -414,6 +415,100 @@ class ClientAdminEndpointsValidatorTests {
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router")));
 
         assertThatCode(() -> mtlsEnabledValidator().validate(client, false, false)).doesNotThrowAnyException();
+    }
+
+    /** /oauth/mtls/token issues only client_credentials, and an mTLS client is refused on every other path. */
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"authorization_code", "password", "refresh_token"})
+    void rejectsGrantTypesAnMtlsClientCanNeverUse(String grantType) {
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials", grantType));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app")));
+
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("may only use the client_credentials grant");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"authorization_code", "password", "refresh_token"})
+    void theSameGrantTypesStayValidForAClientWithoutMtls(String grantType) {
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials", grantType));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+
+        assertThatCode(() -> mtlsEnabledValidator().validate(client, false, false)).doesNotThrowAnyException();
+    }
+
+    /** Implicit clients have no secret, so this one is checked on its own. */
+    @Test
+    void rejectsImplicitForAnMtlsClient() {
+        client.setClientSecret(null);
+        client.setAuthorizedGrantTypes(java.util.Set.of("implicit"));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app")));
+
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("may only use the client_credentials grant");
+    }
+
+    @Test
+    void implicitStaysValidForAClientWithoutMtls() {
+        client.setClientSecret(null);
+        client.setAuthorizedGrantTypes(java.util.Set.of("implicit"));
+        client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
+
+        assertThatCode(() -> mtlsEnabledValidator().validate(client, false, false)).doesNotThrowAnyException();
+    }
+
+    /**
+     * Settings that only mean something for certificate authentication must not be accepted, and then silently
+     * ignored, on a client that has no workload trust.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("mtlsOnlySettingsWithoutWorkloadTrust")
+    void rejectsMtlsOnlySettingsWithoutWorkloadTrust(String key, Map<String, Object> settings) {
+        client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
+        client.setAdditionalInformation(new java.util.HashMap<>(settings));
+
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .as(key)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("requires tls-client-auth-ca or tls-client-auth-ca-ref");
+    }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> mtlsOnlySettingsWithoutWorkloadTrust() {
+        List<TlsClientAuthConfiguration.ClaimMapping> mappings =
+                List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "app_id"));
+        return java.util.stream.Stream.of(
+                org.junit.jupiter.params.provider.Arguments.of("subject_dn",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app")),
+                org.junit.jupiter.params.provider.Arguments.of("san_dns",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "app.example.com")),
+                org.junit.jupiter.params.provider.Arguments.of("san_uri",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "https://app.example.com")),
+                org.junit.jupiter.params.provider.Arguments.of("san_ip",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP, "10.0.0.7")),
+                org.junit.jupiter.params.provider.Arguments.of("san_email",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL, "app@example.com")),
+                org.junit.jupiter.params.provider.Arguments.of("required_claims",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, mappings,
+                                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, Map.of("app_id", "x"))),
+                org.junit.jupiter.params.provider.Arguments.of("claim_mappings",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, mappings)),
+                org.junit.jupiter.params.provider.Arguments.of("sub_template",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, mappings,
+                                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "app:{app_id}")),
+                org.junit.jupiter.params.provider.Arguments.of("aud_templates",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, mappings,
+                                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, List.of("aud:{app_id}"))),
+                org.junit.jupiter.params.provider.Arguments.of("allowed_resources",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                                List.of("https://billing.example.com"))));
     }
 
     private ClientAdminEndpointsValidator mtlsEnabledValidator() {

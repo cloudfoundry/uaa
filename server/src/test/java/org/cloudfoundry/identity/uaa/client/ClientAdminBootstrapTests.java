@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -699,6 +700,40 @@ class ClientAdminBootstrapTests {
         assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining("Invalid tls-client-auth-trusted-proxy-ca");
+    }
+
+    /**
+     * IdentityZoneConfigurationBootstrap saves uaa.mtls.trust_bundles to the default zone before clients are
+     * bootstrapped, but IdentityZoneHolder caches the zone per thread. A uaa.yml client referencing a bundle added
+     * in the same deploy must be validated against the saved zone, not a copy cached before it was saved.
+     */
+    @Test
+    void bootstrapClientBundleReferenceIsValidatedAgainstTheSavedDefaultZone() {
+        org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning zones =
+                new org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning(jdbcTemplate);
+        IdentityZone saved = zones.retrieve(IdentityZone.getUaaZoneId());
+        saved.getConfig().getMtls().setTrustBundles(Map.of("instance-identity", VALID_CERT));
+        zones.update(saved);
+        // The thread's cached zone predates the save: it has no bundles.
+        IdentityZone cached = IdentityZone.getUaa();
+        cached.getConfig().getMtls().setEnabled(true);
+        IdentityZoneHolder.set(cached);
+        IdentityZoneHolder.setProvisioning(zones);
+        try {
+            Map<String, Object> map = createClientMap("foo");
+            map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, "instance-identity");
+            map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
+            clients.put((String) map.get("id"), map);
+
+            assertThatCode(() -> clientAdminBootstrap.afterPropertiesSet()).doesNotThrowAnyException();
+            assertThat(multitenantJdbcClientDetailsService.loadClientByClientId((String) map.get("id"),
+                    IdentityZone.getUaaZoneId()).getAdditionalInformation())
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, "instance-identity");
+        } finally {
+            IdentityZoneHolder.setProvisioning(null);
+            saved.getConfig().getMtls().setTrustBundles(Map.of());
+            zones.update(saved);
+        }
     }
 
     @Test

@@ -1897,6 +1897,75 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
     }
 
+    /**
+     * Clients written directly to the store, bypassing registration validation, must fail the same way a request
+     * with a bad credential does: 401 invalid_client, never a secret fallback and never a 500.
+     */
+    @Nested
+    class StoredConfigurationFailsClosed {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("mtlsOnlySettings")
+        void mtlsOnlySettingsWithoutWorkloadTrustRefuseTheSecret(String key, Map<String, Object> settings)
+                throws Exception {
+            String clientId = mtlsClient("noworkload", GRANT_TYPE_CLIENT_CREDENTIALS, settings, true);
+
+            MvcResult result = perform(post("/oauth/token")
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_FORM_URLENCODED)
+                    .header("Authorization", basic(clientId, SECRET))
+                    .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS));
+
+            Denial denial = denial(result);
+            assertThat(denial.status()).as("%s. Actual: %s", key, outcome(result)).isEqualTo(401);
+            assertThat(denial.error()).isEqualTo("invalid_client");
+            assertThat(denial.description()).contains("requires tls-client-auth-ca or tls-client-auth-ca-ref");
+        }
+
+        static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> mtlsOnlySettings() {
+            List<TlsClientAuthConfiguration.ClaimMapping> mappings =
+                    List.of(new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "app_id"));
+            return java.util.stream.Stream.of(
+                    org.junit.jupiter.params.provider.Arguments.of("subject_dn",
+                            Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app")),
+                    org.junit.jupiter.params.provider.Arguments.of("required_claims",
+                            Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, mappings,
+                                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, Map.of("app_id", "x"))),
+                    org.junit.jupiter.params.provider.Arguments.of("allowed_resources",
+                            Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                                    List.of("https://billing.example.com"))));
+        }
+
+        @Test
+        void unreadableBoundAccessTokensPolicyIsAnInvalidClientNotAServerError() throws Exception {
+            Map<String, Object> config = new java.util.HashMap<>(tlsConfig(caCert, "CN=bound-app"));
+            config.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, "yes");
+            String clientId = mtlsClient("unreadablebound", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leafSignedByCa("CN=bound-app")));
+
+            Denial denial = denial(result);
+            assertThat(denial.status()).as("Actual: %s", outcome(result)).isEqualTo(401);
+            assertThat(denial.error()).isEqualTo("invalid_client");
+            assertThat(denial.description()).contains(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+        }
+
+        @Test
+        void unreadableAllowedResourcesAreAnInvalidClientNotAServerError() throws Exception {
+            Map<String, Object> config = new java.util.HashMap<>(tlsConfig(caCert, "CN=resources-app"));
+            config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES, "not-a-json-list");
+            String clientId = mtlsClient("unreadableresources", GRANT_TYPE_CLIENT_CREDENTIALS, config, false);
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=resources-app")));
+
+            Denial denial = denial(result);
+            assertThat(denial.status()).as("Actual: %s", outcome(result)).isEqualTo(401);
+            assertThat(denial.error()).isEqualTo("invalid_client");
+            assertThat(denial.description()).contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+        }
+    }
+
     // ------------------------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------------------------

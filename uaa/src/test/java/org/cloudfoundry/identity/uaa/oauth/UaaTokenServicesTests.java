@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenClaimEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
@@ -528,6 +529,82 @@ class UaaTokenServicesTests {
             assertThat(refreshedToken).isNotNull();
             Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class);
             assertThat(claims).containsEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE);
+        }
+
+        /**
+         * The mTLS enhancer is active in every zone that enables mTLS, but it only contributes to tokens issued
+         * at /oauth/mtls/token, which never returns a refresh token. Its presence must not change what an
+         * ordinary client's refreshed access token contains.
+         */
+        @Test
+        void anActiveMtlsEnhancerDoesNotChangeRefreshedAccessTokens() {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
+            TlsClientAuthentication mtlsOn = mock(TlsClientAuthentication.class);
+            when(mtlsOn.isMtlsEnabled()).thenReturn(true);
+            MtlsClaimsEnhancer mtlsEnhancer = new MtlsClaimsEnhancer(mtlsOn, mock(ClientDetailsService.class));
+            assertThat(mtlsEnhancer.isEnabled()).isTrue();
+            try {
+                Map<String, Object> withoutEnhancer = refreshedClaimsWith(List.of());
+                Map<String, Object> withMtlsEnhancer = refreshedClaimsWith(List.of(mtlsEnhancer));
+
+                assertThat(withMtlsEnhancer)
+                        .as("enabling mTLS in a zone must not change refreshed access tokens of other clients")
+                        .containsOnlyKeys(withoutEnhancer.keySet());
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+
+        /** Pins develop's behaviour for deployments that register their own enhancer, so the fix stays narrow. */
+        @Test
+        void aCustomEnhancerStillReceivesRefreshTokenClaimsOnTheRefreshedAccessToken() {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
+            try {
+                Map<String, Object> claims = refreshedClaimsWith(List.of(new UaaTokenEnhancer() {
+                    @Override
+                    public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                        return Map.of();
+                    }
+
+                    @Override
+                    public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                        return new HashMap<>();
+                    }
+                }));
+
+                assertThat(claims).containsEntry(ClaimConstants.AMR, List.of("pwd"))
+                        .containsEntry("ext_custom", "v")
+                        .doesNotContainKey(ClaimConstants.GRANTED_SCOPES);
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+
+        private Map<String, Object> refreshedClaimsWith(List<UaaTokenEnhancer> enhancers) {
+            tokenServices.setUaaTokenEnhancers(enhancers);
+            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    Sets.newHashSet("pwd"),
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    new Date(1_700_000_000_000L),
+                    Sets.newHashSet("urn:example:acr"),
+                    Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE, "ext_custom", "v")
+            );
+            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            CompositeExpiringOAuth2RefreshToken issued =
+                    refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            OAuth2Request auth2Request = mock(OAuth2Request.class);
+            when(authentication.getOAuth2Request()).thenReturn(auth2Request);
+            when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+            OAuth2AccessToken refreshed = tokenServices.refreshAccessToken(issued.getValue(),
+                    new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
+            return UaaTokenUtils.getClaims(refreshed.getValue(), Map.class);
         }
 
         @Test
