@@ -45,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
@@ -681,6 +682,7 @@ class ClientAdminBootstrapTests {
     @Test
     void validMtlsClientBootstrapsWhileMtlsIsDisabled() {
         Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
         clients.put((String) map.get("id"), map);
@@ -721,6 +723,7 @@ class ClientAdminBootstrapTests {
         IdentityZoneHolder.setProvisioning(zones);
         try {
             Map<String, Object> map = createClientMap("foo");
+            map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
             map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, "instance-identity");
             map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
             clients.put((String) map.get("id"), map);
@@ -762,6 +765,7 @@ class ClientAdminBootstrapTests {
                 Collections.singleton(allowPublicId));
 
         Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
         clients.put((String) map.get("id"), map);
@@ -845,6 +849,7 @@ class ClientAdminBootstrapTests {
     void boundAccessTokensBooleanFromYamlIsPersistedAndLoaded() {
         // oauth.clients comes from YAML, which yields a real Boolean rather than a string
         Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
@@ -860,6 +865,7 @@ class ClientAdminBootstrapTests {
     @Test
     void boundAccessTokensFalseStringIsPersistedAndLoaded() {
         Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, "false");
@@ -926,6 +932,7 @@ class ClientAdminBootstrapTests {
     @Test
     void mtlsClientWithASanBindingBootstrapsSuccessfully() {
         Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "spiffe://acme/app/foo");
         clients.put((String) map.get("id"), map);
