@@ -38,20 +38,7 @@ public final class RequestInfoImpl implements RequestInfo {
 
     @Override
     public String getClientIP() {
-        String value = header("X-Client-IP");
-        if (value == null) {
-            value = header("X-Real-IP");
-        }
-        if (value == null) {
-            value = header("X-Forwarded-For"); // Added by the GoRouter
-            if (value != null) {
-                int at = value.indexOf(',');
-                if (at != -1) {
-                    value = StringUtils.stripToNull(value.substring(0, at));
-                }
-            }
-        }
-        return value != null ? value : StringUtils.stripToNull(getRemoteAddr());
+        return StringUtils.stripToNull(getRemoteAddr());
     }
 
     public boolean hasHeaderNames() {

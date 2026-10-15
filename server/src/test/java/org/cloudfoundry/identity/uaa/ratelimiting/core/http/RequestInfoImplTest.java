@@ -38,6 +38,17 @@ class RequestInfoImplTest {
     }
 
     @Test
+    void getClientIP_remoteAddr() {
+        when(mockHSRequest.getHeader("X-Client-IP")).thenReturn("Spoofed-IP-1");
+        when(mockHSRequest.getHeader("X-Real-IP")).thenReturn("Spoofed-IP-2");
+        when(mockHSRequest.getHeader("X-Forwarded-For")).thenReturn("Spoofed-IP-3");
+        when(mockHSRequest.getRemoteAddr()).thenReturn("Mocked-IP-R ");
+        RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
+        assertThat(requestInfo).isNotNull();
+        assertThat(requestInfo.getClientIP()).isEqualTo("Mocked-IP-R");
+    }
+    
+    @Test
     void getClientIP_fallsBackToRemoteAddr_whenSpoofableHeadersAbsent() {
         // Regression: after HeaderFilter strips X-Client-IP and X-Real-IP, rate limiting must
         // use the TCP remote address rather than any client-supplied value.
@@ -47,36 +58,6 @@ class RequestInfoImplTest {
         when(mockHSRequest.getRemoteAddr()).thenReturn("10.0.0.1");
         RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
         assertThat(requestInfo.getClientIP()).isEqualTo("10.0.0.1");
-    }
-
-    @Test
-    void getClientIP_X_Client() {
-        when(mockHSRequest.getHeader("X-Client-IP")).thenReturn("Mocked-IP-C ");
-        when(mockHSRequest.getHeader("X-Real-IP")).thenReturn("Mocked-IP-R ");
-        when(mockHSRequest.getHeader("X-Forwarded-For")).thenReturn("Mocked-IP-FF0, Mocked-IP-FF1");
-        RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
-        assertThat(requestInfo).isNotNull();
-        assertThat(requestInfo.getClientIP()).isEqualTo("Mocked-IP-C");
-    }
-
-    @Test
-    void getClientIP_X_Real() {
-        when(mockHSRequest.getHeader("X-Client-IP")).thenReturn(" ");
-        when(mockHSRequest.getHeader("X-Real-IP")).thenReturn("Mocked-IP-R ");
-        when(mockHSRequest.getHeader("X-Forwarded-For")).thenReturn("Mocked-IP-FF0 , Mocked-IP-FF1");
-        RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
-        assertThat(requestInfo).isNotNull();
-        assertThat(requestInfo.getClientIP()).isEqualTo("Mocked-IP-R");
-    }
-
-    @Test
-    void getClientIP_X_Forwarded() {
-        when(mockHSRequest.getHeader("X-Client-IP")).thenReturn(" ");
-        when(mockHSRequest.getHeader("X-Real-IP")).thenReturn(" ");
-        when(mockHSRequest.getHeader("X-Forwarded-For")).thenReturn("Mocked-IP-FF0 , Mocked-IP-FF1");
-        RequestInfo requestInfo = RequestInfoImpl.from(mockHSRequest);
-        assertThat(requestInfo).isNotNull();
-        assertThat(requestInfo.getClientIP()).isEqualTo("Mocked-IP-FF0");
     }
 
     @Test
