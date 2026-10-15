@@ -1278,11 +1278,8 @@ and the deployment's connector, filter, discovery, and client-registration confi
 
 Master switch enabling RFC 8705 mutual-TLS client authentication (`tls_client_auth`)
 deployment-wide. This is **connector-wide**: it affects every TLS connection to this UAA
-instance, not just requests to the mTLS token endpoint (`/oauth/mtls/token`).
-[`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
-also uses this value to wire
-[`ClientAdminEndpointsValidator`](../server/src/main/java/org/cloudfoundry/identity/uaa/client/ClientAdminEndpointsValidator.java)'s
-`mtlsEnabled` constructor argument.
+instance, not just requests to the mTLS token endpoint (`/oauth/mtls/token`). Client registration does not depend on
+it: mTLS client configuration is validated on every create, update and bootstrap whether or not the switch is on.
 
 When `true`, the embedded Tomcat connector is reconfigured to request a client certificate
 during every TLS handshake (`certificateVerification=optionalNoCA`), without validating it
@@ -1292,12 +1289,12 @@ the per-client `tls-client-auth-*` properties). Enabling this also switches the 
 FIPS BouncyCastle JSSE provider, required for TLS 1.3 client-certificate support (OpenJDK's JSSE
 does not implement server-side TLS 1.3 post-handshake client-certificate requests).
 
-When `false` (the default), no client certificate is requested at the TLS layer at all, any
-client configured with a `tls-client-auth-ca` property fails validation at creation/update time,
-`/oauth/mtls/token` (and everything below it) answers `404`, and OIDC discovery advertises no
-`tls_client_auth` and no `mtls_endpoint_aliases`.
+When `false` (the default), no client certificate is requested at the TLS layer at all,
+`/oauth/mtls/token` (and everything below it) answers `404`, OIDC discovery advertises no
+`tls_client_auth`, no `mtls_endpoint_aliases` and no `tls_client_certificate_bound_access_tokens`, and a stored
+mTLS client cannot authenticate at all.
 
-Registering `tls_client_certificate_bound_access_tokens=true` also requires this switch to be enabled,
+Registering `tls_client_certificate_bound_access_tokens=true` requires
 a nonblank per-client `tls-client-auth-ca` or valid `tls-client-auth-ca-ref`, and exactly one subject binding. UAA refuses
 secret-only authentication for a stored client that requires binding and checks for certificate confirmation
 before signing its access tokens.
@@ -1350,7 +1347,8 @@ The `uaa.mtls` namespace is reserved for this feature's deployment-wide options.
 Defines named PEM CA trust bundles for the default UAA identity zone. Each value is a single X.509 certificate
 or multiple concatenated PEM certificates, allowing an old/new CA overlap during rotation. Names are case-sensitive,
 1 to 128 characters, use letters, digits, dots, underscores or hyphens, and start with a letter or digit.
-Malformed definitions prevent startup. These settings are reapplied on restart.
+Malformed definitions are rejected and, while mTLS is enabled for the default zone, prevent startup. These settings
+are reapplied on restart.
 Use quoted bracket notation for YAML bundle names containing underscores, for example `"[instance_identity]"`,
 to preserve the literal name during Spring Boot map binding.
 

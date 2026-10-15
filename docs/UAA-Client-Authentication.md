@@ -285,7 +285,8 @@ Set the zone flag to `false` to disable certificate authentication and bundle-na
 for that zone. Its token endpoint returns `404`, and OIDC discovery omits the mTLS authentication method and alias.
 Changing the zone flag takes effect on subsequent requests without restarting; re-enabling retains its clients and
 bundles. It does not revoke tokens already issued or change the deployment's TLS connector.
-The default zone's flag is also reapplied from `uaa.mtls.enabled` on restart. Null `mtls` or `enabled` values are rejected.
+The default zone's flag is also reapplied from `uaa.mtls.enabled` on restart. A `null` `mtls` or `enabled` value reads as
+the default (disabled).
 For YAML names containing underscores, use quoted bracket notation, such as `"[instance_identity]": |`,
 to preserve the name through [Spring Boot map binding](https://docs.spring.io/spring-boot/3.3/reference/features/external-config.html#features.external-config.typesafe-configuration-properties.relaxed-binding.maps).
 Identity-zone JSON uses the literal name, such as `"instance_identity"`.
