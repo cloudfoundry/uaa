@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.logging.SanitizedLogFactory;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundleStartupValidator;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -72,6 +73,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private final ScimGroupProvisioning groupProvisioning;
     private final IdentityZoneValidator validator;
     private final MessageSource messageSource;
+    private final MtlsTrustBundleStartupValidator mtlsTrustValidator;
 
     private ApplicationEventPublisher publisher;
 
@@ -80,7 +82,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             final IdentityZoneEndpointClientRegistrationService clientRegistrationService,
             final ScimGroupProvisioning groupProvisioning,
             final IdentityZoneValidator validator,
-            final MessageSource messageSource) {
+            final MessageSource messageSource,
+            final MtlsTrustBundleStartupValidator mtlsTrustValidator) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
@@ -88,6 +91,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         this.groupProvisioning = groupProvisioning;
         this.validator = validator;
         this.messageSource = messageSource;
+        this.mtlsTrustValidator = mtlsTrustValidator;
     }
 
     @Override
@@ -266,6 +270,12 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             //validator require id to be present
             body.setId(id);
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
+            try {
+                // Tenant zones are not validated at startup; check their clients when mTLS turns on.
+                mtlsTrustValidator.validateOnEnable(existingZone, body);
+            } catch (InvalidClientDetailsException e) {
+                throw new UnprocessableEntityException("The identity zone details are invalid. " + e.getMessage(), e);
+            }
 
             UserConfig userConfig = body.getConfig().getUserConfig();
             if (!userConfig.allGroupsAllowed()) {

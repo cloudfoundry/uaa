@@ -1365,9 +1365,10 @@ uaa:
 
 Clients use `tls-client-auth-ca-ref` or `tls-client-auth-trusted-proxy-ca-ref`; the corresponding inline PEM property
 and reference are mutually exclusive. Referencing clients require `uaa.mtls.enabled=true` and still require their
-individual certificate subject binding. Unknown references are rejected at registration and prevent default-zone
-startup. Unresolved tenant references are logged at startup and deny affected clients at token time without
-preventing other zones from starting. Removing a bundle denies referencing clients at token time.
+individual certificate subject binding. Unknown references are rejected at registration and, while mTLS is
+enabled for the default zone, prevent startup. Tenant zones are not inspected at startup; their references are
+checked when a zone update turns mTLS on, and unresolved references deny affected clients at token time.
+Removing a bundle denies referencing clients at token time.
 Trust is resolved from the client's current zone only. Proxy trust also requires the per-client
 `tls-client-auth-trusted-proxy-subject-dn` string: the full RFC 4514 subject DN of the genuine proxy
 certificate, for example `CN=gorouter_backend_tls`. It has no default and is mandatory with either proxy CA
