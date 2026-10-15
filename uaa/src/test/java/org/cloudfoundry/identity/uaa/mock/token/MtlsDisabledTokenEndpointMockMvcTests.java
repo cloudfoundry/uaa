@@ -338,10 +338,10 @@ class MtlsDisabledTokenEndpointMockMvcTests extends AbstractTokenMockMvcTests {
         assertThat(discovery)
                 .as("Body: %s", discovery)
                 .doesNotContainKey("mtls_endpoint_aliases");
-        assertThat(discovery.get("tls_client_certificate_bound_access_tokens"))
-                .as("RFC 8705 section 3.3 metadata defaults to false, and must stay false per zone "
-                        + "when the deployment has not enabled mTLS. Body: %s", discovery)
-                .isEqualTo(false);
+        assertThat(discovery)
+                .as("with mTLS off the discovery document is unchanged from before the feature; RFC 8705 "
+                        + "section 3.3 treats the omitted value as false. Body: %s", discovery)
+                .doesNotContainKey("tls_client_certificate_bound_access_tokens");
     }
 
     @Test

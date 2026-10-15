@@ -143,7 +143,7 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
             assertThat((List<String>) disabled.get("token_endpoint_auth_methods_supported"))
                     .doesNotContain("tls_client_auth");
             assertThat(disabled).doesNotContainKey("mtls_endpoint_aliases")
-                    .containsEntry("tls_client_certificate_bound_access_tokens", false);
+                    .doesNotContainKey("tls_client_certificate_bound_access_tokens");
             updateMtlsPolicy(zone, true);
             assertThat(discovery(mode, zone)).containsKey("mtls_endpoint_aliases")
                     .containsEntry("tls_client_certificate_bound_access_tokens", true);

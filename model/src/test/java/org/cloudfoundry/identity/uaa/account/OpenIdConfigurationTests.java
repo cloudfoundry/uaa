@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.test.JsonTranslation;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.json.BasicJsonTester;
@@ -48,6 +49,14 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
         assertThat(defaultConfig.getServiceDocumentation()).isEqualTo("http://docs.cloudfoundry.org/api/uaa/");
         assertThat(defaultConfig.getUiLocalesSupported()).containsExactly(new String[]{"en-US"});
         assertThat(defaultConfig.getCodeChallengeMethodsSupported()).containsExactly(new String[]{"S256", "plain"});
+    }
+
+    @Test
+    void boundAccessTokensMetadataIsOmittedUnlessMtlsIsEnabled() {
+        assertThat(JsonUtils.writeValueAsString(new OpenIdConfiguration("/uaa", "issuer")))
+                .doesNotContain("tls_client_certificate_bound_access_tokens");
+        assertThat(JsonUtils.writeValueAsString(new OpenIdConfiguration("/uaa", "issuer", true)))
+                .contains("\"tls_client_certificate_bound_access_tokens\":true");
     }
 
     @Test
