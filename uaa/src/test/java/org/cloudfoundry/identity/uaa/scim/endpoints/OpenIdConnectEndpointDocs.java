@@ -9,6 +9,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -46,7 +47,7 @@ class OpenIdConnectEndpointDocs extends EndpointDocs {
                 fieldWithPath("code_challenge_methods_supported").description("<small><mark>UAA 75.5.0</mark></small>JSON array containing a list of [PKCE](https://tools.ietf.org/html/rfc7636) code challenge methods supported by this authorization endpoint."),
                 fieldWithPath("ui_locales_supported").description("Languages and scripts supported for the user interface."),
                 fieldWithPath("mtls_endpoint_aliases.token_endpoint").optional(null).type(STRING).description("mTLS-specific token endpoint alias for [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705#section-5) mutual-TLS client authentication. Present only when both deployment `uaa.mtls.enabled` and current-zone `config.mtls.enabled` are true; the whole `mtls_endpoint_aliases` object is omitted otherwise."),
-                fieldWithPath("tls_client_certificate_bound_access_tokens").description("Boolean value indicating server support for mutual-TLS client certificate-bound access tokens ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705#section-3.3)). Always present; `true` when both deployment `uaa.mtls.enabled` and current-zone `config.mtls.enabled` are true, meaning the server can issue tokens carrying a `cnf.x5t#S256` confirmation claim at the mTLS token endpoint to clients registered with `tls_client_certificate_bound_access_tokens: true`, and `false` otherwise.")
+                fieldWithPath("tls_client_certificate_bound_access_tokens").optional().type(BOOLEAN).description("Boolean value indicating server support for mutual-TLS client certificate-bound access tokens ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705#section-3.3)). Present and `true` only when both deployment `uaa.mtls.enabled` and current-zone `config.mtls.enabled` are true, meaning the server can issue tokens carrying a `cnf.x5t#S256` confirmation claim at the mTLS token endpoint to clients registered with `tls_client_certificate_bound_access_tokens: true`. Omitted otherwise, which RFC 8705 defines as `false`.")
         );
 
         mockMvc.perform(
