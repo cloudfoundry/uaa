@@ -329,6 +329,19 @@ class UaaClientDetailsTest {
         }
 
         @Test
+        void setTlsClientAuthConfiguration_whenCleared_removesBoundAccessTokensPolicy() {
+            UaaClientDetails details = new UaaClientDetails();
+            details.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration("trusted-ca", null));
+            details.addAdditionalInformation(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+
+            details.setTlsClientAuthConfiguration(null);
+
+            assertThat(details.getAdditionalInformation())
+                    .as("a binding policy without TLS trust would leave the client unable to get any token")
+                    .doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+        }
+
+        @Test
         void autoApprove() {
             UaaClientDetails details = new UaaClientDetails();
             assertThat(details.getAutoApproveScopes()).isNull();

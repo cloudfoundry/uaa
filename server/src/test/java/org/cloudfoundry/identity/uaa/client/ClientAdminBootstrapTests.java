@@ -702,6 +702,18 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
+    void proxyTrustWithoutWorkloadTrustIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("requires tls-client-auth-ca or tls-client-auth-ca-ref");
+    }
+
+    @Test
     void mtlsClientConfigAllowedWhenMtlsEnabled() {
         ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
                 passwordEncoder,
