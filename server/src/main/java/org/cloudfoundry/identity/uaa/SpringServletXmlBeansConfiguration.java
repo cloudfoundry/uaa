@@ -146,9 +146,8 @@ public class SpringServletXmlBeansConfiguration {
     ClientAdminEndpointsValidator clientDetailsValidator(
             SecurityContextAccessor securityContextAccessor,
             @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
-            @Qualifier("zoneAwareClientSecretPolicyValidator") ClientSecretValidator clientDetailsValidator,
-            @Value("${uaa.mtls.enabled:false}") boolean mtlsEnabled) {
-        ClientAdminEndpointsValidator bean = new ClientAdminEndpointsValidator(securityContextAccessor, identityZoneManager, mtlsEnabled);
+            @Qualifier("zoneAwareClientSecretPolicyValidator") ClientSecretValidator clientDetailsValidator) {
+        ClientAdminEndpointsValidator bean = new ClientAdminEndpointsValidator(securityContextAccessor, identityZoneManager);
         bean.setClientDetailsService(clientDetailsService);
         bean.setClientSecretValidator(clientDetailsValidator);
         return bean;

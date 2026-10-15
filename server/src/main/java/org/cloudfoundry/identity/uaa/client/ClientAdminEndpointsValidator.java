@@ -13,7 +13,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -94,18 +93,14 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final IdentityZoneManager identityZoneManager;
 
-    private final boolean mtlsEnabled;
-
     private final Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
 
     public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor,
-                                         final IdentityZoneManager identityZoneManager,
-                                         final boolean mtlsEnabled) {
+                                         final IdentityZoneManager identityZoneManager) {
         this.securityContextAccessor = securityContextAccessor;
         this.identityZoneManager = identityZoneManager;
-        this.mtlsEnabled = mtlsEnabled;
     }
 
     /**
@@ -140,7 +135,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
 
-        checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, client.getClientId(),
+        validateMtlsClientConfiguration(client.getAdditionalInformation(), client.getClientId(),
                 identityZoneManager.getCurrentIdentityZone());
         validateTlsClientAuthClaimConfig(client.getAdditionalInformation(), client.getClientId());
 
@@ -373,37 +368,22 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
     }
 
-    public static void checkMtlsClientConfigAllowed(Map<String, Object> info, boolean enabled, String clientId) {
-        checkMtlsClientConfigAllowed(info, enabled, clientId, Map.of());
+    /**
+     * Validates a client's mTLS configuration when the client is written. Applies whether or not mTLS is
+     * enabled for the deployment or the zone: a stored configuration must be well formed, and whether it
+     * is used is decided at request time.
+     */
+    public static void validateMtlsClientConfiguration(Map<String, Object> info, String clientId, IdentityZone zone) {
+        validateMtlsClientConfiguration(info, clientId, zone.getConfig().getMtls().getTrustBundles());
     }
 
-    public static void checkMtlsClientConfigAllowed(Map<String, Object> info, boolean deploymentEnabled,
-            String clientId, IdentityZone zone) {
-        boolean enabled = MtlsFeaturePolicy.isEnabled(deploymentEnabled, zone);
-        if (deploymentEnabled && !enabled && info.keySet().stream().anyMatch(key ->
-                key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
-                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF)
-                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
-                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF)
-                        || key.equals(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN))) {
-            throw new InvalidClientDetailsException("mTLS is disabled for identity_zone_id=" + zone.getId()
-                    + "; config.mtls.enabled must be true. ClientID: " + clientId);
-        }
-        checkMtlsClientConfigAllowed(info, enabled, clientId, zone.getConfig().getMtls().getTrustBundles());
-    }
-
-    public static void checkMtlsClientConfigAllowed(Map<String, Object> info, boolean enabled, String clientId,
+    public static void validateMtlsClientConfiguration(Map<String, Object> info, String clientId,
             Map<String, String> bundles) {
         boolean hasCa = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
                 || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
         boolean hasProxy = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
                 || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
         boolean hasProxyIdentity = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
-        if (!enabled && (hasCa || hasProxy || hasProxyIdentity)) {
-            throw new InvalidClientDetailsException(
-                    "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls.enabled "
-                            + "to be true on this UAA deployment. ClientID: " + clientId);
-        }
         Boolean bound = TlsClientAuthConfiguration.parseBoundAccessTokens(info.get(
                 TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS));
         if (bound == null) {
@@ -411,9 +391,9 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     + TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
                     + " for client_id=" + clientId + ": must be true or false.");
         }
-        if (bound && (!enabled || !hasCa)) {
+        if (bound && !hasCa) {
             throw new InvalidClientDetailsException(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
-                    + "=true for client_id=" + clientId + " requires uaa.mtls.enabled=true and TLS client trust configuration.");
+                    + "=true for client_id=" + clientId + " requires TLS client trust configuration.");
         }
         for (String inline : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {

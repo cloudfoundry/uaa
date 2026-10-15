@@ -203,7 +203,7 @@ present a certificate whose chain validates to the configured CA; no separate
 | `tls-client-auth-trusted-proxy-ca` | conditional | PEM-encoded CA certificate the Gorouter's own backend mTLS certificate must chain to. Configuring this switches the client to the Gorouter/XFCC-forwarding-only topology (requiring the `X-Forwarded-Client-Cert` header) -- see "Deployment topology" above. Leave unset for a direct-connection-only client. A present but null, blank, or non-string stored value fails authentication and token issuance rather than enabling direct authentication. |
 | `tls-client-auth-trusted-proxy-subject-dn` | required with proxy CA or reference | Nonblank RFC 4514 subject DN identifying the genuine TLS proxy peer. UAA requires both this identity and the proxy CA chain to match before trusting XFCC. The comparison parses the DN, preserves RDN order and ignores insignificant formatting differences. A proxy subject without proxy CA trust is rejected. |
 | one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip`, `tls_client_auth_san_email` | yes -- exactly one | The expected certificate subject value (RFC 8705 section 2.1.2). `tls_client_auth_san_ip` must be an IPv4 or IPv6 address literal, never a hostname (it is compared in binary form and is never resolved through DNS). Chain validation proves only that the CA issued the certificate; this is what identifies *this* client. See "Scoping a client" above. |
-| `tls_client_certificate_bound_access_tokens` | no | [RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4) client metadata, named verbatim. `true` makes the access tokens issued to this client certificate-bound (`cnf.x5t#S256`) and requires `uaa.mtls.enabled=true`, a nonblank `tls-client-auth-ca` or valid `tls-client-auth-ca-ref`, and the subject binding. Registration is rejected without these prerequisites; stored clients cannot fall back to secret authentication, and issuance fails if the token has no certificate confirmation. `false` or absent -- the RFC default -- issues an ordinary bearer JWT. Must be a boolean (`true`/`false`, or the same strings). Certificate authentication, chain validation and the subject binding are identical either way. Set at registration only; a token request parameter or claim template cannot change it. See "Certificate-bound access tokens" below. |
+| `tls_client_certificate_bound_access_tokens` | no | [RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4) client metadata, named verbatim. `true` makes the access tokens issued to this client certificate-bound (`cnf.x5t#S256`) and requires a nonblank `tls-client-auth-ca` or valid `tls-client-auth-ca-ref`, and the subject binding. Registration is rejected without these prerequisites, whether or not mTLS is enabled; stored clients cannot fall back to secret authentication, and issuance fails if the token has no certificate confirmation. `false` or absent -- the RFC default -- issues an ordinary bearer JWT. Must be a boolean (`true`/`false`, or the same strings). Certificate authentication, chain validation and the subject binding are identical either way. Set at registration only; a token request parameter or claim template cannot change it. See "Certificate-bound access tokens" below. |
 | `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values produced by `tls-client-auth-claim-mappings`. A UAA extension applied in addition to the subject binding, not instead of it -- authentication fails unless every entry matches exactly. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to JWT claim names. `subject_cn` and `subject_o` map their values directly; `pattern` is rejected for either, since it is applied only to `subject_ou`, where it must contain at least one capturing group -- a pattern that only matches without capturing (e.g. `space:.+` instead of `space:(.+)`) is rejected too, since it would never produce a value. Patterns use RE2/J syntax and a linear-time matcher. OU values and pattern source are limited to 256 characters, and compiled patterns to 4096 instructions. Backreferences, lookaround, Java comments mode, and counted repetitions of groups are unsupported and rejected at registration; counts on literals and character classes are allowed. Invalid or unsupported patterns in stored configuration yield no claim, so a dependent required-claim check refuses authentication. Prefer simple anchored patterns such as `^space:(.+)$`. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. At most 256 characters; must contain at least one `{claim}` placeholder; every placeholder must name a claim declared in `tls-client-auth-claim-mappings`. |
@@ -281,7 +281,7 @@ concatenated bundle. Names and contents are isolated per zone: no lookup falls b
 The default zone's definitions are reapplied from `uaa.yml` on restart; other zones persist their definitions.
 `config.mtls.enabled` defaults to `false`: zones opt in. Effective enablement requires both the deployment's
 `uaa.mtls.enabled` and the current zone's `config.mtls.enabled`. A zone cannot override a disabled deployment.
-Set the zone flag to `false` to disable certificate authentication, mTLS registration, and bundle-name discovery
+Set the zone flag to `false` to disable certificate authentication and bundle-name discovery
 for that zone. Its token endpoint returns `404`, and OIDC discovery omits the mTLS authentication method and alias.
 Changing the zone flag takes effect on subsequent requests without restarting; re-enabling retains its clients and
 bundles. It does not revoke tokens already issued or change the deployment's TLS connector.
@@ -359,8 +359,9 @@ rules:
 | Zone client API (`/identity-zones/{id}/clients`) | A client with a nonblank `tls-client-auth-ca` or valid `tls-client-auth-ca-ref` may omit `client_secret`; a supplied secret is still checked against the zone's secret policy. |
 | `oauth.clients` bootstrap (BOSH / `uaa.yml`) | Validated at startup with the same rules; an invalid mTLS client prevents the bootstrap from completing. |
 
-With either mTLS switch off, a request carrying inline trust or a trust-bundle reference is rejected
-with `400` ("require uaa.mtls.enabled to be true"). A client that sets either trust selector authenticates **only** at
+mTLS client configuration is validated on every create and update, including bootstrap, whether or not either mTLS
+switch is on: a valid configuration is stored, and an invalid one is rejected with `400`. Whether it is used is decided
+per request. A client that sets either trust selector authenticates **only** at
 `/oauth/mtls/token` and may not combine the certificate with a `client_secret`, so it cannot also be used at
 `/oauth/token`.
 
@@ -431,9 +432,6 @@ typed mTLS mirror does not change equality, hash codes, or set membership after 
 
 * OIDC discovery gains one field, `tls_client_certificate_bound_access_tokens`, always present and `false` when the
   feature is off. RFC 8705 section 3.3 treats an omitted value as `false`, so its meaning is unchanged.
-* The classes `ClientAdminEndpointsValidator`, `ClientAdminBootstrap`, `ClientDetailsAuthenticationProvider` and
-  `ZoneEndpointsClientDetailsValidator` gained constructor parameters and lost their previous signatures. They are
-  Spring-wired internals; only code that constructs them by hand needs the extra argument.
 
 **Token enhancers.** `MtlsClaimsEnhancer` is always registered alongside other `UaaTokenEnhancer` beans. It is active
 only when deployment and zone mTLS are both enabled. An inactive enhancer does not activate refresh-claim copying. It

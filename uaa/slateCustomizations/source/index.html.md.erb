@@ -323,7 +323,8 @@ Set `tls-client-auth-ca` or `tls-client-auth-ca-ref` together with exactly one o
 `tls_client_auth_san_uri`, `tls_client_auth_san_ip` or `tls_client_auth_san_email` when creating or updating a
 client (see Clients, Create). The full list of `tls-client-auth-*` keys, with their descriptions, is in the client request fields. A client that
 sets `tls-client-auth-ca` authenticates only at `/oauth/mtls/token` and cannot also use a `client_secret`. These keys are
-rejected unless both the deployment's `uaa.mtls.enabled` and the zone's `config.mtls.enabled` are true.
+validated on create and update whether or not mTLS is enabled; they take effect only when both the deployment's
+`uaa.mtls.enabled` and the zone's `config.mtls.enabled` are true.
 
 #### Errors from `/oauth/mtls/token`
 
