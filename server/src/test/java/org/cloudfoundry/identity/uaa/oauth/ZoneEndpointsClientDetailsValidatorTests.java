@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
@@ -40,6 +41,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MtlsEnabledZoneExtension.class)
 class ZoneEndpointsClientDetailsValidatorTests {
 
     private static final String VALID_CERT = """

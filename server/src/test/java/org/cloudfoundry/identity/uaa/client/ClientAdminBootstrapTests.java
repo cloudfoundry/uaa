@@ -37,6 +37,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.security.Security;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,6 +63,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
+@ExtendWith(MtlsEnabledZoneExtension.class)
 class ClientAdminBootstrapTests {
 
     private static final String VALID_CERT = """

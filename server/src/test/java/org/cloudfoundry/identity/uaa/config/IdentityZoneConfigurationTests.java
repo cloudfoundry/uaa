@@ -50,10 +50,17 @@ class IdentityZoneConfigurationTests {
     }
 
     @Test
-    void mtlsConfigurationIsNestedAndDefaultsToEnabledWithNoBundles() {
+    void mtlsConfigurationIsNestedAndDefaultsToDisabledWithNoBundles() {
         java.util.Map<String, Object> config = JsonUtils.convertValue(definition, java.util.Map.class);
-        assertThat(config).containsEntry("mtls", java.util.Map.of("enabled", true, "trustBundles", java.util.Map.of()))
+        assertThat(config).containsEntry("mtls", java.util.Map.of("enabled", false, "trustBundles", java.util.Map.of()))
                 .doesNotContainKey("mtlsTrustBundles");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"{}", "{\"mtls\":{}}", "{\"mtls\":{\"trustBundles\":{}}}"})
+    void storedZoneConfigurationWithoutAnMtlsSwitchIsDisabled(String json) {
+        // Zones stored before mTLS existed, or that never set the switch, must not opt in.
+        assertThat(JsonUtils.readValue(json, IdentityZoneConfiguration.class).getMtls().isEnabled()).isFalse();
     }
 
     @Test

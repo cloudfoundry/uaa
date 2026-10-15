@@ -34,12 +34,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.mock;
 
+@ExtendWith(MtlsEnabledZoneExtension.class)
 class TlsClientAuthenticationTest {
 
     @Test

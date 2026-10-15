@@ -97,6 +97,23 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
     class ZoneMtlsPolicy {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
+        void newZonesHaveMtlsDisabledUntilTheyOptIn(ZoneResolutionMode mode) throws Exception {
+            IdentityZone zone = newZoneWithoutMtls();
+            assertThat(identityZoneProvisioning.retrieve(zone.getId()).getConfig().getMtls().isEnabled()).isFalse();
+            assertThat(perform(mtlsPost(mode, zone, "any-client",
+                    leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=policy-app"))).getResponse().getStatus())
+                    .isEqualTo(404);
+            assertThat(discovery(mode, zone)).doesNotContainKey("mtls_endpoint_aliases");
+
+            updateMtlsPolicy(zone, true);
+            String client = mtlsClientInZone(zone, "opt-in", zoneACaCert, "CN=policy-app");
+            X509Certificate cert = leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=policy-app");
+            MvcResult enabled = perform(mtlsPost(mode, zone, client, cert));
+            assertThat(enabled.getResponse().getStatus()).as("Actual: %s", outcome(enabled)).isEqualTo(200);
+        }
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
         void disablingAndReenablingZoneAffectsOnlyItsOwnEndpoint(ZoneResolutionMode mode) throws Exception {
             IdentityZone zone = newZone();
             IdentityZone sibling = newZone();
@@ -591,7 +608,14 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
     // helpers
     // ------------------------------------------------------------------------------------
 
+    /** A new zone that has opted in to mTLS; zones are created with mTLS disabled. */
     private IdentityZone newZone() throws Exception {
+        IdentityZone zone = newZoneWithoutMtls();
+        updateMtlsPolicy(zone, true);
+        return identityZoneProvisioning.retrieve(zone.getId());
+    }
+
+    private IdentityZone newZoneWithoutMtls() throws Exception {
         String subdomain = generator.generate().toLowerCase();
         return MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext,
                 IdentityZone.getUaaZoneId());
