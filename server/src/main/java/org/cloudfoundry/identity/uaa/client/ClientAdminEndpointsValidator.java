@@ -407,6 +407,12 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
         }
         validateProxyIdentity(info, hasProxy, hasProxyIdentity, clientId);
+        if (hasProxy && !hasCa) {
+            // Proxy trust only says who may forward a certificate; without workload trust the client could never
+            // authenticate at /oauth/mtls/token.
+            throw new InvalidClientDetailsException("tls-client-auth-trusted-proxy-ca(-ref) for client_id=" + clientId
+                    + " requires tls-client-auth-ca or tls-client-auth-ca-ref");
+        }
         if (hasCa) {
             requireExactlyOneSubjectBinding(info, clientId);
         }

@@ -67,6 +67,12 @@ public class TlsClientAuthConfiguration {
             TLS_CLIENT_AUTH_SAN_IP,
             TLS_CLIENT_AUTH_SAN_EMAIL);
 
+    /** Keys that configure the proxy allowed to forward a client certificate. Each requires workload trust. */
+    public static final List<String> PROXY_TRUST_KEYS = List.of(
+            TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+            TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF,
+            TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
+
     /**
      * Claim names a {@code tls-client-auth-claim-mappings} entry may not target.
      *
