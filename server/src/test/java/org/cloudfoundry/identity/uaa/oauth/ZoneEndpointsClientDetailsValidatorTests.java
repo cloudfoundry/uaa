@@ -27,7 +27,6 @@ import java.util.Map;
 import java.security.Security;
 import java.util.stream.Stream;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -83,7 +82,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, false);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
     }
 
     @Test
@@ -169,10 +168,10 @@ class ZoneEndpointsClientDetailsValidatorTests {
     }
 
     /** Client configuration is validated on create/update whether or not mTLS is active. */
-    @ParameterizedTest(name = "deployment={0}, zone={1}")
-    @CsvSource({"false, true", "false, false", "true, false"})
-    void acceptsValidTlsClientAuthCaWhileMtlsIsInactive(boolean deploymentEnabled, boolean zoneEnabled) {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, deploymentEnabled);
+    @ParameterizedTest(name = "zone mTLS enabled={0}")
+    @ValueSource(booleans = {true, false})
+    void acceptsValidTlsClientAuthCaWhetherOrNotMtlsIsActive(boolean zoneEnabled) {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
         IdentityZoneHolder.get().getConfig().getMtls().setEnabled(zoneEnabled);
 
         assertThatCode(() -> zoneEndpointsClientDetailsValidator.validate(
@@ -181,10 +180,10 @@ class ZoneEndpointsClientDetailsValidatorTests {
                 .doesNotThrowAnyException();
     }
 
-    @ParameterizedTest(name = "deployment={0}, zone={1}")
-    @CsvSource({"false, true", "false, false", "true, false"})
-    void rejectsInvalidTlsClientAuthCaWhileMtlsIsInactive(boolean deploymentEnabled, boolean zoneEnabled) {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, deploymentEnabled);
+    @ParameterizedTest(name = "zone mTLS enabled={0}")
+    @ValueSource(booleans = {true, false})
+    void rejectsInvalidTlsClientAuthCaWhetherOrNotMtlsIsActive(boolean zoneEnabled) {
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
         IdentityZoneHolder.get().getConfig().getMtls().setEnabled(zoneEnabled);
 
         assertThatThrownBy(() -> zoneEndpointsClientDetailsValidator.validate(
@@ -209,7 +208,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void allowsTlsClientAuthCaWhenMtlsEnabled() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         clientDetails.setClientSecret("secret");
@@ -227,7 +226,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void allowsSecretlessClientCredentialsClientWhenTlsClientAuthCaConfigured() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         Map<String, Object> additionalInfo = new HashMap<>();
@@ -241,7 +240,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsJsonMap() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         Map<String, Object> additionalInfo = new HashMap<>();
@@ -258,7 +257,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
     @ParameterizedTest
     @MethodSource("unsupportedNestedTlsClientAuthCaValues")
     void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaMapHasUnsupportedCaValue(Object ca) {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         Map<String, Object> tlsClientAuthConfig = new HashMap<>();
@@ -275,7 +274,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaMapIsMalformed() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         Map<String, Object> additionalInfo = new HashMap<>();
@@ -291,7 +290,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
     @ParameterizedTest
     @ValueSource(strings = {"", "  ", "\t"})
     void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsBlank(final String ca) {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         Map<String, Object> additionalInfo = new HashMap<>();
@@ -306,7 +305,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void rejectsSecretlessClientCredentialsClientWhenTlsClientAuthCaIsNotAString() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         Map<String, Object> additionalInfo = new HashMap<>();
@@ -321,7 +320,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void stillValidatesSuppliedSecretWhenTlsClientAuthCaConfigured() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, true);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         clientDetails.setClientSecret("supplied-secret");
@@ -338,7 +337,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void allowsClientWithoutMtlsFieldsWhenMtlsDisabled() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator, false);
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(mockClientSecretValidator);
 
         UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "client_credentials", "uaa.resource");
         clientDetails.setClientSecret("secret");

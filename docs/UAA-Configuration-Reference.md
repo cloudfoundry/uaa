@@ -1308,7 +1308,7 @@ feature cannot be half-enabled by an unusual spelling.
 All mTLS beans and the security chain are created regardless of this flag. Availability is enforced at runtime:
 both this deployment switch and `config.mtls.enabled` in the current identity zone must be enabled.
 The zone flag defaults to `false` when omitted, so each tenant zone opts in; it can be changed without restarting UAA.
-With a zone disabled, its mTLS endpoints return `404`, new mTLS client registrations fail, and OIDC discovery
+With a zone disabled, its mTLS endpoints return `404` and OIDC discovery
 omits the mTLS authentication method and endpoint alias. Existing mTLS clients cannot use their secrets as a fallback.
 Other zones remain unaffected; issued tokens are not revoked by changing the flag.
 The default zone's flag is initialized from this property on every restart; other zones retain their stored flags.
@@ -1364,7 +1364,7 @@ uaa:
 ```
 
 Clients use `tls-client-auth-ca-ref` or `tls-client-auth-trusted-proxy-ca-ref`; the corresponding inline PEM property
-and reference are mutually exclusive. Referencing clients require `uaa.mtls.enabled=true` and still require their
+and reference are mutually exclusive. Referencing clients are validated whether or not mTLS is enabled and require their
 individual certificate subject binding. Unknown references are rejected at registration. References are not
 rechecked at startup or when a zone enables mTLS; one that no longer resolves, for example after its bundle is
 removed, denies the referencing client at token time.

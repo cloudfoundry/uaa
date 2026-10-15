@@ -136,8 +136,7 @@ class ClientAdminBootstrapTests {
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
                 null,
-                Collections.singleton(allowPublicId),
-                false);
+                Collections.singleton(allowPublicId));
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -157,8 +156,7 @@ class ClientAdminBootstrapTests {
                     Collections.emptySet(),
                     Collections.emptySet(),
                     null,
-                    Collections.emptySet(),
-                    false);
+                    Collections.emptySet());
         }
 
         @Test
@@ -194,7 +192,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(clientIdToDelete),
                     Collections.singleton(clientIdToDelete),
-                    null, Collections.singleton(clientIdToDelete), false);
+                    null, Collections.singleton(clientIdToDelete));
             clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
         }
 
@@ -405,7 +403,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(autoApproveId),
                     Collections.emptySet(),
-                    null, Collections.singleton(allowPublicId), false);
+                    null, Collections.singleton(allowPublicId));
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
@@ -494,7 +492,7 @@ class ClientAdminBootstrapTests {
                         clients,
                         Collections.singleton(autoApproveId),
                         Collections.emptySet(),
-                        null, Collections.singleton(allowPublicId), false);
+                        null, Collections.singleton(allowPublicId));
             }
 
             @Test
@@ -714,8 +712,7 @@ class ClientAdminBootstrapTests {
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
                 null,
-                Collections.singleton(allowPublicId),
-                true);
+                Collections.singleton(allowPublicId));
 
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
@@ -739,8 +736,7 @@ class ClientAdminBootstrapTests {
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
                 null,
-                Collections.singleton(allowPublicId),
-                true);
+                Collections.singleton(allowPublicId));
 
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
@@ -764,8 +760,7 @@ class ClientAdminBootstrapTests {
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
                 null,
-                Collections.singleton(allowPublicId),
-                true);
+                Collections.singleton(allowPublicId));
 
         Map<String, Object> map = createClientMap("foo");
         map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
@@ -790,8 +785,7 @@ class ClientAdminBootstrapTests {
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
                 null,
-                Collections.singleton(allowPublicId),
-                true);
+                Collections.singleton(allowPublicId));
     }
 
     /**

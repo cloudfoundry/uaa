@@ -67,7 +67,7 @@ class ClientAdminBootstrapMultipleSecretsTest {
         ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
 
         clientAdminBootstrap = new ClientAdminBootstrap(passwordEncoder, clientRegistrationService, clientMetadataProvisioning, defaultOverride, clients, autoApproveClients, clientsToDelete, null,
-                allowPublicClients, false);
+                allowPublicClients);
 
         oneSecretClient = new UaaClientDetails();
         oneSecretClient.setClientId(clientId);
