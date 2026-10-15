@@ -428,10 +428,9 @@ a malformed trust entry is not treated as an absent one.
 For Java API consumers, `UaaClientDetails` equality and hashing use the persisted client settings. The transient
 typed mTLS mirror does not change equality, hash codes, or set membership after loading the same client from storage.
 
-`uaa.mtls.enabled` defaults to `false`. With it off the feature does nothing observable, with these exceptions:
-
-* OIDC discovery gains one field, `tls_client_certificate_bound_access_tokens`, always present and `false` when the
-  feature is off. RFC 8705 section 3.3 treats an omitted value as `false`, so its meaning is unchanged.
+`uaa.mtls.enabled` defaults to `false`. With it off the feature does nothing observable. OIDC discovery includes
+`tls_client_certificate_bound_access_tokens` only when mTLS is enabled for the deployment and the zone; RFC 8705
+section 3.3 treats the omitted value as `false`.
 
 **Token enhancers.** `MtlsClaimsEnhancer` is always registered alongside other `UaaTokenEnhancer` beans. It is active
 only when deployment and zone mTLS are both enabled. An inactive enhancer does not activate refresh-claim copying. It

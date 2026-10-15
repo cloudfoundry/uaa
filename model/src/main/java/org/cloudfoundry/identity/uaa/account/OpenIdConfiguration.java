@@ -79,9 +79,11 @@ public class OpenIdConfiguration {
      * RFC 8705 section 3.3. Signals that this server can bind issued access tokens to the client
      * certificate (via the {@code cnf.x5t#S256} claim of section 3.1) for clients registered with
      * {@code tls_client_certificate_bound_access_tokens=true}. The metadata defaults to
-     * {@code false} when omitted, so a server that does issue bound tokens has to say so.
+     * {@code false} when omitted, so a server that does issue bound tokens has to say so; it is omitted
+     * otherwise, which leaves the document unchanged while mTLS is off.
      */
     @JsonProperty("tls_client_certificate_bound_access_tokens")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean tlsClientCertificateBoundAccessTokens;
 
     /**
