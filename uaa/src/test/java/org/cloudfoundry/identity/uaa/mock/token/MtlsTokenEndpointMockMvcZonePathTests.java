@@ -172,24 +172,32 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
 
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
-        void disabledZonesRejectNewMtlsRegistrations(ZoneResolutionMode mode) throws Exception {
+        void disabledZonesStillValidateMtlsRegistrations(ZoneResolutionMode mode) throws Exception {
             IdentityZone zone = newZone();
-            String path = "/oauth/clients";
+            updateMtlsPolicy(zone, false);
             Map<String, Object> registration = new java.util.HashMap<>(tlsConfig(zoneACaCert, "CN=policy-app"));
-            registration.put("client_id", "disabled-zone" + generator.generate());
             registration.put("authorized_grant_types", List.of(GRANT_TYPE_CLIENT_CREDENTIALS));
             registration.put("authorities", List.of("uaa.resource"));
-            MockHttpServletRequestBuilder request = withServletPath(
-                    mode.createRequestBuilder(null, HttpMethod.POST, path), mode, null, path)
+
+            registration.put("client_id", "disabled-zone-invalid" + generator.generate());
+            registration.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN);
+            MvcResult rejected = perform(registerInZone(mode, zone, registration));
+            assertThat(rejected.getResponse().getStatus()).as("Actual: %s", outcome(rejected)).isEqualTo(400);
+            assertThat(rejected.getResponse().getContentAsString()).contains("subject");
+
+            registration.put("client_id", "disabled-zone" + generator.generate());
+            registration.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=policy-app");
+            MvcResult created = perform(registerInZone(mode, zone, registration));
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+        }
+
+        private MockHttpServletRequestBuilder registerInZone(ZoneResolutionMode mode, IdentityZone zone,
+                Map<String, Object> registration) {
+            String path = "/oauth/clients";
+            return withServletPath(mode.createRequestBuilder(null, HttpMethod.POST, path), mode, null, path)
                     .header("Authorization", "Bearer " + adminToken)
                     .header("X-Identity-Zone-Id", zone.getId())
                     .contentType(APPLICATION_JSON).content(JsonUtils.writeValueAsString(registration));
-            updateMtlsPolicy(zone, false);
-            MvcResult rejected = perform(request);
-            assertThat(rejected.getResponse().getStatus()).as("Actual: %s", outcome(rejected)).isEqualTo(400);
-            assertThat(rejected.getResponse().getContentAsString()).contains("mTLS");
-            updateMtlsPolicy(zone, true);
-            assertThat(perform(request).getResponse().getStatus()).isEqualTo(201);
         }
 
         @ParameterizedTest

@@ -42,8 +42,10 @@ import java.util.Set;
 import java.security.Security;
 import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -348,34 +350,42 @@ class ClientAdminEndpointsValidatorTests {
                 .isInstanceOf(InvalidClientDetailsException.class);
     }
 
-    @Test
-    void rejectsTlsClientAuthCaWhenMtlsDisabled() {
-        ClientAdminEndpointsValidator mtlsDisabledValidator = new ClientAdminEndpointsValidator(
-                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), false);
-
+    /** Client configuration is validated on create/update whether or not mTLS is active. */
+    @ParameterizedTest(name = "deployment={0}, zone={1}")
+    @CsvSource({"false, true", "false, false", "true, false"})
+    void acceptsValidMtlsConfigurationWhileMtlsIsInactive(boolean deploymentEnabled, boolean zoneEnabled) {
+        ClientAdminEndpointsValidator inactive = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), deploymentEnabled);
+        IdentityZoneHolder.get().getConfig().getMtls().setEnabled(zoneEnabled);
         client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
-        Map<String, Object> additionalInfo = new java.util.HashMap<>();
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
-        client.setAdditionalInformation(additionalInfo);
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app",
+                TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true)));
 
-        assertThatThrownBy(() -> mtlsDisabledValidator.validate(client, false, false))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls.enabled");
+        assertThatCode(() -> inactive.validate(client, false, false)).doesNotThrowAnyException();
     }
 
-    @Test
-    void rejectsTlsClientAuthTrustedProxyCaWhenMtlsDisabled() {
-        ClientAdminEndpointsValidator mtlsDisabledValidator = new ClientAdminEndpointsValidator(
-                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), false);
-
+    @ParameterizedTest(name = "deployment={0}, zone={1}")
+    @CsvSource({"false, true", "false, false", "true, false"})
+    void rejectsInvalidMtlsConfigurationWhileMtlsIsInactive(boolean deploymentEnabled, boolean zoneEnabled) {
+        ClientAdminEndpointsValidator inactive = new ClientAdminEndpointsValidator(
+                mock(SecurityContextAccessor.class), new IdentityZoneManagerImpl(), deploymentEnabled);
+        IdentityZoneHolder.get().getConfig().getMtls().setEnabled(zoneEnabled);
         client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
-        Map<String, Object> additionalInfo = new java.util.HashMap<>();
-        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem");
-        client.setAdditionalInformation(additionalInfo);
 
-        assertThatThrownBy(() -> mtlsDisabledValidator.validate(client, false, false))
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router")));
+        assertThatThrownBy(() -> inactive.validate(client, false, false))
                 .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("uaa.mtls.enabled");
+                .hasMessageContaining("Invalid tls-client-auth-trusted-proxy-ca");
+
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true)));
+        assertThatThrownBy(() -> inactive.validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("TLS client trust configuration");
     }
 
     private ClientAdminEndpointsValidator mtlsEnabledValidator() {
