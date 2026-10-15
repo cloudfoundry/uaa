@@ -55,8 +55,8 @@ after changing it. See
 [the configuration reference](UAA-Configuration-Reference.md#uaamtlsenabled) for exactly what this
 flips at the Tomcat layer.
 
-Each identity zone also has `config.mtls.enabled`, which defaults to `true` when omitted. Set it to `false` through
-the identity-zone API to disable mTLS for that zone, and to `true` to re-enable it without restarting UAA.
+Each identity zone also has `config.mtls.enabled`, which defaults to `false` when omitted. Set it to `true` through
+the identity-zone API to opt a zone in, and to `false` to disable it again, without restarting UAA.
 Both switches must be enabled; a zone cannot override the deployment's off-switch. The default zone's flag is
 reapplied from `uaa.mtls.enabled` on restart. Bundle definitions live alongside it at `config.mtls.trustBundles`.
 

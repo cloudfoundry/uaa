@@ -279,7 +279,7 @@ This fragment belongs in a complete identity-zone update. Bundle names are case-
 digits, dots, underscores or hyphens, and start with a letter or digit. Each value is a PEM certificate or a
 concatenated bundle. Names and contents are isolated per zone: no lookup falls back to the default zone.
 The default zone's definitions are reapplied from `uaa.yml` on restart; other zones persist their definitions.
-`config.mtls.enabled` defaults to `true` for zones that omit it. Effective enablement requires both the deployment's
+`config.mtls.enabled` defaults to `false`: zones opt in. Effective enablement requires both the deployment's
 `uaa.mtls.enabled` and the current zone's `config.mtls.enabled`. A zone cannot override a disabled deployment.
 Set the zone flag to `false` to disable certificate authentication, mTLS registration, and bundle-name discovery
 for that zone. Its token endpoint returns `404`, and OIDC discovery omits the mTLS authentication method and alias.

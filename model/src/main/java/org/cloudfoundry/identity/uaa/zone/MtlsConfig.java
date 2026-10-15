@@ -11,9 +11,9 @@ import java.util.Map;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MtlsConfig {
-    /** The deployment's master switch must also be enabled. */
+    /** Zones opt in; the deployment's master switch must also be enabled. */
     @JsonSetter(nulls = Nulls.FAIL)
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, String> trustBundles = new LinkedHashMap<>();

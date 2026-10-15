@@ -41,7 +41,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private ClientSecretPolicy clientSecretPolicy;
     private Map<String, String> mtlsTrustBundles = Map.of();
-    private boolean mtlsEnabled = true;
+    private boolean mtlsEnabled = false;
     private TokenPolicy tokenPolicy;
 
     private final IdentityZoneProvisioning provisioning;

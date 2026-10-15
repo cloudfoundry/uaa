@@ -1307,7 +1307,7 @@ feature cannot be half-enabled by an unusual spelling.
 
 All mTLS beans and the security chain are created regardless of this flag. Availability is enforced at runtime:
 both this deployment switch and `config.mtls.enabled` in the current identity zone must be enabled.
-The zone flag defaults to `true` when omitted and can disable mTLS independently without restarting UAA.
+The zone flag defaults to `false` when omitted, so each tenant zone opts in; it can be changed without restarting UAA.
 With a zone disabled, its mTLS endpoints return `404`, new mTLS client registrations fail, and OIDC discovery
 omits the mTLS authentication method and endpoint alias. Existing mTLS clients cannot use their secrets as a fallback.
 Other zones remain unaffected; issued tokens are not revoked by changing the flag.
