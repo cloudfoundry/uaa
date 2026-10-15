@@ -9,7 +9,6 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
-import java.util.Collection;
 import java.util.List;
 
 interface MultitenantClientRegistrationService extends ClientRegistrationService {
@@ -83,16 +82,6 @@ public abstract class MultitenantClientServices implements
     @Override
     public final List<ClientDetails> listClientDetails() {
         return listClientDetails(identityZoneManager.getCurrentIdentityZoneId());
-    }
-
-    /**
-     * Lists the clients in {@code zoneId} whose additional information contains any of {@code keys}.
-     * Implementations backed by a database should filter there instead of loading every client.
-     */
-    public List<ClientDetails> listClientDetailsWithAdditionalInformationKey(String zoneId, Collection<String> keys) {
-        return listClientDetails(zoneId).stream()
-                .filter(client -> keys.stream().anyMatch(client.getAdditionalInformation()::containsKey))
-                .toList();
     }
 
     @Override

@@ -665,46 +665,6 @@ class MultitenantJdbcClientDetailsServiceTests {
     }
 
     @Test
-    void listClientDetailsWithAdditionalInformationKeyReturnsOnlyMatchingClientsInZone() {
-        addClientWithInformation("ca-ref", currentZoneId, Map.of("tls-client-auth-ca-ref", "bundle"));
-        addClientWithInformation("proxy-ref", currentZoneId, Map.of("tls-client-auth-trusted-proxy-ca-ref", "bundle"));
-        addClientWithInformation("plain", currentZoneId, Map.of("name", "plain"));
-        addClientWithInformation("value-only", currentZoneId, Map.of("name", "tls-client-auth-ca-ref"));
-        addClientWithInformation("other-zone", "other-zone", Map.of("tls-client-auth-ca-ref", "bundle"));
-
-        List<ClientDetails> found = service.listClientDetailsWithAdditionalInformationKey(currentZoneId,
-                List.of("tls-client-auth-ca-ref", "tls-client-auth-trusted-proxy-ca-ref"));
-
-        assertThat(found).extracting(ClientDetails::getClientId).containsExactly("ca-ref", "proxy-ref");
-    }
-
-    @Test
-    void listClientDetailsWithAdditionalInformationKeyTreatsLikeWildcardsLiterally() {
-        addClientWithInformation("underscore", currentZoneId, Map.of("a_b", "x"));
-        addClientWithInformation("lookalike", currentZoneId, Map.of("axb", "x"));
-        addClientWithInformation("percent", currentZoneId, Map.of("a%b", "x"));
-
-        assertThat(service.listClientDetailsWithAdditionalInformationKey(currentZoneId, List.of("a_b")))
-                .extracting(ClientDetails::getClientId).containsExactly("underscore");
-        assertThat(service.listClientDetailsWithAdditionalInformationKey(currentZoneId, List.of("a%b")))
-                .extracting(ClientDetails::getClientId).containsExactly("percent");
-    }
-
-    @Test
-    void listClientDetailsWithAdditionalInformationKeyWithoutKeysReturnsNothing() {
-        addClientWithInformation("ca-ref", currentZoneId, Map.of("tls-client-auth-ca-ref", "bundle"));
-
-        assertThat(service.listClientDetailsWithAdditionalInformationKey(currentZoneId, List.of())).isEmpty();
-    }
-
-    private void addClientWithInformation(String clientId, String zoneId, Map<String, Object> information) {
-        UaaClientDetails client = new UaaClientDetails();
-        client.setClientId(clientId);
-        client.setAdditionalInformation(information);
-        service.addClientDetails(client, zoneId);
-    }
-
-    @Test
     void loadingClientInOtherZoneFromOtherZone() {
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn("other-zone");
 
