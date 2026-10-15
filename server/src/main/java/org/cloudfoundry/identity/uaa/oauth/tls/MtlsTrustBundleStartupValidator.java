@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /** Checks persisted references after zone and client bootstraps have finished. */
@@ -16,7 +17,8 @@ public class MtlsTrustBundleStartupValidator implements SmartInitializingSinglet
     private final IdentityZoneProvisioning zones;
     private final MultitenantClientServices clients;
 
-    public MtlsTrustBundleStartupValidator(IdentityZoneProvisioning zones,
+    public MtlsTrustBundleStartupValidator(@Value("${uaa.mtls.enabled:false}") boolean deploymentEnabled,
+            IdentityZoneProvisioning zones,
             @Qualifier("jdbcClientDetailsService") MultitenantClientServices clients) {
         this.zones = zones;
         this.clients = clients;
@@ -37,6 +39,10 @@ public class MtlsTrustBundleStartupValidator implements SmartInitializingSinglet
                         zone.getId(), e.getMessage());
             }
         }
+    }
+
+    public void validateOnEnable(IdentityZone previous, IdentityZone updated) {
+        // Not implemented yet.
     }
 
     private void validateZone(IdentityZone zone) {

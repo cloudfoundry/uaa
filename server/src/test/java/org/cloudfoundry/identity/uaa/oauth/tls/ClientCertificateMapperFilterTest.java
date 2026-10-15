@@ -204,16 +204,25 @@ class ClientCertificateMapperFilterTest {
                 .getCertificate(holder);
     }
     @Test
-    void mapperBeanExistsButRegistrationIsDisabledWhenDeploymentMtlsIsOff() {
+    void mapperIsNotLoadedWhenDeploymentMtlsIsOff() throws Exception {
         FilterRegistrationBean<?> bean = new SpringServletXmlFiltersConfiguration()
                 .clientCertificateMapperFilter(false);
 
         assertThat(bean.isEnabled()).isFalse();
         assertThat(bean.getFilter())
-                .as("mTLS bean implementations must exist independently of the deployment switch")
+                .as("the registration bean exists independently of the deployment switch")
                 .isInstanceOf(MtlsPathGuardedFilter.class);
         assertThat(((MtlsPathGuardedFilter) bean.getFilter()).getDelegate().getClass().getName())
-                .isEqualTo("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
+                .as("uaa.mtls.enabled=false must not reflectively load the third-party mapper")
+                .isNotEqualTo("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
+
+        MockHttpServletRequest request = requestWithClientCertHeader();
+        AtomicReference<Object> downstream = new AtomicReference<>();
+        bean.getFilter().doFilter(request, new MockHttpServletResponse(), (req, res) -> downstream.set(req));
+        assertThat(downstream.get()).as("the inert filter must still continue the chain").isSameAs(request);
+        assertThat(request.getAttribute("jakarta.servlet.request.X509Certificate"))
+                .as("the inert filter must not map XFCC into the peer certificate attribute")
+                .isNull();
     }
 
 }
