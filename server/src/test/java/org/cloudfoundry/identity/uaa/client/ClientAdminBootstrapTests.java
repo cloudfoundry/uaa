@@ -306,6 +306,20 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
+    void simpleAddClientWithClientJwtSubjectPattern() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo-jwks-pattern");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
+        map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
+        map.put("jwt_creds", "[{\"iss\":\"https://gitlab.example.com\",\"sub_pattern\":\"project_path:myteam/deploy:ref_type:branch:ref:*\"}]");
+        UaaClientDetails clientDetails = (UaaClientDetails) doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        assertThat(clientDetails.getClientJwtConfig()).contains("sub_pattern");
+    }
+
+    @Test
     void clientMetadata_getsBootstrapped() {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
