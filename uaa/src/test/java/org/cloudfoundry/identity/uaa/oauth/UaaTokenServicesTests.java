@@ -496,6 +496,74 @@ class UaaTokenServicesTests {
             assertThat(claims).containsEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE);
         }
 
+        @Test
+        @DisplayName("an access token issued by a refresh does not carry granted_scopes")
+        void refreshedAccessTokenDoesNotCarryGrantedScopes() {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
+            // The claim copy only runs when the enhancer list is non-empty (see below), and stock UAA
+            // registers no enhancer, so register one for the duration of the test. Without it this
+            // test would pass whether or not GRANTED_SCOPES is filtered.
+            tokenServices.setUaaTokenEnhancers(List.of(new UaaTokenEnhancer() {
+                @Override
+                public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                    return Map.of();
+                }
+
+                @Override
+                public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                    return new HashMap<>();
+                }
+            }));
+            try {
+                // The refresh token is minted for the FULL consented scope set...
+                RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                        GRANT_TYPE_AUTHORIZATION_CODE,
+                        Sets.newHashSet("openid", "user_attributes"),
+                        null,
+                        "",
+                        Sets.newHashSet(""),
+                        "jku_test",
+                        false,
+                        new Date(),
+                        null,
+                        Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE)
+                );
+                UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+                refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+                assertThat(refreshToken).isNotNull();
+                OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                OAuth2Request auth2Request = mock(OAuth2Request.class);
+                when(authentication.getOAuth2Request()).thenReturn(auth2Request);
+                when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+
+                // ...and this refresh requests a narrower scope, "openid" only.
+                OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(
+                        this.refreshToken.getValue(),
+                        new TokenRequest(new HashMap<>(), "jku_test",
+                                Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
+
+                assertThat(refreshedToken).isNotNull();
+                Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class);
+                assertThat(claims).containsEntry(ClaimConstants.SCOPE, Lists.newArrayList("openid"));
+
+                // UaaTokenServices states the invariant itself at the `refreshTokenClaims.remove(
+                // GRANTED_SCOPES)` call: "granted_scopes claim should not be present in an access
+                // token". That removal runs AFTER the copy loop in getAdditionalRootClaims(), so on its
+                // own it has no effect; GRANTED_SCOPES being in NON_ADDITIONAL_ROOT_CLAIMS is what keeps
+                // it out of the copy.
+                //
+                // The whole block is guarded by `if (!uaaTokenEnhancers.isEmpty())`, so without this
+                // filter any deployment that registers an enhancer copies
+                // granted_scopes=[openid, user_attributes] onto the access token as well.
+                assertThat(claims)
+                        .as("granted_scopes belongs on the refresh token only")
+                        .doesNotContainKey(ClaimConstants.GRANTED_SCOPES);
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+
         /**
          * Refresh token with only client_id (no cid) is accepted and exchange succeeds.
          * Legacy or external tokens may omit the cid claim; we fall back to client_id.
