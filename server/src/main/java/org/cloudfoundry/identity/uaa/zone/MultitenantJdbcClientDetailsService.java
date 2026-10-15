@@ -37,6 +37,7 @@ import org.springframework.util.StringUtils;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -78,6 +79,8 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     private static final String DEFAULT_FIND_STATEMENT =
             BASE_FIND_STATEMENT + " where identity_zone_id = :identityZoneId order by client_id";
+
+    private static final String ADDITIONAL_INFORMATION_KEY_CONDITION = "additional_information like :key%d escape '!'";
 
     private static final String DEFAULT_SELECT_STATEMENT =
             BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
@@ -186,6 +189,35 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     public List<ClientDetails> listClientDetails(String zoneId) {
         return listFactory.getList(DEFAULT_FIND_STATEMENT, Collections.singletonMap("identityZoneId", zoneId), rowMapper);
+    }
+
+    /**
+     * Filters in SQL on the serialized JSON key ({@code "key":}), so clients without any of the keys are
+     * never loaded. The match is confirmed on the parsed additional information, which also excludes a
+     * value that happens to contain the same text.
+     */
+    @Override
+    public List<ClientDetails> listClientDetailsWithAdditionalInformationKey(String zoneId, Collection<String> keys) {
+        if (keys.isEmpty()) {
+            return List.of();
+        }
+        List<String> keyList = List.copyOf(keys);
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("identityZoneId", zoneId);
+        List<String> conditions = new ArrayList<>();
+        for (int i = 0; i < keyList.size(); i++) {
+            conditions.add(ADDITIONAL_INFORMATION_KEY_CONDITION.formatted(i));
+            parameters.put("key" + i, "%" + escapeLike(JsonUtils.writeValueAsString(keyList.get(i)) + ":") + "%");
+        }
+        String sql = BASE_FIND_STATEMENT + " where identity_zone_id = :identityZoneId and ("
+                + String.join(" or ", conditions) + ") order by client_id";
+        return listFactory.getList(sql, parameters, rowMapper).stream()
+                .filter(client -> keyList.stream().anyMatch(client.getAdditionalInformation()::containsKey))
+                .toList();
+    }
+
+    private static String escapeLike(String value) {
+        return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
     private Object[] getInsertClientDetailsFields(ClientDetails clientDetails, String zoneId) {
