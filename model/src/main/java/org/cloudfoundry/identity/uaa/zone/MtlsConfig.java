@@ -11,8 +11,8 @@ import java.util.Map;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MtlsConfig {
-    /** Zones opt in; the deployment's master switch must also be enabled. */
-    @JsonSetter(nulls = Nulls.FAIL)
+    /** Zones opt in; the deployment's master switch must also be enabled. A null keeps the default. */
+    @JsonSetter(nulls = Nulls.SKIP)
     private boolean enabled = false;
 
     @JsonSetter(nulls = Nulls.AS_EMPTY)

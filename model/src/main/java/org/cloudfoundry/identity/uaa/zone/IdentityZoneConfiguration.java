@@ -33,7 +33,12 @@ public class IdentityZoneConfiguration {
     private static final String PASSWORD = "password";
 
     private ClientSecretPolicy clientSecretPolicy = new ClientSecretPolicy();
-    @JsonSetter(nulls = Nulls.FAIL)
+    /**
+     * Omitted while it equals a new {@link MtlsConfig} (Jackson excludes a value the filter instance
+     * equals), so zones that never configure mTLS serialize as they did before mTLS existed.
+     */
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = MtlsConfig.class)
     private MtlsConfig mtls = new MtlsConfig();
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();

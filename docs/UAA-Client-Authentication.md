@@ -430,7 +430,8 @@ typed mTLS mirror does not change equality, hash codes, or set membership after 
 
 `uaa.mtls.enabled` defaults to `false`. With it off the feature does nothing observable. OIDC discovery includes
 `tls_client_certificate_bound_access_tokens` only when mTLS is enabled for the deployment and the zone; RFC 8705
-section 3.3 treats the omitted value as `false`.
+section 3.3 treats the omitted value as `false`. Identity-zone configuration includes `config.mtls` only once it
+differs from the default (disabled, no bundles), and a `null` value reads as that default.
 
 **Token enhancers.** `MtlsClaimsEnhancer` is always registered alongside other `UaaTokenEnhancer` beans. It is active
 only when deployment and zone mTLS are both enabled. An inactive enhancer does not activate refresh-claim copying. It
