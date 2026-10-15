@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundleStartupValidator;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -55,9 +54,6 @@ class IdentityZoneEndpointsTests {
 
     @Mock
     private ApplicationEventPublisher mockApplicationEventPublisher;
-
-    @Mock
-    private MtlsTrustBundleStartupValidator mockMtlsTrustValidator;
 
     @InjectMocks
     private IdentityZoneEndpoints endpoints;

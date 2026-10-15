@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.oauth.tls;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,12 +23,10 @@ import static org.mockito.Mockito.when;
 class MtlsTrustBundleStartupValidatorTest {
     private static final Map<String, String> INVALID_BUNDLES = Map.of("broken", "not a certificate");
     private IdentityZoneProvisioning zones;
-    private MultitenantClientServices clients;
 
     @BeforeEach
     void setUp() {
         zones = mock(IdentityZoneProvisioning.class);
-        clients = mock(MultitenantClientServices.class);
     }
 
     @Test
@@ -42,13 +39,13 @@ class MtlsTrustBundleStartupValidatorTest {
     }
 
     @Test
-    void neverLooksUpClientsOrOtherZones() {
+    void neverLooksUpOtherZones() {
         givenDefaultZone(true, Map.of());
 
         validator(true).afterSingletonsInstantiated();
 
+        verify(zones).retrieve(IdentityZone.getUaaZoneId());
         verify(zones, never()).retrieveAll();
-        verifyNoInteractions(clients);
     }
 
     @Test
@@ -74,6 +71,6 @@ class MtlsTrustBundleStartupValidatorTest {
     }
 
     private MtlsTrustBundleStartupValidator validator(boolean deploymentEnabled) {
-        return new MtlsTrustBundleStartupValidator(deploymentEnabled, zones, clients);
+        return new MtlsTrustBundleStartupValidator(deploymentEnabled, zones);
     }
 }
