@@ -85,9 +85,14 @@ public abstract class MultitenantClientServices implements
         return listClientDetails(identityZoneManager.getCurrentIdentityZoneId());
     }
 
+    /**
+     * Lists the clients in {@code zoneId} whose additional information contains any of {@code keys}.
+     * Implementations backed by a database should filter there instead of loading every client.
+     */
     public List<ClientDetails> listClientDetailsWithAdditionalInformationKey(String zoneId, Collection<String> keys) {
-        // Not implemented yet.
-        return listClientDetails(zoneId);
+        return listClientDetails(zoneId).stream()
+                .filter(client -> keys.stream().anyMatch(client.getAdditionalInformation()::containsKey))
+                .toList();
     }
 
     @Override

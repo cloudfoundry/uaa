@@ -26,6 +26,9 @@ import java.util.List;
  */
 @Component
 public class MtlsTrustBundleStartupValidator implements SmartInitializingSingleton {
+    private static final List<String> REFERENCE_KEYS = List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF,
+            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
+
     private final boolean deploymentEnabled;
     private final IdentityZoneProvisioning zones;
     private final MultitenantClientServices clients;
@@ -63,19 +66,17 @@ public class MtlsTrustBundleStartupValidator implements SmartInitializingSinglet
     }
 
     private void validateClientReferences(IdentityZone zone) {
-        for (var client : clients.listClientDetails(zone.getId())) {
+        // Only clients that reference a bundle are loaded; most clients have no mTLS configuration.
+        for (var client : clients.listClientDetailsWithAdditionalInformationKey(zone.getId(), REFERENCE_KEYS)) {
             var info = client.getAdditionalInformation();
-            if (info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF)
-                    || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF)) {
-                try {
-                    for (String inline : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
-                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
-                        MtlsTrustBundles.resolve(info, inline, inline + "-ref", zone.getConfig().getMtls().getTrustBundles());
-                    }
-                } catch (InvalidClientDetailsException e) {
-                    throw new InvalidClientDetailsException("Invalid mTLS trust for client_id=" + client.getClientId()
-                            + " in identity_zone_id=" + zone.getId() + ": " + e.getMessage(), e);
+            try {
+                for (String inline : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
+                    MtlsTrustBundles.resolve(info, inline, inline + "-ref", zone.getConfig().getMtls().getTrustBundles());
                 }
+            } catch (InvalidClientDetailsException e) {
+                throw new InvalidClientDetailsException("Invalid mTLS trust for client_id=" + client.getClientId()
+                        + " in identity_zone_id=" + zone.getId() + ": " + e.getMessage(), e);
             }
         }
     }

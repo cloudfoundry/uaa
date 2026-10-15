@@ -67,7 +67,7 @@ class MtlsTrustBundleStartupValidatorTest {
         @Test
         void neverLoadsEveryClientOfAZone() {
             givenDefaultZone(true);
-            when(clients.listClientDetailsWithAdditionalInformationKey(IdentityZone.getUaaZoneId(), REFERENCE_KEYS))
+            when(clients.listClientDetailsWithAdditionalInformationKey(anyString(), eq(REFERENCE_KEYS)))
                     .thenReturn(List.of());
 
             validator(true).afterSingletonsInstantiated();
