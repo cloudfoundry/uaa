@@ -1,12 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.servlet.http.HttpServletRequest;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.bouncycastle.openssl.PEMParser;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.util.PemCertificateParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,7 +19,6 @@ import javax.naming.directory.Attribute;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import javax.security.auth.x500.X500Principal;
-import java.io.StringReader;
 import java.security.cert.CertPathValidator;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateFactory;
@@ -30,12 +29,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Validates mTLS client certificates against a configured CA and extracts
@@ -49,7 +51,40 @@ public class TlsClientAuthentication {
 
     private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthentication.class);
 
+    @Autowired
+    private IdentityZoneManager identityZoneManager =
+            new IdentityZoneManagerImpl();
+
+    @Autowired
+    private MtlsFeaturePolicy featurePolicy = new MtlsFeaturePolicy(true, new IdentityZoneManagerImpl());
+
+    public boolean isMtlsEnabled() {
+        return featurePolicy.isEnabled();
+    }
+
+    private Map<String, String> trustBundles() {
+        return identityZoneManager.getCurrentIdentityZone().getConfig().getMtls().getTrustBundles();
+    }
+
     private static final String XFCC_HEADER = "X-Forwarded-Client-Cert";
+
+    /**
+     * Longest OU value a claim-mapping {@code pattern} will be matched against. A real instance identity
+     * ({@code organization:<guid>}, {@code space:<guid>}, {@code app:<guid>}) is under 60 characters; anything
+     * past this is not handed to a regex at all, which also bounds the work an adversarial pattern can do.
+     */
+    static final int MAX_OU_LENGTH_FOR_PATTERN = 256;
+
+    /** Compiled claim-mapping patterns kept; one per distinct pattern in use, so well above any real deployment. */
+    static final int MAX_CACHED_PATTERNS = 256;
+
+    private final Map<String, Pattern> patternCache = Collections.synchronizedMap(
+            new LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Pattern> eldest) {
+                    return size() > MAX_CACHED_PATTERNS;
+                }
+            });
 
     /**
      * Returns {@code true} when any certificate is present on the current request under the
@@ -123,8 +158,9 @@ public class TlsClientAuthentication {
         }
         HttpServletRequest request = attrs.getRequest();
         boolean trustedProxyConfigured = clientConfig != null
-                && clientConfig.getTrustedProxyCaPem() != null
-                && !clientConfig.getTrustedProxyCaPem().isBlank();
+                && ((clientConfig.getTrustedProxyCaPem() != null && !clientConfig.getTrustedProxyCaPem().isBlank())
+                        || clientConfig.getTrustedProxyCaRef() != null
+                        || clientConfig.getTrustedProxySubjectDn() != null);
 
         if (!trustedProxyConfigured) {
             // Direct-connection-only client: always use the genuine TLS-handshake peer
@@ -172,7 +208,8 @@ public class TlsClientAuthentication {
      * {@link RawPeerCertificateCaptureFilter} (the certificate the immediate TCP peer actually
      * presented during the TLS handshake -- distinct from any certificate derived from the
      * {@code X-Forwarded-Client-Cert} header) validates against {@code clientConfig}'s
-     * {@code tls-client-auth-trusted-proxy-ca}.
+     * {@code tls-client-auth-trusted-proxy-ca} and matches its registered
+     * {@code tls-client-auth-trusted-proxy-subject-dn}.
      *
      * <p>Scoped per-client (like {@code tls-client-auth-ca}) rather than a single global CA: the value
      * is stored in {@code additionalInformation} and is therefore API-mutable at runtime. The Tomcat
@@ -191,10 +228,19 @@ public class TlsClientAuthentication {
      * @return {@code false} if {@code clientConfig} is {@code null}, has no
      *         {@code tls-client-auth-trusted-proxy-ca} configured, there is no current request or no
      *         captured peer certificate, the peer certificate does not validate against the configured
-     *         proxy CA, or the validated peer leaf fails an end-entity constraint check
+     *         proxy CA, fails an end-entity constraint check, or has no matching registered proxy subject DN
      */
     public boolean isCertificateFromTrustedProxy(TlsClientAuthConfiguration clientConfig) {
-        String trustedProxyCaPem = clientConfig != null ? clientConfig.getTrustedProxyCaPem() : null;
+        // A shared CA also issues to unrelated services. Issuance alone must not grant
+        // permission to assert a workload's identity through XFCC.
+        if (clientConfig == null || clientConfig.getTrustedProxySubjectDn() == null
+                || clientConfig.getTrustedProxySubjectDn().isBlank()) {
+            return false;
+        }
+        String trustedProxyCaPem = MtlsTrustBundles.resolve(
+                clientConfig.getTrustedProxyCaPem(), clientConfig.getTrustedProxyCaRef(),
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF, trustBundles());
         if (trustedProxyCaPem == null || trustedProxyCaPem.isBlank()) {
             return false;
         }
@@ -209,12 +255,12 @@ public class TlsClientAuthentication {
             return false;
         }
         try {
-            X509Certificate caCert = parsePemCertificate(trustedProxyCaPem);
-            Optional<X509Certificate> validated = validateCertPath(peerChain, caCert);
+            List<X509Certificate> caCerts = PemCertificateParser.parseCertificateChain(trustedProxyCaPem);
+            Optional<X509Certificate> validated = validateCertPath(peerChain, caCerts);
             if (validated.isPresent()) {
                 validateEndEntityConstraints(validated.get());
             }
-            return validated.isPresent();
+            return validated.isPresent() && TlsClientAuthSubjectMatcher.matchesTrustedProxy(validated.get(), clientConfig);
         } catch (Exception e) {
             logger.warn("isCertificateFromTrustedProxy: peer certificate did not validate against "
                     + "tls-client-auth-trusted-proxy-ca: {}", e.getMessage());
@@ -327,13 +373,19 @@ public class TlsClientAuthentication {
     public Optional<X509Certificate> validateClientCert(
             X509Certificate[] chain, TlsClientAuthConfiguration config) {
 
+        if (!isMtlsEnabled()) {
+            throw new InvalidClientDetailsException("tls_client_auth: mTLS is disabled for this identity zone or deployment");
+        }
+
         if (chain == null || chain.length == 0 || !TlsClientAuthConfiguration.isConfigured(config)) {
             return Optional.empty();
         }
 
         try {
-            X509Certificate caCert = parsePemCertificate(config.getTrustedCaPem());
-            Optional<X509Certificate> validated = validateCertPath(chain, caCert);
+            List<X509Certificate> caCerts = PemCertificateParser.parseCertificateChain(MtlsTrustBundles.resolve(
+                    config.getTrustedCaPem(), config.getTrustedCaRef(), TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, trustBundles()));
+            Optional<X509Certificate> validated = validateCertPath(chain, caCerts);
             if (validated.isPresent()) {
                 validateEndEntityConstraints(validated.get());
             }
@@ -397,18 +449,26 @@ public class TlsClientAuthentication {
     }
 
     /**
-     * Validates {@code chain} against {@code caCert} using PKIX path validation, without requiring any
-     * per-client {@link TlsClientAuthConfiguration}. Shared by {@link #validateClientCert} and
-     * {@link #isCertificateFromTrustedProxy}.
+     * Validates {@code chain} against the configured CA trust set using PKIX path validation, without
+     * requiring any per-client {@link TlsClientAuthConfiguration}. Shared by
+     * {@link #validateClientCert} and {@link #isCertificateFromTrustedProxy}.
+     *
+     * <p>Every certificate in the configured PEM becomes a trust anchor, which is what makes a CA
+     * rotation possible: during the overlap window an operator publishes the outgoing and incoming
+     * CA in one bundle, and certificates issued by either must validate. Anchoring only the first
+     * entry would accept the bundle at registration and then reject half the workloads.
      *
      * @return {@code Optional.of(chain[0])} when validation succeeds
-     * @throws CertPathValidatorException if the chain does not validate against {@code caCert}
-     * @throws Exception if {@code caCert} or the PKIX machinery is misconfigured
+     * @throws CertPathValidatorException if the chain does not validate against any configured anchor
+     * @throws Exception if the trust set or the PKIX machinery is misconfigured
      */
-    private static Optional<X509Certificate> validateCertPath(X509Certificate[] chain, X509Certificate caCert)
-            throws Exception {
-        TrustAnchor anchor = new TrustAnchor(caCert, null);
-        PKIXParameters params = new PKIXParameters(Set.of(anchor));
+    private static Optional<X509Certificate> validateCertPath(X509Certificate[] chain,
+            List<X509Certificate> caCerts) throws Exception {
+        Set<TrustAnchor> anchors = new HashSet<>();
+        for (X509Certificate caCert : caCerts) {
+            anchors.add(new TrustAnchor(caCert, null));
+        }
+        PKIXParameters params = new PKIXParameters(anchors);
         params.setRevocationEnabled(false);
 
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -420,20 +480,6 @@ public class TlsClientAuthentication {
         return Optional.of(chain[0]);
     }
 
-    private static X509Certificate parsePemCertificate(String pem) throws Exception {
-        try (PEMParser parser = new PEMParser(new StringReader(pem))) {
-            Object obj = parser.readObject();
-            if (!(obj instanceof X509CertificateHolder holder)) {
-                throw new IllegalArgumentException(
-                        obj == null
-                                ? "No PEM object found in tls-client-auth-ca"
-                                : "PEM object is not a certificate: " + obj.getClass().getSimpleName());
-            }
-            return new JcaX509CertificateConverter()
-                    .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
-                    .getCertificate(holder);
-        }
-    }
 
     /**
      * Parses an RFC 2253 DN string into its RDNs, ordered most-specific-first
@@ -524,13 +570,27 @@ public class TlsClientAuthentication {
      * When {@code patternStr} is null or blank, returns the first collected OU value verbatim;
      * selection among repeated AVAs follows collected/provider order. Use a pattern to select a
      * specific value.
+     *
+     * <p>OU values are length bounded and matched with a linear-time engine. Invalid, unsupported,
+     * or overly complex persisted patterns yield no claim, so required-claim checks refuse authentication.
      */
-    private static String matchFirstOu(List<String> ous, String patternStr) {
+    private String matchFirstOu(List<String> ous, String patternStr) {
         if (patternStr == null || patternStr.isBlank()) {
             return ous.isEmpty() ? null : ous.get(0);
         }
-        Pattern pat = Pattern.compile(patternStr);
+        final Pattern pat;
+        try {
+            pat = compiledPattern(patternStr);
+        } catch (PatternSyntaxException e) {
+            logger.warn("Invalid OU claim-mapping pattern; the mapping yields no claim");
+            return null;
+        }
         for (String ou : ous) {
+            if (ou.length() > MAX_OU_LENGTH_FOR_PATTERN) {
+                logger.debug("claim-mapping pattern skipped an OU of {} characters (limit {})",
+                        ou.length(), MAX_OU_LENGTH_FOR_PATTERN);
+                continue;
+            }
             Matcher m = pat.matcher(ou);
             if (m.matches() && m.groupCount() >= 1) {
                 return m.group(1);
@@ -539,19 +599,21 @@ public class TlsClientAuthentication {
         return null;
     }
 
-    /** Bound on the compiled-pattern cache. Not implemented yet: patterns are not cached. */
-    static final int MAX_CACHED_PATTERNS = 256;
-
+    /**
+     * The compiled form of {@code patternStr}, compiled once per distinct pattern rather than on every token
+     * request. A pattern that does not compile is not cached and throws as before.
+     */
     Pattern compiledPattern(String patternStr) {
-        return Pattern.compile(patternStr);
+        Pattern cached = patternCache.get(patternStr);
+        if (cached == null) {
+            cached = OuClaimPattern.compile(patternStr);
+            patternCache.put(patternStr, cached);
+        }
+        return cached;
     }
 
     int patternCacheSize() {
-        return 0;
+        return patternCache.size();
     }
 
-    /** Whether mTLS is enabled for the deployment and the current zone. Not implemented yet: never. */
-    public boolean isMtlsEnabled() {
-        return false;
-    }
 }

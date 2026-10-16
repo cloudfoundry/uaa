@@ -8,6 +8,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Wraps a delegate {@link Filter} so it only runs for requests whose effective (post
@@ -37,7 +38,24 @@ public class MtlsPathGuardedFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         if (RawPeerCertificateCaptureFilter.isMtlsTokenPath((HttpServletRequest) request)) {
-            delegate.doFilter(request, response, chain);
+            Object originalCertificate = request.getAttribute("jakarta.servlet.request.X509Certificate");
+            AtomicBoolean downstreamStarted = new AtomicBoolean();
+            try {
+                delegate.doFilter(request, response, (mappedRequest, mappedResponse) -> {
+                    downstreamStarted.set(true);
+                    chain.doFilter(mappedRequest, mappedResponse);
+                });
+            } catch (IllegalArgumentException e) {
+                if (downstreamStarted.get()) {
+                    // Application exceptions must propagate, rather than rerunning the handler.
+                    throw e;
+                }
+                // The mapper contains certificate parsing errors but not URL-decoding errors. Treat
+                // malformed XFCC the same way: preserve the TLS peer and let authentication decide.
+                // Proxy-only clients reject the unchanged attribute; direct clients use the raw peer.
+                request.setAttribute("jakarta.servlet.request.X509Certificate", originalCertificate);
+                chain.doFilter(request, response);
+            }
         } else {
             chain.doFilter(request, response);
         }

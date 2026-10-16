@@ -115,6 +115,8 @@ public class OAuth2Exception extends RuntimeException {
             return new UnsupportedResponseTypeException(errorMessage);
         } else if (ACCESS_DENIED.equals(errorCode)) {
             return new UserDeniedAuthorizationException(errorMessage);
+        } else if (INVALID_TARGET.equals(errorCode)) {
+            return new InvalidTargetException(errorMessage);
         } else {
             return new OAuth2Exception(errorMessage);
         }

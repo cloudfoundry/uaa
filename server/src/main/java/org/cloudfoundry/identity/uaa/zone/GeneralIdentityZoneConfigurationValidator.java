@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,11 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
     public IdentityZoneConfiguration validate(IdentityZone zone, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
         IdentityZoneConfiguration config = zone.getConfig();
         if (mode == IdentityZoneValidator.Mode.CREATE || mode == IdentityZoneValidator.Mode.MODIFY) {
+            try {
+                MtlsTrustBundles.validate(config.getMtls().getTrustBundles());
+            } catch (InvalidClientDetailsException e) {
+                throw new InvalidIdentityZoneConfigurationException(e.getMessage(), e);
+            }
             String currentKeyId = null;
             try {
                 SamlConfig samlConfig;

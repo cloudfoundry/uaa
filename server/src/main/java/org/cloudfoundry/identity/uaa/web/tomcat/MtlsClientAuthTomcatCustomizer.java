@@ -13,7 +13,7 @@ import java.security.Provider;
 import java.security.Security;
 
 /**
- * When {@code uaa.mtls-enabled} is true, configures the embedded Tomcat connector to request a client
+ * When {@code uaa.mtls.enabled} is true, configures the embedded Tomcat connector to request a client
  * certificate during the TLS handshake without validating it against any CA at the TLS layer
  * ({@code certificateVerification=optionalNoCA}) -- proof of private-key possession still happens as
  * part of the handshake itself, but the trust decision (which CA, if any, is acceptable) is deferred
@@ -68,7 +68,7 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
 
     private final boolean mtlsEnabled;
 
-    public MtlsClientAuthTomcatCustomizer(@Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled) {
+    public MtlsClientAuthTomcatCustomizer(@Value("${uaa.mtls.enabled:false}") boolean mtlsEnabled) {
         this.mtlsEnabled = mtlsEnabled;
     }
 
@@ -81,7 +81,7 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
         factory.addConnectorCustomizers(connector -> {
             if (!(connector.getProtocolHandler() instanceof AbstractHttp11Protocol<?> protocol)) {
                 throw new IllegalStateException(
-                        "uaa.mtls-enabled requires an HTTP/1.1 Tomcat connector (got "
+                        "uaa.mtls.enabled requires an HTTP/1.1 Tomcat connector (got "
                                 + connector.getProtocolHandler().getClass().getName()
                                 + "); cannot install BCJSSESslImplementation for TLS 1.3 client-cert support");
             }
@@ -120,7 +120,7 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
             Security.addProvider(new BouncyCastleFipsProvider());
         } else if (!(existingFipsProvider instanceof BouncyCastleFipsProvider)) {
             throw new IllegalStateException(
-                    "uaa.mtls-enabled requires the FIPS BouncyCastleFipsProvider registered under the name '"
+                    "uaa.mtls.enabled requires the FIPS BouncyCastleFipsProvider registered under the name '"
                             + BouncyCastleFipsProvider.PROVIDER_NAME
                             + "', but a different provider is already registered under that name: "
                             + existingFipsProvider.getClass().getName()
@@ -134,7 +134,7 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
         }
         if (!(existingJsseProvider instanceof BouncyCastleJsseProvider bcJsseProvider)) {
             throw new IllegalStateException(
-                    "uaa.mtls-enabled requires the FIPS BouncyCastleJsseProvider registered under the name '"
+                    "uaa.mtls.enabled requires the FIPS BouncyCastleJsseProvider registered under the name '"
                             + BouncyCastleJsseProvider.PROVIDER_NAME
                             + "', but a different provider is already registered under that name: "
                             + existingJsseProvider.getClass().getName()
@@ -142,7 +142,7 @@ public class MtlsClientAuthTomcatCustomizer implements WebServerFactoryCustomize
         }
         if (!bcJsseProvider.isFipsMode()) {
             throw new IllegalStateException(
-                    "uaa.mtls-enabled requires the FIPS BouncyCastleJsseProvider registered under the name '"
+                    "uaa.mtls.enabled requires the FIPS BouncyCastleJsseProvider registered under the name '"
                             + BouncyCastleJsseProvider.PROVIDER_NAME
                             + "', and a " + BouncyCastleJsseProvider.class.getName()
                             + " is indeed registered under that name, but it was not constructed in FIPS mode"

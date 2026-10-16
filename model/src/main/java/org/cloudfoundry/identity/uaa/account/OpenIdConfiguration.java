@@ -23,7 +23,7 @@ public class OpenIdConfiguration {
     private String tokenUrl;
 
     @JsonProperty("token_endpoint_auth_methods_supported")
-    private String[] tokenAMR = new String[]{ClientAuthentication.CLIENT_SECRET_BASIC, ClientAuthentication.CLIENT_SECRET_POST, ClientAuthentication.PRIVATE_KEY_JWT, ClientAuthentication.TLS_CLIENT_AUTH};
+    private String[] tokenAMR = new String[]{ClientAuthentication.CLIENT_SECRET_BASIC, ClientAuthentication.CLIENT_SECRET_POST, ClientAuthentication.PRIVATE_KEY_JWT};
 
     @JsonProperty("token_endpoint_auth_signing_alg_values_supported")
     private String[] tokenEndpointAuthSigningValues = new String[]{"RS256", "HS256"};
@@ -75,12 +75,30 @@ public class OpenIdConfiguration {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, String> mtlsEndpointAliases;
 
+    /**
+     * RFC 8705 section 3.3. Signals that this server can bind issued access tokens to the client
+     * certificate (via the {@code cnf.x5t#S256} claim of section 3.1) for clients registered with
+     * {@code tls_client_certificate_bound_access_tokens=true}. The metadata defaults to
+     * {@code false} when omitted, so a server that does issue bound tokens has to say so; it is omitted
+     * otherwise, which leaves the document unchanged while mTLS is off.
+     */
     @JsonProperty("tls_client_certificate_bound_access_tokens")
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean tlsClientCertificateBoundAccessTokens;
 
+    /**
+     * Builds the discovery document for a deployment that has <em>not</em> enabled mutual-TLS client
+     * authentication, which is the product default ({@code uaa.mtls.enabled:false}).
+     *
+     * <p>This overload predates RFC 8705 support and its output must keep matching what it produced
+     * then, since callers compiled against it cannot tell that a new capability exists. Defaulting to
+     * enabled would also be the wrong direction for a default: it would advertise
+     * {@code tls_client_auth} and set {@code tls_client_certificate_bound_access_tokens} on any code
+     * path that simply forgot to pass the flag, i.e. it would fail open. Pass the three-argument
+     * constructor explicitly to advertise mTLS.
+     */
     public OpenIdConfiguration(final String contextPath, final String issuer) {
-        this(contextPath, issuer, true);
+        this(contextPath, issuer, false);
     }
 
     public OpenIdConfiguration(final String contextPath, final String issuer, final boolean mtlsEnabled) {
@@ -90,10 +108,10 @@ public class OpenIdConfiguration {
         this.userInfoUrl = contextPath + "/userinfo";
         this.jwksUri = contextPath + "/token_keys";
         this.logoutEndpoint = contextPath + "/logout.do";
-        if (!mtlsEnabled) {
-            this.tokenAMR = Arrays.stream(this.tokenAMR)
-                    .filter(method -> !ClientAuthentication.TLS_CLIENT_AUTH.equals(method))
-                    .toArray(String[]::new);
+        this.tlsClientCertificateBoundAccessTokens = mtlsEnabled;
+        if (mtlsEnabled) {
+            this.tokenAMR = Arrays.copyOf(this.tokenAMR, this.tokenAMR.length + 1);
+            this.tokenAMR[this.tokenAMR.length - 1] = ClientAuthentication.TLS_CLIENT_AUTH;
         }
     }
 }

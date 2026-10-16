@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +26,7 @@ public class OpenIdConnectEndpoints {
     public OpenIdConnectEndpoints(
             final @Value("${issuer.uri}") String issuer,
             final IdentityZoneManager identityZoneManager,
-            final @Value("${uaa.mtls-enabled:false}") boolean mtlsEnabled
+            final @Value("${uaa.mtls.enabled:false}") boolean mtlsEnabled
     ) {
         this.issuer = issuer;
         this.identityZoneManager = identityZoneManager;
@@ -38,8 +39,10 @@ public class OpenIdConnectEndpoints {
     })
     public ResponseEntity<OpenIdConfiguration> getOpenIdConfiguration(HttpServletRequest request) throws URISyntaxException {
         String contextPath = getServerContextPath(request);
-        OpenIdConfiguration conf = new OpenIdConfiguration(contextPath, getTokenEndpoint(), mtlsEnabled);
-        if (mtlsEnabled) {
+        boolean enabled = MtlsFeaturePolicy.isEnabled(
+                mtlsEnabled, identityZoneManager.getCurrentIdentityZone());
+        OpenIdConfiguration conf = new OpenIdConfiguration(contextPath, getTokenEndpoint(), enabled);
+        if (enabled) {
             conf.setMtlsEndpointAliases(Map.of("token_endpoint", contextPath + MTLS_TOKEN_ENDPOINT_PATH));
         }
         return new ResponseEntity<>(conf, OK);

@@ -13,6 +13,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
@@ -32,6 +34,8 @@ import org.springframework.util.StringUtils;
 
 import tools.jackson.core.type.TypeReference;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,11 +93,6 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final IdentityZoneManager identityZoneManager;
 
-    /** Not implemented yet: client registration still treats mTLS as off. */
-    private final boolean mtlsEnabled = false;
-
-    private static final String TOKEN_ENDPOINT_AUTH_METHOD = "token-endpoint-auth-method";
-
     private final Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
@@ -136,8 +135,10 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
 
-        checkMtlsClientConfigAllowed(client.getAdditionalInformation(), mtlsEnabled, client.getClientId());
+        validateMtlsClientConfiguration(client.getAdditionalInformation(), client.getClientId(),
+                identityZoneManager.getCurrentIdentityZone());
         validateTlsClientAuthClaimConfig(client.getAdditionalInformation(), client.getClientId());
+        validateMtlsClientRules(client.getAdditionalInformation(), client.getAuthorizedGrantTypes(), client.getClientId());
 
         String clientId = client.getClientId();
         if (create) {
@@ -368,48 +369,119 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
     }
 
-    public static void checkMtlsClientConfigAllowed(Map<String, Object> additionalInfo, boolean mtlsEnabled, String clientId) {
-        if (additionalInfo.containsKey(TOKEN_ENDPOINT_AUTH_METHOD)) {
-            throw new InvalidClientDetailsException(
-                    "token-endpoint-auth-method is not supported; configure tls-client-auth-ca to enable mTLS for client_id="
-                            + clientId);
+    /**
+     * Validates a client's mTLS configuration when the client is written. Applies whether or not mTLS is
+     * enabled for the deployment or the zone: a stored configuration must be well formed, and whether it
+     * is used is decided at request time.
+     */
+    public static void validateMtlsClientConfiguration(Map<String, Object> info, String clientId, IdentityZone zone) {
+        validateMtlsClientConfiguration(info, clientId, zone.getConfig().getMtls().getTrustBundles());
+    }
+
+    public static void validateMtlsClientConfiguration(Map<String, Object> info, String clientId,
+            Map<String, String> bundles) {
+        boolean hasCa = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
+        boolean hasProxy = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
+                || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
+        boolean hasProxyIdentity = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
+        Boolean bound = TlsClientAuthConfiguration.parseBoundAccessTokens(info.get(
+                TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS));
+        if (bound == null) {
+            throw new InvalidClientDetailsException("Invalid "
+                    + TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                    + " for client_id=" + clientId + ": must be true or false.");
         }
-        if (!mtlsEnabled
-                && (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
-                        || additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA))) {
-            throw new InvalidClientDetailsException(
-                    "tls-client-auth-ca / tls-client-auth-trusted-proxy-ca require uaa.mtls-enabled "
-                            + "to be true on this UAA deployment. ClientID: " + clientId);
+        if (bound && !hasCa) {
+            throw new InvalidClientDetailsException(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                    + "=true for client_id=" + clientId + " requires TLS client trust configuration.");
         }
-        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
-            try {
-                PemCertificateParser.parseCertificate((String) additionalInfo.get(
-                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA));
-            } catch (Exception e) {
-                throw new InvalidClientDetailsException(
-                        "Invalid tls-client-auth-trusted-proxy-ca for client_id=" + clientId + ": " + e.getMessage(), e);
+        for (String inline : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)) {
+            String pem = MtlsTrustBundles.resolve(info, inline, inline + "-ref", bundles);
+            if (pem != null) {
+                try {
+                    PemCertificateParser.parseCertificateChain(pem);
+                } catch (IllegalArgumentException e) {
+                    throw new InvalidClientDetailsException("Invalid " + inline + " for client_id=" + clientId + ": " + e.getMessage(), e);
+                }
             }
         }
-        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)) {
-            if (!(additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) instanceof String)) {
-                throw new InvalidClientDetailsException(
-                        "Invalid tls-client-auth-ca for client_id=" + clientId + ": must be a PEM string.");
-            }
-            try {
-                PemCertificateParser.parseCertificate(getTlsClientAuthCaPem(additionalInfo));
-            } catch (Exception e) {
-                throw new InvalidClientDetailsException(
-                        "Invalid tls-client-auth-ca for client_id=" + clientId + ": " + e.getMessage(), e);
-            }
+        validateProxyIdentity(info, hasProxy, hasProxyIdentity, clientId);
+        if (hasProxy && !hasCa) {
+            // Proxy trust only says who may forward a certificate; without workload trust the client could never
+            // authenticate at /oauth/mtls/token.
+            throw new InvalidClientDetailsException("tls-client-auth-trusted-proxy-ca(-ref) for client_id=" + clientId
+                    + " requires tls-client-auth-ca or tls-client-auth-ca-ref");
+        }
+        if (hasCa) {
+            requireExactlyOneSubjectBinding(info, clientId);
         }
     }
 
-    private static String getTlsClientAuthCaPem(Map<String, Object> additionalInfo) {
-        Object rawConfig = additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-        if (rawConfig instanceof String pem) {
-            return pem;
+    private static void validateProxyIdentity(Map<String, Object> info, boolean hasProxy,
+            boolean hasProxyIdentity, String clientId) {
+        String key = TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN;
+        if (hasProxyIdentity && !hasProxy) {
+            throw new InvalidClientDetailsException(key + " for client_id=" + clientId
+                    + " requires tls-client-auth-trusted-proxy-ca or tls-client-auth-trusted-proxy-ca-ref");
         }
-        throw new IllegalArgumentException("Not a supported tls-client-auth-ca configuration.");
+        if (!hasProxy) {
+            return;
+        }
+        if (!(info.get(key) instanceof String dn) || dn.isBlank()) {
+            throw new InvalidClientDetailsException(key + " for client_id=" + clientId
+                    + " must be a nonblank subject DN identifying the trusted proxy");
+        }
+        try {
+            new javax.naming.ldap.LdapName(dn);
+        } catch (javax.naming.InvalidNameException e) {
+            throw new InvalidClientDetailsException(key + " for client_id=" + clientId + " must be a valid subject DN", e);
+        }
+    }
+
+    /**
+     * Enforces RFC 8705 section 2.1.2: "A client using the {@code tls_client_auth} authentication
+     * method MUST use exactly one of the below metadata parameters to indicate the certificate
+     * subject value that the authorization server is to expect when authenticating the respective
+     * client."
+     *
+     * <p>Chain validation against {@code tls-client-auth-ca} establishes only that the presented
+     * certificate was issued by that CA. That is an identity for this client only if the CA issues
+     * certificates for this client alone, and the feature's headline use case is the opposite:
+     * Cloud Foundry's Diego instance-identity CA issues to every app instance in the foundation,
+     * so accepting issuance alone would let any app there authenticate as this client. Section 2.1
+     * makes the subject, not the issuer, the thing that identifies the client.
+     *
+     * <p>More than one parameter is refused as well as none: the spec defines no way to combine
+     * them, and guessing (any-of would be weaker than either alone) is worse than making the
+     * operator state one.
+     */
+    private static void requireExactlyOneSubjectBinding(Map<String, Object> additionalInfo, String clientId) {
+        if (additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP) instanceof String sanIp
+                && !sanIp.isBlank() && TlsClientAuthConfiguration.parseIpLiteral(sanIp) == null) {
+            throw new InvalidClientDetailsException(
+                    "Invalid " + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP + " for client_id=" + clientId
+                            + ": must be an IPv4 or IPv6 address literal, not a hostname.");
+        }
+        List<String> configured = TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS.stream()
+                .filter(parameter -> additionalInfo.get(parameter) instanceof String value && !value.isBlank())
+                .toList();
+        if (configured.size() == 1) {
+            return;
+        }
+        String problem = configured.isEmpty()
+                ? "none is configured"
+                : "these are configured: " + String.join(", ", configured);
+        throw new InvalidClientDetailsException(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA + " for client_id=" + clientId
+                        + " requires exactly one of "
+                        + String.join(", ", TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS)
+                        + " (RFC 8705 section 2.1.2), but " + problem
+                        + ". Chain validation only proves the certificate was issued by that CA; the subject "
+                        + "value is what identifies this particular client, so on a shared CA -- such as the "
+                        + "Diego instance-identity CA, which issues to every app in the foundation -- any "
+                        + "certificate holder could otherwise authenticate as this client.");
     }
 
     /**
@@ -442,6 +514,33 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
      *
      * <p>A no-op when {@code additionalInfo} is {@code null}.
      */
+    /**
+     * Rules that relate a client's mTLS settings to the rest of its registration. Call after
+     * {@link #validateMtlsClientConfiguration} and {@link #validateTlsClientAuthClaimConfig}, so malformed values
+     * keep their specific errors. A key with a {@code null} value counts as absent.
+     */
+    public static void validateMtlsClientRules(Map<String, Object> info, Collection<String> grantTypes,
+            String clientId) {
+        Map<String, Object> settings = info == null ? Map.of() : info;
+        boolean hasWorkloadTrust = settings.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) != null
+                || settings.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF) != null;
+        if (!hasWorkloadTrust) {
+            for (String key : TlsClientAuthConfiguration.CERTIFICATE_ONLY_SETTING_KEYS) {
+                if (settings.get(key) != null) {
+                    throw new InvalidClientDetailsException(key + " for client_id=" + clientId
+                            + " requires tls-client-auth-ca or tls-client-auth-ca-ref");
+                }
+            }
+            return;
+        }
+        // /oauth/mtls/token issues only client_credentials, and every other path refuses an mTLS client.
+        if (grantTypes != null
+                && grantTypes.stream().anyMatch(grant -> !GRANT_TYPE_CLIENT_CREDENTIALS.equals(grant))) {
+            throw new InvalidClientDetailsException("client_id=" + clientId
+                    + " is configured for tls_client_auth and may only use the client_credentials grant");
+        }
+    }
+
     public static void validateTlsClientAuthClaimConfig(Map<String, Object> additionalInfo, String clientId) {
         if (additionalInfo == null) {
             return;
@@ -490,13 +589,50 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
             String pattern = mapping.getPattern();
             if (pattern != null && !pattern.isBlank()) {
+                // TlsClientAuthentication.extractClaimMappingValues applies a pattern only when
+                // field == "subject_ou" (the switch's subject_cn/subject_o arms use the raw
+                // value, ignoring mapping.getPattern() entirely) -- a pattern configured on
+                // subject_cn/subject_o here would validate as syntactically fine and then be
+                // silently ignored at token-issuance time, so the accepted config would not
+                // produce what it appears to declare. Reject it instead.
+                if (!"subject_ou".equals(field)) {
+                    throw new InvalidClientDetailsException(
+                            "tls-client-auth-claim-mappings entry for client_id=" + clientId
+                                    + " sets 'pattern' on field '" + field + "', but pattern is only applied "
+                                    + "to subject_ou -- a subject_cn/subject_o pattern would be silently "
+                                    + "ignored, and the claim would take the field's raw value instead.");
+                }
+                com.google.re2j.Pattern compiled;
                 try {
-                    Pattern.compile(pattern);
+                    compiled = org.cloudfoundry.identity.uaa.oauth.tls.OuClaimPattern.compile(pattern);
                 } catch (PatternSyntaxException e) {
                     throw new InvalidClientDetailsException(
                             "tls-client-auth-claim-mappings entry has an invalid pattern '" + pattern
                                     + "' for client_id=" + clientId + ": " + e.getMessage(), e);
                 }
+                // matchFirstOu only returns a value via m.group(1), guarded by
+                // m.groupCount() >= 1 -- a pattern with no capturing group matches (or not) but
+                // never yields a value, so the mapping's claim would never appear in the token,
+                // even though the configuration looks like it should produce one.
+                if (compiled.matcher("").groupCount() < 1) {
+                    throw new InvalidClientDetailsException(
+                            "tls-client-auth-claim-mappings entry for client_id=" + clientId
+                                    + " has pattern '" + pattern + "' with no capturing group -- "
+                                    + "subject_ou extraction only returns a value from a captured group, "
+                                    + "so this pattern would never produce the claim '" + claim + "'.");
+                }
+            }
+            if (TlsClientAuthConfiguration.isReservedClaimName(claim)) {
+                throw new InvalidClientDetailsException(
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS
+                                + " entry maps onto reserved claim '" + claim + "' for client_id="
+                                + clientId
+                                + ". A certificate subject field must not be able to set a claim UAA "
+                                + "owns, or one that states how the caller authenticated "
+                                + "(amr, acr, auth_time, client_auth_method, cnf). Use "
+                                + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE + " or "
+                                + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES
+                                + " to set sub or aud.");
             }
             declaredClaims.add(claim);
         }
@@ -509,6 +645,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
         if (rawSubTemplate instanceof String subTemplate && !subTemplate.isBlank()) {
             checkTemplateLength(subTemplate, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
+            requireAtLeastOnePlaceholder(subTemplate,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
             validateTemplatePlaceholders(subTemplate, declaredClaims,
                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, clientId);
         }
@@ -536,10 +674,47 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                     if (!template.isBlank()) {
                         checkTemplateLength(template, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
+                        requireAtLeastOnePlaceholder(template,
+                                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
                         validateTemplatePlaceholders(template, declaredClaims,
                                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, clientId);
                     }
                 }
+            }
+        }
+
+        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES)) {
+            if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)) {
+                throw new InvalidClientDetailsException(
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " and "
+                                + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES
+                                + " are mutually exclusive for client_id=" + clientId
+                                + ": two mechanisms for setting aud on one client is a footgun.");
+            }
+            List<String> allowedResources;
+            try {
+                Object rawAllowedResources =
+                        additionalInfo.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+                if (rawAllowedResources instanceof String allowedResourcesJson) {
+                    allowedResources = JsonUtils.readValue(allowedResourcesJson, new TypeReference<List<String>>() {});
+                } else {
+                    allowedResources = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(rawAllowedResources),
+                            new TypeReference<List<String>>() {});
+                }
+            } catch (Exception e) {
+                throw new InvalidClientDetailsException(
+                        "Invalid " + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES
+                                + " for client_id=" + clientId + ": " + e.getMessage(), e);
+            }
+            if (allowedResources == null || allowedResources.isEmpty()) {
+                throw new InvalidClientDetailsException(
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES
+                                + " for client_id=" + clientId + " must not be empty.");
+            }
+            for (String resource : allowedResources) {
+                requireValidResourceIndicator(
+                        resource, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES, clientId);
             }
         }
 
@@ -575,6 +750,64 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * RFC 8707 section 2: "the resource parameter... MUST be an absolute URI... MUST NOT include a
+     * fragment component." Applied to every {@code tls-client-auth-allowed-resources} entry at
+     * registration time, since a value that could never be sent as a valid {@code resource} request
+     * parameter would otherwise sit in the allow-list looking configured while matching nothing.
+     */
+    private static void requireValidResourceIndicator(String resource, String propertyName, String clientId) {
+        if (resource == null || resource.isBlank()) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " entry cannot be blank for client_id=" + clientId);
+        }
+        URI uri;
+        try {
+            uri = new URI(resource);
+        } catch (URISyntaxException e) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " entry '" + resource + "' for client_id=" + clientId
+                            + " is not a valid URI (RFC 8707 section 2): " + e.getMessage(), e);
+        }
+        if (!uri.isAbsolute()) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " entry '" + resource + "' for client_id=" + clientId
+                            + " must be an absolute URI (RFC 8707 section 2).");
+        }
+        if (uri.getFragment() != null) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " entry '" + resource + "' for client_id=" + clientId
+                            + " must not include a fragment component (RFC 8707 section 2).");
+        }
+    }
+
+    /**
+     * Rejects a template that contains no {@code {claim}} placeholder at all.
+     *
+     * <p>{@code MtlsClaimsEnhancer.renderTemplate} substitutes the placeholders it finds and returns
+     * the rest of the template verbatim, so a template with no placeholders renders to itself --
+     * a constant. For {@code tls-client-auth-sub-template} that was a subject-forgery primitive:
+     * {@code UaaTokenServices} deliberately re-applies {@code sub} after its own defaults, so
+     * configuring the constant {@code "00000000-0000-0000-0000-000000000000"} produced a token whose
+     * {@code sub} was exactly that -- any fixed string a client admin chooses, including a real
+     * user's id. The existing placeholder check only verified that placeholders which ARE present are
+     * declared; it never required one to be. The same rule is applied to
+     * {@code tls-client-auth-aud-templates}, where a constant would let a client aim a token at an
+     * audience unrelated to the certificate.
+     *
+     * <p>Requiring a placeholder ties every templated claim back to a value extracted from the
+     * presented certificate, which is the only thing this feature is entitled to assert.
+     */
+    private static void requireAtLeastOnePlaceholder(String template, String propertyName, String clientId) {
+        if (!PLACEHOLDER.matcher(template).find()) {
+            throw new InvalidClientDetailsException(
+                    propertyName + " for client_id=" + clientId
+                            + " must contain at least one {claim} placeholder. A template with no "
+                            + "placeholder renders to a constant, which would let this client assert a "
+                            + "fixed value unrelated to the certificate it presented.");
         }
     }
 

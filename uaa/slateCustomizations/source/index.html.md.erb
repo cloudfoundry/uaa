@@ -263,10 +263,21 @@ _Response Fields_
 
 Authenticates using an X.509 certificate presented at the TLS layer, on the dedicated
 `/oauth/mtls/token` endpoint, instead of a `client_secret`, `client_assertion`, or Basic
-Authorization header. The client is identified by the certificate chaining to its configured
-`tls-client-auth-ca`; no additional request parameter carries the certificate itself. See
+Authorization header. No request parameter carries the certificate itself.
+
+Two pieces of client configuration are involved, and both are required. `tls-client-auth-ca` is
+the trust anchor: the presented certificate chain must validate to it. That establishes only who
+issued the certificate, so the client must additionally register exactly one expected subject
+value, using one of the RFC 8705 section 2.1.2 parameters — `tls_client_auth_subject_dn`,
+`tls_client_auth_san_dns`, `tls_client_auth_san_uri`, `tls_client_auth_san_ip` or
+`tls_client_auth_san_email`. That value is what identifies *this* client; without it a client
+sharing a CA with others could be authenticated by any certificate that CA ever issued, and UAA
+rejects the registration. Take a subject DN from
+`openssl x509 -in cert.pem -noout -subject -nameopt RFC2253` rather than writing it by hand.
+
+See
 [UAA Client Authentication](https://github.com/cloudfoundry/uaa/blob/develop/docs/UAA-Client-Authentication.md#tls_client_auth-rfc-8705)
-for deployment and configuration details, including the connector-wide `uaa.mtls-enabled`
+for deployment and configuration details, including the connector-wide `uaa.mtls.enabled`
 requirement.
 
 The certificate and private key are TLS-layer credentials, not form parameters. Substitute paths
@@ -292,6 +303,41 @@ _Request Parameters_
 _Response Fields_
 
 <%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithTlsClientAuth/response-fields.md') %>
+
+#### Certificate-bound tokens
+
+A token issued here is bound to the client certificate ([RFC 8705 section 3](https://www.rfc-editor.org/rfc/rfc8705#section-3))
+only when the client is registered with `tls_client_certificate_bound_access_tokens: true`. It then carries `cnf` with
+`x5t#S256`, the base64url (no padding) SHA-256 thumbprint of the certificate's DER encoding. When the setting is `false`
+or absent (the [RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4) default) the same
+certificate checks apply and the token is an ordinary bearer token without `cnf`. Every token issued here carries
+`client_auth_method: tls_client_auth`. Only `client_credentials` is issued and no refresh token is returned.
+
+**UAA does not enforce the binding.** A resource server must compute the thumbprint of the certificate presented on its
+own TLS connection and require it to equal `cnf.x5t#S256`; otherwise the token is an ordinary bearer token. The `cnf`
+claim is also returned unchanged by [Introspect Token](#introspect-token) and [Check Token](#check-token).
+
+#### Registering a client for mutual TLS
+
+Set `tls-client-auth-ca` or `tls-client-auth-ca-ref` together with exactly one of `tls_client_auth_subject_dn`, `tls_client_auth_san_dns`,
+`tls_client_auth_san_uri`, `tls_client_auth_san_ip` or `tls_client_auth_san_email` when creating or updating a
+client (see Clients, Create). The full list of `tls-client-auth-*` keys, with their descriptions, is in the client request fields. A client that
+sets `tls-client-auth-ca` authenticates only at `/oauth/mtls/token` and cannot also use a `client_secret`. These keys are
+validated on create and update whether or not mTLS is enabled; they take effect only when both the deployment's
+`uaa.mtls.enabled` and the zone's `config.mtls.enabled` are true.
+
+#### Errors from `/oauth/mtls/token`
+
+Status | Meaning
+------ | -------
+`404` | the feature is disabled, or the path is below `/oauth/mtls/token`
+`405` (`Allow: POST`) | any method other than `POST`
+`401` `invalid_client` | no certificate, a certificate that is not the one registered for the client, one that does not chain to `tls-client-auth-ca` (including expired, or a CA certificate used as the leaf), unsatisfied `tls-client-auth-required-claims`, a `client_secret` or Basic credentials sent for an mTLS-only client, or a client with no `tls-client-auth-ca` calling this endpoint
+`400` `invalid_grant` | any grant other than `client_credentials`
+`400` `invalid_target` | `resource` is outside the client's allow-list, repeated, not an absolute URI without a fragment, or the client has no allow-list
+
+See [UAA Client Authentication](https://github.com/cloudfoundry/uaa/blob/develop/docs/UAA-Client-Authentication.md#error-responses-at-oauthmtlstoken)
+for the exact messages and the upgrade notes.
 
 ## Password Grant
 
@@ -2494,6 +2540,23 @@ _Response Fields_
 
 
 # Clients
+
+## List mTLS trust bundles
+
+`GET /oauth/mtls/trust-bundles` lists only the names of CA trust bundles in the current identity zone.
+The request needs `clients.read`, `clients.admin`, or zone/UAA admin authority. PEM contents are never returned.
+This endpoint is unavailable when deployment or current-zone mTLS is disabled.
+
+<%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/curl-request.md') %>
+<%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/http-response.md') %>
+
+_Request Headers_
+
+<%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/request-headers.md') %>
+
+_Response Fields_
+
+<%= render('MtlsTrustBundleEndpointDocs/listTrustBundleNames/response-fields.md') %>
 
 A client can carry JWT trust for `private_key_jwt` (client assertion) in several shapes. The **preferred** approach is a single top-level `client_jwt_config` string (one JSON value in the `client_jwt_config` column) that can contain `jwks`, `jwks_uri`, and/or an embedded `jwt_creds` array, as needed. For **backward compatibility**, a separate top-level `jwt_creds` field is still accepted and is **merged** with `client_jwt_config` to form the effective `ClientJwtConfiguration` the UAA uses for `private_key_jwt` and for the admin **GET** response. **At authentication time** (`private_key_jwt`), a client assertion is accepted if it **matches and verifies** against the merged trust (e.g. federated claims match a configured credential, or OIDC-style keys verify against the configured JWKS). A nested `client_jwt_config` object under extra keys may also be merged; **still prefer** one `client_jwt_config` string at the top level for clarity. The **decomposed** top-level `jwks` / `jwks_uri` / `jwt_creds` fields in **responses** (retrieve/list) are a convenience view derived from the stored `client_jwt_config` JSON.
 

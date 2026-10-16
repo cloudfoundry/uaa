@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenEnhancer;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -21,8 +23,11 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 
 /**
  * A {@link UaaTokenEnhancer} that enriches access tokens with claims derived from the
@@ -37,6 +42,9 @@ import java.util.regex.Pattern;
  * <p>Spring auto-wires this bean into
  * {@link org.cloudfoundry.identity.uaa.oauth.UaaTokenServices#setUaaTokenEnhancers} via
  * {@code @Autowired(required = false)}.
+ *
+ * <p>Always registered. Runtime deployment and zone policy determines whether it contributes
+ * claims, and refuses mTLS token issuance when either switch is off.
  */
 @Component
 public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
@@ -65,6 +73,22 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
     }
 
     /**
+     * The certificate-identity {@code sub} and {@code aud} (from {@code tls-client-auth-sub-template},
+     * {@code tls-client-auth-aud-templates} and the RFC 8707 {@code resource} parameter) are the point of this
+     * enhancer, so they must survive UAA's own defaults. Nothing else this enhancer returns needs to: every other
+     * name is either a custom claim or is rejected as reserved before it is ever returned.
+     */
+    @Override
+    public Set<String> getLateOverrideClaims() {
+        return Set.of("sub", "aud");
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return tlsClientAuthentication.isMtlsEnabled();
+    }
+
+    /**
      * Not used — all enrichment is performed in {@link #enhance}.
      */
     @Override
@@ -83,6 +107,13 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
      */
     @Override
     public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+        if (!isEnabled()) {
+            if (ClientAuthentication.TLS_CLIENT_AUTH.equals(
+                    UaaSecurityContextUtils.getClientAuthenticationMethod(authentication))) {
+                throw new InvalidClientDetailsException("mTLS is disabled for this identity zone or deployment");
+            }
+            return Map.of();
+        }
         // Cheap presence-only check (no trust decision, no database lookup) -- avoids resolving the
         // client's TlsClientAuthConfiguration at all when there is clearly nothing to process.
         if (!tlsClientAuthentication.hasCertificateFromRequest()) {
@@ -97,21 +128,29 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         String clientId = authentication.getOAuth2Request().getClientId();
         UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-        // Check the typed field first (set directly on in-memory / admin-API clients);
-        // fall back to additionalInformation for JDBC-loaded clients.
+        // The typed field if one is set, otherwise the flat configuration in additionalInformation.
+        // Clients loaded from the database carry it in additionalInformation, so that is the path
+        // that matters in practice.
+        // The client lookup above is deliberately unguarded: a failure propagates and fails the
+        // whole token request (see enhancePropagatesExceptionWhenClientDetailsLookupFails).
         TlsClientAuthConfiguration config = clientDetails.getTlsClientAuthConfiguration();
         if (config == null) {
             config = loadTlsConfig(clientDetails.getAdditionalInformation());
         }
+        // This request authenticated as tls_client_auth, so the client has a configuration and a
+        // certificate. Failing to find either now must not quietly produce a token without cnf: that
+        // would be a bearer token issued to a request that proved possession of a certificate.
         if (!TlsClientAuthConfiguration.isConfigured(config)) {
-            return new HashMap<>();
+            throw new IllegalStateException("client_id=" + clientId + " authenticated with tls_client_auth but its "
+                    + "tls-client-auth configuration cannot be resolved; refusing to issue an unbound token");
         }
 
         // Now do the real, per-client trust decision: only a certificate validated against *this
         // client's* tls-client-auth-trusted-proxy-ca is used from here on.
         X509Certificate cert = tlsClientAuthentication.getCertificateFromRequest(config);
         if (cert == null) {
-            return new HashMap<>();
+            throw new IllegalStateException("client_id=" + clientId + " authenticated with tls_client_auth but no "
+                    + "client certificate can be resolved for this request; refusing to issue an unbound token");
         }
 
         // PHASE 1 — extract cert subject fields into vars (keyed by claim name)
@@ -123,7 +162,13 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         for (Map.Entry<String, String> entry : vars.entrySet()) {
             String key   = entry.getKey();
             String value = entry.getValue();
-            // Only a single dot level is supported (spec: UAA-RFC8705-001 configurable-token-shape).
+            // ClientAdminEndpointsValidator rejects these at configuration time; this is the
+            // defense-in-depth half for clients persisted before that check existed and for the
+            // BOSH oauth.clients bootstrap path, which does not run admin-API validation.
+            if (TlsClientAuthConfiguration.isReservedClaimName(key)) {
+                continue;
+            }
+            // Only a single dot level is supported.
             // A key like "cf.app.id" would produce parent="cf", child="app.id" (not deeper nesting).
             int dotIdx = key.indexOf('.');
             if (dotIdx > 0 && dotIdx < key.length() - 1) {
@@ -137,21 +182,12 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         // Nested maps overwrite any flat claim that shares the same parent key
         result.putAll(nestedClaims);
 
-        // Always add cnf.x5t#S256 (RFC 8705 §3.1 confirmation claim)
-        try {
-            byte[] derEncoded = cert.getEncoded();
-            byte[] sha256 = MessageDigest.getInstance("SHA-256").digest(derEncoded);
-            String thumbprint = Base64.getUrlEncoder().withoutPadding().encodeToString(sha256);
-            result.put("cnf", Map.of("x5t#S256", thumbprint));
-        } catch (CertificateEncodingException | NoSuchAlgorithmException e) {
-            // Fail closed: an already-validated peer certificate should always be re-encodable,
-            // and SHA-256 is a guaranteed JCE algorithm, so this is practically impossible. If it
-            // ever happens, we must not silently issue an unbound bearer token in place of a
-            // certificate-bound (RFC 8705 §3.1) one -- fail the whole token request instead (same
-            // fail-closed philosophy as the client-details lookup failure above).
-            throw new IllegalStateException(
-                    "Failed to compute cnf.x5t#S256 confirmation claim for client_id="
-                            + clientId + ": " + e.getMessage(), e);
+        // cnf.x5t#S256 (RFC 8705 §3.1 confirmation claim) only for a client that registered
+        // tls_client_certificate_bound_access_tokens=true (§3.4; default false). Authenticating with a
+        // certificate does not by itself require a bound token (§1). The policy is read from the client's
+        // registration only -- never from the token request or a claim template.
+        if (isBoundAccessTokens(clientDetails.getAdditionalInformation(), clientId)) {
+            result.put("cnf", Map.of("x5t#S256", thumbprint(cert, clientId)));
         }
 
         // PHASE 3 — template rendering for sub and aud
@@ -162,7 +198,31 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
             }
         }
 
-        if (config.getAudTemplates() != null && !config.getAudTemplates().isEmpty()) {
+        // RFC 8707 resource indicator, if the request named one.
+        //
+        // UaaTokenEndpoint.enforceResourceIndicator is the primary check, but the allow-list is
+        // enforced here as well so that the guarantee does not depend on which handler a request was
+        // routed to. The controller is not the only way into the granter: Spring also maps
+        // /oauth/mtls/token/oauth/token to TokenEndpoint's inherited handler, which reaches token
+        // issuance without the controller's grant-type restriction or allow-list. MtlsEndpointAvailabilityFilter
+        // refuses that route, and this check means the guarantee does not rest on that alone.
+        //
+        // A resource that is not permitted fails the whole token request rather than quietly falling
+        // back to the default audience: an aud the caller did not ask for is indistinguishable, to
+        // that caller, from the one it did -- and the fail-closed choice matches the cnf computation
+        // below, which throws rather than issue an unbound token.
+        String resource = authentication.getOAuth2Request().getRequestParameters()
+                .get(TlsClientAuthConfiguration.RESOURCE_PARAMETER);
+        if (resource != null && !resource.isBlank()) {
+            List<String> allowedResources = config.getAllowedResources();
+            boolean workloadGrant = GRANT_TYPE_CLIENT_CREDENTIALS.equals(
+                    authentication.getOAuth2Request().getGrantType());
+            if (!workloadGrant || allowedResources == null || !allowedResources.contains(resource)) {
+                throw new InvalidTargetException(
+                        "client_id=" + clientId + " is not authorized to request the given resource");
+            }
+            result.put("aud", List.of(resource));
+        } else if (config.getAudTemplates() != null && !config.getAudTemplates().isEmpty()) {
             List<String> audList = new ArrayList<>();
             for (String tmpl : config.getAudTemplates()) {
                 // Legacy persisted clients can contain null entries created before validation.
@@ -182,6 +242,35 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         return result;
     }
 
+    private static boolean isBoundAccessTokens(Map<String, Object> info, String clientId) {
+        Object raw = info == null ? null : info.get(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+        Boolean bound = TlsClientAuthConfiguration.parseBoundAccessTokens(raw);
+        if (bound == null) {
+            // Registration validation refuses this; reaching it means stored data that bypassed it. Fail closed
+            // to the stricter profile rather than guess that the operator wanted bearer tokens.
+            throw new IllegalStateException("client_id=" + clientId + " has an invalid "
+                    + TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                    + "; refusing to issue a token");
+        }
+        return bound;
+    }
+
+    private static String thumbprint(X509Certificate cert, String clientId) {
+        try {
+            byte[] sha256 = MessageDigest.getInstance("SHA-256").digest(cert.getEncoded());
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(sha256);
+        } catch (CertificateEncodingException | NoSuchAlgorithmException e) {
+            // Fail closed: an already-validated peer certificate should always be re-encodable,
+            // and SHA-256 is a guaranteed JCE algorithm, so this is practically impossible. If it
+            // ever happens, we must not silently issue an unbound bearer token in place of a
+            // certificate-bound (RFC 8705 §3.1) one -- fail the whole token request instead (same
+            // fail-closed choice as an unguarded client-details lookup failure above).
+            throw new IllegalStateException(
+                    "Failed to compute cnf.x5t#S256 confirmation claim for client_id="
+                            + clientId + ": " + e.getMessage(), e);
+        }
+    }
+
     /**
      * Renders a template string by substituting all {@code {varName}} placeholders
      * from {@code vars}. Returns {@code null} if any placeholder has no corresponding
@@ -191,13 +280,21 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
      * are treated as part of the name, not as path separators.
      *
      * <p>Returns {@code null} without attempting to match if {@code template} exceeds
-     * {@link #MAX_TEMPLATE_LENGTH}, treating an oversized template the same as an unresolvable
-     * one (silently dropped by the caller) rather than a hard failure -- a hard failure here
-     * would break every future token request for a client with a pre-existing, already-persisted
-     * oversized template.
+     * {@link #MAX_TEMPLATE_LENGTH}, or if it contains no placeholder at all, treating both the same
+     * as an unresolvable template (silently dropped by the caller) rather than a hard failure -- a
+     * hard failure here would break every future token request for a client with a pre-existing,
+     * already-persisted template of either shape.
      */
     private String renderTemplate(String template, Map<String, String> vars) {
         if (template.length() > MAX_TEMPLATE_LENGTH) {
+            return null;
+        }
+        // A template with no placeholder renders to itself -- a constant the certificate had no part
+        // in producing. Dropped here as well as rejected in ClientAdminEndpointsValidator, for
+        // clients persisted before that check and for the bootstrap path that bypasses it. Dropped
+        // rather than thrown for the same reason as the length guard above: a hard failure would
+        // break every future token request for a client already carrying such a template.
+        if (!PLACEHOLDER.matcher(template).find()) {
             return null;
         }
         StringBuilder sb = new StringBuilder();
@@ -222,8 +319,18 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         if (info == null) {
             return null;
         }
+        for (String inlineKey : List.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN)) {
+            if (info.containsKey(inlineKey)
+                    && !(info.get(inlineKey) instanceof String pem && !pem.isBlank())) {
+                return null;
+            }
+        }
         Object raw = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-        if (raw instanceof String pem) {
+        Object rawReference = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
+        if (raw instanceof String || rawReference instanceof String) {
+            String pem = raw instanceof String value ? value : null;
             try {
                 List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
                 Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
@@ -272,11 +379,31 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                             new TypeReference<Map<String, String>>() {});
                 }
 
+                // Read for the RFC 8707 allow-list check in enhance(). Omitting it here would leave
+                // getAllowedResources() null for every JDBC-loaded client -- i.e. for almost every
+                // real one -- which for a fail-closed check means refusing resources the operator
+                // did in fact permit.
+                List<String> allowedResources = null;
+                Object rawAllowedResources = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+                if (rawAllowedResources instanceof String allowedResourcesJson) {
+                    allowedResources = JsonUtils.readValue(allowedResourcesJson, new TypeReference<List<String>>() {});
+                } else if (rawAllowedResources instanceof List<?> allowedResourcesList) {
+                    allowedResources = JsonUtils.readValue(
+                            JsonUtils.writeValueAsString(allowedResourcesList),
+                            new TypeReference<List<String>>() {});
+                }
+
                 TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
+                cfg.setTrustedCaRef(rawReference instanceof String name ? name : null);
+                Object proxyReference = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
+                cfg.setTrustedProxyCaRef(proxyReference instanceof String name ? name : null);
                 cfg.setSubTemplate(subTemplate);
                 cfg.setAudTemplates(audTemplates);
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
+                Object proxySubject = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
+                cfg.setTrustedProxySubjectDn(proxySubject instanceof String dn ? dn : null);
                 cfg.setRequiredClaims(requiredClaims);
+                cfg.setAllowedResources(allowedResources);
                 return cfg;
             } catch (Exception e) {
                 return null;

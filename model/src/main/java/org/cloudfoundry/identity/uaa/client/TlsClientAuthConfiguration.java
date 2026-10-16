@@ -131,7 +131,12 @@ public class TlsClientAuthConfiguration {
      * it must be.
      */
     public static boolean isReservedClaimName(String claim) {
-        return false;
+        if (claim == null) {
+            return false;
+        }
+        int dotIdx = claim.indexOf('.');
+        String root = dotIdx >= 0 ? claim.substring(0, dotIdx) : claim;
+        return RESERVED_CLAIM_NAMES.contains(root);
     }
 
     /**
@@ -142,7 +147,21 @@ public class TlsClientAuthConfiguration {
      * instead of silently issuing a bearer token.
      */
     public static Boolean parseBoundAccessTokens(Object raw) {
-        return Boolean.FALSE;
+        if (raw == null) {
+            return Boolean.FALSE;
+        }
+        if (raw instanceof Boolean bool) {
+            return bool;
+        }
+        if (raw instanceof String text) {
+            if ("true".equalsIgnoreCase(text)) {
+                return Boolean.TRUE;
+            }
+            if ("false".equalsIgnoreCase(text)) {
+                return Boolean.FALSE;
+            }
+        }
+        return null;
     }
 
     /**
@@ -153,7 +172,21 @@ public class TlsClientAuthConfiguration {
      * {@code tls_client_auth_san_ip} must not make authentication depend on name resolution.
      */
     public static byte[] parseIpLiteral(String value) {
-        return null;
+        if (value == null) {
+            return null;
+        }
+        boolean ipv6 = value.indexOf(':') >= 0;
+        boolean valid = ipv6
+                ? value.matches("[0-9A-Fa-f:.]+")
+                : value.matches("\\d{1,3}(\\.\\d{1,3}){3}");
+        if (!valid) {
+            return null;
+        }
+        try {
+            return java.net.InetAddress.getByName(value).getAddress();
+        } catch (java.net.UnknownHostException e) {
+            return null;
+        }
     }
 
     @JsonProperty(TLS_CLIENT_AUTH_CA)
@@ -256,7 +289,19 @@ public class TlsClientAuthConfiguration {
      * than one" distinctly.
      */
     public List<String> configuredSubjectBindings() {
-        return List.of();
+        List<String> configured = new java.util.ArrayList<>();
+        addIfPresent(configured, TLS_CLIENT_AUTH_SUBJECT_DN, subjectDn);
+        addIfPresent(configured, TLS_CLIENT_AUTH_SAN_DNS, sanDns);
+        addIfPresent(configured, TLS_CLIENT_AUTH_SAN_URI, sanUri);
+        addIfPresent(configured, TLS_CLIENT_AUTH_SAN_IP, sanIp);
+        addIfPresent(configured, TLS_CLIENT_AUTH_SAN_EMAIL, sanEmail);
+        return configured;
+    }
+
+    private static void addIfPresent(List<String> target, String name, String value) {
+        if (value != null && !value.isBlank()) {
+            target.add(name);
+        }
     }
 
     @Override
@@ -264,20 +309,31 @@ public class TlsClientAuthConfiguration {
         if (this == o) return true;
         if (!(o instanceof TlsClientAuthConfiguration that)) return false;
         return Objects.equals(trustedCaPem, that.trustedCaPem) &&
+               Objects.equals(trustedCaRef, that.trustedCaRef) &&
+               Objects.equals(trustedProxyCaRef, that.trustedProxyCaRef) &&
                Objects.equals(claimMappings, that.claimMappings) &&
                Objects.equals(subTemplate, that.subTemplate) &&
                Objects.equals(audTemplates, that.audTemplates) &&
                Objects.equals(trustedProxyCaPem, that.trustedProxyCaPem) &&
-               Objects.equals(requiredClaims, that.requiredClaims);
+               Objects.equals(trustedProxySubjectDn, that.trustedProxySubjectDn) &&
+               Objects.equals(requiredClaims, that.requiredClaims) &&
+               Objects.equals(subjectDn, that.subjectDn) &&
+               Objects.equals(sanDns, that.sanDns) &&
+               Objects.equals(sanUri, that.sanUri) &&
+               Objects.equals(sanIp, that.sanIp) &&
+               Objects.equals(sanEmail, that.sanEmail) &&
+               Objects.equals(allowedResources, that.allowedResources);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(trustedCaPem, claimMappings, subTemplate, audTemplates, trustedProxyCaPem, requiredClaims);
+        return Objects.hash(trustedCaPem, trustedCaRef, trustedProxyCaRef, claimMappings, subTemplate, audTemplates, trustedProxyCaPem,
+                trustedProxySubjectDn, requiredClaims, subjectDn, sanDns, sanUri, sanIp, sanEmail, allowedResources);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {
-        return config != null && config.getTrustedCaPem() != null && !config.getTrustedCaPem().isBlank();
+        return config != null && ((config.getTrustedCaPem() != null && !config.getTrustedCaPem().isBlank())
+                || (config.getTrustedCaRef() != null && !config.getTrustedCaRef().isBlank()));
     }
 
 

@@ -88,7 +88,7 @@ public class UaaClientDetails implements ClientDetails {
     private String clientJwtConfig;
 
     @JsonIgnore
-    private TlsClientAuthConfiguration tlsClientAuthConfiguration;
+    private transient TlsClientAuthConfiguration tlsClientAuthConfiguration;
 
     public UaaClientDetails() {
     }
@@ -316,8 +316,10 @@ public class UaaClientDetails implements ClientDetails {
     public void setTlsClientAuthConfiguration(TlsClientAuthConfiguration tlsClientAuthConfiguration) {
         this.tlsClientAuthConfiguration = tlsClientAuthConfiguration;
         if (tlsClientAuthConfiguration != null) {
-            this.additionalInformation.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
                     tlsClientAuthConfiguration.getTrustedCaPem());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, tlsClientAuthConfiguration.getTrustedCaRef());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF, tlsClientAuthConfiguration.getTrustedProxyCaRef());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
                     tlsClientAuthConfiguration.getClaimMappings());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
@@ -326,15 +328,31 @@ public class UaaClientDetails implements ClientDetails {
                     tlsClientAuthConfiguration.getAudTemplates());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
                     tlsClientAuthConfiguration.getTrustedProxyCaPem());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN,
+                    tlsClientAuthConfiguration.getTrustedProxySubjectDn());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
                     tlsClientAuthConfiguration.getRequiredClaims());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    tlsClientAuthConfiguration.getAllowedResources());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, tlsClientAuthConfiguration.getSubjectDn());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, tlsClientAuthConfiguration.getSanDns());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, tlsClientAuthConfiguration.getSanUri());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP, tlsClientAuthConfiguration.getSanIp());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL, tlsClientAuthConfiguration.getSanEmail());
         } else {
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+            TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS.forEach(this.additionalInformation::remove);
+            // Not part of the typed configuration, but meaningless without TLS trust.
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
         }
     }
 
@@ -388,10 +406,9 @@ public class UaaClientDetails implements ClientDetails {
         if (!Objects.equals(additionalInformation, other.additionalInformation)) {
             return false;
         }
-        if (!Objects.equals(clientJwtConfig, other.clientJwtConfig)) {
-            return false;
-        }
-        return Objects.equals(tlsClientAuthConfiguration, other.tlsClientAuthConfiguration);
+        // additionalInformation already contains the persisted mTLS settings. Its transient
+        // typed mirror may be absent after loading from storage and must not affect identity.
+        return Objects.equals(clientJwtConfig, other.clientJwtConfig);
     }
 
     @Override
@@ -425,7 +442,6 @@ public class UaaClientDetails implements ClientDetails {
         result = prime * result + (scope == null ? 0 : scope.hashCode());
         result = prime * result + (additionalInformation == null ? 0 : additionalInformation.hashCode());
         result = prime * result + (clientJwtConfig == null ? 0 : clientJwtConfig.hashCode());
-        result = prime * result + (tlsClientAuthConfiguration == null ? 0 : tlsClientAuthConfiguration.hashCode());
         return result;
     }
 }

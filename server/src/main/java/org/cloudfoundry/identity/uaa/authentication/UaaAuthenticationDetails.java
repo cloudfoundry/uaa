@@ -37,6 +37,13 @@ import static org.springframework.util.StringUtils.hasText;
  */
 public class UaaAuthenticationDetails implements Serializable {
 
+    /**
+     * Pinned to the UID computed for the release before servletPath was added: instances live in
+     * Spring Session, and nodes on both versions must read each other's sessions. A session from the
+     * previous release deserializes with a null servletPath, which is treated as a non-mTLS path.
+     */
+    private static final long serialVersionUID = 4782409396359737075L;
+
     public static final String ADD_NEW = "add_new";
 
     public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
@@ -60,6 +67,16 @@ public class UaaAuthenticationDetails implements Serializable {
     @JsonIgnore
     private final String requestPath;
 
+    /**
+     * The container's decoded, normalised servlet path, kept alongside {@link #requestPath} rather
+     * than replacing it. {@code requestPath} is derived from {@code getRequestURI()}, which the
+     * servlet spec defines as the raw, undecoded URI; consumers that log or compare it expect that.
+     * A gate deciding whether a request is on a particular endpoint needs the same view of the path
+     * the rest of the framework uses, which is this one.
+     */
+    @JsonIgnore
+    private final String servletPath;
+
     @JsonIgnore
     private final boolean isAuthorizationSet;
 
@@ -71,6 +88,7 @@ public class UaaAuthenticationDetails implements Serializable {
         this.sessionId = UNKNOWN_STRING;
         this.clientId = UNKNOWN_STRING;
         this.requestPath = UNKNOWN_STRING;
+        this.servletPath = UNKNOWN_STRING;
         this.isAuthorizationSet = false;
     }
 
@@ -83,6 +101,7 @@ public class UaaAuthenticationDetails implements Serializable {
         this.origin = webAuthenticationDetails.getRemoteAddress();
         this.sessionId = webAuthenticationDetails.getSessionId();
         this.requestPath = StringUtils.removeEnd(request.getRequestURI().substring(request.getContextPath().length()), "/");
+        this.servletPath = StringUtils.removeEnd(request.getServletPath(), "/");
         this.isAuthorizationSet = request.getHeader(HttpHeaders.AUTHORIZATION) != null;
 
         if (clientId == null) {
@@ -109,6 +128,7 @@ public class UaaAuthenticationDetails implements Serializable {
         this.origin = origin;
         this.sessionId = sessionId;
         this.requestPath = UNKNOWN_STRING;
+        this.servletPath = UNKNOWN_STRING;
         this.isAuthorizationSet = false;
     }
 
@@ -154,15 +174,15 @@ public class UaaAuthenticationDetails implements Serializable {
         this.authenticationMethod = authenticationMethod;
     }
 
-    /** The decoded servlet path. Not implemented yet: not recorded. */
-    @JsonIgnore
-    public String getServletPath() {
-        return null;
-    }
-
     @JsonIgnore
     public String getRequestPath() {
         return this.requestPath;
+    }
+
+    /** See {@link #servletPath}. */
+    @JsonIgnore
+    public String getServletPath() {
+        return this.servletPath;
     }
 
     @JsonIgnore

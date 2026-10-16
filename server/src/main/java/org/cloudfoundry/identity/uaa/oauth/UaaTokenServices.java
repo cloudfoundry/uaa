@@ -13,6 +13,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
@@ -20,6 +24,8 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.event.TokenRevocationEvent;
@@ -154,8 +160,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private ApplicationEventPublisher applicationEventPublisher;
     private final TokenPolicy tokenPolicy;
     private final RevocableTokenProvisioning tokenProvisioning;
+    private static final String CNF = "cnf";
+
     private Set<String> excludedClaims;
     private List<UaaTokenEnhancer> uaaTokenEnhancers = new ArrayList<>();
+    @Autowired
+    private MtlsFeaturePolicy mtlsFeaturePolicy =
+            new MtlsFeaturePolicy(true,
+                    new IdentityZoneManagerImpl());
     private IdTokenClaimEnhancer idTokenClaimEnhancer = IdTokenClaimEnhancer.noOp();
     private final IdTokenCreator idTokenCreator;
     private final RefreshTokenCreator refreshTokenCreator;
@@ -313,6 +325,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         refreshTokenValue,
                         claims.getAzAttr(),
                         additionalRootClaims,
+                        Map.of(),
                         claims.getRevSig(),
                         isRevocable,
                         authenticationData,
@@ -376,7 +389,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Map<String, Object> getAdditionalRootClaims(Map<String, Object> refreshTokenClaims) {
         Map<String, Object> additionalRootClaims = new HashMap<>();
-        if (!uaaTokenEnhancers.isEmpty()) {
+        // MtlsClaimsEnhancer only contributes to tokens issued at /oauth/mtls/token, which never returns a refresh
+        // token. It must not switch on this copy for every other client in a zone that enables mTLS.
+        if (uaaTokenEnhancers.stream()
+                .anyMatch(enhancer -> enhancer.isEnabled() && !(enhancer instanceof MtlsClaimsEnhancer))) {
             refreshTokenClaims.entrySet()
                     .stream()
                     .filter(entry -> !NON_ADDITIONAL_ROOT_CLAIMS.contains(entry.getKey()))
@@ -437,6 +453,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String refreshToken,
             Map<String, String> additionalAuthorizationAttributes,
             Map<String, Object> additionalRootClaims,
+            Map<String, Object> lateOverrideClaims,
             String revocableHashSignature,
             boolean isRevocable,
             UserAuthenticationData userAuthenticationData,
@@ -487,10 +504,27 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 grantType,
                 revocableHashSignature,
                 isRevocable,
-                additionalRootClaims);
+                additionalRootClaims,
+                lateOverrideClaims);
+        UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
+        if (ClientAuthentication.TLS_CLIENT_AUTH.equals(
+                jwtAccessToken.get(CLIENT_AUTH_METHOD)) && !mtlsFeaturePolicy.isEnabled()) {
+            throw new InvalidClientDetailsException("mTLS is disabled for this identity zone or deployment");
+        }
+        // The signing boundary also covers flows that do not use client authentication and deployments
+        // with no mTLS enhancer. Never sign an unbound token for a client that requires certificate binding.
+        Boolean boundAccessTokens = TlsClientAuthConfiguration.parseBoundAccessTokens(
+                clientDetails.getAdditionalInformation().get(
+                        TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS));
+        if (boundAccessTokens == null || (boundAccessTokens
+                && !(jwtAccessToken.get(CNF) instanceof Map<?, ?> confirmation
+                        && confirmation.get("x5t#S256") instanceof String thumbprint && !thumbprint.isBlank()))) {
+            throw new InvalidClientDetailsException(
+                    TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
+                            + " for client_id=" + clientId + " requires a valid certificate-bound access token");
+        }
         String token = JwtHelper.encode(jwtAccessToken, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
-        UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         if (idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopes, grantType)) {
             IdToken idTokenContent;
@@ -554,28 +588,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String grantType,
             String revocableHashSignature,
             boolean isRevocable,
-            Map<String, Object> additionalRootClaims) {
+            Map<String, Object> additionalRootClaims,
+            Map<String, Object> lateOverrideClaims) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
 
         claims.put(JTI, token.getAdditionalInformation().get(JTI));
         claims.putAll(token.getAdditionalInformation());
 
-        // Apply enhancer-supplied claims that are NOT one of UAA's own protected/reserved claim
-        // names (NON_ADDITIONAL_ROOT_CLAIMS) now, before any UAA-owned default below is set -- so
-        // the corresponding claims.put(...) calls below always win over an enhancer's value for
-        // the same reserved claim name (e.g. scope, client_id, authorities, iss, grant_type). This
-        // closes a gap where a client-configurable enhancer (e.g. certificate-derived mTLS claim
-        // mappings) could otherwise overwrite any UAA-owned/protected claim. sub and aud are the
-        // two explicitly-supported late overrides (e.g. mTLS cert-identity templates rendering
-        // their own sub/aud) and are re-applied after all defaults below, once it is safe for them
-        // to win.
         if (additionalRootClaims != null) {
-            additionalRootClaims.forEach((key, value) -> {
-                if (!NON_ADDITIONAL_ROOT_CLAIMS.contains(key)) {
-                    claims.put(key, value);
-                }
-            });
+            claims.putAll(additionalRootClaims);
         }
 
         claims.put(SUB, clientId);
@@ -608,20 +630,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         claims.put(AUD, UaaStringUtils.getValuesOrDefaultValue(resourceIds, clientId));
 
-        // Re-apply only the two explicitly-supported late overrides (e.g. mTLS cert-identity
-        // templates rendering their own sub/aud). Every other claim name in additionalRootClaims
-        // was already rejected above (see NON_ADDITIONAL_ROOT_CLAIMS) and must not win here either.
-        if (additionalRootClaims != null) {
-            if (additionalRootClaims.containsKey(SUB)) {
-                claims.put(SUB, additionalRootClaims.get(SUB));
-            }
-            if (additionalRootClaims.containsKey(AUD)) {
-                claims.put(AUD, additionalRootClaims.get(AUD));
-            }
-        }
+        // Claims an enhancer has opted in to applying after UAA's defaults (UaaTokenEnhancer#getLateOverrideClaims).
+        // Every other enhancer is untouched: its claims were applied above and UAA's defaults take precedence.
+        claims.putAll(lateOverrideClaims);
 
         for (String excludedClaim : getExcludedClaims()) {
-            claims.remove(excludedClaim);
+            // cnf is the RFC 8705 section 3.1 certificate binding. Excluding it would silently turn a token the client
+            // registered as certificate-bound into a bearer token, so the exclusion list does not apply to it.
+            if (!CNF.equals(excludedClaim)) {
+                claims.remove(excludedClaim);
+            }
         }
 
         return claims;
@@ -692,12 +710,19 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean isRefreshTokenRevocable = isAccessTokenRevocable || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
 
         Map<String, Object> additionalRootClaims = null;
-        if (!uaaTokenEnhancers.isEmpty()) {
+        Map<String, Object> lateOverrideClaims = new HashMap<>();
+        List<UaaTokenEnhancer> activeEnhancers = uaaTokenEnhancers.stream().filter(UaaTokenEnhancer::isEnabled).toList();
+        if (!activeEnhancers.isEmpty()) {
             additionalRootClaims = new HashMap<>();
-            for (UaaTokenEnhancer enhancer : uaaTokenEnhancers) {
+            for (UaaTokenEnhancer enhancer : activeEnhancers) {
                 Map<String, Object> claims = enhancer.enhance(additionalRootClaims, authentication);
                 if (claims != null) {
                     additionalRootClaims.putAll(claims);
+                    for (String lateOverride : enhancer.getLateOverrideClaims()) {
+                        if (claims.containsKey(lateOverride)) {
+                            lateOverrideClaims.put(lateOverride, claims.get(lateOverride));
+                        }
+                    }
                 }
             }
         }
@@ -770,6 +795,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         refreshTokenValue,
                         additionalAuthorizationAttributes,
                         additionalRootClaims,
+                        lateOverrideClaims,
                         revocableHashSignature,
                         isAccessTokenRevocable,
                         authenticationData,
