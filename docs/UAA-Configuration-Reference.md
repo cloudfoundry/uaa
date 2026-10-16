@@ -1347,8 +1347,7 @@ The `uaa.mtls` namespace is reserved for this feature's deployment-wide options.
 Defines named PEM CA trust bundles for the default UAA identity zone. Each value is a single X.509 certificate
 or multiple concatenated PEM certificates, allowing an old/new CA overlap during rotation. Names are case-sensitive,
 1 to 128 characters, use letters, digits, dots, underscores or hyphens, and start with a letter or digit.
-Malformed definitions are rejected and, while mTLS is enabled for the default zone, prevent startup. These settings
-are reapplied on restart.
+Malformed definitions prevent startup, whether or not mTLS is enabled. These settings are reapplied on restart.
 Use quoted bracket notation for YAML bundle names containing underscores, for example `"[instance_identity]"`,
 to preserve the literal name during Spring Boot map binding.
 

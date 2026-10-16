@@ -100,6 +100,11 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                             TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
                                     + " requires a client configured for tls_client_auth");
                 }
+                if (tlsClientAuthConfigured && boundAccessTokens == null) {
+                    // Refuse here rather than failing token issuance with a server error.
+                    throw new BadCredentialsException("tls_client_auth: the client's "
+                            + TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS + " cannot be read");
+                }
                 // /oauth/mtls/token is advertised in OIDC discovery as
                 // mtls_endpoint_aliases.token_endpoint (RFC 8705 section 5), so it must serve mutual-TLS
                 // client authentication and nothing else. Without this check the endpoint is an
@@ -332,6 +337,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         }
         if (rawConfig instanceof String || rawReference instanceof String) {
             String pem = rawConfig instanceof String value ? value : null;
+            List<String> allowedResources = readAllowedResources(info);
             try {
                 List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
                 Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
@@ -386,6 +392,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                 cfg.setTrustedProxyCaPem(trustedProxyCaPem);
                 cfg.setTrustedProxySubjectDn(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN));
                 cfg.setRequiredClaims(requiredClaims);
+                cfg.setAllowedResources(allowedResources);
                 // RFC 8705 2.1.2 subject binding. Read from the flat additionalInformation path so
                 // that clients registered through the BOSH oauth.clients bootstrap, which never
                 // goes through the admin API's typed model, are bound too.
@@ -410,6 +417,38 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             throw new BadCredentialsException(
                     "tls_client_auth: proxy trust requires tls-client-auth-ca or tls-client-auth-ca-ref");
         }
+        // The same applies to the other certificate-only settings, so a stored client that has them is never
+        // treated as an ordinary client. A key with a null value counts as absent, as at registration.
+        for (String key : TlsClientAuthConfiguration.CERTIFICATE_ONLY_SETTING_KEYS) {
+            if (info.get(key) != null) {
+                throw new BadCredentialsException(
+                        "tls_client_auth: " + key + " requires tls-client-auth-ca or tls-client-auth-ca-ref");
+            }
+        }
         return null;
+    }
+
+    /**
+     * Reads {@code tls-client-auth-allowed-resources} as stored: a JSON string from JDBC, or an already parsed list.
+     * A value that cannot be read refuses authentication, instead of failing token issuance with a server error.
+     */
+    private static List<String> readAllowedResources(Map<String, Object> info) {
+        Object raw = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+        if (raw == null) {
+            return null;
+        }
+        try {
+            if (raw instanceof String json) {
+                return JsonUtils.readValue(json, new TypeReference<List<String>>() {});
+            }
+            if (raw instanceof List<?> list) {
+                return JsonUtils.readValue(JsonUtils.writeValueAsString(list), new TypeReference<List<String>>() {});
+            }
+        } catch (RuntimeException e) {
+            throw new BadCredentialsException("tls_client_auth: the client's "
+                    + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " cannot be read", e);
+        }
+        throw new BadCredentialsException("tls_client_auth: the client's "
+                + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " cannot be read");
     }
 }

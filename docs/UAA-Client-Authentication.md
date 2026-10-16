@@ -315,9 +315,9 @@ default zone's YAML requires a UAA restart, while another zone's API update appl
 An unknown reference is rejected at registration. Removing a referenced bundle denies subsequent authentication.
 Persisted client references are not rechecked at startup or when a zone enables mTLS, because that would require
 reading every client of the zone; a reference that does not resolve is denied at token time and works again once
-the bundle is restored. Startup checks only the default zone's own bundle definitions, and only when mTLS is enabled
-for both the deployment and that zone, so startup time does not grow with the number of zones. Invalid definitions
-are rejected on zone updates.
+the bundle is restored. Startup reads no tenant zones or clients, so startup time does not grow with the number of
+zones. Malformed `uaa.mtls.trust_bundles` definitions prevent startup whether or not mTLS is enabled, because the
+default zone is validated whenever it is bootstrapped. Invalid definitions are rejected on zone updates.
 
 `GET /oauth/mtls/trust-bundles` returns only sorted names, for example
 `{"trust_bundles":["instance-identity"]}`. It requires a bearer token with `clients.read`, `clients.admin`, or zone/UAA
@@ -365,6 +365,15 @@ switch is on: a valid configuration is stored, and an invalid one is rejected wi
 per request. A client that sets either trust selector authenticates **only** at
 `/oauth/mtls/token` and may not combine the certificate with a `client_secret`, so it cannot also be used at
 `/oauth/token`.
+
+Registration also enforces two rules that relate the mTLS settings to the rest of the client:
+
+* A client with `tls-client-auth-ca` or `tls-client-auth-ca-ref` may only use the `client_credentials` grant, the only
+  grant `/oauth/mtls/token` issues.
+* The subject binding, claim mappings, `sub`/`aud` templates, required claims and allowed resources require
+  `tls-client-auth-ca` or `tls-client-auth-ca-ref`, like proxy trust. Without workload trust they would never apply.
+
+A setting with a `null` value counts as absent for these rules.
 
 #### Certificate-bound access tokens
 
@@ -424,7 +433,10 @@ cannot probe which part of the registration it missed.
 
 Stored clients with malformed `tls-client-auth-ca` values, including a present key with a `null` value, cannot
 authenticate using their secret. Remove the property explicitly when converting a client away from mTLS;
-a malformed trust entry is not treated as an absent one.
+a malformed trust entry is not treated as an absent one. The same holds for a stored client that has proxy trust or
+any of the certificate-only settings above without workload trust. A stored mTLS client whose
+`tls_client_certificate_bound_access_tokens` or `tls-client-auth-allowed-resources` cannot be read is refused with
+`401 invalid_client` naming the setting.
 
 For Java API consumers, `UaaClientDetails` equality and hashing use the persisted client settings. The transient
 typed mTLS mirror does not change equality, hash codes, or set membership after loading the same client from storage.
@@ -435,7 +447,8 @@ section 3.3 treats the omitted value as `false`. Identity-zone configuration inc
 differs from the default (disabled, no bundles), and a `null` value reads as that default.
 
 **Token enhancers.** `MtlsClaimsEnhancer` is always registered alongside other `UaaTokenEnhancer` beans. It is active
-only when deployment and zone mTLS are both enabled. An inactive enhancer does not activate refresh-claim copying. It
+only when deployment and zone mTLS are both enabled. It never activates refresh-claim copying, so refreshed access
+tokens of other clients are unchanged in zones that enable mTLS. It
 adds nothing to a request that was not authenticated with `tls_client_auth` and does not restrict or alter another
 enhancer's claims, which are applied exactly as before. If two enhancers emit the same custom claim the later one in
 the list wins, and `MtlsClaimsEnhancer` declares no order. `UaaTokenEnhancer` has a new `default` method,

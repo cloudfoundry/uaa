@@ -138,6 +138,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         validateMtlsClientConfiguration(client.getAdditionalInformation(), client.getClientId(),
                 identityZoneManager.getCurrentIdentityZone());
         validateTlsClientAuthClaimConfig(client.getAdditionalInformation(), client.getClientId());
+        validateMtlsClientRules(client.getAdditionalInformation(), client.getAuthorizedGrantTypes(), client.getClientId());
 
         String clientId = client.getClientId();
         if (create) {
@@ -513,6 +514,33 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
      *
      * <p>A no-op when {@code additionalInfo} is {@code null}.
      */
+    /**
+     * Rules that relate a client's mTLS settings to the rest of its registration. Call after
+     * {@link #validateMtlsClientConfiguration} and {@link #validateTlsClientAuthClaimConfig}, so malformed values
+     * keep their specific errors. A key with a {@code null} value counts as absent.
+     */
+    public static void validateMtlsClientRules(Map<String, Object> info, Collection<String> grantTypes,
+            String clientId) {
+        Map<String, Object> settings = info == null ? Map.of() : info;
+        boolean hasWorkloadTrust = settings.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA) != null
+                || settings.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF) != null;
+        if (!hasWorkloadTrust) {
+            for (String key : TlsClientAuthConfiguration.CERTIFICATE_ONLY_SETTING_KEYS) {
+                if (settings.get(key) != null) {
+                    throw new InvalidClientDetailsException(key + " for client_id=" + clientId
+                            + " requires tls-client-auth-ca or tls-client-auth-ca-ref");
+                }
+            }
+            return;
+        }
+        // /oauth/mtls/token issues only client_credentials, and every other path refuses an mTLS client.
+        if (grantTypes != null
+                && grantTypes.stream().anyMatch(grant -> !GRANT_TYPE_CLIENT_CREDENTIALS.equals(grant))) {
+            throw new InvalidClientDetailsException("client_id=" + clientId
+                    + " is configured for tls_client_auth and may only use the client_credentials grant");
+        }
+    }
+
     public static void validateTlsClientAuthClaimConfig(Map<String, Object> additionalInfo, String clientId) {
         if (additionalInfo == null) {
             return;

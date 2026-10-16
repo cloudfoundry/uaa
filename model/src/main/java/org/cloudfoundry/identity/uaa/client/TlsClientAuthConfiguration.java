@@ -67,6 +67,23 @@ public class TlsClientAuthConfiguration {
             TLS_CLIENT_AUTH_SAN_IP,
             TLS_CLIENT_AUTH_SAN_EMAIL);
 
+    /**
+     * Settings that only apply to certificate authentication: the subject binding, claim mappings, templates,
+     * required claims and allowed resources. Each requires workload trust ({@link #TLS_CLIENT_AUTH_CA} or
+     * {@link #TLS_CLIENT_AUTH_CA_REF}); without it they would be stored and silently ignored.
+     */
+    public static final List<String> CERTIFICATE_ONLY_SETTING_KEYS = List.of(
+            TLS_CLIENT_AUTH_SUBJECT_DN,
+            TLS_CLIENT_AUTH_SAN_DNS,
+            TLS_CLIENT_AUTH_SAN_URI,
+            TLS_CLIENT_AUTH_SAN_IP,
+            TLS_CLIENT_AUTH_SAN_EMAIL,
+            TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+            TLS_CLIENT_AUTH_SUB_TEMPLATE,
+            TLS_CLIENT_AUTH_AUD_TEMPLATES,
+            TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+            TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+
     /** Keys that configure the proxy allowed to forward a client certificate. Each requires workload trust. */
     public static final List<String> PROXY_TRUST_KEYS = List.of(
             TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
