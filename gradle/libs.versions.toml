@@ -17,11 +17,13 @@ jacoco = "4.0.3"
 jackson = "3.1.5"
 jackson2 = "2.21.5"
 jacocoAgent = "0.8.15"
+javaBuildpackClientCertificateMapper = "2.0.1"
 nimbusJwt = "10.10"
 opensaml = "5.2.3"
 orgJson = "20260814"
 passay = "2.0.0"
 postgresql = "42.7.12"
+re2j = "1.8"
 selenium = "4.51.0"
 sonarqube = "7.5.0.8588"
 springBoot = "4.1.1"
@@ -34,6 +36,7 @@ velocity = "2.4.1"
 xmlSecurity = "4.0.4"
 
 [libraries]
+re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 # Apache Commons
 commonsCodec = { module = "commons-codec:commons-codec", version.ref = "commonsCodec" }
 commonsIo = { module = "commons-io:commons-io", version.ref = "commonsIo" }
@@ -69,6 +72,9 @@ bouncyCastleFipsProv = { module = "org.bouncycastle:bc-fips", version.ref = "bou
 bouncyCastlePkixFips = { module = "org.bouncycastle:bcpkix-fips", version.ref = "bouncyCastlePkix" }
 bouncyCastleTlsFips = { module = "org.bouncycastle:bctls-fips", version.ref = "bouncyCastleTls" }
 bouncyCastleUtilFips = { module = "org.bouncycastle:bcutil-fips", version.ref = "bouncyCastleUtil" }
+
+# CloudFoundry
+javaBuildpackClientCertificateMapper = { module = "org.cloudfoundry:java-buildpack-client-certificate-mapper-jakarta", version.ref = "javaBuildpackClientCertificateMapper" }
 
 # Eclipse JGit
 eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "eclipseJgit" }
@@ -164,6 +170,7 @@ springBootStarterMail = { module = "org.springframework.boot:spring-boot-starter
 springBootStarterTest = { module = "org.springframework.boot:spring-boot-starter-test" }
 springBootStarterTomcatRuntime = { module = "org.springframework.boot:spring-boot-starter-tomcat-runtime" }
 springBootStarterWeb = { module = "org.springframework.boot:spring-boot-starter-web" }
+springBootTomcat = { module = "org.springframework.boot:spring-boot-tomcat" }
 springBootTransaction = { module = "org.springframework.boot:spring-boot-transaction" }
 
 # Spring Data

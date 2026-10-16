@@ -40,6 +40,8 @@ import static org.springframework.util.StringUtils.hasText;
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private ClientSecretPolicy clientSecretPolicy;
+    private Map<String, String> mtlsTrustBundles = Map.of();
+    private boolean mtlsEnabled = false;
     private TokenPolicy tokenPolicy;
 
     private final IdentityZoneProvisioning provisioning;
@@ -88,6 +90,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     public void afterPropertiesSet() throws InvalidIdentityZoneDetailsException {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
+        definition.getMtls().setTrustBundles(mtlsTrustBundles);
+        definition.getMtls().setEnabled(mtlsEnabled);
         definition.setClientSecretPolicy(clientSecretPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
         definition.getLinks().setHomeRedirect(homeRedirect);

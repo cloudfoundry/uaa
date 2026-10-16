@@ -1,12 +1,14 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.test.JsonTranslation;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.json.BasicJsonTester;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Field;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,6 +52,28 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
     }
 
     @Test
+    void boundAccessTokensMetadataIsOmittedUnlessMtlsIsEnabled() {
+        assertThat(JsonUtils.writeValueAsString(new OpenIdConfiguration("/uaa", "issuer")))
+                .doesNotContain("tls_client_certificate_bound_access_tokens");
+        assertThat(JsonUtils.writeValueAsString(new OpenIdConfiguration("/uaa", "issuer", true)))
+                .contains("\"tls_client_certificate_bound_access_tokens\":true");
+    }
+
+    @Test
+    void aDefaultConstructedInstanceAdvertisesNoMtls() {
+        OpenIdConfiguration config = new OpenIdConfiguration();
+
+        assertThat(config.getTokenAMR()).doesNotContain("tls_client_auth");
+        assertThat(config.isTlsClientCertificateBoundAccessTokens()).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsAdvertisedOnlyWhenMtlsIsExplicitlyEnabled() {
+        assertThat(new OpenIdConfiguration("/uaa", "issuer", true).getTokenAMR()).contains("tls_client_auth");
+        assertThat(new OpenIdConfiguration("/uaa", "issuer", false).getTokenAMR()).doesNotContain("tls_client_auth");
+    }
+
+    @Test
     void allNulls() throws Exception {
         OpenIdConfiguration openIdConfiguration = new OpenIdConfiguration(null, null);
 
@@ -64,5 +88,54 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
 
         assertThat(json.from("OpenIdConfiguration-nulls.json", this.getClass()))
                 .hasEmptyJsonPathValue("issuer");
+    }
+
+    @Test
+    void mtlsEndpointAliasesIsNullByDefault() {
+        OpenIdConfiguration conf = new OpenIdConfiguration("/uaa", "https://uaa.example.com");
+        assertThat(conf.getMtlsEndpointAliases()).isNull();
+    }
+
+    @Test
+    void mtlsEndpointAliasesCanBeSet() {
+        OpenIdConfiguration conf = new OpenIdConfiguration("/uaa", "https://uaa.example.com");
+        conf.setMtlsEndpointAliases(Map.of("token_endpoint", "https://uaa.example.com/oauth/mtls/token"));
+        assertThat(conf.getMtlsEndpointAliases())
+                .containsEntry("token_endpoint", "https://uaa.example.com/oauth/mtls/token");
+    }
+
+    /**
+     * The two-argument constructor predates RFC 8705 support, so its output must stay what it was
+     * before this feature existed -- a caller compiled against it cannot know a new capability was
+     * added, and advertising an authentication method the deployment has not enabled would be both a
+     * behaviour change and a fail-open default.
+     */
+    @Test
+    void theConstructorWithoutAnMtlsFlagAdvertisesNoMtlsSupport() {
+        OpenIdConfiguration conf = new OpenIdConfiguration("/uaa", "https://uaa.example.com");
+
+        assertThat(conf.getTokenAMR())
+                .containsExactly("client_secret_basic", "client_secret_post", "private_key_jwt");
+        assertThat(conf.getMtlsEndpointAliases()).isNull();
+        assertThat(conf.isTlsClientCertificateBoundAccessTokens())
+                .as("RFC 8705 section 3.3 metadata defaults to false when omitted, so claiming true "
+                        + "on a deployment that cannot issue bound tokens tells a resource server the "
+                        + "opposite of the truth")
+                .isFalse();
+    }
+
+    @Test
+    void tlsClientAuthIsExcludedWhenMtlsDisabled() {
+        OpenIdConfiguration conf = new OpenIdConfiguration("/uaa", "https://uaa.example.com", false);
+        assertThat(conf.getTokenAMR())
+                .containsExactlyInAnyOrder("client_secret_basic", "client_secret_post", "private_key_jwt")
+                .doesNotContain("tls_client_auth");
+    }
+
+    @Test
+    void tlsClientAuthIsIncludedWhenMtlsEnabled() {
+        OpenIdConfiguration conf = new OpenIdConfiguration("/uaa", "https://uaa.example.com", true);
+        assertThat(conf.getTokenAMR())
+                .containsExactlyInAnyOrder("client_secret_basic", "client_secret_post", "private_key_jwt", "tls_client_auth");
     }
 }

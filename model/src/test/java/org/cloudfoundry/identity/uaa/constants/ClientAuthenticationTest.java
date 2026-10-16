@@ -7,6 +7,7 @@ import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.CLIEN
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.CLIENT_SECRET_POST;
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.NONE;
 import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.PRIVATE_KEY_JWT;
+import static org.cloudfoundry.identity.uaa.constants.ClientAuthentication.TLS_CLIENT_AUTH;
 
 class ClientAuthenticationTest {
 
@@ -22,6 +23,15 @@ class ClientAuthenticationTest {
     void isMethodSupported() {
         assertThat(ClientAuthentication.isMethodSupported(CLIENT_SECRET_POST)).isTrue();
         assertThat(ClientAuthentication.isMethodSupported("foo")).isFalse();
+    }
+
+    @Test
+    void externalOAuthMethodsSupportStandardMethodsButNotTlsClientAuth() {
+        assertThat(ClientAuthentication.isMethodSupported(CLIENT_SECRET_BASIC)).isTrue();
+        assertThat(ClientAuthentication.isMethodSupported(CLIENT_SECRET_POST)).isTrue();
+        assertThat(ClientAuthentication.isMethodSupported(PRIVATE_KEY_JWT)).isTrue();
+        assertThat(ClientAuthentication.isMethodSupported(NONE)).isTrue();
+        assertThat(ClientAuthentication.isMethodSupported(TLS_CLIENT_AUTH)).isFalse();
     }
 
     @Test
@@ -77,5 +87,27 @@ class ClientAuthenticationTest {
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, null)).isFalse();
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, CLIENT_SECRET_BASIC)).isFalse();
         assertThat(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, NONE)).isFalse();
+    }
+
+    @Test
+    void tlsClientAuthDoesNotRequireASecret() {
+        assertThat(ClientAuthentication.secretNeeded(TLS_CLIENT_AUTH)).isFalse();
+    }
+
+    /**
+     * ClientAuthentication is public API of the model jar and backs external IdP validation, which has
+     * nothing to do with mTLS. These pin the results of the previous release so adding the
+     * tls_client_auth constant changes none of them.
+     */
+    @Test
+    void helpersBehaveExactlyAsInThePreviousRelease() {
+        assertThat(ClientAuthentication.UAA_SUPPORTED_METHODS)
+                .containsExactly(CLIENT_SECRET_BASIC, CLIENT_SECRET_POST, NONE, PRIVATE_KEY_JWT);
+        assertThat(ClientAuthentication.isMethodSupported(TLS_CLIENT_AUTH)).isFalse();
+        assertThat(ClientAuthentication.isValidMethod(PRIVATE_KEY_JWT, false, false)).isTrue();
+        assertThat(ClientAuthentication.isValidMethod(NONE, false, true)).isTrue();
+        assertThat(ClientAuthentication.isValidMethod(TLS_CLIENT_AUTH, false, false)).isFalse();
+        assertThat(ClientAuthentication.getCalculatedMethod(TLS_CLIENT_AUTH, false, false)).isEqualTo(NONE);
+        assertThat(ClientAuthentication.getCalculatedMethod(TLS_CLIENT_AUTH, false, true)).isEqualTo(PRIVATE_KEY_JWT);
     }
 }
