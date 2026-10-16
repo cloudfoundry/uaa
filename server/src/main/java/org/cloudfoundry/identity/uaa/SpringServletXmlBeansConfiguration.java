@@ -50,6 +50,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDecisionVoter;
@@ -93,9 +94,17 @@ public class SpringServletXmlBeansConfiguration {
     UaaProperties.Logout logoutProps;
 
     @Bean
-    YamlConfigurationValidator uaaConfigValidation(@Value("#{environment['environmentYamlKey']}") String environmentYamlKey) {
+    YamlConfigurationValidator uaaConfigValidation(ConfigurableEnvironment environment) {
+        // Read the YAML blob directly from the PropertySource map to avoid Spring's
+        // ${...} placeholder resolution, which would fail if a client secret contains
+        // literal ${...} sequences (e.g. secret: "pass${word}secret").
+        String yaml = environment.getPropertySources().stream()
+                .filter(ps -> ps.containsProperty("environmentYamlKey"))
+                .map(ps -> (String) ps.getProperty("environmentYamlKey"))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("environmentYamlKey not found in any PropertySource"));
         YamlConfigurationValidator bean = new YamlConfigurationValidator(new UaaConfiguration.UaaConfigConstructor());
-        bean.setYaml(environmentYamlKey);
+        bean.setYaml(yaml);
         return bean;
     }
 

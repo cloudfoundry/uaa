@@ -267,6 +267,10 @@ oauth:
       id: client_with_spel_chars
       secret: "pass#{word"
       authorized-grant-types: client_credentials
+    client_with_placeholder_chars:
+      id: client_with_placeholder_chars
+      secret: "pass${word}secret"
+      authorized-grant-types: client_credentials
     login:
       id: login
       secret: loginsecret
