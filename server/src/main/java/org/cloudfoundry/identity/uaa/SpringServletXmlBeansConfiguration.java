@@ -99,11 +99,15 @@ public class SpringServletXmlBeansConfiguration {
         // and #{...} in the returned value, breaking startup when client secrets contain them.
         String yaml = environment.getPropertySources().stream()
                 .filter(ps -> ps.containsProperty("environmentYamlKey"))
-                .map(ps -> (String) ps.getProperty("environmentYamlKey"))
+                .map(ps -> ps.getProperty("environmentYamlKey"))
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("environmentYamlKey not found in any PropertySource"));
+
         YamlConfigurationValidator bean = new YamlConfigurationValidator(new UaaConfiguration.UaaConfigConstructor());
         bean.setYaml(yaml);
+
         return bean;
     }
 
