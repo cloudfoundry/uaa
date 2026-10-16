@@ -26,8 +26,6 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.beans.ApplicationContextProvider;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
-import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -162,7 +160,7 @@ public class JwtClientAuthentication {
                 if (clientId.equals(getClientIdOidcAssertion(clientClaims))) {
                     // Validate token according to private_key_jwt with OIDC
                     return clientId.equals(validateClientJWToken(clientJWT, oidcMetadataFetcher == null ? new JWKSet() :
-                                    JWKSet.parse(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration).getKeySetMap()),
+                                    oidcMetadataFetcher.fetchJwkSet(clientJwtConfiguration),
                             JWT_OIDC_CLAIMS, clientId, clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
                 } else {
                     // Check if we found trust for private_key_jwt with RFC 7523. We allow client_id (from request) != sub (client_assertion)
@@ -262,8 +260,7 @@ public class JwtClientAuthentication {
             oidcMetadataFetcher.fetchMetadataAndUpdateDefinition(def);
         }
         // fetch JSON Web Key Set now from trusted OIDCIdentityProviderDefinition or online
-        JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = externalOAuthAuthenticationManager.getTokenKeyFromOAuth(def);
-        return JWKSet.parse(tokenKeyFromOAuth.getKeySetMap());
+        return externalOAuthAuthenticationManager.getJwkSetFromOAuth(def);
     }
 
     private JWKSet retrieveJwkSet(JWTClaimsSet clientClaims) throws MalformedURLException, OidcMetadataFetchingException, ParseException {

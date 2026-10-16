@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.beans.ApplicationContextProvider;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
-import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -410,7 +409,7 @@ class JwtClientAuthenticationTest {
         // Given
         jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
         ClientJwtConfiguration clientJwtConfiguration = getMockedClientJwtConfiguration();
-        when(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration)).thenReturn(clientJwtConfiguration.getJwkSet());
+        when(oidcMetadataFetcher.fetchJwkSet(clientJwtConfiguration)).thenReturn(JWKSet.parse(clientJwtConfiguration.getJwkSet().getKeySetMap()));
         // Then
         assertThatThrownBy(() -> jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, INVALID_CLIENT_ALG),
                 clientJwtConfiguration, "identity"))
@@ -423,7 +422,7 @@ class JwtClientAuthenticationTest {
         // Given
         jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
         ClientJwtConfiguration clientJwtConfiguration = getMockedClientJwtConfiguration();
-        when(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration)).thenThrow(new OidcMetadataFetchingException(""));
+        when(oidcMetadataFetcher.fetchJwkSet(clientJwtConfiguration)).thenThrow(new OidcMetadataFetchingException(""));
         // Then
         assertThatThrownBy(() -> jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, jwtClientAuthentication.getClientAssertion(config)),
                 clientJwtConfiguration, "identity"))
@@ -450,7 +449,7 @@ class JwtClientAuthenticationTest {
         // create client assertion with key ids which won't map to provide JWT,
         // lead to failing validateClientJWToken check
         ClientJwtConfiguration clientJwtConfiguration = getMockedClientJwtConfiguration("extId");
-        when(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration)).thenReturn(clientJwtConfiguration.getJwkSet());
+        when(oidcMetadataFetcher.fetchJwkSet(clientJwtConfiguration)).thenReturn(JWKSet.parse(clientJwtConfiguration.getJwkSet().getKeySetMap()));
         String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
         // When
         assertThatThrownBy(() -> jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, clientAssertion), clientJwtConfiguration, "identity"))
@@ -464,7 +463,7 @@ class JwtClientAuthenticationTest {
         // Given
         jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
         ClientJwtConfiguration clientJwtConfiguration = getMockedClientJwtConfiguration();
-        when(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration)).thenReturn(clientJwtConfiguration.getJwkSet());
+        when(oidcMetadataFetcher.fetchJwkSet(clientJwtConfiguration)).thenReturn(JWKSet.parse(clientJwtConfiguration.getJwkSet().getKeySetMap()));
         String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
         // When
         assertThatThrownBy(() -> jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, clientAssertion), clientJwtConfiguration, "identity"))
@@ -504,7 +503,7 @@ class JwtClientAuthenticationTest {
         String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
         when(externalOAuthAuthenticationManager.idTokenWasIssuedByTheUaa("http://external-issuer")).thenReturn(false);
         when(externalOAuthAuthenticationManager.retrieveRegisteredIdentityProviderByIssuer("http://external-issuer")).thenThrow(new IncorrectResultSizeDataAccessException(0));
-        when(externalOAuthAuthenticationManager.getTokenKeyFromOAuth(any())).thenReturn(JsonWebKeyHelper.deserialize(new JWKSet(JWK.parse(mockJWKMap(KEY_ID, JwtHelperX5tTest.SIGNING_KEY_1))).toString()));
+        when(externalOAuthAuthenticationManager.getJwkSetFromOAuth(any())).thenReturn(JWKSet.parse(new JWKSet(JWK.parse(mockJWKMap(KEY_ID, JwtHelperX5tTest.SIGNING_KEY_1))).toString()));
         // Then
         assertThat(jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, clientAssertion),
                 getMockedClientJwtConfiguration(clientJwtCredential), "extern_client_id")).isTrue();
@@ -523,7 +522,7 @@ class JwtClientAuthenticationTest {
         String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
         when(externalOAuthAuthenticationManager.idTokenWasIssuedByTheUaa("http://external-issuer")).thenReturn(false);
         when(externalOAuthAuthenticationManager.retrieveRegisteredIdentityProviderByIssuer("http://external-issuer")).thenReturn(idp);
-        when(externalOAuthAuthenticationManager.getTokenKeyFromOAuth(idpConfig)).thenReturn(JsonWebKeyHelper.deserialize(new JWKSet(JWK.parse(mockJWKMap(KEY_ID, JwtHelperX5tTest.SIGNING_KEY_1))).toString()));
+        when(externalOAuthAuthenticationManager.getJwkSetFromOAuth(idpConfig)).thenReturn(JWKSet.parse(new JWKSet(JWK.parse(mockJWKMap(KEY_ID, JwtHelperX5tTest.SIGNING_KEY_1))).toString()));
         // Then
         assertThat(jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, clientAssertion),
                 getMockedClientJwtConfiguration(clientJwtCredential), "extern_client_id")).isTrue();

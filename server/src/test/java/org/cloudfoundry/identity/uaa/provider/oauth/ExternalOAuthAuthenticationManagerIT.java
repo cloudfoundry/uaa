@@ -902,7 +902,7 @@ class ExternalOAuthAuthenticationManagerIT {
                 true);
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
-        verify(urlContentCache, times(1)).getUrlContent(any(), any(), any(), any());
+        mockUaaServer.verify();
     }
 
     @Test
