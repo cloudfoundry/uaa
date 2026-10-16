@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.javaBuildpackClientCertificateMapper)
 
     implementation(libs.guava)
+    implementation(libs.re2j)
 
     implementation(libs.aspectJWeaver)
 
@@ -137,6 +138,13 @@ configurations.configureEach {
 
 tasks.named<Jar>("jar") {
     exclude("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
+}
+
+tasks.named<Test>("test") {
+    // Isolated security probes need the complete runtime classpath, including test fixtures.
+    doFirst {
+        systemProperty("uaa.test.classpath", classpath.asPath)
+    }
 }
 
 tasks.named<ProcessResources>("processResources") {

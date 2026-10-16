@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.metrics.UaaMetrics;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsManagedBean;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsEndpointAvailabilityFilter;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsPathGuardedFilter;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -235,6 +236,18 @@ public class SpringServletXmlFiltersConfiguration {
     }
 
     @Bean
+    public FilterRegistrationBean<MtlsEndpointAvailabilityFilter> mtlsEndpointAvailabilityFilter(
+            @Value("${uaa.mtls.enabled:false}") boolean mtlsEnabled) {
+        FilterRegistrationBean<MtlsEndpointAvailabilityFilter> bean =
+                new FilterRegistrationBean<>(new MtlsEndpointAvailabilityFilter(mtlsEnabled));
+        // After ZonePathContextRewritingFilter (Ordered.HIGHEST_PRECEDENCE + 1) so the servlet path is
+        // already rewritten, and before Spring Boot's Security filter (-100) so a request to a disabled
+        // feature's path never reaches a security filter chain. See the filter's javadoc.
+        bean.setOrder(-290);
+        return bean;
+    }
+
+    @Bean
     public FilterRegistrationBean<RawPeerCertificateCaptureFilter> rawPeerCertificateCaptureFilter() {
         FilterRegistrationBean<RawPeerCertificateCaptureFilter> bean =
                 new FilterRegistrationBean<>(new RawPeerCertificateCaptureFilter());
@@ -253,12 +266,23 @@ public class SpringServletXmlFiltersConfiguration {
     }
 
     @Bean
-    public FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilter() {
+    public FilterRegistrationBean<jakarta.servlet.Filter> clientCertificateMapperFilter(
+            @Value("${uaa.mtls.enabled:false}") boolean mtlsEnabled) {
         // ClientCertificateMapper is a package-private final class in
         // org.cloudfoundry.router.jakarta; its constructor is also package-private.
         // The library is designed for Spring Boot autoconfiguration or Servlet container
         // initializer use — direct instantiation from outside the package requires
         // reflection. setAccessible(true) is the only available mechanism.
+        if (!mtlsEnabled) {
+            // The registration exists but is disabled, and the third-party class is never loaded,
+            // so a deployment that does not use mTLS cannot fail startup because of it.
+            FilterRegistrationBean<jakarta.servlet.Filter> bean =
+                    new FilterRegistrationBean<>(new MtlsPathGuardedFilter((request, response, chain) ->
+                            chain.doFilter(request, response)));
+            bean.setEnabled(false);
+            bean.setOrder(-200);
+            return bean;
+        }
         try {
             Class<?> mapperClass = Class.forName("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
             java.lang.reflect.Constructor<?> ctor = mapperClass.getDeclaredConstructor();

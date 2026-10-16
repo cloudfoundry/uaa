@@ -89,7 +89,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final IdentityZoneManager identityZoneManager;
 
-    private final boolean mtlsEnabled;
+    /** Not implemented yet: client registration still treats mTLS as off. */
+    private final boolean mtlsEnabled = false;
 
     private static final String TOKEN_ENDPOINT_AUTH_METHOD = "token-endpoint-auth-method";
 
@@ -98,11 +99,9 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
 
     public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor,
-                                         final IdentityZoneManager identityZoneManager,
-                                         final boolean mtlsEnabled) {
+                                         final IdentityZoneManager identityZoneManager) {
         this.securityContextAccessor = securityContextAccessor;
         this.identityZoneManager = identityZoneManager;
-        this.mtlsEnabled = mtlsEnabled;
     }
 
     /**

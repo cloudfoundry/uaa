@@ -16,12 +16,18 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenClaimEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
@@ -467,6 +473,35 @@ class UaaTokenServicesTests {
         }
 
         @Test
+        void inactiveMtlsEnhancerDoesNotCopyRefreshOnlyClaimsIntoAccessTokens() {
+            assertThat(waitForClient("jku_test", 5)).as("refresh client fixture must exist").isTrue();
+            TlsClientAuthentication noCertificate = mock(TlsClientAuthentication.class);
+            tokenServices.setUaaTokenEnhancers(List.of(new MtlsClaimsEnhancer(noCertificate, jdbcClientDetailsService)));
+            try {
+                RefreshTokenRequestData data = new RefreshTokenRequestData(
+                        GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("openid", "user_attributes"), null, "",
+                        Sets.newHashSet(""), "jku_test", false, new Date(), null,
+                        Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE, "refresh_only_marker", "private"));
+                var user = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+                refreshToken = refreshTokenCreator.createRefreshToken(user, data, null);
+                assertThat(UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class))
+                        .containsEntry("refresh_only_marker", "private");
+                OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+                OAuth2Request request = mock(OAuth2Request.class);
+                when(authentication.getOAuth2Request()).thenReturn(request);
+                when(request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                var token = tokenServices.refreshAccessToken(refreshToken.getValue(),
+                        new TokenRequest(new HashMap<>(), "jku_test", List.of("openid"), GRANT_TYPE_REFRESH_TOKEN));
+                assertThat(UaaTokenUtils.getClaims(token.getValue(), Map.class))
+                        .containsEntry(ClaimConstants.SCOPE, List.of("openid"))
+                        .doesNotContainKeys("refresh_only_marker", "cnf");
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+
+        @Test
         void happyCase() {
             assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
@@ -494,6 +529,82 @@ class UaaTokenServicesTests {
             assertThat(refreshedToken).isNotNull();
             Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class);
             assertThat(claims).containsEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE);
+        }
+
+        /**
+         * The mTLS enhancer is active in every zone that enables mTLS, but it only contributes to tokens issued
+         * at /oauth/mtls/token, which never returns a refresh token. Its presence must not change what an
+         * ordinary client's refreshed access token contains.
+         */
+        @Test
+        void anActiveMtlsEnhancerDoesNotChangeRefreshedAccessTokens() {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
+            TlsClientAuthentication mtlsOn = mock(TlsClientAuthentication.class);
+            when(mtlsOn.isMtlsEnabled()).thenReturn(true);
+            MtlsClaimsEnhancer mtlsEnhancer = new MtlsClaimsEnhancer(mtlsOn, mock(ClientDetailsService.class));
+            assertThat(mtlsEnhancer.isEnabled()).isTrue();
+            try {
+                Map<String, Object> withoutEnhancer = refreshedClaimsWith(List.of());
+                Map<String, Object> withMtlsEnhancer = refreshedClaimsWith(List.of(mtlsEnhancer));
+
+                assertThat(withMtlsEnhancer)
+                        .as("enabling mTLS in a zone must not change refreshed access tokens of other clients")
+                        .containsOnlyKeys(withoutEnhancer.keySet());
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+
+        /** Pins develop's behaviour for deployments that register their own enhancer, so the fix stays narrow. */
+        @Test
+        void aCustomEnhancerStillReceivesRefreshTokenClaimsOnTheRefreshedAccessToken() {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
+            try {
+                Map<String, Object> claims = refreshedClaimsWith(List.of(new UaaTokenEnhancer() {
+                    @Override
+                    public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                        return Map.of();
+                    }
+
+                    @Override
+                    public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                        return new HashMap<>();
+                    }
+                }));
+
+                assertThat(claims).containsEntry(ClaimConstants.AMR, List.of("pwd"))
+                        .containsEntry("ext_custom", "v")
+                        .doesNotContainKey(ClaimConstants.GRANTED_SCOPES);
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+
+        private Map<String, Object> refreshedClaimsWith(List<UaaTokenEnhancer> enhancers) {
+            tokenServices.setUaaTokenEnhancers(enhancers);
+            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    Sets.newHashSet("pwd"),
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    new Date(1_700_000_000_000L),
+                    Sets.newHashSet("urn:example:acr"),
+                    Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE, "ext_custom", "v")
+            );
+            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            CompositeExpiringOAuth2RefreshToken issued =
+                    refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            OAuth2Request auth2Request = mock(OAuth2Request.class);
+            when(authentication.getOAuth2Request()).thenReturn(auth2Request);
+            when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+            OAuth2AccessToken refreshed = tokenServices.refreshAccessToken(issued.getValue(),
+                    new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
+            return UaaTokenUtils.getClaims(refreshed.getValue(), Map.class);
         }
 
         @Test
@@ -1000,12 +1111,17 @@ class UaaTokenServicesTests {
     class WhenTokenEnhancerOverridesSubAndAud {
 
         @Test
-        @DisplayName("enhancer sub and aud claims win over UAA defaults")
+        @DisplayName("an enhancer that opts in has its sub and aud win over UAA defaults")
         void enhancerSubAndAudClaimsWinOverUaaDefaults() {
             UaaTokenEnhancer testEnhancer = new UaaTokenEnhancer() {
                 @Override
                 public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
                     return Map.of();
+                }
+
+                @Override
+                public Set<String> getLateOverrideClaims() {
+                    return Set.of("sub", "aud");
                 }
 
                 @Override
@@ -1142,6 +1258,211 @@ class UaaTokenServicesTests {
             } finally {
                 tokenServices.setUaaTokenEnhancers(new ArrayList<>());
             }
+        }
+    }
+
+    /**
+     * {@code MtlsClaimsEnhancer} is one {@link UaaTokenEnhancer} among however many a deployment
+     * registers (Spring collects them all into one list). These pin the two things an operator with
+     * their own enhancers needs to know:
+     *
+     * <ul>
+     *   <li>enabling mTLS adds an enhancer next to theirs without disturbing theirs, and</li>
+     *   <li>enabling mTLS does not change what any <em>other</em> enhancer can do: a third-party
+     *       enhancer is not restricted by this feature, and its output is applied exactly as it was
+     *       before it. Enhancers are responsible for their own claims.</li>
+     * </ul>
+     */
+    @Nested
+    @DisplayName("when MtlsClaimsEnhancer shares the enhancer list with other enhancers")
+    class WhenMtlsClaimsEnhancerSharesTheEnhancerList {
+
+        @Test
+        void bindingPolicyIsEnforcedWhenIssuanceBypassesClientAuthentication() {
+            UaaClientDetails client = (UaaClientDetails) jdbcClientDetailsService.loadClientByClientId(clientId);
+            Map<String, Object> previous = new HashMap<>(client.getAdditionalInformation());
+            Map<String, Object> requiringBinding = new HashMap<>(previous);
+            requiringBinding.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+            client.setAdditionalInformation(requiringBinding);
+            jdbcClientDetailsService.updateClientDetails(client);
+            try {
+                assertThatThrownBy(() -> clientCredentialsTokenClaims())
+                        .as("the signing boundary must refuse an unbound JWT even without an mTLS enhancer")
+                        .isInstanceOf(InvalidClientDetailsException.class)
+                        .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+            } finally {
+                client.setAdditionalInformation(previous);
+                jdbcClientDetailsService.updateClientDetails(client);
+            }
+        }
+
+        private UaaTokenEnhancer enhancerReturning(Map<String, Object> claims) {
+            return new UaaTokenEnhancer() {
+                @Override
+                public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                    return Map.of();
+                }
+
+                @Override
+                public Map<String, Object> enhance(Map<String, Object> accumulated, OAuth2Authentication authentication) {
+                    return new HashMap<>(claims);
+                }
+            };
+        }
+
+        private Map<String, Object> clientCredentialsTokenClaims(UaaTokenEnhancer... enhancers) {
+            tokenServices.setUaaTokenEnhancers(List.of(enhancers));
+            try {
+                AuthorizationRequest authorizationRequest = constructAuthorizationRequest(
+                        clientId, GRANT_TYPE_CLIENT_CREDENTIALS, CLIENT_SCOPES.split(","));
+                OAuth2Authentication authentication = new OAuth2Authentication(
+                        authorizationRequest.createOAuth2Request(), null);
+                Jwt jwt = JwtHelper.decode(tokenServices.createAccessToken(authentication).getValue());
+                return JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            } finally {
+                tokenServices.setUaaTokenEnhancers(new ArrayList<>());
+            }
+        }
+
+        @Test
+        @DisplayName("the real MtlsClaimsEnhancer adds nothing to an ordinary request and leaves the other enhancer's claims intact")
+        void mtlsEnhancerIsInertForARequestThatIsNotTlsClientAuth() {
+            TlsClientAuthentication noCertificate = mock(TlsClientAuthentication.class);
+            when(noCertificate.hasCertificateFromRequest()).thenReturn(false);
+            UaaTokenEnhancer mtls = new MtlsClaimsEnhancer(noCertificate, jdbcClientDetailsService);
+            UaaTokenEnhancer other = enhancerReturning(Map.of("tenant", "acme", "plan", Map.of("tier", "gold")));
+
+            Map<String, Object> claims = clientCredentialsTokenClaims(other, mtls);
+
+            assertThat(claims)
+                    .containsEntry("tenant", "acme")
+                    .containsEntry("plan", Map.of("tier", "gold"))
+                    .doesNotContainKey("cnf");
+            assertThat(claims).containsEntry("client_id", clientId);
+        }
+
+        @Test
+        @DisplayName("an mTLS-style contribution and another enhancer's custom claims all reach the token, in either list order")
+        void claimsFromBothEnhancersCoexistInEitherOrder() {
+            UaaTokenEnhancer mtlsLike = enhancerReturning(Map.of(
+                    "cnf", Map.of("x5t#S256", "thumbprint"), "cf.app", "app-guid"));
+            UaaTokenEnhancer other = enhancerReturning(Map.of("tenant", "acme"));
+
+            for (List<UaaTokenEnhancer> order : List.of(List.of(other, mtlsLike), List.of(mtlsLike, other))) {
+                Map<String, Object> claims = clientCredentialsTokenClaims(order.toArray(new UaaTokenEnhancer[0]));
+
+                assertThat(claims)
+                        .containsEntry("tenant", "acme")
+                        .containsEntry("cf.app", "app-guid")
+                        .containsKey("cnf");
+            }
+        }
+
+        @Test
+        @DisplayName("jwt.token.claims.exclude cannot strip cnf and turn a certificate-bound token into a bearer token")
+        void excludedClaimsCannotRemoveTheCertificateBinding() {
+            Set<String> previous = tokenServices.getExcludedClaims();
+            tokenServices.setExcludedClaims(Set.of("cnf", "tenant"));
+            try {
+                Map<String, Object> claims = clientCredentialsTokenClaims(enhancerReturning(Map.of(
+                        "cnf", Map.of("x5t#S256", "thumbprint"), "tenant", "acme")));
+
+                assertThat(claims)
+                        .as("the binding must survive the exclusion list")
+                        .containsEntry("cnf", Map.of("x5t#S256", "thumbprint"))
+                        .as("other excluded claims are still removed")
+                        .doesNotContainKey("tenant");
+            } finally {
+                tokenServices.setExcludedClaims(previous);
+            }
+        }
+
+        @Test
+        @DisplayName("when two enhancers emit the same custom claim the later one in the list wins")
+        void laterEnhancerWinsACustomClaimCollision() {
+            UaaTokenEnhancer first = enhancerReturning(Map.of("tenant", "first"));
+            UaaTokenEnhancer second = enhancerReturning(Map.of("tenant", "second"));
+
+            assertThat(clientCredentialsTokenClaims(first, second)).containsEntry("tenant", "second");
+            assertThat(clientCredentialsTokenClaims(second, first)).containsEntry("tenant", "first");
+        }
+
+        @Test
+        @DisplayName("a third-party enhancer is not restricted: claims UAA does not set for the grant survive")
+        void claimsUaaDoesNotSetForTheGrantSurviveFromAnotherEnhancer() {
+            // A client_credentials token has no user, so UAA itself never sets these. They are the
+            // enhancer's own business: it keeps them, exactly as it did before the mTLS work.
+            Map<String, Object> own = new HashMap<>();
+            own.put("user_id", "enhancer-user-id");
+            own.put("user_name", "enhancer-user");
+            own.put("email", "enhancer@example.com");
+            own.put("origin", "enhancer-origin");
+            own.put("auth_time", 1);
+            own.put("tenant", "acme");
+
+            Map<String, Object> claims = clientCredentialsTokenClaims(enhancerReturning(own));
+
+            own.forEach((name, value) -> assertThat(claims).as("enhancer-supplied %s", name).containsEntry(name, value));
+        }
+
+        @Test
+        @DisplayName("a third-party enhancer's sub and aud do not displace UAA's, as before")
+        void subAndAudFromAnotherEnhancerDoNotWin() {
+            Map<String, Object> claims = clientCredentialsTokenClaims(
+                    enhancerReturning(Map.of("sub", "other-sub", "aud", List.of("other-aud"))));
+
+            assertThat(claims).containsEntry("sub", clientId);
+            Object aud = claims.get("aud");
+            assertThat(aud instanceof String str ? List.of(str) : aud)
+                    .asInstanceOf(InstanceOfAssertFactories.list(Object.class))
+                    .doesNotContain("other-aud");
+        }
+
+        @Test
+        @DisplayName("the real MtlsClaimsEnhancer opts in to sub and aud and to nothing else")
+        void mtlsEnhancerOptsInToSubAndAudOnly() {
+            UaaTokenEnhancer mtls = new MtlsClaimsEnhancer(mock(TlsClientAuthentication.class), jdbcClientDetailsService);
+
+            assertThat(mtls.getLateOverrideClaims()).containsExactlyInAnyOrder("sub", "aud");
+        }
+
+        @Test
+        @DisplayName("an enhancer that does not opt in has no late overrides, whatever it emits")
+        void anEnhancerDoesNotOptInByDefault() {
+            assertThat(enhancerReturning(Map.of("sub", "x")).getLateOverrideClaims()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("opting in applies only the named claims, and only when the enhancer actually returned them")
+        void optInAppliesOnlyTheNamedClaimsThatWereReturned() {
+            UaaTokenEnhancer optedIn = new UaaTokenEnhancer() {
+                @Override
+                public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                    return Map.of();
+                }
+
+                @Override
+                public Set<String> getLateOverrideClaims() {
+                    return Set.of("sub", "aud");
+                }
+
+                @Override
+                public Map<String, Object> enhance(Map<String, Object> accumulated, OAuth2Authentication authentication) {
+                    // returns sub, but not aud; and a protected claim it did NOT opt in for
+                    return Map.of("sub", "opted-in-sub", "scope", List.of("uaa.admin"));
+                }
+            };
+
+            Map<String, Object> claims = clientCredentialsTokenClaims(optedIn);
+
+            assertThat(claims).containsEntry("sub", "opted-in-sub");
+            Object aud = claims.get("aud");
+            assertThat(aud instanceof String str ? List.of(str) : aud)
+                    .asInstanceOf(InstanceOfAssertFactories.list(Object.class))
+                    .containsExactly(clientId);
+            assertThat(claims.get("scope"))
+                    .asInstanceOf(InstanceOfAssertFactories.list(Object.class))
+                    .doesNotContain("uaa.admin");
         }
     }
 

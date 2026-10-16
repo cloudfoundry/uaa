@@ -65,7 +65,8 @@ public class ClientAdminBootstrap implements
     private final Set<String> autoApproveClients;
     private final Set<String> allowPublicClients;
     private final boolean defaultOverride;
-    private final boolean mtlsEnabled;
+    /** Not implemented yet: bootstrap still treats mTLS as off. */
+    private final boolean mtlsEnabled = false;
 
     /**
      * @param defaultOverride    the default override flag to set. Flag to indicate
@@ -81,9 +82,6 @@ public class ClientAdminBootstrap implements
      *                           into the client details store.
      * @param allowPublicClients A set of client ids that are allowed to be used
      *                           without client_secret parameter but with PKCE S256 method
-     * @param mtlsEnabled        whether platform-wide RFC 8705 mTLS client auth is enabled;
-     *                           gates whether bootstrapped clients may set
-     *                           tls-client-auth-ca / tls-client-auth-trusted-proxy-ca
      */
     ClientAdminBootstrap(
             @Qualifier("nonCachingPasswordEncoder") final PasswordEncoder passwordEncoder,
@@ -94,8 +92,7 @@ public class ClientAdminBootstrap implements
             @Value("#{@applicationProperties.containsKey('oauth.client.autoapprove') ? (@config['oauth']==null ? null : @config['oauth']['client']==null ? null : @config['oauth']['client']['autoapprove']) : 'cf'}") final Collection<String> autoApproveClients,
             @Value("#{@config['delete']==null ? null : @config['delete']['clients']}") final Collection<String> clientsToDelete,
             final JdbcTemplate jdbcTemplate,
-            @Value("#{@config['oauth']==null ? null : @config['oauth']['client']==null ? null : @config['oauth']['client']['allowpublic']}") final Set<String> allowPublicClients,
-            @Value("${uaa.mtls-enabled:false}") final boolean mtlsEnabled) {
+            @Value("#{@config['oauth']==null ? null : @config['oauth']['client']==null ? null : @config['oauth']['client']['allowpublic']}") final Set<String> allowPublicClients) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
         this.clientMetadataProvisioning = clientMetadataProvisioning;
@@ -105,7 +102,6 @@ public class ClientAdminBootstrap implements
         this.clientsToDelete = new HashSet<>(ofNullable(clientsToDelete).orElse(Collections.emptySet()));
         this.jdbcTemplate = jdbcTemplate;
         this.allowPublicClients = new HashSet<>(ofNullable(allowPublicClients).orElse(Collections.emptySet()));
-        this.mtlsEnabled = mtlsEnabled;
     }
 
     @Override

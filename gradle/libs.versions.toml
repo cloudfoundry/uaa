@@ -23,6 +23,7 @@ opensaml = "5.2.3"
 orgJson = "20260814"
 passay = "2.0.0"
 postgresql = "42.7.12"
+re2j = "1.8"
 selenium = "4.51.0"
 sonarqube = "7.5.0.8588"
 springBoot = "4.1.1"
@@ -35,6 +36,7 @@ velocity = "2.4.1"
 xmlSecurity = "4.0.4"
 
 [libraries]
+re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 # Apache Commons
 commonsCodec = { module = "commons-codec:commons-codec", version.ref = "commonsCodec" }
 commonsIo = { module = "commons-io:commons-io", version.ref = "commonsIo" }

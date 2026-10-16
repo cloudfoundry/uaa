@@ -31,13 +31,12 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
 
     private static final String REQUIRED_SCOPE = "zones.write";
     private final ClientSecretValidator clientSecretValidator;
-    private final boolean mtlsEnabled;
+    /** Not implemented yet: the zone client API still treats mTLS as off. */
+    private final boolean mtlsEnabled = false;
 
     public ZoneEndpointsClientDetailsValidator(
-            final ClientSecretValidator clientSecretValidator,
-            @Value("${uaa.mtls-enabled:false}") final boolean mtlsEnabled) {
+            final ClientSecretValidator clientSecretValidator) {
         this.clientSecretValidator = clientSecretValidator;
-        this.mtlsEnabled = mtlsEnabled;
     }
 
     @Override

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ClientCertificateMapperFilterTest {
 
@@ -43,7 +44,7 @@ class ClientCertificateMapperFilterTest {
     @Test
     void clientCertificateMapperFilter_registersClientCertificateMapperForMtlsEndpoint() {
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
-        FilterRegistrationBean<?> bean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> bean = config.clientCertificateMapperFilter(true);
         assertThat(bean.getFilter()).isInstanceOf(MtlsPathGuardedFilter.class);
         assertThat(((MtlsPathGuardedFilter) bean.getFilter()).getDelegate().getClass().getName())
                 .isEqualTo("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
@@ -56,7 +57,7 @@ class ClientCertificateMapperFilterTest {
     @Test
     void doesNotInvokeTheDelegateForUnrelatedPaths() throws Exception {
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/oauth/mtls/not-token");
@@ -69,6 +70,19 @@ class ClientCertificateMapperFilterTest {
         assertThat(request.getAttribute("jakarta.servlet.request.X509Certificate"))
                 .as("ClientCertificateMapper must not run for a path other than /oauth/mtls/token/**")
                 .isNull();
+    }
+
+    @Test
+    void downstreamIllegalArgumentExceptionIsNotTreatedAsMalformedXfcc() {
+        Filter mapper = new SpringServletXmlFiltersConfiguration().clientCertificateMapperFilter(true).getFilter();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/oauth/mtls/token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        IllegalArgumentException downstreamFailure = new IllegalArgumentException("downstream handler failed");
+
+        assertThatThrownBy(() -> mapper.doFilter(request, response, (req, res) -> {
+            throw downstreamFailure;
+        })).isSameAs(downstreamFailure);
     }
 
     @Test
@@ -89,7 +103,7 @@ class ClientCertificateMapperFilterTest {
         // .DEFAULT_FILTER_ORDER) -- through a real request carrying a real X-Forwarded-Client-Cert
         // header, and observes what the "security" filter actually sees.
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         AtomicReference<Object> certSeenBySecurityFilter = new AtomicReference<>();
         FilterRegistrationBean<Filter> securityFilterBean =
@@ -112,7 +126,7 @@ class ClientCertificateMapperFilterTest {
         // is *after* Spring Security's -100), the cert attribute is not yet populated when
         // Spring Security's filter runs.
         Filter clientCertificateMapper =
-                new SpringServletXmlFiltersConfiguration().clientCertificateMapperFilter().getFilter();
+                new SpringServletXmlFiltersConfiguration().clientCertificateMapperFilter(true).getFilter();
         FilterRegistrationBean<Filter> mapperBeanWithBuggyOrder = new FilterRegistrationBean<>(clientCertificateMapper);
         mapperBeanWithBuggyOrder.setOrder(10); // the old, buggy order
 
@@ -189,4 +203,26 @@ class ClientCertificateMapperFilterTest {
                 .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
                 .getCertificate(holder);
     }
+    @Test
+    void mapperIsNotLoadedWhenDeploymentMtlsIsOff() throws Exception {
+        FilterRegistrationBean<?> bean = new SpringServletXmlFiltersConfiguration()
+                .clientCertificateMapperFilter(false);
+
+        assertThat(bean.isEnabled()).isFalse();
+        assertThat(bean.getFilter())
+                .as("the registration bean exists independently of the deployment switch")
+                .isInstanceOf(MtlsPathGuardedFilter.class);
+        assertThat(((MtlsPathGuardedFilter) bean.getFilter()).getDelegate().getClass().getName())
+                .as("uaa.mtls.enabled=false must not reflectively load the third-party mapper")
+                .isNotEqualTo("org.cloudfoundry.router.jakarta.ClientCertificateMapper");
+
+        MockHttpServletRequest request = requestWithClientCertHeader();
+        AtomicReference<Object> downstream = new AtomicReference<>();
+        bean.getFilter().doFilter(request, new MockHttpServletResponse(), (req, res) -> downstream.set(req));
+        assertThat(downstream.get()).as("the inert filter must still continue the chain").isSameAs(request);
+        assertThat(request.getAttribute("jakarta.servlet.request.X509Certificate"))
+                .as("the inert filter must not map XFCC into the peer certificate attribute")
+                .isNull();
+    }
+
 }

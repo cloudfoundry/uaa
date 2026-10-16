@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +21,7 @@ class OpenIdConnectEndpointsTest {
     @BeforeEach
     void setUp() {
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(MtlsEnabledZoneExtension.mtlsEnabledUaaZone());
         endpoints = new OpenIdConnectEndpoints("https://uaa.example.com/oauth/token", mockIdentityZoneManager, true);
     }
 
@@ -38,6 +39,22 @@ class OpenIdConnectEndpointsTest {
         assertThat(response.getBody().getMtlsEndpointAliases())
                 .isNotNull()
                 .containsEntry("token_endpoint", "https://uaa.example.com/oauth/mtls/token");
+    }
+
+    @Test
+    void zoneThatDoesNotOptInIsNotAdvertisedEvenWhenTheDeploymentEnablesMtls() throws Exception {
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/.well-known/openid-configuration");
+        request.setScheme("https");
+        request.setServerName("uaa.example.com");
+        request.setServerPort(443);
+        request.setContextPath("");
+
+        ResponseEntity<OpenIdConfiguration> response = endpoints.getOpenIdConfiguration(request);
+
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMtlsEndpointAliases()).isNull();
+        assertThat(response.getBody().getTokenAMR()).doesNotContain(ClientAuthentication.TLS_CLIENT_AUTH);
     }
 
     @Test
@@ -73,6 +90,11 @@ class OpenIdConnectEndpointsTest {
         assertThat(conf).isNotNull();
         assertThat(conf.getTokenAMR()).contains(ClientAuthentication.TLS_CLIENT_AUTH);
         assertThat(conf.getMtlsEndpointAliases()).isNotNull().containsKey("token_endpoint");
+        assertThat(conf.isTlsClientCertificateBoundAccessTokens())
+                .as("RFC 8705 section 3.3: UAA stamps cnf.x5t#S256 on mTLS-issued tokens, so it must "
+                        + "advertise that capability -- the metadata defaults to false when omitted, "
+                        + "which would tell a resource server the opposite of the truth")
+                .isTrue();
     }
 
     @Test
@@ -90,5 +112,8 @@ class OpenIdConnectEndpointsTest {
         assertThat(conf).isNotNull();
         assertThat(conf.getTokenAMR()).doesNotContain(ClientAuthentication.TLS_CLIENT_AUTH);
         assertThat(conf.getMtlsEndpointAliases()).isNull();
+        assertThat(conf.isTlsClientCertificateBoundAccessTokens())
+                .as("a deployment that cannot issue certificate-bound tokens must not claim it can")
+                .isFalse();
     }
 }

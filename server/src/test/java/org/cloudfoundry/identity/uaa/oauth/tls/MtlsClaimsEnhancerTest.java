@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.tls;
 
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
@@ -9,6 +10,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 import javax.security.auth.x500.X500Principal;
@@ -19,10 +22,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -30,7 +36,29 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MtlsEnabledZoneExtension.class)
 class MtlsClaimsEnhancerTest {
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("malformedProxyTrust")
+    void malformedProxyTrustCannotBeDroppedWhenClientIsReloadedForIssuance(Object proxyTrust) throws Exception {
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=workload"));
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        UaaClientDetails client = new UaaClientDetails();
+        client.setClientId("workload");
+        client.addAdditionalInformation(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "client-ca");
+        client.addAdditionalInformation(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, proxyTrust);
+        when(clientDetailsService.loadClientByClientId("workload")).thenReturn(client);
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), mockAuthentication("workload")))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("configuration cannot be resolved");
+    }
+
+    static java.util.stream.Stream<Object> malformedProxyTrust() {
+        return java.util.stream.Stream.of(null, "", " ", 42, List.of("pem"), Map.of("ca", "pem"));
+    }
 
     private TlsClientAuthentication tlsClientAuthentication;
     private ClientDetailsService clientDetailsService;
@@ -46,6 +74,22 @@ class MtlsClaimsEnhancerTest {
         tlsClientAuthentication = spy(new TlsClientAuthentication());
         clientDetailsService = mock(ClientDetailsService.class);
         enhancer = new MtlsClaimsEnhancer(tlsClientAuthentication, clientDetailsService);
+    }
+
+    @Test
+    void disabledZoneRefusesTlsAuthenticationAtTokenIssuanceEvenWithoutACertificate() {
+        var previous = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
+        var zone = new org.cloudfoundry.identity.uaa.zone.IdentityZone();
+        zone.setConfig(org.cloudfoundry.identity.uaa.util.JsonUtils.readValue("{\"mtls\":{\"enabled\":false}}",
+                org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
+        try {
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
+            assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), mockAuthentication("persisted-client")))
+                    .isInstanceOf(org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException.class)
+                    .hasMessageContaining("mTLS is disabled");
+        } finally {
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(previous);
+        }
     }
 
     @Test
@@ -91,6 +135,7 @@ class MtlsClaimsEnhancerTest {
         clientDetails.setClientId("instance-identity");
         clientDetails.setTlsClientAuthConfiguration(
             new TlsClientAuthConfiguration("-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+        clientDetails.addAdditionalInformation(BOUND_TOKENS, true);
         when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
 
         OAuth2Authentication auth = mockAuthentication("instance-identity");
@@ -209,6 +254,38 @@ class MtlsClaimsEnhancerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> cf = (Map<String, Object>) result.get("cf");
         assertThat(cf).containsEntry("app", "app-guid");
+    }
+
+    @Test
+    void dottedMappingWhoseParentIsReservedIsSkipped() throws Exception {
+        // "sub.foo" is not itself in RESERVED_CLAIM_NAMES, but dot-notation nesting would turn it
+        // into a nested {"foo": ...} object stored under the top-level claim "sub" -- which
+        // UaaTokenServices then uses to overwrite the real sub claim, producing a JWT whose sub is
+        // an object rather than the RFC 7519 string it must be. ClientAdminEndpointsValidator
+        // rejects this at configuration time; this is the defense-in-depth check for
+        // configurations that bypass it (pre-existing clients, BOSH bootstrap path).
+        X509Certificate cert = mock(X509Certificate.class);
+        when(cert.getEncoded()).thenReturn(new byte[]{1, 2, 3});
+        when(cert.getSubjectX500Principal()).thenReturn(new X500Principal("CN=inst-guid, OU=app:app-guid"));
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+            "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+            List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null,         "sub.foo"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "aud.bar")
+            )
+        ));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        OAuth2Authentication auth = mockAuthentication("instance-identity");
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(), auth);
+
+        assertThat(result).doesNotContainKey("sub");
+        assertThat(result).doesNotContainKey("aud");
     }
 
     @Test
@@ -489,7 +566,7 @@ class MtlsClaimsEnhancerTest {
 
     @Test
     void enhanceReturnsEmptyWhenClientAuthenticatedViaClientSecretInsteadOfTlsClientAuth() throws Exception {
-        // Reproduces PR review concern (MtlsClaimsEnhancer.java:76): a client with both a
+        // A client with both a
         // client_secret AND tls-client-auth-ca configured could hit /oauth/mtls/token, present a
         // harvested/unvalidated certificate (via the mapped X509Certificate attribute), but
         // authenticate with the secret instead -- bypassing validateTlsClientAuth entirely.
@@ -542,9 +619,46 @@ class MtlsClaimsEnhancerTest {
         assertThat(result).isEmpty();
     }
 
+    /**
+     * By the time the enhancer runs, the request has authenticated as {@code tls_client_auth}. If the enhancer then
+     * cannot resolve the client's configuration -- it reads {@code additionalInformation} itself, and parses keys such as
+     * {@code tls-client-auth-allowed-resources} that the authentication step does not -- returning an empty map would
+     * issue a token with no {@code cnf}, i.e. an unbound token for a certificate-authenticated request. Same rule as the
+     * {@code cnf} computation below it: fail the token request.
+     */
+    @Test
+    void enhanceFailsClosedWhenTheConfigurationCannotBeReadInsteadOfIssuingAnUnboundToken() throws Exception {
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setAdditionalInformation(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES, "{not json"));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("instance-identity");
+    }
+
+    @Test
+    void enhanceFailsClosedWhenNoCertificateCanBeResolvedForAClientThatAuthenticatedWithOne() throws Exception {
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(null);
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity")))
+                .as("a request that authenticated with a certificate must not get an unbound token")
+                .isInstanceOf(IllegalStateException.class);
+    }
+
     @Test
     void enhancePropagatesExceptionWhenClientDetailsLookupFails() throws Exception {
-        // PR review concern (MtlsClaimsEnhancer.java:94): a transient failure loading client
+        // A transient failure loading client
         // details (e.g. a database error) must fail the whole token request closed, not be
         // swallowed into an incomplete/degraded token missing identity + cnf claims.
         X509Certificate cert = mockCfCert();
@@ -563,7 +677,7 @@ class MtlsClaimsEnhancerTest {
 
     @Test
     void enhanceThrowsWhenCertEncodingFailsInsteadOfSilentlyDroppingCnfClaim() throws Exception {
-        // PR review concern (MtlsClaimsEnhancer.java:135): a failure to DER-encode the cert or
+        // A failure to DER-encode the cert or
         // compute its SHA-256 digest must fail the whole token request closed, not silently
         // downgrade a certificate-bound (RFC 8705 sec:3.1) token into an unbound bearer token by
         // dropping the cnf claim.
@@ -577,6 +691,7 @@ class MtlsClaimsEnhancerTest {
         clientDetails.setClientId("instance-identity");
         clientDetails.setTlsClientAuthConfiguration(
             new TlsClientAuthConfiguration("-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+        clientDetails.addAdditionalInformation(BOUND_TOKENS, true);
         when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
 
         OAuth2Authentication auth = mockAuthentication("instance-identity");
@@ -631,6 +746,220 @@ class MtlsClaimsEnhancerTest {
                 new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null,                  "cf_instance_guid")
             )
         );
+    }
+
+    /**
+     * The RFC 8707 allow-list is enforced in two places: primarily in
+     * {@code UaaTokenEndpoint.enforceResourceIndicator}, before the grant runs, and again here.
+     * These tests exercise the enhancer directly, i.e. with the endpoint check absent -- which is
+     * exactly the situation a routing bypass creates, and how one was actually reached before
+     * {@code MtlsEndpointAvailabilityFilter} started refusing paths below the endpoint.
+     */
+    @Test
+    void resourceOnTheAllowListBecomesAud() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAllowedResources(List.of("https://billing.apps.internal"));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        Map<String, Object> result = enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting("instance-identity", "https://billing.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS));
+
+        assertThat(result).containsEntry("aud", List.of("https://billing.apps.internal"));
+    }
+
+    @Test
+    void resourceOffTheAllowListIsRefusedEvenWithoutTheEndpointCheck() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAllowedResources(List.of("https://billing.apps.internal"));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        // Must fail the token request outright rather than fall back to the default audience: a
+        // caller cannot tell a silently substituted aud from the one it asked for.
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting("instance-identity", "https://payments.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS)))
+                .isInstanceOf(InvalidTargetException.class);
+    }
+
+    @Test
+    void resourceIsRefusedWhenNoAllowListIsConfigured() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        // No allowed resources at all: an absent allow-list authorizes nothing, it does not mean
+        // "anything goes".
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(cfMappingsConfig());
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting("instance-identity", "https://billing.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS)))
+                .isInstanceOf(InvalidTargetException.class);
+    }
+
+    @Test
+    void resourceIsRefusedForANonWorkloadGrant() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAllowedResources(List.of("https://billing.apps.internal"));
+
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        // Resource indicators are a property of the workload grant this endpoint serves. Honouring
+        // one on a user grant would aim a token carrying a user's identity at an audience the
+        // workload chose.
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting("instance-identity", "https://billing.apps.internal",
+                        "password")))
+                .isInstanceOf(InvalidTargetException.class);
+    }
+
+    private OAuth2Authentication mockAuthenticationRequesting(String clientId, String resource, String grantType) {
+        OAuth2Request request = mock(OAuth2Request.class);
+        when(request.getClientId()).thenReturn(clientId);
+        when(request.getExtensions())
+                .thenReturn(Map.of(CLIENT_AUTH_METHOD, ClientAuthentication.TLS_CLIENT_AUTH));
+        when(request.getRequestParameters())
+                .thenReturn(Map.of(TlsClientAuthConfiguration.RESOURCE_PARAMETER, resource));
+        when(request.getGrantType()).thenReturn(grantType);
+        OAuth2Authentication auth = mock(OAuth2Authentication.class);
+        when(auth.getOAuth2Request()).thenReturn(request);
+        return auth;
+    }
+
+    private static final String BOUND_TOKENS = "tls_client_certificate_bound_access_tokens";
+
+    /**
+     * RFC 8705 section 1 separates mutual-TLS client authentication from certificate-bound access tokens, and
+     * section 3.4 makes {@code tls_client_certificate_bound_access_tokens} default to {@code false}. A client that
+     * authenticates with a certificate but does not ask for bound tokens gets an ordinary bearer JWT.
+     */
+    private Map<String, Object> enhanceForClientWith(Map<String, Object> extraInfo) throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+
+        Map<String, Object> info = new HashMap<>(extraInfo);
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n");
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                "[{\"field\":\"subject_ou\",\"pattern\":\"^app:(.+)$\",\"claim\":\"cf.app\"}]");
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "app/{cf.app}");
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setAdditionalInformation(info);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        return enhancer.enhance(new HashMap<>(), mockAuthentication("instance-identity"));
+    }
+
+    @Test
+    void omitsCnfWhenTheClientDoesNotSetBoundAccessTokens() throws Exception {
+        Map<String, Object> result = enhanceForClientWith(Map.of());
+
+        assertThat(result).doesNotContainKey("cnf");
+        // authentication succeeded and the certificate identity is still stamped on the token
+        assertThat(result).containsEntry("sub", "app/app-guid");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"false", "FALSE"})
+    void omitsCnfWhenBoundAccessTokensIsTheStringFalse(String value) throws Exception {
+        assertThat(enhanceForClientWith(Map.of(BOUND_TOKENS, value))).doesNotContainKey("cnf");
+    }
+
+    @Test
+    void omitsCnfWhenBoundAccessTokensIsBooleanFalse() throws Exception {
+        Map<String, Object> result = enhanceForClientWith(Map.of(BOUND_TOKENS, false));
+
+        assertThat(result).doesNotContainKey("cnf");
+        assertThat(result).containsEntry("sub", "app/app-guid");
+    }
+
+    @Test
+    void addsCnfWhenBoundAccessTokensIsBooleanTrue() throws Exception {
+        Map<String, Object> result = enhanceForClientWith(Map.of(BOUND_TOKENS, true));
+
+        assertThat(result).containsKey("cnf");
+        assertThat(result).containsEntry("sub", "app/app-guid");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "TRUE"})
+    void addsCnfWhenBoundAccessTokensIsTheStringTrue(String value) throws Exception {
+        assertThat(enhanceForClientWith(Map.of(BOUND_TOKENS, value))).containsKey("cnf");
+    }
+
+    @Test
+    void aTokenRequestParameterCannotSwitchBindingOn() throws Exception {
+        OAuth2Request request = mock(OAuth2Request.class);
+        when(request.getClientId()).thenReturn("instance-identity");
+        when(request.getExtensions()).thenReturn(Map.of(CLIENT_AUTH_METHOD, ClientAuthentication.TLS_CLIENT_AUTH));
+        when(request.getRequestParameters()).thenReturn(Map.of(BOUND_TOKENS, "true"));
+        OAuth2Authentication auth = mock(OAuth2Authentication.class);
+        when(auth.getOAuth2Request()).thenReturn(request);
+
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setAdditionalInformation(Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n"));
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        assertThat(enhancer.enhance(new HashMap<>(), auth)).doesNotContainKey("cnf");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"yes", "1", "maybe", ""})
+    void refusesToIssueATokenForAStoredClientWhoseBoundAccessTokensIsNotABoolean(String value) {
+        // Registration validation rejects these; this is stored data that bypassed it. Guessing "bearer" would
+        // silently drop the binding an operator may have meant, so the token request fails instead.
+        assertThatThrownBy(() -> enhanceForClientWith(Map.of(BOUND_TOKENS, value)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(BOUND_TOKENS)
+                .hasMessageContaining("instance-identity");
+    }
+
+    @Test
+    void refusesToIssueATokenForAStoredClientWhoseBoundAccessTokensIsNotAScalar() {
+        assertThatThrownBy(() -> enhanceForClientWith(Map.of(BOUND_TOKENS, List.of(true))))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(BOUND_TOKENS);
+    }
+
+    @Test
+    void aClaimMappingCannotSwitchBindingOnOrOff() throws Exception {
+        // cnf is a reserved claim name, so a mapping can neither forge a thumbprint nor remove the real one
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cnf")).isTrue();
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cnf.x5t#S256")).isTrue();
     }
 
     private OAuth2Authentication mockAuthentication(String clientId) {

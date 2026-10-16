@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa;
 
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsZoneAvailabilityFilter;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
 import jakarta.servlet.Filter;
 import org.apache.catalina.filters.HttpHeaderSecurityFilter;
 import org.cloudfoundry.identity.uaa.authentication.SessionResetFilter;
@@ -164,6 +166,7 @@ public class SpringServletXmlSecurityConfiguration {
 
     @Bean
     SecurityFilterChainPostProcessor securityFilterChainPostProcessor(
+            MtlsFeaturePolicy mtlsFeaturePolicy,
             UaaProperties.RootLevel rootLevel,
             @Qualifier("tracingFilter") FilterRegistrationBean<Filter> tracingFilter,
             @Qualifier("metricsFilter") FilterRegistrationBean<UaaMetricsFilter> metricsFilter,
@@ -214,6 +217,8 @@ public class SpringServletXmlSecurityConfiguration {
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), utf8ConversionFilter);
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), limitedModeUaaFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), identityZoneResolvingFilter.getFilter());
+        additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++),
+                new MtlsZoneAvailabilityFilter(mtlsFeaturePolicy));
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), corsFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), disableIdTokenResponseFilter.getFilter());
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(filterPos++), saml2WebSsoAuthenticationRequestFilter.getFilter());

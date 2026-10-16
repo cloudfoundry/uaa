@@ -29,16 +29,64 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.mock;
 
+@ExtendWith(MtlsEnabledZoneExtension.class)
 class TlsClientAuthenticationTest {
+
+    @Test
+    void zeroWidthRepetitionCannotKeepATokenWorkerBusy(@org.junit.jupiter.api.io.TempDir java.nio.file.Path directory)
+            throws Exception {
+        String classpath = System.getProperty("uaa.test.classpath");
+        assertThat(classpath).as("the probe must use the actual test and production classpath").isNotBlank();
+        java.nio.file.Path output = directory.resolve("regex-probe.log");
+        Process probe = new ProcessBuilder(java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-Xmx128m", "-cp", classpath, ZeroWidthRegexProbe.class.getName())
+                .redirectErrorStream(true).redirectOutput(output.toFile()).start();
+        boolean completed;
+        try {
+            completed = probe.waitFor(8, java.util.concurrent.TimeUnit.SECONDS);
+        } finally {
+            if (probe.isAlive()) {
+                probe.destroyForcibly();
+                assertThat(probe.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            }
+        }
+        String log = java.nio.file.Files.readString(output);
+        assertThat(completed).as("claim extraction must finish even when repetitions read no characters; output: %s", log)
+                .isTrue();
+        assertThat(probe.exitValue()).as("the benign CN mapping must survive while the unsafe OU pattern yields no claim: %s", log)
+                .isZero();
+    }
+
+    /** A separate JVM lets the regression test terminate Java's non-interruptible regex engine safely. */
+    public static class ZeroWidthRegexProbe {
+        public static void main(String[] args) throws Exception {
+            Security.addProvider(new BouncyCastleFipsProvider());
+            KeyPair key = generateKeyPair();
+            X500Name subject = new X500Name("CN=workload,OU=a");
+            X509Certificate cert = signCert(subject, subject, key.getPublic(), key.getPrivate(), false, BigInteger.ONE);
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("unused", List.of(
+                    new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "((){2147483647}){2147483647}(.+)", "unsafe"),
+                    new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "workload")));
+            System.out.println("Extracting claims using production code");
+            Map<String, String> claims = new TlsClientAuthentication().extractClaimMappingValues(cert, config);
+            if (!claims.equals(Map.of("workload", "workload"))) {
+                throw new AssertionError("Unexpected claims: " + claims);
+            }
+        }
+    }
 
     private TlsClientAuthentication service;
 
@@ -46,6 +94,28 @@ class TlsClientAuthenticationTest {
     void setUp() {
         service = new TlsClientAuthentication();
         Security.addProvider(new BouncyCastleFipsProvider());
+    }
+
+    @Test
+    void disabledZoneRejectsOtherwiseValidCertificateWithoutHttpGuard() throws Exception {
+        KeyPair rootKp = generateKeyPair();
+        X500Name rootName = new X500Name("CN=Policy Root CA");
+        X509Certificate root = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
+        KeyPair leafKp = generateKeyPair();
+        X509Certificate leaf = signCert(new X500Name("CN=policy-app"), rootName,
+                leafKp.getPublic(), rootKp.getPrivate(), false, BigInteger.TWO);
+        var previous = org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get();
+        var zone = new org.cloudfoundry.identity.uaa.zone.IdentityZone();
+        zone.setConfig(org.cloudfoundry.identity.uaa.util.JsonUtils.readValue("{\"mtls\":{\"enabled\":false}}",
+                org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
+        try {
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(zone);
+            assertThatThrownBy(() -> service.validateClientCert(leaf, new TlsClientAuthConfiguration(toPem(root), null)))
+                    .isInstanceOf(org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException.class)
+                    .hasMessageContaining("mTLS is disabled");
+        } finally {
+            org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.set(previous);
+        }
     }
 
     @Test
@@ -77,6 +147,88 @@ class TlsClientAuthenticationTest {
         assertThat(vars).containsEntry("cf_instance_guid", "instance-guid");
         assertThat(vars).containsEntry("app_guid", "app-guid-123");
         assertThat(vars).containsEntry("org_name", "Cloud Foundry");
+    }
+
+    /**
+     * A claim mapping's {@code pattern} is operator-supplied regex run against an OU value taken from the
+     * presented certificate, and whoever registers a client with its own {@code tls-client-auth-ca} also
+     * chooses the certificates it will be matched against. Java's regex engine has no timeout and is not
+     * interruptible, so a pattern with nested quantifiers turns a short OU into a thread that never comes back.
+     * (Plain {@code (a+)+b} is not enough on a current JDK -- it is optimised -- but these shapes are
+     * still exponential.)
+     */
+    @Test
+    void aPatternThatBacktracksCatastrophicallyIsGivenUpOnQuicklyAndOnlyLosesItsOwnClaim() throws Exception {
+        KeyPair kp = generateKeyPair();
+        X500Name subject = new X500Name("CN=instance-guid,OU=" + "a".repeat(28) + "c");
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "((a+)+)+b", "evil"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "(.*a){12}b", "evil2"),
+                new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "cf_instance_guid")
+        ));
+
+        Map<String, String> vars = assertTimeoutPreemptively(Duration.ofSeconds(2),
+                () -> service.extractClaimMappingValues(cert, config));
+
+        assertThat(vars)
+                .as("a mapping whose match was abandoned yields no claim, the other mappings are unaffected")
+                .containsExactly(Map.entry("cf_instance_guid", "instance-guid"));
+    }
+
+    @Test
+    void anOuLongerThanTheCapIsNotMatchedAgainstAPattern() throws Exception {
+        KeyPair kp = generateKeyPair();
+        String atTheCap = "app:" + "x".repeat(256 - "app:".length());
+        String overTheCap = "app:" + "x".repeat(257 - "app:".length());
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "^app:(.+)$", "app_guid")));
+
+        X500Name atCapSubject = new X500Name("CN=a,OU=" + atTheCap);
+        X500Name overCapSubject = new X500Name("CN=a,OU=" + overTheCap);
+        X509Certificate atCap = signCert(atCapSubject, atCapSubject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+        X509Certificate overCap = signCert(overCapSubject, overCapSubject, kp.getPublic(), kp.getPrivate(), false, BigInteger.TWO);
+
+        assertThat(service.extractClaimMappingValues(atCap, config)).containsKey("app_guid");
+        assertThat(service.extractClaimMappingValues(overCap, config))
+                .as("an OU over 256 characters is not a real instance identity and is not handed to a regex")
+                .doesNotContainKey("app_guid");
+    }
+
+    @Test
+    void aMappingWithoutAPatternStillReturnsTheFirstOuWhateverItsLength() throws Exception {
+        KeyPair kp = generateKeyPair();
+        String longOu = "o".repeat(300);
+        X500Name subject = new X500Name("CN=a,OU=" + longOu);
+        X509Certificate cert = signCert(subject, subject, kp.getPublic(), kp.getPrivate(), false, BigInteger.ONE);
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", List.of(
+                new TlsClientAuthConfiguration.ClaimMapping("subject_ou", null, "ou")));
+
+        assertThat(service.extractClaimMappingValues(cert, config)).containsEntry("ou", longOu);
+    }
+
+    @Test
+    void aCompiledClaimMappingPatternIsReusedRatherThanRecompiledOnEveryRequest() {
+        assertThat(service.compiledPattern("^app:(.+)$")).isSameAs(service.compiledPattern("^app:(.+)$"));
+    }
+
+    @Test
+    void theCompiledPatternCacheIsBoundedAndKeepsWorkingPastItsLimit() {
+        for (int i = 0; i < TlsClientAuthentication.MAX_CACHED_PATTERNS * 2; i++) {
+            assertThat(service.compiledPattern("^app" + i + ":(.+)$").matcher("app" + i + ":x").matches()).isTrue();
+        }
+
+        assertThat(service.patternCacheSize()).isEqualTo(TlsClientAuthentication.MAX_CACHED_PATTERNS);
+    }
+
+    @Test
+    void aPatternThatDoesNotCompileStillThrowsAndIsNotCached() {
+        int before = service.patternCacheSize();
+
+        assertThatThrownBy(() -> service.compiledPattern("(unclosed"))
+                .isInstanceOf(java.util.regex.PatternSyntaxException.class);
+
+        assertThat(service.patternCacheSize()).isEqualTo(before);
     }
 
     @Test
@@ -209,7 +361,7 @@ class TlsClientAuthenticationTest {
 
     @Test
     void validateClientCertSucceedsWhenChainIncludesTrustAnchor() throws Exception {
-        // Reproduces the reviewer's concern (PR #3972 discussion on TlsClientAuthentication.java:113):
+        // Scenario:
         // some proxies/clients forward the full chain including the trust anchor / root CA itself.
         // RFC 5280 section 6.1 excludes trailing self-issued certificates from path validation
         // accounting, and the JDK's PKIX CertPathValidator correctly implements this, so no
@@ -381,6 +533,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -406,6 +559,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, attackerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -472,6 +626,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, intermediateCaCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -497,6 +652,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -523,6 +679,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -550,6 +707,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -601,7 +759,7 @@ class TlsClientAuthenticationTest {
     void getCertificateChainFromRequestReturnsNullWhenNoTrustedProxyCaConfiguredAndNoPeerCertCaptured() {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         // no trusted-proxy CA configured for this client -> direct-connection-only, but no raw
-        // peer certificate was ever captured (e.g. uaa.mtls-enabled=false)
+        // peer certificate was ever captured (e.g. uaa.mtls.enabled=false)
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
@@ -680,6 +838,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         X509Certificate[] xfccDerivedChain = new X509Certificate[]{mock(X509Certificate.class)};
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -713,6 +872,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, directPeerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -741,6 +901,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -762,7 +923,7 @@ class TlsClientAuthenticationTest {
 
     @Test
     void getCertificateChainFromRequestReturnsNullWhenClientCertificateMapperSilentlyFailedToParseXfcc() throws Exception {
-        // Reproduces the reviewer's concern (PR #3972 discussion on TlsClientAuthentication.java:138):
+        // Scenario:
         // a trusted proxy (e.g. the Gorouter) sends a well-formed mTLS connection whose own
         // certificate validates against tls-client-auth-trusted-proxy-ca, and a nonblank (but
         // malformed) X-Forwarded-Client-Cert header. ClientCertificateMapper fails to parse the
@@ -781,6 +942,7 @@ class TlsClientAuthenticationTest {
 
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("client-ca-pem", null);
         config.setTrustedProxyCaPem(toPem(rootCert));
+        config = withProxyIdentity(config, peerCert.getSubjectX500Principal().getName());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
@@ -797,6 +959,13 @@ class TlsClientAuthenticationTest {
         } finally {
             RequestContextHolder.resetRequestAttributes();
         }
+    }
+
+    private static TlsClientAuthConfiguration withProxyIdentity(TlsClientAuthConfiguration config, String subject) {
+        Map<String, Object> info = new java.util.HashMap<>(
+                org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(config, Map.class));
+        info.put("tls-client-auth-trusted-proxy-subject-dn", subject);
+        return org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(info, TlsClientAuthConfiguration.class);
     }
 
     private static KeyPair generateKeyPair() throws Exception {

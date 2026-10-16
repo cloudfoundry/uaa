@@ -75,6 +75,10 @@ public class OpenIdConfiguration {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, String> mtlsEndpointAliases;
 
+    @JsonProperty("tls_client_certificate_bound_access_tokens")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    private boolean tlsClientCertificateBoundAccessTokens;
+
     public OpenIdConfiguration(final String contextPath, final String issuer) {
         this(contextPath, issuer, true);
     }

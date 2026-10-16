@@ -13,6 +13,29 @@ class TlsClientAuthConfigurationTest {
     private static final String EXAMPLE_CA = "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n";
 
     @Test
+    void isReservedClaimName_trueForExactReservedName() {
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("sub")).isTrue();
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cnf")).isTrue();
+    }
+
+    @Test
+    void isReservedClaimName_trueForDottedClaimWhoseFirstSegmentIsReserved() {
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("sub.foo")).isTrue();
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("aud.bar")).isTrue();
+    }
+
+    @Test
+    void isReservedClaimName_falseForUnreservedAndUnreservedDottedClaim() {
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cf_instance_guid")).isFalse();
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName("cf.app")).isFalse();
+    }
+
+    @Test
+    void isReservedClaimName_falseForNull() {
+        assertThat(TlsClientAuthConfiguration.isReservedClaimName(null)).isFalse();
+    }
+
+    @Test
     void roundTripsViaJson() throws Exception {
         TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
             EXAMPLE_CA,
@@ -154,6 +177,27 @@ class TlsClientAuthConfigurationTest {
     }
 
     @Test
+    void proxySubjectSurvivesTypedConfigurationCopyAndClearing() {
+        String key = "tls-client-auth-trusted-proxy-subject-dn";
+        TlsClientAuthConfiguration config = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                Map.of(key, "CN=gorouter_backend_tls"), TlsClientAuthConfiguration.class);
+        UaaClientDetails client = new UaaClientDetails();
+        client.setTlsClientAuthConfiguration(config);
+        assertThat(new UaaClientDetails(client).getAdditionalInformation()).containsEntry(key, "CN=gorouter_backend_tls");
+        client.setTlsClientAuthConfiguration(null);
+        assertThat(client.getAdditionalInformation()).doesNotContainKey(key);
+    }
+
+    @Test
+    void proxySubjectParticipatesInConfigurationEquality() {
+        TlsClientAuthConfiguration router = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                Map.of("tls-client-auth-trusted-proxy-subject-dn", "CN=router"), TlsClientAuthConfiguration.class);
+        TlsClientAuthConfiguration other = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                Map.of("tls-client-auth-trusted-proxy-subject-dn", "CN=other"), TlsClientAuthConfiguration.class);
+        assertThat(router).isNotEqualTo(other);
+    }
+
+    @Test
     void unequalWhenTrustedProxyCaPemDiffers() {
         TlsClientAuthConfiguration config1 = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
         config1.setTrustedProxyCaPem("proxy-ca-1");
@@ -184,5 +228,40 @@ class TlsClientAuthConfigurationTest {
         config2.setRequiredClaims(Map.of("space_guid", "space-b"));
 
         assertThat(config1).isNotEqualTo(config2);
+    }
+
+    @Test
+    void boundAccessTokensDefaultsToFalseWhenAbsent() {
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(null)).isFalse();
+    }
+
+    @Test
+    void boundAccessTokensAcceptsABoolean() {
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(true)).isTrue();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(false)).isFalse();
+    }
+
+    @Test
+    void boundAccessTokensAcceptsTrueAndFalseStringsInAnyCase() {
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("true")).isTrue();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("TRUE")).isTrue();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("false")).isFalse();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("False")).isFalse();
+    }
+
+    @Test
+    void boundAccessTokensReturnsNullForAnythingElseSoItCanBeRefused() {
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("yes")).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("1")).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens("")).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(" true ")).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(1)).isNull();
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(List.of(true))).isNull();
+    }
+
+    @Test
+    void boundAccessTokensConstantIsTheRfc8705ClientMetadataName() {
+        assertThat(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS)
+                .isEqualTo("tls_client_certificate_bound_access_tokens");
     }
 }

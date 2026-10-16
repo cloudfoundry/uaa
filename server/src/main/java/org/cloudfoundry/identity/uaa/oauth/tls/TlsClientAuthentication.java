@@ -538,4 +538,20 @@ public class TlsClientAuthentication {
         }
         return null;
     }
+
+    /** Bound on the compiled-pattern cache. Not implemented yet: patterns are not cached. */
+    static final int MAX_CACHED_PATTERNS = 256;
+
+    Pattern compiledPattern(String patternStr) {
+        return Pattern.compile(patternStr);
+    }
+
+    int patternCacheSize() {
+        return 0;
+    }
+
+    /** Whether mTLS is enabled for the deployment and the current zone. Not implemented yet: never. */
+    public boolean isMtlsEnabled() {
+        return false;
+    }
 }

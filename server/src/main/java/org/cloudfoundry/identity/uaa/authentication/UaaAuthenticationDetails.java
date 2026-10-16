@@ -154,6 +154,12 @@ public class UaaAuthenticationDetails implements Serializable {
         this.authenticationMethod = authenticationMethod;
     }
 
+    /** The decoded servlet path. Not implemented yet: not recorded. */
+    @JsonIgnore
+    public String getServletPath() {
+        return null;
+    }
+
     @JsonIgnore
     public String getRequestPath() {
         return this.requestPath;

@@ -43,7 +43,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
 
         FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         assertThat(captureBean.getFilter()).isInstanceOf(RawPeerCertificateCaptureFilter.class);
         // No addUrlPatterns(...): registered on the default (all-requests) pattern -- see
@@ -102,7 +102,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
     void capturedAttributeSurvivesClientCertificateMapperOverwritingTheStandardAttribute() throws Exception {
         // Behavioural proof, not just an order-integer comparison: simulates a real TLS handshake
         // having already populated the standard jakarta.servlet.request.X509Certificate attribute
-        // with the genuine peer certificate (as Tomcat would when uaa.mtls-enabled configures
+        // with the genuine peer certificate (as Tomcat would when uaa.mtls.enabled configures
         // certificateVerification=optionalNoCA), then runs the real two-filter chain -- this filter
         // followed by the real ClientCertificateMapper -- with an X-Forwarded-Client-Cert header
         // present (a *different* certificate than the genuine peer one). ClientCertificateMapper is
@@ -110,7 +110,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         // RAW_PEER_CERTIFICATE_ATTRIBUTE must retain the original, genuine peer certificate.
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
         FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         X509Certificate genuinePeerCert = generateSelfSignedCert("CN=gorouter");
         X509Certificate xfccDerivedCert = generateSelfSignedCert("CN=app-instance");
@@ -140,7 +140,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
 
     @Test
     void standardAttributeAndRawAttributeBothHoldTheGenuinePeerCertForADirectConnection() throws Exception {
-        // Regression test for a PR review concern: TlsClientAuthentication.hasCertificateFromRequest()
+        // Regression test: TlsClientAuthentication.hasCertificateFromRequest()
         // (used as a cheap early exit by ClientDetailsAuthenticationProvider and MtlsClaimsEnhancer
         // before calling getCertificateChainFromRequest(config)) only inspects the standard
         // jakarta.servlet.request.X509Certificate attribute, never RAW_PEER_CERTIFICATE_ATTRIBUTE.
@@ -159,7 +159,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         // (checking only the standard attribute) correctly returns true, and there is no gap.
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
         FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         X509Certificate genuinePeerCert = generateSelfSignedCert("CN=app-instance");
 
@@ -196,7 +196,7 @@ class RawPeerCertificateCaptureFilterRegistrationTest {
         // have included them in the chain at all for the original /z/myzone/... request URI.
         SpringServletXmlFiltersConfiguration config = new SpringServletXmlFiltersConfiguration();
         FilterRegistrationBean<?> captureBean = config.rawPeerCertificateCaptureFilter();
-        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter();
+        FilterRegistrationBean<?> mapperBean = config.clientCertificateMapperFilter(true);
 
         X509Certificate genuinePeerCert = generateSelfSignedCert("CN=gorouter");
         X509Certificate xfccDerivedCert = generateSelfSignedCert("CN=app-instance");
