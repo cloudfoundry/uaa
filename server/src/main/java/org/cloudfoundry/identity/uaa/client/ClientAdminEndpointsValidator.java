@@ -433,6 +433,10 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             throw new InvalidClientDetailsException(key + " for client_id=" + clientId
                     + " must be a nonblank subject DN identifying the trusted proxy");
         }
+        validateSubjectDn(dn, key, clientId);
+    }
+
+    private static void validateSubjectDn(String dn, String key, String clientId) {
         try {
             new javax.naming.ldap.LdapName(dn);
         } catch (javax.naming.InvalidNameException e) {
@@ -468,6 +472,10 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 .filter(parameter -> additionalInfo.get(parameter) instanceof String value && !value.isBlank())
                 .toList();
         if (configured.size() == 1) {
+            String parameter = configured.getFirst();
+            if (TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN.equals(parameter)) {
+                validateSubjectDn((String) additionalInfo.get(parameter), parameter, clientId);
+            }
             return;
         }
         String problem = configured.isEmpty()

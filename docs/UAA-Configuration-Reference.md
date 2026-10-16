@@ -1298,6 +1298,9 @@ Registering `tls_client_certificate_bound_access_tokens=true` requires
 a nonblank per-client `tls-client-auth-ca` or valid `tls-client-auth-ca-ref`, and exactly one subject binding. UAA refuses
 secret-only authentication for a stored client that requires binding and checks for certificate confirmation
 before signing its access tokens.
+When `tls_client_auth_subject_dn` is used, malformed DN syntax is rejected by the client APIs and
+`oauth.clients` bootstrap. Per-client trust may use a root or intermediate CA; the peer's certificate
+chain may include the configured trust anchor and its parent certificates.
 
 The value is read the same way everywhere -- `true`, `1`, `yes` and `on` all enable it -- so the
 feature cannot be half-enabled by an unusual spelling.

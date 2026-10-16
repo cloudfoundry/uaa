@@ -471,8 +471,18 @@ public class TlsClientAuthentication {
         PKIXParameters params = new PKIXParameters(anchors);
         params.setRevocationEnabled(false);
 
+        // The peer may send a configured intermediate anchor and its parents. Only certificates
+        // below that anchor belong in the validation path. Always retain the leaf so its validity
+        // and signature are checked even if it also appears in the configured trust set.
+        List<X509Certificate> pathCertificates = Arrays.asList(chain);
+        for (int i = 1; i < chain.length; i++) {
+            if (caCerts.contains(chain[i])) {
+                pathCertificates = pathCertificates.subList(0, i);
+                break;
+            }
+        }
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        var certPath = cf.generateCertPath(Arrays.asList(chain));
+        var certPath = cf.generateCertPath(pathCertificates);
 
         CertPathValidator validator = CertPathValidator.getInstance("PKIX");
         validator.validate(certPath, params);

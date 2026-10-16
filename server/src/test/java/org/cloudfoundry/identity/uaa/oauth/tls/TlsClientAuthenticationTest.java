@@ -16,7 +16,10 @@ import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -30,6 +33,7 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -363,9 +367,7 @@ class TlsClientAuthenticationTest {
     void validateClientCertSucceedsWhenChainIncludesTrustAnchor() throws Exception {
         // Scenario:
         // some proxies/clients forward the full chain including the trust anchor / root CA itself.
-        // RFC 5280 section 6.1 excludes trailing self-issued certificates from path validation
-        // accounting, and the JDK's PKIX CertPathValidator correctly implements this, so no
-        // stripping of the anchor from the presented chain is required.
+        // The trust anchor is not part of the validation path, but the leaf must still be checked.
         KeyPair rootKp = generateKeyPair();
         X500Name rootName = new X500Name("CN=Test Root CA");
         X509Certificate rootCert = signCert(rootName, rootName, rootKp.getPublic(), rootKp.getPrivate(), true, BigInteger.ONE);
@@ -405,6 +407,79 @@ class TlsClientAuthenticationTest {
                 new X509Certificate[]{leafCert, interCert, rootCert}, config);
 
         assertThat(result).contains(leafCert);
+    }
+
+    @Nested
+    class WhenTrustingAnIntermediateCa {
+        private KeyPair intermediateKey;
+        private KeyPair leafKey;
+        private X509Certificate root;
+        private X509Certificate intermediate;
+        private X509Certificate leaf;
+        private TlsClientAuthConfiguration config;
+
+        @BeforeEach
+        void setUpChain() throws Exception {
+            KeyPair rootKey = generateKeyPair();
+            intermediateKey = generateKeyPair();
+            leafKey = generateKeyPair();
+            X500Name rootName = new X500Name("CN=Root CA");
+            X500Name intermediateName = new X500Name("CN=Intermediate CA");
+            root = signCert(rootName, rootName, rootKey.getPublic(), rootKey.getPrivate(), true, BigInteger.ONE);
+            intermediate = signCert(intermediateName, rootName, intermediateKey.getPublic(), rootKey.getPrivate(),
+                    true, BigInteger.TWO);
+            leaf = signCert(new X500Name("CN=workload"), intermediateName, leafKey.getPublic(),
+                    intermediateKey.getPrivate(), false, BigInteger.valueOf(3));
+            config = new TlsClientAuthConfiguration(toPem(intermediate), null);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2, 3})
+        void validatesWorkloadRegardlessOfWhetherThePeerSendsTheAnchorOrItsParent(int chainLength) {
+            assertThat(service.validateClientCert(presentedChain(leaf, chainLength), config)).contains(leaf);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {1, 2, 3})
+        void validatesProxyRegardlessOfWhetherThePeerSendsTheAnchorOrItsParent(int chainLength) throws Exception {
+            config.setTrustedProxyCaPem(toPem(intermediate));
+            config.setTrustedProxySubjectDn(leaf.getSubjectX500Principal().getName());
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE,
+                    presentedChain(leaf, chainLength));
+            RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+            try {
+                assertThat(service.isCertificateFromTrustedProxy(config)).isTrue();
+            } finally {
+                RequestContextHolder.resetRequestAttributes();
+            }
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {2, 3})
+        void rejectsAnExpiredLeafEvenWhenThePeerSendsTheTrustedAnchor(int chainLength) throws Exception {
+            X509Certificate expired = signCertWithValidity(new X500Name("CN=workload"),
+                    new X500Name("CN=Intermediate CA"), leafKey.getPublic(), intermediateKey.getPrivate(), false,
+                    BigInteger.valueOf(4), new Date(System.currentTimeMillis() - 7_200_000),
+                    new Date(System.currentTimeMillis() - 3_600_000));
+
+            assertThatThrownBy(() -> service.validateClientCert(presentedChain(expired, chainLength), config))
+                    .hasMessageContaining("validity check failed");
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {2, 3})
+        void rejectsAnInvalidLeafSignatureEvenWhenThePeerSendsTheTrustedAnchor(int chainLength) throws Exception {
+            X509Certificate forged = signCert(new X500Name("CN=workload"), new X500Name("CN=Intermediate CA"),
+                    leafKey.getPublic(), leafKey.getPrivate(), false, BigInteger.valueOf(4));
+
+            assertThatThrownBy(() -> service.validateClientCert(presentedChain(forged, chainLength), config))
+                    .hasMessageContaining("certificate chain validation failed");
+        }
+
+        private X509Certificate[] presentedChain(X509Certificate presentedLeaf, int chainLength) {
+            return Arrays.copyOf(new X509Certificate[]{presentedLeaf, intermediate, root}, chainLength);
+        }
     }
 
     @Test

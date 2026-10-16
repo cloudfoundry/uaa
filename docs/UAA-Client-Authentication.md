@@ -165,6 +165,7 @@ Take the DN from the certificate itself rather than writing it by hand --
 `openssl x509 -in cert.pem -noout -subject -nameopt RFC2253` prints exactly the form expected.
 Comparison follows RFC 4517 `distinguishedNameMatch`: attribute-type case and whitespace around
 separators are insignificant, but the order of the relative distinguished names is.
+Malformed subject DNs are rejected during client creation, updates, and `oauth.clients` bootstrap.
 
 UAA additionally offers `tls-client-auth-required-claims`, which constrains the certificate
 further by matching values extracted through `tls-client-auth-claim-mappings`. That is a UAA
@@ -563,7 +564,12 @@ names it as the mitigation for certificate theft, so plan accordingly:
 
 `tls-client-auth-ca` and `tls-client-auth-trusted-proxy-ca` accept **multiple concatenated
 PEM certificates**, and every certificate in the value is treated as an independent trust anchor.
-That is what makes a CA rotation possible without an outage:
+
+A trust anchor may be a root or an intermediate CA. Authentication works whether the peer omits the
+trusted CA from its chain, includes it, or includes its parent certificates as well. Validation stops
+at the configured trust anchor and still checks the leaf's validity and signature.
+
+To rotate a CA without an outage:
 
 1. Set the value to the outgoing CA followed by the incoming CA. Certificates issued by either now
    authenticate.

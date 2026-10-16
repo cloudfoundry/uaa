@@ -930,6 +930,20 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
+    void mtlsClientWithMalformedSubjectDnIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "not-a-dn");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN)
+                .hasMessageContaining("valid subject DN");
+    }
+
+    @Test
     void mtlsClientWithASanBindingBootstrapsSuccessfully() {
         Map<String, Object> map = createClientMap("foo");
         map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);

@@ -571,6 +571,28 @@ class ClientAdminEndpointsValidatorTests {
                 .hasMessageContaining("exactly one");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"not-a-dn", "CN=workload,not-a-dn", "CN=\"unterminated"})
+    void rejectsMalformedSubjectDn(String subjectDn) {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, subjectDn);
+
+        assertThatThrownBy(() -> validateMtlsClient(additionalInfo))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN)
+                .hasMessageContaining("valid subject DN");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"CN=app-one,O=acme", "cn=app-one, o=acme", "CN=app\\,one+UID=123,O=acme"})
+    void acceptsValidSubjectDnSyntax(String subjectDn) {
+        Map<String, Object> additionalInfo = mtlsClientInfo();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, subjectDn);
+
+        assertThat(validateMtlsClient(additionalInfo).getAdditionalInformation())
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, subjectDn);
+    }
+
     @Test
     void rejectsTlsClientAuthCaWithMoreThanOneSubjectBinding() {
         Map<String, Object> additionalInfo = mtlsClientInfo();

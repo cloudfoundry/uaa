@@ -702,6 +702,40 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
+        void malformedWorkloadDnIsRejectedAtRegistration() throws Exception {
+            MvcResult result = createClientViaAdminApi("malformeddn" + generator.generate(),
+                    tlsConfig(caCert, "not-a-dn"));
+
+            assertThat(denial(result)).as("Actual: %s", outcome(result))
+                    .extracting(Denial::status, Denial::error).containsExactly(400, "invalid_client");
+            assertThat(denial(result).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "valid subject DN");
+        }
+
+        @Test
+        void malformedWorkloadDnUpdatePreservesTheWorkingRegistration() throws Exception {
+            String clientId = "invaliddnupdate" + generator.generate();
+            MvcResult created = createClientViaAdminApi(clientId, tlsConfig(caCert, "CN=working-app"));
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+
+            Map<String, Object> update = JsonUtils.readValueAsMap(created.getResponse().getContentAsString());
+            update.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "not-a-dn");
+            MvcResult rejected = perform(put("/oauth/clients/" + clientId)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(update)));
+
+            assertThat(denial(rejected)).as("Actual: %s", outcome(rejected))
+                    .extracting(Denial::status, Denial::error).containsExactly(400, "invalid_client");
+            assertThat(denial(rejected).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "valid subject DN");
+            MvcResult issued = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS,
+                    leafSignedByCa("CN=working-app")));
+            assertThat(issued.getResponse().getStatus()).as("Actual: %s", outcome(issued)).isEqualTo(200);
+        }
+
+        @Test
         @DisplayName("E3. a SAN-bound client authenticates on its SAN, not its subject DN")
         void sanBoundClientAuthenticatesOnItsSan() throws Exception {
             Map<String, Object> config = Map.of(
