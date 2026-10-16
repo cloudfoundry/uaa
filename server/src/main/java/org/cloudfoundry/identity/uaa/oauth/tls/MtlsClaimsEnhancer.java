@@ -8,12 +8,9 @@ import org.cloudfoundry.identity.uaa.oauth.UaaTokenEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.type.TypeReference;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
@@ -86,6 +83,15 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
     @Override
     public boolean isEnabled() {
         return tlsClientAuthentication.isMtlsEnabled();
+    }
+
+    /**
+     * Only contributes at {@code /oauth/mtls/token}, which never returns a refresh token, so it must not switch on the
+     * refresh-claim copy for every other client in a zone that enables mTLS.
+     */
+    @Override
+    public boolean contributesToRefreshedTokens() {
+        return false;
     }
 
     /**
@@ -327,88 +333,10 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
                 return null;
             }
         }
-        Object raw = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
-        Object rawReference = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
-        if (raw instanceof String || rawReference instanceof String) {
-            String pem = raw instanceof String value ? value : null;
-            try {
-                List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
-                Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
-                if (rawMappings instanceof String mappingsJson) {
-                    claimMappings = JsonUtils.readValue(mappingsJson,
-                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
-                } else if (rawMappings instanceof List<?> mappingsList) {
-                    // Jackson may parse a JSON array directly as a List when additionalInformation
-                    // is deserialized from JDBC without a String-encoded wrapper.
-                    String mappingsJson = JsonUtils.writeValueAsString(mappingsList);
-                    claimMappings = JsonUtils.readValue(mappingsJson,
-                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
-                }
-                String subTemplate = null;
-                Object rawSubTemplate = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
-                if (rawSubTemplate instanceof String st && !st.isBlank()) {
-                    subTemplate = st;
-                }
-
-                List<String> audTemplates = null;
-                Object rawAudTemplates = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
-                if (rawAudTemplates instanceof String audJson) {
-                    audTemplates = JsonUtils.readValue(audJson, new TypeReference<List<String>>() {});
-                } else if (rawAudTemplates instanceof List<?> audList) {
-                    // Jackson may deserialise a JSON array as a List when additionalInformation
-                    // is loaded from JDBC without a String-encoded wrapper.
-                    audTemplates = JsonUtils.readValue(
-                            JsonUtils.writeValueAsString(audList),
-                            new TypeReference<List<String>>() {});
-                }
-
-                String trustedProxyCaPem = null;
-                Object rawTrustedProxyCa = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
-                if (rawTrustedProxyCa instanceof String tpc && !tpc.isBlank()) {
-                    trustedProxyCaPem = tpc;
-                }
-
-                Map<String, String> requiredClaims = null;
-                Object rawRequiredClaims = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
-                if (rawRequiredClaims instanceof String requiredClaimsJson) {
-                    requiredClaims = JsonUtils.readValue(requiredClaimsJson,
-                            new TypeReference<Map<String, String>>() {});
-                } else if (rawRequiredClaims instanceof Map<?, ?> requiredClaimsMap) {
-                    requiredClaims = JsonUtils.readValue(
-                            JsonUtils.writeValueAsString(requiredClaimsMap),
-                            new TypeReference<Map<String, String>>() {});
-                }
-
-                // Read for the RFC 8707 allow-list check in enhance(). Omitting it here would leave
-                // getAllowedResources() null for every JDBC-loaded client -- i.e. for almost every
-                // real one -- which for a fail-closed check means refusing resources the operator
-                // did in fact permit.
-                List<String> allowedResources = null;
-                Object rawAllowedResources = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
-                if (rawAllowedResources instanceof String allowedResourcesJson) {
-                    allowedResources = JsonUtils.readValue(allowedResourcesJson, new TypeReference<List<String>>() {});
-                } else if (rawAllowedResources instanceof List<?> allowedResourcesList) {
-                    allowedResources = JsonUtils.readValue(
-                            JsonUtils.writeValueAsString(allowedResourcesList),
-                            new TypeReference<List<String>>() {});
-                }
-
-                TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
-                cfg.setTrustedCaRef(rawReference instanceof String name ? name : null);
-                Object proxyReference = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF);
-                cfg.setTrustedProxyCaRef(proxyReference instanceof String name ? name : null);
-                cfg.setSubTemplate(subTemplate);
-                cfg.setAudTemplates(audTemplates);
-                cfg.setTrustedProxyCaPem(trustedProxyCaPem);
-                Object proxySubject = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
-                cfg.setTrustedProxySubjectDn(proxySubject instanceof String dn ? dn : null);
-                cfg.setRequiredClaims(requiredClaims);
-                cfg.setAllowedResources(allowedResources);
-                return cfg;
-            } catch (Exception e) {
-                return null;
-            }
+        try {
+            return TlsClientAuthConfigurationReader.read(info);
+        } catch (IllegalArgumentException e) {
+            return null;
         }
-        return null;
     }
 }

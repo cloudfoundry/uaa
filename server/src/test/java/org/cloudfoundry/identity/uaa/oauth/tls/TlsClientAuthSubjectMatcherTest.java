@@ -16,6 +16,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigInteger;
 import java.security.KeyPair;
@@ -88,16 +90,50 @@ class TlsClientAuthSubjectMatcherTest {
                     .isTrue();
         }
 
-        @Test
-        void rejectsUnparseableConfiguredDn() throws Exception {
+        @ParameterizedTest
+        @ValueSource(strings = {"not a distinguished name", "CN=app-one,,", "FOO=app-one", ""})
+        void rejectsUnparseableConfiguredDn(String registered) throws Exception {
             X509Certificate cert = certWithSubject("CN=app-one");
+            TlsClientAuthConfiguration config = subjectDn("CN=app-one");
+            config.setSubjectDn(registered);
 
-            assertThat(TlsClientAuthSubjectMatcher.matches(cert, subjectDn("not a distinguished name")))
-                    .as("a malformed registered DN must fail closed, not throw")
+            assertThat(TlsClientAuthSubjectMatcher.matches(cert, config))
+                    .as("a malformed or empty registered DN must fail closed, not throw")
                     .isFalse();
             assertThat(TlsClientAuthSubjectMatcher.matches(cert, subjectDn("CN=app-one")))
                     .as("positive control")
                     .isTrue();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "2.5.4.3=app-one,SERIALNUMBER=123,O=acme",
+                "OID.2.5.4.3=app-one,2.5.4.5=123,O=acme",
+                "cn=APP-ONE, serialNumber=123, o=Acme",
+                "CN=app-one,2.5.4.5=#1303313233,O=acme"
+        })
+        @DisplayName("keyword and OID spellings of the same attribute type are the same DN")
+        void matchesKeywordAndOidSpellingsOfTheSameName(String registered) throws Exception {
+            X509Certificate cert = certWithSubject("CN=app-one,SERIALNUMBER=123,O=acme");
+
+            assertThat(TlsClientAuthSubjectMatcher.matches(cert, subjectDn(registered)))
+                    .as("the certificate renders SERIALNUMBER as an OID with a hex value; %s names the same subject",
+                            registered)
+                    .isTrue();
+            assertThat(TlsClientAuthSubjectMatcher.matches(cert, subjectDn("CN=app-one,SERIALNUMBER=124,O=acme")))
+                    .as("negative control: a different serial number is a different subject")
+                    .isFalse();
+        }
+
+        @Test
+        void trustedProxyDnIsNormalisedTheSameWay() throws Exception {
+            X509Certificate proxy = certWithSubject("CN=gorouter,SERIALNUMBER=7,O=acme");
+            TlsClientAuthConfiguration config = subjectDn("CN=app-one");
+
+            config.setTrustedProxySubjectDn("2.5.4.3=gorouter,SERIALNUMBER=7,O=acme");
+            assertThat(TlsClientAuthSubjectMatcher.matchesTrustedProxy(proxy, config)).isTrue();
+            config.setTrustedProxySubjectDn("CN=gorouter,SERIALNUMBER=8,O=acme");
+            assertThat(TlsClientAuthSubjectMatcher.matchesTrustedProxy(proxy, config)).isFalse();
         }
     }
 

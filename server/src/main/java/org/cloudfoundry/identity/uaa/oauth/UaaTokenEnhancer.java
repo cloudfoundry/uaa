@@ -30,6 +30,15 @@ public interface UaaTokenEnhancer {
         return Set.of();
     }
 
+    /**
+     * Whether claims this enhancer recorded in a refresh token must be carried into the access tokens issued from it.
+     * While any enabled enhancer answers {@code true}, a refresh copies the refresh token's additional claims, so an
+     * enhancer that never contributes to a grant returning a refresh token should answer {@code false}.
+     */
+    default boolean contributesToRefreshedTokens() {
+        return true;
+    }
+
     default Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
         Map<String, Object> result = new HashMap<>();
         result.put(EXTERNAL_ATTR, getExternalAttributes(authentication));

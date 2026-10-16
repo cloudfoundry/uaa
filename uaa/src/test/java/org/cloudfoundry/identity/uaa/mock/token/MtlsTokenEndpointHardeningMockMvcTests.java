@@ -440,39 +440,42 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
 
         @Test
-        @DisplayName("C5. the same wrong-CA failure is denied identically when reached via Basic auth")
-        void wrongCaViaBasicAuthWithEmptySecret() throws Exception {
-            String clientId = mtlsClient("c5", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=c5-attacker"), false);
-            X509Certificate rogueLeaf = signCert(new X500Name("CN=c5-attacker"), rogueCaSubject,
-                    generateKeyPair().getPublic(), rogueCaKeyPair.getPrivate(),
-                    false, BigInteger.valueOf(97), 3_600_000L);
+        @DisplayName("C5. Basic auth with an empty secret is a credential, refused before the certificate is checked")
+        void basicAuthWithEmptySecretIsRefusedAsACredential() throws Exception {
+            String clientId = mtlsClient("c5", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=c5-app"), false);
+            X509Certificate leaf = leafSignedByCa("CN=c5-app");
 
-            // Deliberately NO client_id parameter. ClientParametersAuthenticationFilter
-            // .wrapClientCredentialLogin skips entirely when an Authorization header is present, so
-            // this is handled by ClientBasicAuthenticationFilter instead. An empty secret still
-            // satisfies ObjectUtils.isEmpty(credentials) in ClientDetailsAuthenticationProvider, so
-            // certificate validation IS reached -- but via a filter with a narrower catch.
+            // Deliberately NO client_id parameter, so ClientBasicAuthenticationFilter handles the request.
+            // The empty secret arrives as empty credentials; a valid certificate must not turn this
+            // secret-based request into tls_client_auth.
             MvcResult result = perform(post(MTLS_PATH)
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_FORM_URLENCODED)
                     .servletPath(MTLS_PATH)
                     .header("Authorization", basic(clientId, ""))
                     .param("grant_type", GRANT_TYPE_CLIENT_CREDENTIALS)
-                    .requestAttr("jakarta.servlet.request.X509Certificate",
-                            new X509Certificate[]{rogueLeaf}));
+                    .requestAttr("jakarta.servlet.request.X509Certificate", new X509Certificate[]{leaf}));
 
-            // Asserted unconditionally. C1-C4 return a clean 401 only because
-            // AbstractClientParametersAuthenticationFilter.performClientAuthentication wraps EVERY
-            // exception in BadCredentialsException. ClientBasicAuthenticationFilter catches only
-            // AuthenticationException, and InvalidClientDetailsException is a UaaException ->
-            // OAuth2Exception -> RuntimeException, so unless ClientDetailsAuthenticationProvider
-            // converts it, it escapes the security chain as a 500 with an empty body.
             assertThat(denial(result))
-                    .as("the same certificate and the same client must be denied identically however "
-                            + "the client_id reached UAA. Actual: %s", outcome(result))
+                    .as("an empty Basic secret must be refused cleanly, not as a 500. Actual: %s", outcome(result))
                     .isEqualTo(new Denial(401, "invalid_client",
-                            "tls_client_auth: certificate chain validation failed: "
-                                    + "Path does not chain with any of the trust anchors"));
+                            "tls_client_auth: configured clients must authenticate at "
+                                    + "/oauth/mtls/token without client credentials"));
+        }
+
+        @Test
+        @DisplayName("C6. an empty client_secret parameter is a credential, refused even with a valid certificate")
+        void emptyClientSecretParameterIsRefusedAsACredential() throws Exception {
+            String clientId = mtlsClient("c6", GRANT_TYPE_CLIENT_CREDENTIALS, tlsConfig(caCert, "CN=c6-app"), false);
+            X509Certificate leaf = leafSignedByCa("CN=c6-app");
+
+            MvcResult result = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, leaf)
+                    .param("client_secret", ""));
+
+            assertThat(denial(result))
+                    .isEqualTo(new Denial(401, "invalid_client",
+                            "tls_client_auth: configured clients must authenticate at "
+                                    + "/oauth/mtls/token without client credentials"));
         }
     }
 

@@ -86,11 +86,13 @@ The underlying TLS-layer change, however, is **connector-wide, not per-endpoint*
 this feature (`uaa.mtls.enabled`) reconfigures the whole embedded Tomcat connector to request a
 client certificate on *every* TLS handshake to this UAA instance (`certificateVerification=
 optionalNoCA`; see `MtlsClientAuthTomcatCustomizer`), regardless of which path the request is
-ultimately routed to. Any TLS client connecting to any UAA endpoint will therefore be prompted
-for a certificate during the handshake -- well-behaved clients (including Go's `crypto/tls`)
-simply respond with an empty `Certificate` message if they have no certificate matching the
-connector's advertised acceptable-issuer list, so this doesn't outright break other endpoints,
-but it is a deployment-wide TLS-layer change, not one isolated to `/oauth/mtls/token`.
+ultimately routed to. The request deliberately advertises an *empty* acceptable-issuer list
+(`NoAcceptedIssuersTrustManager`), which tells the client that a certificate from any CA is
+acceptable. Clients without a certificate respond with an empty `Certificate` message and are
+unaffected. Clients that do have one may offer it on every connection; in particular, a browser
+with client certificates installed (smart cards, corporate device certificates) can show a
+certificate picker on UAA's login pages. Test this with your users' browsers before enabling
+mTLS on a connector that also serves the login UI.
 
 #### Deployment topology
 
@@ -164,8 +166,11 @@ tls_client_auth_subject_dn: "CN=my-app,OU=space:<space-guid>,O=cloudfoundry"
 Take the DN from the certificate itself rather than writing it by hand --
 `openssl x509 -in cert.pem -noout -subject -nameopt RFC2253` prints exactly the form expected.
 Comparison follows RFC 4517 `distinguishedNameMatch`: attribute-type case and whitespace around
-separators are insignificant, but the order of the relative distinguished names is.
-Malformed subject DNs are rejected during client creation, updates, and `oauth.clients` bootstrap.
+separators are insignificant, but the order of the relative distinguished names is. Attribute types
+may be written as keywords or OIDs (`CN=app` and `2.5.4.3=app` are the same DN), and types outside
+the RFC 4514 short list, such as `SERIALNUMBER`, match the certificate's encoded value.
+Malformed subject DNs, and DNs using unknown attribute keywords, are rejected during client creation,
+updates, and `oauth.clients` bootstrap. The same rules apply to `tls-client-auth-trusted-proxy-subject-dn`.
 
 UAA additionally offers `tls-client-auth-required-claims`, which constrains the certificate
 further by matching values extracted through `tls-client-auth-claim-mappings`. That is a UAA
@@ -416,8 +421,8 @@ resource server still has to compare it with the certificate it saw.
 
 | Status | When | Body |
 |---|---|---|
-| `404` | Deployment or zone mTLS is off, or the path is anything below `/oauth/mtls/token` | no OAuth error body |
-| `405` with `Allow: POST` | any method other than `POST`, including `GET` | no OAuth error body |
+| `404` | Deployment or zone mTLS is off (for every method), or the path is anything below `/oauth/mtls/token` | no OAuth error body |
+| `405` with `Allow: POST` | any method other than `POST`, including `GET`, when mTLS is on for the zone | no OAuth error body |
 | `401` `invalid_client` | no certificate was presented, the certificate is not the one registered for the client, it does not chain to `tls-client-auth-ca` (including expired, or a CA certificate used as the leaf), or `tls-client-auth-required-claims` is not satisfied | `tls_client_auth: certificate validation failed`, or `tls_client_auth: certificate chain validation failed: <reason>` |
 | `401` `invalid_client` | the client's `tls-client-auth-ca` cannot be parsed | `tls_client_auth: CA configuration error: <reason>` |
 | `401` `invalid_client` | a `client_secret` or Basic credentials were sent for a client that has `tls-client-auth-ca` | `tls_client_auth: configured clients must authenticate at /oauth/mtls/token without client credentials` |

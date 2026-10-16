@@ -572,7 +572,7 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"not-a-dn", "CN=workload,not-a-dn", "CN=\"unterminated"})
+    @ValueSource(strings = {"not-a-dn", "CN=workload,not-a-dn", "CN=\"unterminated", "FOO=workload"})
     void rejectsMalformedSubjectDn(String subjectDn) {
         Map<String, Object> additionalInfo = mtlsClientInfo();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, subjectDn);
@@ -584,7 +584,8 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"CN=app-one,O=acme", "cn=app-one, o=acme", "CN=app\\,one+UID=123,O=acme"})
+    @ValueSource(strings = {"CN=app-one,O=acme", "cn=app-one, o=acme", "CN=app\\,one+UID=123,O=acme",
+            "2.5.4.3=app-one,O=acme", "CN=app-one,SERIALNUMBER=123,O=acme"})
     void acceptsValidSubjectDnSyntax(String subjectDn) {
         Map<String, Object> additionalInfo = mtlsClientInfo();
         additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, subjectDn);

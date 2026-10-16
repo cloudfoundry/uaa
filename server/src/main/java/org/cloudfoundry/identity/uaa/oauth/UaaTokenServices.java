@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
-import org.cloudfoundry.identity.uaa.oauth.tls.MtlsClaimsEnhancer;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsFeaturePolicy;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -389,10 +388,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Map<String, Object> getAdditionalRootClaims(Map<String, Object> refreshTokenClaims) {
         Map<String, Object> additionalRootClaims = new HashMap<>();
-        // MtlsClaimsEnhancer only contributes to tokens issued at /oauth/mtls/token, which never returns a refresh
-        // token. It must not switch on this copy for every other client in a zone that enables mTLS.
         if (uaaTokenEnhancers.stream()
-                .anyMatch(enhancer -> enhancer.isEnabled() && !(enhancer instanceof MtlsClaimsEnhancer))) {
+                .anyMatch(enhancer -> enhancer.isEnabled() && enhancer.contributesToRefreshedTokens())) {
             refreshTokenClaims.entrySet()
                     .stream()
                     .filter(entry -> !NON_ADDITIONAL_ROOT_CLAIMS.contains(entry.getKey()))

@@ -4,8 +4,6 @@ import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
 import javax.security.auth.x500.X500Principal;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -80,30 +78,43 @@ public final class TlsClientAuthSubjectMatcher {
     }
 
     /**
+     * Parses a registered DN into the form it is compared in, or {@code null} if it is malformed or
+     * empty. Registration validation uses this too, so a DN is accepted exactly when it can match.
+     */
+    public static X500Principal parseDistinguishedName(String dn) {
+        if (dn == null) {
+            return null;
+        }
+        try {
+            X500Principal principal = new X500Principal(dn);
+            return principal.getName().isEmpty() ? null : principal;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
      * Compares the certificate's subject DN with the registered one.
      *
      * <p>RFC 8705 section 2.1 calls for "a predictable treatment of DN values, such as the
-     * distinguishedNameMatch rule from [RFC4517]". {@link LdapName} provides that: it parses the
-     * RFC 4514 string form and compares RDN-by-RDN with case-insensitive attribute types, which
-     * makes formatting differences (spacing after commas, {@code CN} vs {@code cn}) insignificant
-     * while keeping RDN order significant -- a DN is an ordered sequence, and reordering it names
-     * a different directory entry.
-     *
-     * <p>The certificate side is rendered with {@link X500Principal#RFC2253} rather than read as a
-     * display string, so both sides go through the same canonical syntax before comparison.
+     * distinguishedNameMatch rule from [RFC4517]". Both sides are compared as {@link X500Principal}s,
+     * whose equality is defined on the RFC 2253 canonical form of the encoded name: attribute types
+     * spelled as keywords ({@code CN}, {@code SERIALNUMBER}) or OIDs ({@code 2.5.4.3}) are the same
+     * type, and spacing and case are insignificant, while RDN order stays significant -- a DN is an
+     * ordered sequence, and reordering it names a different directory entry. Comparing rendered
+     * strings would not do: the JDK renders attribute types outside RFC 2253's short list as OIDs
+     * with hex-encoded values, so a registered {@code SERIALNUMBER=123} could never match.
      */
     private static boolean subjectDnMatches(X509Certificate cert, String expectedDn) {
-        try {
-            LdapName expected = new LdapName(expectedDn);
-            LdapName presented = new LdapName(cert.getSubjectX500Principal().getName(X500Principal.RFC2253));
-            return expected.equals(presented);
-        } catch (InvalidNameException e) {
+        X500Principal expected = parseDistinguishedName(expectedDn);
+        if (expected == null) {
             // A registered DN that will not parse can never be matched; treat it as no match rather
             // than failing the request with an error, so a misconfigured client is refused the same
             // way as one presenting the wrong certificate.
-            logger.warn("tls_client_auth: could not parse a distinguished name for comparison: {}", e.getMessage());
+            logger.warn("tls_client_auth: could not parse a registered distinguished name for comparison");
             return false;
         }
+        return expected.equals(cert.getSubjectX500Principal());
     }
 
     private static boolean sanMatches(X509Certificate cert, int generalNameType, String expected,

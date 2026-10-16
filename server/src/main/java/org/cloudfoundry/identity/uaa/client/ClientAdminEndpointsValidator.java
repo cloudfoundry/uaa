@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthSubjectMatcher;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
@@ -437,10 +438,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     }
 
     private static void validateSubjectDn(String dn, String key, String clientId) {
-        try {
-            new javax.naming.ldap.LdapName(dn);
-        } catch (javax.naming.InvalidNameException e) {
-            throw new InvalidClientDetailsException(key + " for client_id=" + clientId + " must be a valid subject DN", e);
+        if (TlsClientAuthSubjectMatcher.parseDistinguishedName(dn) == null) {
+            throw new InvalidClientDetailsException(key + " for client_id=" + clientId + " must be a valid subject DN");
         }
     }
 

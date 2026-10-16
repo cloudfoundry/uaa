@@ -156,6 +156,27 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
 
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
+        void disabledZonesHideTheEndpointFromEveryMethod(ZoneResolutionMode mode) throws Exception {
+            IdentityZone zone = newZone();
+            String subdomain = zone.getSubdomain();
+            updateMtlsPolicy(zone, false);
+            for (HttpMethod method : List.of(HttpMethod.GET, HttpMethod.PUT, HttpMethod.OPTIONS)) {
+                MvcResult disabled = perform(withServletPath(
+                        mode.createRequestBuilder(subdomain, method, MTLS_PATH), mode, subdomain, MTLS_PATH));
+                assertThat(disabled.getResponse().getStatus())
+                        .as("%s in a disabled zone must not disclose the accepted methods", method)
+                        .isEqualTo(404);
+            }
+
+            updateMtlsPolicy(zone, true);
+            MvcResult enabled = perform(withServletPath(
+                    mode.createRequestBuilder(subdomain, HttpMethod.GET, MTLS_PATH), mode, subdomain, MTLS_PATH));
+            assertThat(enabled.getResponse().getStatus()).as("Actual: %s", outcome(enabled)).isEqualTo(405);
+            assertThat(enabled.getResponse().getHeader("Allow")).isEqualTo("POST");
+        }
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
         void disabledZonesDoNotAdvertiseMtlsAndCanRestoreDiscovery(ZoneResolutionMode mode) throws Exception {
             IdentityZone zone = newZone();
             updateMtlsPolicy(zone, false);

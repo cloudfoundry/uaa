@@ -11,10 +11,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * Enforces the three endpoint-level policies for {@code /oauth/mtls/token} that have to hold before
+ * Enforces the two deployment-level policies for {@code /oauth/mtls/token} that have to hold before
  * any authentication runs: it is absent on deployments that have not enabled RFC 8705 mutual-TLS
- * client authentication ({@code uaa.mtls.enabled}, false by default), it is exactly one path with
- * nothing served beneath it, and it accepts only POST.
+ * client authentication ({@code uaa.mtls.enabled}, false by default), and it is exactly one path with
+ * nothing served beneath it. The POST-only rule is enforced by {@link MtlsZoneAvailabilityFilter},
+ * after the zone's own policy, so a zone that has mTLS disabled answers 404 for every method.
  *
  * <p>Originally the security chain was conditional on the deployment flag while the controller's
  * mapping was unconditional. With the feature off, requests fell through to the catch-all
@@ -29,14 +30,6 @@ import java.io.IOException;
  * ({@code Ordered.HIGHEST_PRECEDENCE + 1}), so the servlet path has already had any
  * {@code /z/{subdomain}} prefix stripped and a zone-path request is matched the same as a direct one;
  * and before Spring Security's filter (-100), so the path never reaches a filter chain at all.
- *
- * <p>The method restriction lives here rather than in the controller because "method not allowed" is
- * a property of the resource, not of the caller: enforcing it ahead of Spring Security means an
- * unauthenticated GET is answered 405 rather than 401, which is what RFC 9110 calls for, and the
- * {@code Allow} header tells the caller what to do instead. {@code /oauth/token} keeps GET for
- * backwards compatibility and is untouched; the two share a {@code @RequestMapping}, which is how
- * this endpoint inherited GET in the first place. A GET carries the token request in the query
- * string, where access logs and every proxy in front of UAA record it.
  *
  * <p>The exact-path rule exists because the endpoint's handler is not the only one Spring MVC maps
  * beneath this prefix. {@code UaaTokenEndpoint} carries a type-level
@@ -55,14 +48,11 @@ import java.io.IOException;
  * {@code /oauth/token} are for SAML bearer grants, which this endpoint does not issue.
  *
  * <p>This filter only ever denies. It cannot grant access that would otherwise be refused: it is a
- * pass-through for a POST to the exact path once the feature is enabled, and every other path is
- * untouched.
+ * pass-through for the exact path once the feature is enabled, and every other path is untouched.
  * Zone-specific availability is checked by {@link MtlsZoneAvailabilityFilter} after zone resolution;
  * the security chain itself is now always created.
  */
 public class MtlsEndpointAvailabilityFilter implements Filter {
-
-    private static final String POST = "POST";
 
     private final boolean mtlsEnabled;
 
@@ -94,11 +84,6 @@ public class MtlsEndpointAvailabilityFilter implements Filter {
         // routing bypass rather than a cosmetic wrong answer.
         if (!RawPeerCertificateCaptureFilter.MTLS_TOKEN_PATH.equals(httpRequest.getServletPath())) {
             httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-        if (!POST.equalsIgnoreCase(httpRequest.getMethod())) {
-            httpResponse.setHeader("Allow", POST);
-            httpResponse.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             return;
         }
         chain.doFilter(request, response);

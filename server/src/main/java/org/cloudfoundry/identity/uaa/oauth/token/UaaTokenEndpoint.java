@@ -12,7 +12,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantExcepti
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetException;
 import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.TokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthConfigurationReader;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
@@ -29,8 +29,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import tools.jackson.core.type.TypeReference;
-
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -208,18 +206,12 @@ public class UaaTokenEndpoint extends TokenEndpoint {
                 return typed.getAllowedResources();
             }
         }
-        Object raw = client.getAdditionalInformation() == null ? null
-                : client.getAdditionalInformation().get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
         try {
-            if (raw instanceof String json) {
-                return JsonUtils.readValue(json, new TypeReference<List<String>>() {});
-            } else if (raw != null) {
-                return JsonUtils.readValue(JsonUtils.writeValueAsString(raw), new TypeReference<List<String>>() {});
-            }
-        } catch (Exception e) {
+            List<String> allowed = TlsClientAuthConfigurationReader.readAllowedResources(client.getAdditionalInformation());
+            return allowed == null ? List.of() : allowed;
+        } catch (IllegalArgumentException e) {
             return List.of();
         }
-        return List.of();
     }
 
     /**

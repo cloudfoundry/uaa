@@ -16,9 +16,9 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthConfigurationReader;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthSubjectMatcher;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
@@ -34,8 +34,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
-
-import tools.jackson.core.type.TypeReference;
 
 import java.security.cert.X509Certificate;
 import java.util.Collections;
@@ -59,6 +57,9 @@ import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getSafeParameter
  * the actual request URI.
  */
 public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvider {
+
+    private static final List<String> CLIENT_CREDENTIAL_PARAMETERS =
+            List.of("client_secret", "client_assertion", "client_assertion_type");
 
     private final JwtClientAuthentication jwtClientAuthentication;
     private final TlsClientAuthentication tlsClientAuthentication;
@@ -118,7 +119,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                     break;
                 }
                 if (tlsClientAuthConfigured) {
-                    if (!ObjectUtils.isEmpty(authentication.getCredentials())
+                    if (presentsClientCredentials(authentication)
                             || !isTlsClientAuthPath(authentication.getDetails())) {
                         error = new BadCredentialsException(
                                 "tls_client_auth: configured clients must authenticate at /oauth/mtls/token without client credentials");
@@ -138,7 +139,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                                         + String.join(", ", TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS));
                     } else {
                         setAuthenticationMethod(authentication, CLIENT_AUTH_TLS_CLIENT_AUTH);
-                        if (!validateTlsClientAuth(uaaClient)) {
+                        if (!validateTlsClientAuth(tlsClientAuthConfiguration)) {
                             error = new BadCredentialsException("tls_client_auth: certificate validation failed");
                         }
                     }
@@ -265,30 +266,31 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     }
 
     /**
+     * Whether the request carries a secret-based or assertion-based client credential, blank or not. A blank
+     * {@code client_secret} or {@code Authorization: Basic client_id:} reaches this provider as empty credentials,
+     * indistinguishable from none, so the presence of the parameter or header is what has to be checked.
+     */
+    private static boolean presentsClientCredentials(UsernamePasswordAuthenticationToken authentication) {
+        if (!ObjectUtils.isEmpty(authentication.getCredentials())) {
+            return true;
+        }
+        if (!(authentication.getDetails() instanceof UaaAuthenticationDetails details)) {
+            return false;
+        }
+        Map<String, String[]> parameters = getRequestParameters(details);
+        return details.isAuthorizationSet() || CLIENT_CREDENTIAL_PARAMETERS.stream().anyMatch(parameters::containsKey);
+    }
+
+    /**
      * @throws BadCredentialsException when the presented chain does not validate. {@link
      *         TlsClientAuthentication#validateClientCert} signals that with {@link
-     *         InvalidClientDetailsException}, which is a {@code UaaException} -> {@code
-     *         OAuth2Exception} -> {@code RuntimeException} and NOT a Spring {@link
-     *         AuthenticationException}. Spring's {@code AbstractUserDetailsAuthenticationProvider},
-     *         {@code ProviderManager} and {@code BasicAuthenticationFilter} all catch only
-     *         {@code AuthenticationException}, so left unconverted it escapes the whole security
-     *         chain: requests carrying an {@code Authorization: Basic} header (where
-     *         {@code ClientParametersAuthenticationFilter} stands down and
-     *         {@code ClientBasicAuthenticationFilter} handles the request) got HTTP 500 and an
-     *         ERROR-level stack trace per attempt, while the identical certificate sent with a
-     *         {@code client_id} parameter got a clean 401 -- the latter only because
-     *         {@code AbstractClientParametersAuthenticationFilter} happens to wrap every exception.
-     *         Converting here makes the outcome identical on both paths and removes an
-     *         unauthenticated log-flooding vector. The message is preserved verbatim so the response
-     *         body is unchanged on the path that already worked.
+     *         InvalidClientDetailsException}, which is not a Spring {@link AuthenticationException}; only the
+     *         latter is caught by the security filters, so left unconverted it would surface as HTTP 500.
      */
-    boolean validateTlsClientAuth(UaaClient uaaClient) {
-        // Cheap presence-only check (no config resolution, no JSON/claim-mapping parsing) before
-        // doing any work to resolve this client's TlsClientAuthConfiguration.
+    boolean validateTlsClientAuth(TlsClientAuthConfiguration config) {
         if (!tlsClientAuthentication.hasCertificateFromRequest()) {
             return false;
         }
-        TlsClientAuthConfiguration config = getTlsClientAuthConfiguration(uaaClient);
         try {
             X509Certificate[] chain = tlsClientAuthentication.getCertificateChainFromRequest(config);
             if (chain == null || chain.length == 0) {
@@ -304,11 +306,6 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         } catch (InvalidClientDetailsException e) {
             throw new BadCredentialsException(e.getMessage(), e);
         }
-    }
-
-    /** A non-blank String value from the flat additionalInformation map, or {@code null}. */
-    private static String flatString(Map<String, Object> info, String key) {
-        return info.get(key) instanceof String value && !value.isBlank() ? value : null;
     }
 
     static TlsClientAuthConfiguration getTlsClientAuthConfiguration(UaaClient uaaClient) {
@@ -336,73 +333,15 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             }
         }
         if (rawConfig instanceof String || rawReference instanceof String) {
-            String pem = rawConfig instanceof String value ? value : null;
-            List<String> allowedResources = readAllowedResources(info);
             try {
-                List<TlsClientAuthConfiguration.ClaimMapping> claimMappings = null;
-                Object rawMappings = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS);
-                if (rawMappings instanceof String mappingsJson) {
-                    claimMappings = JsonUtils.readValue(mappingsJson,
-                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
-                } else if (rawMappings instanceof List<?> mappingsList) {
-                    // Jackson may parse a JSON array directly as a List when additionalInformation
-                    // is deserialized from JDBC without a String-encoded wrapper.
-                    String mappingsJson = JsonUtils.writeValueAsString(mappingsList);
-                    claimMappings = JsonUtils.readValue(mappingsJson,
-                            new TypeReference<List<TlsClientAuthConfiguration.ClaimMapping>>() {});
-                }
-                String subTemplate = null;
-                Object rawSubTemplate = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE);
-                if (rawSubTemplate instanceof String st && !st.isBlank()) {
-                    subTemplate = st;
-                }
-
-                List<String> audTemplates = null;
-                Object rawAudTemplates = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES);
-                if (rawAudTemplates instanceof String audJson) {
-                    audTemplates = JsonUtils.readValue(audJson, new TypeReference<List<String>>() {});
-                } else if (rawAudTemplates instanceof List<?> audList) {
-                    audTemplates = JsonUtils.readValue(
-                            JsonUtils.writeValueAsString(audList),
-                            new TypeReference<List<String>>() {});
-                }
-
-                String trustedProxyCaPem = null;
-                Object rawTrustedProxyCa = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
-                if (rawTrustedProxyCa instanceof String tpc && !tpc.isBlank()) {
-                    trustedProxyCaPem = tpc;
-                }
-
-                Map<String, String> requiredClaims = null;
-                Object rawRequiredClaims = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
-                if (rawRequiredClaims instanceof String requiredClaimsJson) {
-                    requiredClaims = JsonUtils.readValue(requiredClaimsJson,
-                            new TypeReference<Map<String, String>>() {});
-                } else if (rawRequiredClaims instanceof Map<?, ?> requiredClaimsMap) {
-                    requiredClaims = JsonUtils.readValue(
-                            JsonUtils.writeValueAsString(requiredClaimsMap),
-                            new TypeReference<Map<String, String>>() {});
-                }
-
-                TlsClientAuthConfiguration cfg = new TlsClientAuthConfiguration(pem, claimMappings);
-                cfg.setTrustedCaRef(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF));
-                cfg.setTrustedProxyCaRef(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF));
-                cfg.setSubTemplate(subTemplate);
-                cfg.setAudTemplates(audTemplates);
-                cfg.setTrustedProxyCaPem(trustedProxyCaPem);
-                cfg.setTrustedProxySubjectDn(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN));
-                cfg.setRequiredClaims(requiredClaims);
-                cfg.setAllowedResources(allowedResources);
-                // RFC 8705 2.1.2 subject binding. Read from the flat additionalInformation path so
-                // that clients registered through the BOSH oauth.clients bootstrap, which never
-                // goes through the admin API's typed model, are bound too.
-                cfg.setSubjectDn(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN));
-                cfg.setSanDns(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS));
-                cfg.setSanUri(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI));
-                cfg.setSanIp(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP));
-                cfg.setSanEmail(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL));
-                return cfg;
-            } catch (Exception e) {
+                TlsClientAuthConfigurationReader.readAllowedResources(info);
+            } catch (IllegalArgumentException e) {
+                throw new BadCredentialsException("tls_client_auth: the client's "
+                        + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " cannot be read", e);
+            }
+            try {
+                return TlsClientAuthConfigurationReader.read(info);
+            } catch (IllegalArgumentException e) {
                 // The client does set tls-client-auth-ca, so it is mTLS-only. Returning null here would make it an
                 // ordinary client that could authenticate with its client_secret and obtain an unbound token --
                 // the opposite of what its registration says. The registration validators reject configuration
@@ -426,29 +365,5 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             }
         }
         return null;
-    }
-
-    /**
-     * Reads {@code tls-client-auth-allowed-resources} as stored: a JSON string from JDBC, or an already parsed list.
-     * A value that cannot be read refuses authentication, instead of failing token issuance with a server error.
-     */
-    private static List<String> readAllowedResources(Map<String, Object> info) {
-        Object raw = info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
-        if (raw == null) {
-            return null;
-        }
-        try {
-            if (raw instanceof String json) {
-                return JsonUtils.readValue(json, new TypeReference<List<String>>() {});
-            }
-            if (raw instanceof List<?> list) {
-                return JsonUtils.readValue(JsonUtils.writeValueAsString(list), new TypeReference<List<String>>() {});
-            }
-        } catch (RuntimeException e) {
-            throw new BadCredentialsException("tls_client_auth: the client's "
-                    + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " cannot be read", e);
-        }
-        throw new BadCredentialsException("tls_client_auth: the client's "
-                + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " cannot be read");
     }
 }

@@ -279,7 +279,7 @@ class ClientDetailsAuthenticationProviderTests {
                 mock(UserDetailsService.class), mock(PasswordEncoder.class),
                 mock(JwtClientAuthentication.class), tlsClientAuthentication);
 
-        provider.validateTlsClientAuth(uaaClient);
+        provider.validateTlsClientAuth(ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(uaaClient));
 
         ArgumentCaptor<TlsClientAuthConfiguration> configCaptor =
                 ArgumentCaptor.forClass(TlsClientAuthConfiguration.class);
@@ -288,19 +288,61 @@ class ClientDetailsAuthenticationProviderTests {
     }
 
     @Test
-    void validateTlsClientAuthShortCircuitsWithoutResolvingConfigWhenNoCertificatePresent() {
-        UaaClient uaaClient = mock(UaaClient.class);
+    void validateTlsClientAuthShortCircuitsWhenNoCertificatePresent() {
         TlsClientAuthentication tlsClientAuthentication = mock(TlsClientAuthentication.class);
         when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(false);
         ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
                 mock(UserDetailsService.class), mock(PasswordEncoder.class),
                 mock(JwtClientAuthentication.class), tlsClientAuthentication);
 
-        boolean result = provider.validateTlsClientAuth(uaaClient);
+        boolean result = provider.validateTlsClientAuth(new TlsClientAuthConfiguration("ca-pem", null));
 
         assertThat(result).isFalse();
-        verify(uaaClient, never()).getAdditionalInformation();
         verify(tlsClientAuthentication, never()).getCertificateChainFromRequest(any());
+    }
+
+    /**
+     * A blank {@code client_secret}, a {@code Basic client_id:} header or a client assertion reaches the provider as
+     * empty credentials. It is still a secret- or assertion-based method, so the request must not be accepted and
+     * relabeled {@code tls_client_auth}.
+     */
+    @ParameterizedTest
+    @MethodSource("blankCredentialRequests")
+    void mtlsClientPresentingBlankCredentialIsRefusedBeforeCertificateValidation(MockHttpServletRequest request) {
+        TlsClientAuthentication tlsClientAuthentication = mock(TlsClientAuthentication.class);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), mock(PasswordEncoder.class),
+                mock(JwtClientAuthentication.class), tlsClientAuthentication);
+        UaaClient client = new UaaClient("mtls-client", null, List.of(), Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app"), null);
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("mtls-client", "");
+        authentication.setDetails(new UaaAuthenticationDetails(request));
+
+        assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("tls_client_auth: configured clients must authenticate at /oauth/mtls/token "
+                        + "without client credentials");
+        verify(tlsClientAuthentication, never()).hasCertificateFromRequest();
+    }
+
+    static java.util.stream.Stream<MockHttpServletRequest> blankCredentialRequests() {
+        MockHttpServletRequest blankSecret = mtlsTokenRequest();
+        blankSecret.addParameter("client_secret", "");
+        MockHttpServletRequest blankBasic = mtlsTokenRequest();
+        blankBasic.addHeader("Authorization", "Basic bXRscy1jbGllbnQ6");
+        MockHttpServletRequest assertion = mtlsTokenRequest();
+        assertion.addParameter("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+        assertion.addParameter("client_assertion", "eyJ");
+        return java.util.stream.Stream.of(blankSecret, blankBasic, assertion);
+    }
+
+    private static MockHttpServletRequest mtlsTokenRequest() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/mtls/token");
+        request.setServletPath("/oauth/mtls/token");
+        request.addParameter("client_id", "mtls-client");
+        return request;
     }
 
     @Test
@@ -410,14 +452,17 @@ class ClientDetailsAuthenticationProviderTests {
                     mock(UserDetailsService.class), mock(PasswordEncoder.class),
                     mock(JwtClientAuthentication.class), tlsClientAuthentication);
 
-            assertThat(provider.validateTlsClientAuth(unconstrainedClient))
+            assertThat(provider.validateTlsClientAuth(
+                    ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(unconstrainedClient)))
                     .as("a client registering no subject value cannot be authenticated by any certificate, "
                             + "however impeccable its chain")
                     .isFalse();
-            assertThat(provider.validateTlsClientAuth(constrainedClient))
+            assertThat(provider.validateTlsClientAuth(
+                    ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(constrainedClient)))
                     .as("the constrained client rejects a cert whose space_guid doesn't match its required claim")
                     .isFalse();
-            assertThat(provider.validateTlsClientAuth(boundToThisCertClient))
+            assertThat(provider.validateTlsClientAuth(
+                    ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(boundToThisCertClient)))
                     .as("positive control: the client bound to THIS certificate's subject authenticates")
                     .isTrue();
         } finally {
