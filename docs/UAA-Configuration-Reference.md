@@ -502,11 +502,13 @@ When `true`, logs full HTTP request details for debugging. Should never be `true
 ### `environmentYamlKey`
 
 **Default:** — (injected internally)
-**Source:** `@Value("${environmentYamlKey}")` in [`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
+**Source:** key `environmentYamlKey` read directly from `ConfigurableEnvironment.getPropertySources()` in
+[`SpringServletXmlBeansConfiguration`](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
 **Type:** `String`
 
 An internal property holding the full YAML configuration string. Used by the
 `YamlConfigurationValidator` to validate configuration structure at startup.
+The property is read raw (i.e. without Spring expression or placeholder resolution).
 
 [Back to table](#core--general)
 
