@@ -64,6 +64,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -3055,6 +3056,24 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         client.setClientSecret(secret);
         clientDetailsService.addClientDetails(client);
 
+        mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param("grant_type", "client_credentials")
+                        .param("client_id", clientId)
+                        .param("client_secret", secret))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").isNotEmpty());
+    }
+
+    // Clients and secrets must match the entries in mockmvc_unittest_properties.yml
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', quoteCharacter = '"', value = {
+            "client_with_spel_chars              | pass#{word",
+            "client_with_placeholder_chars       | pass${word}secret",
+            "client_with_nested_spel_placeholder | #{sth['${sth}']}"
+    })
+    void clientCredentials_withExpressionSyntaxInYamlConfiguredSecret_succeeds(String clientId, String secret) throws Exception {
         mockMvc.perform(post("/oauth/token")
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)

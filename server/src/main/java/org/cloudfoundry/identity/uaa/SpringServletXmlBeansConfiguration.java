@@ -95,8 +95,8 @@ public class SpringServletXmlBeansConfiguration {
 
     @Bean
     YamlConfigurationValidator uaaConfigValidation(ConfigurableEnvironment environment) {
-        // Direct PropertySource read bypasses environment.getProperty(), which expands ${...}
-        // and #{...} in the returned value, breaking startup when client secrets contain them.
+        // Read the raw value from the PropertySource: environment.getProperty() resolves ${...}
+        // in the returned YAML, which fails startup when a client secret contains such a sequence.
         String yaml = environment.getPropertySources().stream()
                 .filter(ps -> ps.containsProperty("environmentYamlKey"))
                 .map(ps -> ps.getProperty("environmentYamlKey"))
