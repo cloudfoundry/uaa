@@ -63,6 +63,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.http.MediaType;
@@ -3041,13 +3044,16 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         login(clientId);
     }
 
-    @Test
-    void clientCredentials_withSpelCharsInSecret_succeeds() throws Exception {
-        // Regression: a client secret containing "#{" must not be treated as a SpEL expression
-        String spelSecret = "pass#{word}";
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "pass#{word}",          // SpEL expression syntax
+            "pass${word}secret",    // Spring property placeholder syntax
+            "#{sth['${sth}']}"      // nested SpEL + placeholder syntax
+    })
+    void clientCredentials_withExpressionSyntaxInSecret_succeeds(String secret) throws Exception {
         String clientId = "testclient" + generator.generate();
         UaaClientDetails client = new UaaClientDetails(clientId, "", "uaa.none", "client_credentials", "uaa.none");
-        client.setClientSecret(spelSecret);
+        client.setClientSecret(secret);
         clientDetailsService.addClientDetails(client);
 
         mockMvc.perform(post("/oauth/token")
@@ -3055,7 +3061,25 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                         .param("grant_type", "client_credentials")
                         .param("client_id", clientId)
-                        .param("client_secret", spelSecret))
+                        .param("client_secret", secret))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token").isNotEmpty());
+    }
+
+    // Clients and secrets must match the entries in mockmvc_unittest_properties.yml
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', quoteCharacter = '"', value = {
+            "client_with_spel_chars              | pass#{word",
+            "client_with_placeholder_chars       | pass${word}secret",
+            "client_with_nested_spel_placeholder | #{sth['${sth}']}"
+    })
+    void clientCredentials_withExpressionSyntaxInYamlConfiguredSecret_succeeds(String clientId, String secret) throws Exception {
+        mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param("grant_type", "client_credentials")
+                        .param("client_id", clientId)
+                        .param("client_secret", secret))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.access_token").isNotEmpty());
     }
