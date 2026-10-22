@@ -303,7 +303,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     );
 
     private final String scimFilterDescription = "SCIM filter for searching";
-    private final String scimAttributeDescription = "Comma separated list of attribute names to be returned.";
+    private final String scimAttributeDescription = "Comma separated list of attribute names to be returned. Names may contain letters, digits, underscores and hyphens, with dots separating sub-attributes (for example `name.familyName`).";
     private final String sortByDescription = "Sorting field name, like email or id";
     private final String sortOrderDescription = "Sort order, ascending/descending";
     private final String countDescription = "Max number of results to be returned";
