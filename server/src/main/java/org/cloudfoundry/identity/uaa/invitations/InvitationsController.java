@@ -287,7 +287,7 @@ public class InvitationsController {
         }
         String res = "redirect:/login?success=invite_accepted";
         if (!invitation.getRedirectUri().equals("/home")) {
-            res += "&" + FORM_REDIRECT_PARAMETER + "=" + invitation.getRedirectUri();
+            res += "&" + FORM_REDIRECT_PARAMETER + "=" + URLEncoder.encode(invitation.getRedirectUri(), StandardCharsets.UTF_8);
         }
         return res;
     }
