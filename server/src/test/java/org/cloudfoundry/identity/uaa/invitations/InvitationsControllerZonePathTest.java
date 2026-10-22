@@ -357,6 +357,50 @@ class InvitationsControllerZonePathTest {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
+    void ldapInviteAcceptanceReissuesCodeWithItsIntent(ZoneRequestPathMode mode) throws Exception {
+        mode.setZone();
+        Map<String, String> codeData = getInvitationsCode(LDAP);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+        when(expiringCodeStore.generateCode(anyString(), any(), any(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+        DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
+        when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(any(), any())).thenReturn(ldapAuthenticationManager);
+
+        AuthenticationManager ldapActual = mock(AuthenticationManager.class);
+        when(ldapAuthenticationManager.getLdapManagerActual()).thenReturn(ldapActual);
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(ldapActual.authenticate(any())).thenReturn(auth);
+
+        ExtendedLdapUserDetails extendedLdapUserDetails = mock(ExtendedLdapUserDetails.class);
+
+        when(auth.getPrincipal()).thenReturn(extendedLdapUserDetails);
+        when(extendedLdapUserDetails.getEmailAddress()).thenReturn("user@example.com");
+        when(extendedLdapUserDetails.getUsername()).thenReturn("test-ldap-user");
+
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setPrimaryEmail("user@example.com");
+
+        when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
+        when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
+        when(expiringCodeStore.generateCode(anyString(), any(), any(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+
+        String expectedRedirect = mode.redirectPrefix() + "/login?success=invite_accepted&form_redirect_uri=blah.test.com";
+        mockMvc.perform(requestPost(mode, "/invitations/accept_enterprise.do")
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
+                .andExpect(redirectedUrl(expectedRedirect))
+                .andReturn();
+
+
+        verify(expiringCodeStore, times(1)).generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId));
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneRequestPathMode.class)
     void unverifiedLdapUser_acceptsInvite_byLoggingIn_bad_credentials(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         Map<String, String> codeData = getInvitationsCode("ldap");
@@ -422,6 +466,44 @@ class InvitationsControllerZonePathTest {
                 .contains("Email: " + "user@example.com", "Sign in with enterprise credentials:", "username");
 
         verify(ldapActual).authenticate(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneRequestPathMode.class)
+    void ldapInviteEmailMismatchReissuesCodesWithTheirIntent(ZoneRequestPathMode mode) throws Exception {
+        mode.setZone();
+        Map<String, String> codeData = getInvitationsCode(LDAP);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+        DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
+        when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(any(), any())).thenReturn(ldapAuthenticationManager);
+
+        AuthenticationManager ldapActual = mock(AuthenticationManager.class);
+        when(ldapAuthenticationManager.getLdapManagerActual()).thenReturn(ldapActual);
+        Authentication auth = mock(Authentication.class);
+        when(ldapActual.authenticate(any())).thenReturn(auth);
+
+        ExtendedLdapUserDetails extendedLdapUserDetails = mock(ExtendedLdapUserDetails.class);
+        when(auth.getPrincipal()).thenReturn(extendedLdapUserDetails);
+        when(extendedLdapUserDetails.getEmailAddress()).thenReturn("different-email@example.com");
+
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setPrimaryEmail("user@example.com");
+        when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
+        when(expiringCodeStore.generateCode(anyString(), any(), any(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+
+        mockMvc.perform(requestPost(mode, "/invitations/accept_enterprise.do")
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("invitations/accept_invite"))
+                .andExpect(model().attribute("code", "code"))
+                .andExpect(model().attribute("error_message", "invite.email_mismatch"))
+                .andReturn();
+
+        verify(expiringCodeStore, times(2)).generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId));
     }
 
     @ParameterizedTest
