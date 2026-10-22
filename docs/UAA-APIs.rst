@@ -2136,6 +2136,55 @@ Change Email Flow:
         $ curl 'http://localhost:8080/email_changes' -i -X POST -H 'Content-Type: application/json' -d 6FfI4o
 
 
+Create a Code: ``POST /Codes``
+------------------------------
+
+Stores a one time code and returns it. Codes are stored per identity zone and can be read back once with ``GET /Codes/{code}``.
+
+* Request: ``POST /Codes``
+
+* Authorization: a token with the scope ``oauth.login`` or a UAA admin token.
+
+* Request Body::
+
+        {
+          "data": "{\"user_id\":\"a-user-id\"}",
+          "expiresAt": 1792688400000,
+          "intent": "MY_APPLICATION_CODE"
+        }
+
+  ``data`` (required) is stored with the code, as a string. ``expiresAt`` (required) is milliseconds since the epoch and must be in the future.
+  ``intent`` (required, not blank) says what the code may be used for.
+
+* Intents:
+
+  The UAA flows accept a code only when its intent matches the flow, and the match is case sensitive:
+
+  * ``EMAIL``: email change verification (``POST /email_changes`` and ``/verify_email``)
+  * ``INVITATION``: invitation acceptance (``/invitations/accept``)
+  * ``REGISTRATION``: account activation (``/verify_user``)
+
+  Any other value is stored as given; use it for codes that your own application creates and redeems.
+  Intents that the UAA creates for its own flows (for example the ones for password reset, autologin and passcodes) are also stored as given.
+  Codes stored without an intent before this requirement was added remain redeemable until they expire.
+
+* Response Codes::
+
+        201 - Created
+        400 - Bad Request (the intent is missing or blank, data or expiresAt are missing, or expiresAt is in the past)
+        401 - Unauthorized
+        403 - Forbidden
+
+* Error message for a missing intent::
+
+        intent is required. Known intents: EMAIL, INVITATION, REGISTRATION; custom values are accepted.
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/Codes' -i -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' \
+            -d '{"data":"{}","expiresAt":1792688400000,"intent":"MY_APPLICATION_CODE"}'
+
+
 Verify User Links: ``GET /Users/{id}/verify-link``
 --------------------------------------------------
 

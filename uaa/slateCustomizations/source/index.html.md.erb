@@ -2986,6 +2986,35 @@ _Request Parameters_
 
 <%= render('LoginInfoEndpointDocs/perform_auto_login/query-parameters.md') %>
 
+# Expiring Codes
+
+## Create a Code
+
+`POST /Codes` stores a one time code with an expiry and an intent, and returns the generated code. A code can be read back
+once with `GET /Codes/{code}`; reading it removes it. Codes are stored per identity zone.
+
+The `intent` is required and must not be blank; a request without one is rejected with `400 Bad Request` and the message
+`intent is required. Known intents: EMAIL, INVITATION, REGISTRATION; custom values are accepted.`
+The UAA flows only accept a code whose intent matches the flow: `EMAIL` for email change verification, `INVITATION` for
+invitation acceptance and `REGISTRATION` for account activation. Any other value is stored as given and is meant for codes
+that your own application creates and redeems.
+
+<%= render('CodeStoreEndpointDocs/document_create_code/curl-request.md') %>
+<%= render('CodeStoreEndpointDocs/document_create_code/http-request.md') %>
+<%= render('CodeStoreEndpointDocs/document_create_code/http-response.md') %>
+
+_Request Headers_
+
+<%= render('CodeStoreEndpointDocs/document_create_code/request-headers.md') %>
+
+_Request Body_
+
+<%= render('CodeStoreEndpointDocs/document_create_code/request-fields.md') %>
+
+_Response Body_
+
+<%= render('CodeStoreEndpointDocs/document_create_code/response-fields.md') %>
+
 # External Login Server
 
 The UAA provides endpoints that facilitate the use of an external login server. A server that handles the UI
