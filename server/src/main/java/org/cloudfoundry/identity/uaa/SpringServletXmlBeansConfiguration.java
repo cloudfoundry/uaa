@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa;
 
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource;
 import org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator;
 import org.cloudfoundry.identity.uaa.authentication.listener.AuthenticationSuccessListener;
@@ -415,9 +417,14 @@ public class SpringServletXmlBeansConfiguration {
             @Qualifier("prompts") List<Prompt> prompts,
             @Qualifier("defaultUserConfig") UserConfig defaultUserConfig,
             @Value("${issuer.uri}") String issuerUri,
-            @Value("${login.entityID:}") String samlEntityID
+            @Value("${login.entityID:}") String samlEntityID,
+            Environment environment
     ) {
         IdentityZoneConfigurationBootstrap bean = new IdentityZoneConfigurationBootstrap(provisioning);
+        bean.setMtlsEnabled(environment.getProperty("uaa.mtls.enabled", Boolean.class, false));
+        bean.setMtlsTrustBundles(Binder.get(environment)
+                .bind("uaa.mtls.trust-bundles", Bindable.mapOf(String.class, String.class))
+                .orElse(Map.of()));
         bean.setValidator(identityZoneValidator);
         bean.setClientSecretPolicy(defaultUaaClientSecretPolicy);
         bean.setTokenPolicy(uaaTokenPolicy);

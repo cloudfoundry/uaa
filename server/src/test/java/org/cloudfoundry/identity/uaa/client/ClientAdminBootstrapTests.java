@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
@@ -10,6 +11,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,10 +37,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.security.Security;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
@@ -59,7 +66,32 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
+@ExtendWith(MtlsEnabledZoneExtension.class)
 class ClientAdminBootstrapTests {
+
+    private static final String VALID_CERT = """
+            -----BEGIN CERTIFICATE-----
+            MIIDXTCCAkWgAwIBAgIJAOpOBuLToBXJMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+            BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+            aWRnaXRzIFB0eSBMdGQwHhcNMTcwNzE0MTcxNDE4WhcNMTcwODEzMTcxNDE4WjBF
+            MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+            ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+            CgKCAQEA3+07F4S5Fz3wv/UFm/OWsJXm6s3pKI2mp4fSAY8rx9+0cyLAHsedWzeq
+            5uKcDeRW858DOdnClaTOZC73FcvOmv1bw2eYcmfsbqHEhyR0dp+rDHt/7pr6kajC
+            yUvAW+hoRRSMpooiZckxrjJ7LOa5iqRyZRwshfGN+mFSygfVguMDKrsE2rvpK6/K
+            tkG/lcToLHiw4OnMnZ9ocrNRDAoCkzKGZTLJkUEr3MgOKmr2EO0P6KOAmNnOEmCf
+            05ohcrUXeFZVnS5MMUzoGAOzBstZhA0dd7l297IDnWH9uIhCANCvZ9sovZWz/o3J
+            pc2LyXsaI1cV7O1cGV4aEEn8zzWWGwIDAQABo1AwTjAdBgNVHQ4EFgQUXBO1+qo7
+            w6iiiv1pnm+zdrQ3CzkwHwYDVR0jBBgwFoAUXBO1+qo7w6iiiv1pnm+zdrQ3Czkw
+            DAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAT78lT5VEIetWPGk3szPz
+            CT9zNpR1F+7o3rvRTI6Psyjz4tGlyX5iU0Z99Xa9yimIEhWme2UVsgQ9uOzk2IgH
+            wMbB2TTP/RRK5+eO4BUu4zWWIXsIcfC6Rqw9Y3Hki+mRpuWMv+5pcOz/H+aYeSfy
+            WvVYfRZJOhcztysII4HWIxw8qqwBrf5kX8IRKZXay+A2W04A6kjjX3zfN2OzljTA
+            jZbtHedUGxSHvK8x6tHEwS0lZ9eZh+V4DWyRvrunwDCtA7zJQmrJd1qbM84H/1C8
+            cAC6dglvc82n1BTAZbZwWHYt+Ro3Vp0GMPsZLOXJ0g03LbkhXg4krwXjJPD42nus
+            3A==
+            -----END CERTIFICATE-----
+            """;
 
     private ClientAdminBootstrap clientAdminBootstrap;
     private MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService;
@@ -83,6 +115,7 @@ class ClientAdminBootstrapTests {
 
     @BeforeEach
     void setUpClientAdminTests() {
+        Security.addProvider(new BouncyCastleFipsProvider());
         randomValueStringGenerator = new RandomValueStringGenerator();
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
@@ -644,6 +677,309 @@ class ClientAdminBootstrapTests {
         assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
                 .isInstanceOf(InvalidClientDetailsException.class)
                 .hasMessageContaining("Client must have at least one authorized-grant-type");
+    }
+
+    @Test
+    void validMtlsClientBootstrapsWhileMtlsIsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
+        clients.put((String) map.get("id"), map);
+
+        assertThatCode(() -> clientAdminBootstrap.afterPropertiesSet()).doesNotThrowAnyException();
+        assertThat(multitenantJdbcClientDetailsService.loadClientByClientId((String) map.get("id"), IdentityZone.getUaaZoneId())
+                .getAdditionalInformation()).containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
+    }
+
+    @Test
+    void invalidMtlsClientIsRejectedWhileMtlsIsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "some-trusted-proxy-ca");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("Invalid tls-client-auth-trusted-proxy-ca");
+    }
+
+    /**
+     * IdentityZoneConfigurationBootstrap saves uaa.mtls.trust_bundles to the default zone before clients are
+     * bootstrapped, but IdentityZoneHolder caches the zone per thread. A uaa.yml client referencing a bundle added
+     * in the same deploy must be validated against the saved zone, not a copy cached before it was saved.
+     */
+    @Test
+    void bootstrapClientBundleReferenceIsValidatedAgainstTheSavedDefaultZone() {
+        org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning zones =
+                new org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning(jdbcTemplate);
+        IdentityZone saved = zones.retrieve(IdentityZone.getUaaZoneId());
+        saved.getConfig().getMtls().setTrustBundles(Map.of("instance-identity", VALID_CERT));
+        zones.update(saved);
+        // The thread's cached zone predates the save: it has no bundles.
+        IdentityZone cached = IdentityZone.getUaa();
+        cached.getConfig().getMtls().setEnabled(true);
+        IdentityZoneHolder.set(cached);
+        IdentityZoneHolder.setProvisioning(zones);
+        try {
+            Map<String, Object> map = createClientMap("foo");
+            map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+            map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, "instance-identity");
+            map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
+            clients.put((String) map.get("id"), map);
+
+            assertThatCode(() -> clientAdminBootstrap.afterPropertiesSet()).doesNotThrowAnyException();
+            assertThat(multitenantJdbcClientDetailsService.loadClientByClientId((String) map.get("id"),
+                    IdentityZone.getUaaZoneId()).getAdditionalInformation())
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF, "instance-identity");
+        } finally {
+            IdentityZoneHolder.setProvisioning(null);
+            saved.getConfig().getMtls().setTrustBundles(Map.of());
+            zones.update(saved);
+        }
+    }
+
+    @Test
+    void proxyTrustWithoutWorkloadTrustIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(() -> clientAdminBootstrap.afterPropertiesSet())
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("requires tls-client-auth-ca or tls-client-auth-ca-ref");
+    }
+
+    @Test
+    void mtlsClientConfigAllowedWhenMtlsEnabled() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId));
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap.afterPropertiesSet();
+
+        ClientDetails created = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(created.getAdditionalInformation()).containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+    }
+
+    @Test
+    void nestedTlsClientAuthConfigurationIsRejectedDuringBootstrap() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId));
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT));
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                .hasMessageContaining("PEM string");
+    }
+
+    @Test
+    void invalidTlsClientAuthClaimConfigIsRejectedDuringBootstrap() {
+        ClientAdminBootstrap mtlsEnabledBootstrap = new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId));
+
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "invalid", "claim", "cf_app")));
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("tls-client-auth-claim-mappings")
+                .hasMessageContaining("invalid field");
+    }
+
+    private ClientAdminBootstrap mtlsEnabledBootstrap() {
+        return new ClientAdminBootstrap(
+                passwordEncoder,
+                multitenantJdbcClientDetailsService,
+                clientMetadataProvisioning,
+                true,
+                clients,
+                Collections.singleton(autoApproveId),
+                Collections.emptySet(),
+                null,
+                Collections.singleton(allowPublicId));
+    }
+
+    /**
+     * The BOSH {@code oauth.clients} path does not go through the client-admin API, so it is the
+     * route by which an unbound mTLS client would most plausibly reach a real deployment -- it is
+     * also how the Diego instance-identity client is normally registered, which is precisely the
+     * shared-CA case that RFC 8705 section 2.1.2 requires a subject binding for.
+     */
+    @Test
+    void boundAccessTokensBooleanFromYamlIsPersistedAndLoaded() {
+        // oauth.clients comes from YAML, which yields a real Boolean rather than a string
+        Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap().afterPropertiesSet();
+
+        ClientDetails loaded = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(loaded.getAdditionalInformation()
+                .get(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS))).isTrue();
+    }
+
+    @Test
+    void boundAccessTokensFalseStringIsPersistedAndLoaded() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, "false");
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap().afterPropertiesSet();
+
+        ClientDetails loaded = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(TlsClientAuthConfiguration.parseBoundAccessTokens(loaded.getAdditionalInformation()
+                .get(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS))).isFalse();
+    }
+
+    @Test
+    void boundAccessTokensThatIsNotABooleanIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, "maybe");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+    }
+
+    @Test
+    void mtlsClientWithNoSubjectBindingIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("exactly one");
+    }
+
+    @Test
+    void mtlsClientWithTwoSubjectBindingsIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "foo.example.com");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("exactly one");
+    }
+
+    @Test
+    void mtlsClientWithBlankSubjectBindingIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        // BOSH renders an unset manifest property as an empty string; that must not count as a
+        // configured subject value.
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "   ");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("exactly one");
+    }
+
+    @Test
+    void mtlsClientWithMalformedSubjectDnIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "not-a-dn");
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN)
+                .hasMessageContaining("valid subject DN");
+    }
+
+    @Test
+    void mtlsClientWithASanBindingBootstrapsSuccessfully() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "spiffe://acme/app/foo");
+        clients.put((String) map.get("id"), map);
+
+        mtlsEnabledBootstrap().afterPropertiesSet();
+
+        ClientDetails created = multitenantJdbcClientDetailsService.loadClientByClientId("foo");
+        assertThat(created.getAdditionalInformation())
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "spiffe://acme/app/foo");
+    }
+
+    @Test
+    void mtlsClientWithRequiredClaimsButNoSubjectBindingIsRejectedDuringBootstrap() {
+        Map<String, Object> map = createClientMap("foo");
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_ou", "pattern", "^space:(.+)$", "claim", "space_guid")));
+        map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                Map.of("space_guid", "a-specific-space"));
+        clients.put((String) map.get("id"), map);
+
+        assertThatThrownBy(mtlsEnabledBootstrap()::afterPropertiesSet)
+                .as("required-claims is a UAA extension, not one of the five RFC subject parameters")
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("exactly one");
+    }
+
+    @Test
+    void ordinaryClientBootstrapsSuccessfullyWhenMtlsDisabled() {
+        Map<String, Object> map = createClientMap("foo");
+        ClientDetails created = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        assertThat(created.getAdditionalInformation()).doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+        assertThat(created.getAdditionalInformation()).doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA);
     }
 
     static ClientDetails doSimpleTest(

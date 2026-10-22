@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.springBootStarterMail)
     implementation(libs.springBootSql)
     implementation(libs.springBootJdbc)
+    implementation(libs.springBootTomcat)
     implementation(libs.springBootTransaction)
     implementation(libs.openSamlApi)
     implementation(libs.springSecuritySamlServiceProvider)
@@ -40,7 +41,10 @@ dependencies {
     implementation(libs.bouncyCastleTlsFips)
     implementation(libs.bouncyCastleUtilFips)
 
+    implementation(libs.javaBuildpackClientCertificateMapper)
+
     implementation(libs.guava)
+    implementation(libs.re2j)
 
     implementation(libs.aspectJWeaver)
 
@@ -134,6 +138,13 @@ configurations.configureEach {
 
 tasks.named<Jar>("jar") {
     exclude("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
+}
+
+tasks.named<Test>("test") {
+    // Isolated security probes need the complete runtime classpath, including test fixtures.
+    doFirst {
+        systemProperty("uaa.test.classpath", classpath.asPath)
+    }
 }
 
 tasks.named<ProcessResources>("processResources") {

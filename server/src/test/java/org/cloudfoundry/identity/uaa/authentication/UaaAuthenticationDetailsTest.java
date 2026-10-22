@@ -73,4 +73,45 @@ class UaaAuthenticationDetailsTest {
             assertThat(details.getParameterMap()).doesNotContainKey(key);
         }
     }
+
+    /**
+     * UaaAuthenticationDetails is stored in Spring Session through the security context, so a node
+     * running this version must read sessions written by the previous release and vice versa.
+     */
+    @Test
+    void serialVersionUidMatchesThePreviousRelease() {
+        assertThat(java.io.ObjectStreamClass.lookup(UaaAuthenticationDetails.class).getSerialVersionUID())
+                .isEqualTo(4782409396359737075L);
+    }
+
+    @Test
+    void deserializesAnInstanceWrittenByThePreviousRelease() throws Exception {
+        byte[] bytes;
+        try (var in = getClass().getResourceAsStream("UaaAuthenticationDetails-develop.ser.b64")) {
+            assertThat(in).isNotNull();
+            bytes = java.util.Base64.getDecoder().decode(new String(in.readAllBytes()).trim());
+        }
+        UaaAuthenticationDetails details;
+        try (var in = new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bytes))) {
+            details = (UaaAuthenticationDetails) in.readObject();
+        }
+
+        assertThat(details.getClientId()).isEqualTo("app");
+        assertThat(details.getOrigin()).isEqualTo("10.0.0.1");
+        assertThat(details.getServletPath()).as("absent from the previous release's form").isNull();
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(details)).isFalse();
+    }
+
+    @Test
+    void servletPathSurvivesSerialization() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/uaa/oauth/mtls/token");
+        request.setServletPath("/oauth/mtls/token");
+        var bytes = new java.io.ByteArrayOutputStream();
+        try (var out = new java.io.ObjectOutputStream(bytes)) {
+            out.writeObject(new UaaAuthenticationDetails(request, "app"));
+        }
+        try (var in = new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bytes.toByteArray()))) {
+            assertThat(((UaaAuthenticationDetails) in.readObject()).getServletPath()).isEqualTo("/oauth/mtls/token");
+        }
+    }
 }

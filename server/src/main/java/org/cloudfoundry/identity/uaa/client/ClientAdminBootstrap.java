@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.beans.factory.annotation.Autowired;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWT_CREDS;
 import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS;
@@ -27,6 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +50,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 @Component
+@DependsOn("identityZoneConfigurationBootstrap")
 public class ClientAdminBootstrap implements
         InitializingBean,
         ApplicationListener<ContextRefreshedEvent>,
@@ -65,6 +69,9 @@ public class ClientAdminBootstrap implements
     private final Set<String> autoApproveClients;
     private final Set<String> allowPublicClients;
     private final boolean defaultOverride;
+    @Autowired(required = false)
+    @Qualifier("identityZoneProvisioning")
+    private IdentityZoneProvisioning identityZoneProvisioning;
 
     /**
      * @param defaultOverride    the default override flag to set. Flag to indicate
@@ -163,9 +170,20 @@ public class ClientAdminBootstrap implements
         return StringUtils.arrayToCommaDelimitedString(redirectUris.toArray(new String[]{}));
     }
 
+    /**
+     * The default zone as IdentityZoneConfigurationBootstrap saved it, including uaa.mtls.trust_bundles. The
+     * per-thread IdentityZoneHolder copy may have been cached earlier in startup, before that save.
+     */
+    private IdentityZone savedDefaultZone() {
+        return identityZoneProvisioning != null
+                ? identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId())
+                : IdentityZoneHolder.getUaaZone();
+    }
+
     private void addNewClients() {
         Set<Map.Entry<String, Map<String, Object>>> entries = clients.entrySet();
         entries.removeIf(entry -> clientsToDelete.contains(entry.getKey()));
+        IdentityZone defaultZone = entries.isEmpty() ? null : savedDefaultZone();
         for (Map.Entry<String, Map<String, Object>> entry : entries) {
             String clientId = entry.getKey();
 
@@ -222,6 +240,12 @@ public class ClientAdminBootstrap implements
             }
 
             client.setAdditionalInformation(info);
+            ClientAdminEndpointsValidator.validateMtlsClientConfiguration(client.getAdditionalInformation(), clientId,
+                    defaultZone);
+            ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig(
+                    client.getAdditionalInformation(), clientId);
+            ClientAdminEndpointsValidator.validateMtlsClientRules(
+                    client.getAdditionalInformation(), client.getAuthorizedGrantTypes(), clientId);
 
             ClientJwtConfiguration keyConfig = null;
             if (map.get(JWKS_URI) instanceof String || map.get(JWKS) instanceof String) {

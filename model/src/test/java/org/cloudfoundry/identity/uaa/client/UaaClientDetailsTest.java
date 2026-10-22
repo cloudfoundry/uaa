@@ -6,11 +6,14 @@ import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +22,68 @@ import java.util.TreeSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UaaClientDetailsTest {
+
+    @Nested
+    class TlsClientAuthEquality {
+        private UaaClientDetails configuredClient(boolean useReference) {
+            UaaClientDetails client = new UaaClientDetails("mtls-client", "resource", "scope",
+                    "client_credentials", "uaa.resource");
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(useReference ? null : "ca-pem", null);
+            if (useReference) {
+                config.setTrustedCaRef("workload");
+            }
+            config.setSubjectDn("CN=workload");
+            client.setTlsClientAuthConfiguration(config);
+            return client;
+        }
+
+        private UaaClientDetails loadedClient(UaaClientDetails configured) {
+            UaaClientDetails client = new UaaClientDetails("mtls-client", "resource", "scope",
+                    "client_credentials", "uaa.resource");
+            client.setAdditionalInformation(configured.getAdditionalInformation());
+            assertThat(client.getTlsClientAuthConfiguration()).isNull();
+            assertThat(client.getAdditionalInformation()).isEqualTo(configured.getAdditionalInformation());
+            return client;
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void typedAndLoadedClientsWithIdenticalPersistedSettingsAreEqual(boolean useReference) {
+            UaaClientDetails configured = configuredClient(useReference);
+            UaaClientDetails loaded = loadedClient(configured);
+            assertThat(configured).as("the transient mirror must not change persisted client equality").isEqualTo(loaded);
+            assertThat(loaded).isEqualTo(configured);
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void typedAndLoadedClientsWithIdenticalPersistedSettingsHaveEqualHashCodes(boolean useReference) {
+            UaaClientDetails configured = configuredClient(useReference);
+            UaaClientDetails loaded = loadedClient(configured);
+            assertThat(configured.hashCode()).as("hashing must use the same persisted identity as equality")
+                    .isEqualTo(loaded.hashCode());
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void loadedClientCanFindAnEquivalentTypedClientInAHashSet(boolean useReference) {
+            UaaClientDetails configured = configuredClient(useReference);
+            UaaClientDetails loaded = loadedClient(configured);
+            assertThat(new HashSet<>(Set.of(configured))).as("client cache membership must survive loading from storage")
+                    .contains(loaded);
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void differentPersistedTrustSettingsRemainUnequal(boolean useReference) {
+            UaaClientDetails configured = configuredClient(useReference);
+            UaaClientDetails loaded = loadedClient(configured);
+            loaded.addAdditionalInformation(useReference ? TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF
+                    : TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "different-trust");
+            assertThat(configured).isNotEqualTo(loaded);
+            assertThat(loaded).isNotEqualTo(configured);
+        }
+    }
 
     @Nested
     class Creation {
@@ -57,6 +122,22 @@ class UaaClientDetailsTest {
             assertThat(copy.getAdditionalInformation())
                     .hasSize(1)
                     .containsEntry("key", "value");
+        }
+
+        @Test
+        void copiesFlatTlsClientAuthAdditionalInformationWhenTypedConfigurationIsNull() {
+            Map<String, Object> tlsClientAuthAdditionalInformation = Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "trusted-ca",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, "claim-mappings",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "sub-template",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, "aud-templates",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "trusted-proxy-ca",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, "required-claims");
+            testClient.setAdditionalInformation(tlsClientAuthAdditionalInformation);
+
+            UaaClientDetails copy = new UaaClientDetails(testClient);
+
+            assertThat(copy.getAdditionalInformation()).containsExactlyInAnyOrderEntriesOf(tlsClientAuthAdditionalInformation);
         }
 
         @Test
@@ -209,6 +290,58 @@ class UaaClientDetailsTest {
         }
 
         @Test
+        void tlsClientAuthConfigRoundTripsViaJson() throws Exception {
+            UaaClientDetails details = new UaaClientDetails();
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n",
+                null
+            );
+            details.setTlsClientAuthConfiguration(config);
+
+            String json = new JsonMapper().writeValueAsString(details);
+            UaaClientDetails deserialized = new JsonMapper().readValue(json, UaaClientDetails.class);
+
+            Object raw = deserialized.getAdditionalInformation()
+                    .get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            assertThat(raw).isEqualTo(config.getTrustedCaPem());
+        }
+
+        @Test
+        void setTlsClientAuthConfiguration_whenCleared_removesAllPersistedSettings() {
+            UaaClientDetails details = new UaaClientDetails();
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(
+                    "trusted-ca", List.of(new TlsClientAuthConfiguration.ClaimMapping("field", "pattern", "claim")));
+            config.setSubTemplate("sub-template");
+            config.setAudTemplates(List.of("aud-template"));
+            config.setTrustedProxyCaPem("trusted-proxy-ca");
+            config.setRequiredClaims(Map.of("required-claim", "value"));
+
+            details.setTlsClientAuthConfiguration(config);
+            details.setTlsClientAuthConfiguration(null);
+
+            assertThat(details.getAdditionalInformation()).doesNotContainKeys(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
+        }
+
+        @Test
+        void setTlsClientAuthConfiguration_whenCleared_removesBoundAccessTokensPolicy() {
+            UaaClientDetails details = new UaaClientDetails();
+            details.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration("trusted-ca", null));
+            details.addAdditionalInformation(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS, true);
+
+            details.setTlsClientAuthConfiguration(null);
+
+            assertThat(details.getAdditionalInformation())
+                    .as("a binding policy without TLS trust would leave the client unable to get any token")
+                    .doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
+        }
+
+        @Test
         void autoApprove() {
             UaaClientDetails details = new UaaClientDetails();
             assertThat(details.getAutoApproveScopes()).isNull();
@@ -221,7 +354,7 @@ class UaaClientDetailsTest {
             uaaClientDetails.setRegisteredRedirectUri(Set.of("http://localhost:8080/uaa"));
             uaaClientDetails.setRefreshTokenValiditySeconds(1);
             uaaClientDetails.setAccessTokenValiditySeconds(1);
-            assertThat(uaaClientDetails.hashCode()).isPositive();
+            assertThat(uaaClientDetails.hashCode()).isNotZero();
         }
     }
 
@@ -314,6 +447,112 @@ class UaaClientDetailsTest {
             assertThat(testClientCompare).isEqualTo(testClient);
             testClientCompare.setAccessTokenValiditySeconds(1);
             assertThat(testClientCompare).isNotEqualTo(testClient);
+        }
+    }
+
+    @Nested
+    class TlsClientAuthConfigurationMirroring {
+        private static final String CA = "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n";
+
+        @Test
+        void namedTrustReferencesSurviveTypedConfigurationAndClearing() {
+            TlsClientAuthConfiguration config = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(Map.of(
+                    "tls-client-auth-ca-ref", "workload", "tls-client-auth-trusted-proxy-ca-ref", "proxy"),
+                    TlsClientAuthConfiguration.class);
+            UaaClientDetails client = new UaaClientDetails();
+            client.setTlsClientAuthConfiguration(config);
+            assertThat(client.getAdditionalInformation())
+                    .containsEntry("tls-client-auth-ca-ref", "workload")
+                    .containsEntry("tls-client-auth-trusted-proxy-ca-ref", "proxy")
+                    .doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
+            client.setTlsClientAuthConfiguration(null);
+            assertThat(client.getAdditionalInformation())
+                    .doesNotContainKeys("tls-client-auth-ca-ref", "tls-client-auth-trusted-proxy-ca-ref");
+        }
+
+        private TlsClientAuthConfiguration fullConfiguration() {
+            TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(CA, null);
+            config.setAllowedResources(List.of("https://api.example.com"));
+            config.setSubjectDn("CN=app");
+            config.setSanDns("app.example.com");
+            config.setSanUri("spiffe://acme/app");
+            config.setSanIp("10.0.0.7");
+            config.setSanEmail("svc@example.com");
+            return config;
+        }
+
+        @Test
+        void everyTypedFieldIsMirroredIntoAdditionalInformation() {
+            UaaClientDetails client = new UaaClientDetails();
+            client.setTlsClientAuthConfiguration(fullConfiguration());
+
+            assertThat(client.getAdditionalInformation())
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, CA)
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                            List.of("https://api.example.com"))
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app")
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, "app.example.com")
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "spiffe://acme/app")
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP, "10.0.0.7")
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL, "svc@example.com");
+        }
+
+        @Test
+        void replacingTheConfigurationRemovesFieldsTheNewOneDoesNotSet() {
+            UaaClientDetails client = new UaaClientDetails();
+            client.setTlsClientAuthConfiguration(fullConfiguration());
+
+            TlsClientAuthConfiguration replacement = new TlsClientAuthConfiguration(CA, null);
+            replacement.setSubjectDn("CN=other");
+            client.setTlsClientAuthConfiguration(replacement);
+
+            assertThat(client.getAdditionalInformation())
+                    .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=other")
+                    .doesNotContainKeys(
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS,
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI,
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP,
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL);
+        }
+
+        @Test
+        void clearingTheConfigurationRemovesEveryField() {
+            UaaClientDetails client = new UaaClientDetails();
+            client.setTlsClientAuthConfiguration(fullConfiguration());
+
+            client.setTlsClientAuthConfiguration(null);
+
+            assertThat(client.getAdditionalInformation()).doesNotContainKeys(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL);
+        }
+    }
+
+    @Nested
+    class Serialization {
+        @Test
+        void aClientWithATlsClientAuthConfigurationIsJavaSerializable() throws Exception {
+            // ClientDetails is Serializable; the typed TlsClientAuthConfiguration is a derived view of the flat
+            // additionalInformation (which is transient too) and must not make the object unserializable.
+            UaaClientDetails client = new UaaClientDetails("mtls", "", "uaa.none", "client_credentials", "uaa.resource");
+            client.setTlsClientAuthConfiguration(new TlsClientAuthConfiguration(
+                    "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n", null));
+
+            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+            try (java.io.ObjectOutputStream out = new java.io.ObjectOutputStream(bytes)) {
+                out.writeObject(client);
+            }
+            try (java.io.ObjectInputStream in = new java.io.ObjectInputStream(
+                    new java.io.ByteArrayInputStream(bytes.toByteArray()))) {
+                UaaClientDetails restored = (UaaClientDetails) in.readObject();
+                assertThat(restored.getClientId()).isEqualTo("mtls");
+            }
         }
     }
 }
