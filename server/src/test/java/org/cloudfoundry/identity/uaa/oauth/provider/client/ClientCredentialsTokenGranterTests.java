@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.provider.client;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidRequestException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
@@ -14,15 +15,21 @@ import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ClientCredentialsTokenGranterTests {
@@ -50,7 +57,8 @@ class ClientCredentialsTokenGranterTests {
     @Test
     void grant() {
         OAuth2Request oAuth2Request = mock(OAuth2Request.class);
-        when(clientDetailsService.loadClientByClientId(any())).thenReturn(mock(ClientDetails.class));
+        ClientDetails client = clientCredentialsClient();
+        when(clientDetailsService.loadClientByClientId(any())).thenReturn(client);
         when(requestFactory.createOAuth2Request(any(), any())).thenReturn(oAuth2Request);
         when(tokenServices.createAccessToken(any())).thenReturn(mock(OAuth2AccessToken.class));
         when(oAuth2Request.getAuthorities()).thenReturn(Collections.emptyList());
@@ -60,7 +68,8 @@ class ClientCredentialsTokenGranterTests {
     @Test
     void grantNoToken() {
         OAuth2Request oAuth2Request = mock(OAuth2Request.class);
-        when(clientDetailsService.loadClientByClientId(any())).thenReturn(mock(ClientDetails.class));
+        ClientDetails client = clientCredentialsClient();
+        when(clientDetailsService.loadClientByClientId(any())).thenReturn(client);
         when(requestFactory.createOAuth2Request(any(), any())).thenReturn(oAuth2Request);
         when(tokenServices.createAccessToken(any())).thenReturn(null);
         when(oAuth2Request.getAuthorities()).thenReturn(Collections.emptyList());
@@ -74,7 +83,8 @@ class ClientCredentialsTokenGranterTests {
         OAuth2Request oAuth2Request = mock(OAuth2Request.class);
         UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
         authentication.setDetails(uaaAuthenticationDetails);
-        when(clientDetailsService.loadClientByClientId(any())).thenReturn(mock(ClientDetails.class));
+        ClientDetails client = clientCredentialsClient();
+        when(clientDetailsService.loadClientByClientId(any())).thenReturn(client);
         when(requestFactory.createOAuth2Request(any(), any())).thenReturn(oAuth2Request);
         when(tokenServices.createAccessToken(any())).thenReturn(new DefaultOAuth2AccessToken("eyJx"));
         when(oAuth2Request.getAuthorities()).thenReturn(Collections.emptyList());
@@ -83,5 +93,33 @@ class ClientCredentialsTokenGranterTests {
                 .grant(TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS, tokenRequest))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Client credentials required");
+    }
+
+    static Stream<Set<String>> grantTypesWithoutClientCredentials() {
+        return Stream.of(Set.of(TokenConstants.GRANT_TYPE_PASSWORD), Collections.emptySet());
+    }
+
+    @ParameterizedTest
+    @MethodSource("grantTypesWithoutClientCredentials")
+    void grant_whenClientLacksClientCredentials_isRejected(Set<String> grantTypes) {
+        ClientDetails client = mock(ClientDetails.class);
+        when(client.getAuthorizedGrantTypes()).thenReturn(grantTypes);
+        when(clientDetailsService.loadClientByClientId(any())).thenReturn(client);
+        OAuth2Request oAuth2Request = mock(OAuth2Request.class);
+        when(requestFactory.createOAuth2Request(any(), any())).thenReturn(oAuth2Request);
+        when(oAuth2Request.getAuthorities()).thenReturn(Collections.emptyList());
+        when(tokenServices.createAccessToken(any())).thenReturn(mock(OAuth2AccessToken.class));
+
+        assertThatThrownBy(() -> clientCredentialsTokenGranter
+                .grant(TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS, tokenRequest))
+                .isInstanceOf(InvalidClientException.class)
+                .hasMessage("Unauthorized grant type");
+        verify(tokenServices, never()).createAccessToken(any());
+    }
+
+    private static ClientDetails clientCredentialsClient() {
+        ClientDetails client = mock(ClientDetails.class);
+        when(client.getAuthorizedGrantTypes()).thenReturn(Set.of(TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS));
+        return client;
     }
 }
