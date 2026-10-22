@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import java.nio.charset.StandardCharsets;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -186,9 +190,10 @@ class PasswordResetEndpointMockMvcTests {
                 .param("password_confirmation", "newpass")
                 .with(cookieCsrf());
 
-        mockMvc.perform(post)
+        MvcResult resetResult = mockMvc.perform(post)
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl(webApplicationContext.getServletContext().getContextPath() + "/login?success=password_reset&form_redirect_uri=http://localhost:8080/app/"));
+                .andReturn();
+        assertRedirectsToLoginWithSingleFormRedirectUri(resetResult.getResponse().getRedirectedUrl(), "http://localhost:8080/app/");
 
         post = post("/login.do")
                 .param("username", scimUser.getUserName())
@@ -283,6 +288,15 @@ class PasswordResetEndpointMockMvcTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.user_id").exists())
                 .andExpect(jsonPath("$.code").isNotEmpty());
+    }
+
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("/login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("password_reset");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
     }
 
     private static String getExpiringCode(MockMvc mockMvc, String clientId, String redirectUri, String loginToken, ScimUser scimUser) throws Exception {

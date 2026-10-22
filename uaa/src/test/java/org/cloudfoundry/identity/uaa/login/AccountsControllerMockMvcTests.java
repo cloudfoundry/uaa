@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
@@ -42,9 +43,11 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
+import org.springframework.web.util.UriUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -415,6 +418,11 @@ class AccountsControllerMockMvcTests {
     }
 
     @Test
+    void creatingAnAccountKeepsClientRedirectWithQueryAsOneFormRedirectParameter() throws Exception {
+        createAccount("http://redirect.uri/page?first=1&second=2#fragment", "http://redirect.uri/page?first=1&second=2#fragment");
+    }
+
+    @Test
     void creatingAnAccountWithFallbackClientRedirect() throws Exception {
         createAccount("http://redirect.uri/fallback", null);
     }
@@ -685,6 +693,15 @@ class AccountsControllerMockMvcTests {
         assertThat(result.getResponse().getContentAsString()).contains("Please agree before continuing.");
     }
 
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("/login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("password_reset");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
+    }
+
     private UaaClientDetails createTestClient() throws Exception {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(200));
@@ -720,7 +737,7 @@ class AccountsControllerMockMvcTests {
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 
         String afterReset = confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
-        assertThat(afterReset).isEqualTo("/login?success=password_reset&form_redirect_uri=" + expectedRedirectUri);
+        assertRedirectsToLoginWithSingleFormRedirectUri(afterReset, expectedRedirectUri);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
