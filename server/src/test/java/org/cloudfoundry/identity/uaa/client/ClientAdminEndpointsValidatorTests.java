@@ -230,7 +230,7 @@ class ClientAdminEndpointsValidatorTests {
         client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
         assertThatThrownBy(() ->
-                validator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+                ClientAdminEndpointsValidator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -241,7 +241,7 @@ class ClientAdminEndpointsValidatorTests {
         client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
         assertThatThrownBy(() ->
-                validator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+                ClientAdminEndpointsValidator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -254,7 +254,7 @@ class ClientAdminEndpointsValidatorTests {
         urls.add("https://valid.com/path/*/path");
         urls.add("http://sub.valid.com/*/with/path**");
         client.setRegisteredRedirectUri(urls);
-        validator.validateClientRedirectUri(client);
+        ClientAdminEndpointsValidator.validateClientRedirectUri(client);
     }
 
     private void testValidatorForInvalidURL(String url) {
@@ -268,7 +268,7 @@ class ClientAdminEndpointsValidatorTests {
 
     private void testValidatorForURL(String url) {
         client.setRegisteredRedirectUri(Collections.singleton(url));
-        validator.validateClientRedirectUri(client);
+        ClientAdminEndpointsValidator.validateClientRedirectUri(client);
     }
 
     private List<String> convertToHttps(List<String> urls) {

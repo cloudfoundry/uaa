@@ -1090,7 +1090,8 @@ Request body      *example* ::
                         "authorized_grant_types" : ["authorization_code"],
                         "scope" : ["openid"],
                         "authorities" : ["uaa.resource"],
-                        "allowedproviders" : ["uaa"]
+                        "allowedproviders" : ["uaa"],
+                        "redirect_uri" : ["https://example.com/callback"]
                     }
 
 Response body     *example* ::
@@ -1106,6 +1107,7 @@ Response body     *example* ::
                         "authorities" : ["uaa.resource"],
                         "resource_ids" : ["none"],
                         "allowedproviders" : ["uaa"],
+                        "redirect_uri" : ["https://example.com/callback"],
                         "createdwith" : "zones.write"
                     }
 
@@ -1126,7 +1128,7 @@ Fields            *Available Fields* ::
                     authorities             List<String>     Required Limited to ["uaa.resource"]
                     allowedproviders        List<String>     Required Limited to ["uaa"]
                     autoapprove             List<String>     Optional Set to ["openid"] if the UAA should auto approve this scope on the user's behalf
-                    redirect_uri            String           Optional To enforce a secure redirect, set this to the applications destination URL
+                    redirect_uri            List<String>     Optional The application's destination URLs. Required when authorized_grant_types includes authorization_code or implicit; each value must be a valid redirect URL
                     access_token_validity   int              Optional Value in seconds for how long an access token is valid for
                     refresh_token_validity  int              Optional Value in seconds for how long a refresh token is valid for
                     resource_ids            List<String>     Auto     Set to ["none"]
@@ -1138,7 +1140,7 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
 
                     curl -v -H"Authorization:Bearer $TOKEN" \
                       -XPOST -H'Content-type: application/json' \
-                      -d '{"client_id" : "limited-client",  "client_secret" : "limited-client-secret", "authorized_grant_types" : ["authorization_code"],"scope" : ["openid"],"authorities" : ["uaa.resource"], "allowedproviders" : ["uaa"]}' \
+                      -d '{"client_id" : "limited-client",  "client_secret" : "limited-client-secret", "authorized_grant_types" : ["authorization_code"],"scope" : ["openid"],"authorities" : ["uaa.resource"], "allowedproviders" : ["uaa"], "redirect_uri" : ["https://example.com/callback"]}' \
                       http://localhost:8080/uaa/identity-zones/testzone1/clients
 
 ================  ====================================================================================================================================================

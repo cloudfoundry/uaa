@@ -199,7 +199,7 @@ class IdentityZoneEndpointsIntegrationTests {
                 id);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        UaaClientDetails clientDetails = new UaaClientDetails("test123", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails("test123", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost:8080/callback");
         clientDetails.setClientSecret("testSecret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singleton(OriginKeys.UAA));
 
