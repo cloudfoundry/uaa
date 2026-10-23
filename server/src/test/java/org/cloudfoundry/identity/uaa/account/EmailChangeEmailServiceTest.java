@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.account.EmailChangeEmailService.CHANGE_EMAIL_REDIRECT_URL;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
@@ -54,6 +55,7 @@ import static org.mockito.Mockito.contains;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -153,7 +155,10 @@ class EmailChangeEmailServiceTest {
                 eq(zoneId))
         ).thenReturn(Collections.singletonList(new ScimUser()));
 
-        assertThatThrownBy(() -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
+        assertThatCode(() -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null)).doesNotThrowAnyException();
+
+        verify(mockEmailService).sendMessage(eq("new@example.com"), any(MessageType.class), anyString(), anyString());
+        verify(mockExpiringCodeStore, never()).generateCode(anyString(), any(Timestamp.class), anyString(), anyString());
     }
 
     @Test

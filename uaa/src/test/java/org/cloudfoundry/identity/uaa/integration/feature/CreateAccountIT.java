@@ -87,7 +87,7 @@ class CreateAccountIT {
         assertThat(body).contains("Activate your account");
 
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Create your account");
-        assertThat(webDriver.findElement(By.cssSelector(".instructions-sent")).getText()).isEqualTo("Please check email for an activation link.");
+        assertThat(webDriver.findElement(By.cssSelector(".instructions-sent")).getText()).isEqualTo("Please check " + userEmail + " for an activation link.");
 
         String link = testClient.extractLink(body);
         assertThat(link).isNotEmpty()
@@ -164,7 +164,7 @@ class CreateAccountIT {
         assertThat(message.getHeader("To")[0]).isEqualTo(userEmail);
         assertThat(GreenMailUtil.getBody(message)).contains("Activate your account");
 
-        assertThat(webDriver.findElement(By.cssSelector(".instructions-sent")).getText()).isEqualTo("Please check email for an activation link.");
+        assertThat(webDriver.findElement(By.cssSelector(".instructions-sent")).getText()).isEqualTo("Please check " + userEmail + " for an activation link.");
 
         String link = testClient.extractLink(GreenMailUtil.getBody(message));
         assertThat(link).isNotEmpty();

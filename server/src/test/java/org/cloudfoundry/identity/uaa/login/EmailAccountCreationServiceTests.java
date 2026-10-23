@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
@@ -49,6 +48,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
@@ -60,6 +60,7 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -211,8 +212,19 @@ class EmailAccountCreationServiceTests {
                 eq(currentIdentityZoneId))
         ).thenReturn(Collections.singletonList(user));
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        when(mockIdentityZone.getName()).thenReturn("something");
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
 
-        assertThatThrownBy(() -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
+        assertThatCode(() -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null)).doesNotThrowAnyException();
+
+        verify(mockMessageService).sendMessage(
+                eq("user@example.com"),
+                any(MessageType.class),
+                anyString(),
+                anyString()
+        );
+        verify(mockCodeStore, never()).generateCode(anyString(), any(Timestamp.class), anyString(), anyString());
     }
 
     @Test
