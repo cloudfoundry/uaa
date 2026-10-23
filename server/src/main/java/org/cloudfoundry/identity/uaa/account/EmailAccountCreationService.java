@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -88,7 +87,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (!users.isEmpty()) {
                 if (users.getFirst().isVerified()) {
-                    throw new UaaException("User already active.", HttpStatus.CONFLICT.value());
+                    messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, buildAccountExistsSubjectText(), getAccountExistsEmailHtml(email));
                 } else {
                     generateAndSendCode(email, clientId, subject, users.getFirst().getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
                 }
@@ -209,6 +208,23 @@ public class EmailAccountCreationService implements AccountCreationService {
         } else {
             return "Activate your account";
         }
+    }
+
+    private String buildAccountExistsSubjectText() {
+        return "You already have an account";
+    }
+
+    private String getAccountExistsEmailHtml(String email) {
+        IdentityZone currentIdentityZone = identityZoneManager.getCurrentIdentityZone();
+        final Context ctx = new Context();
+        String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
+        if (currentIdentityZone.isUaa()) {
+            ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
+        } else {
+            ctx.setVariable("serviceName", currentIdentityZone.getName());
+        }
+        ctx.setVariable("email", email);
+        return templateEngine.process("account_exists", ctx);
     }
 
     private String getEmailHtml(String code, String email, IdentityZone currentIdentityZone) {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head lang="en">
+    <meta charset="UTF-8" />
+</head>
+<body>
+<p>
+    A request has been made to use <th:block th:text="${email}">user@example.com</th:block> for a <th:block th:text="${serviceName}">ExampleService </th:block> account.
+</p>
+<p>
+    This email address already has an account, so no new account was created and your account has not changed.
+    You can sign in with your existing password, or use the forgot password link on the sign in page if you do not remember it.
+</p>
+<p>
+    If you did not make this request, simply ignore this message.
+</p>
+<p>
+    Thank you,<br />
+    <th:block th:text="${serviceName}">The Administration</th:block>
+</p>
+</body>
+</html>
