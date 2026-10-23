@@ -35,7 +35,6 @@ import org.thymeleaf.context.Context;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import java.sql.Timestamp;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.account.UaaResetPasswordService.FORGOT_PASSWORD_INTENT_PREFIX;
@@ -179,15 +178,14 @@ public class ResetPasswordController {
             @RequestParam("code") String code,
             @RequestParam(value = "force_change", required = false) boolean forceChange) {
 
-        ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZone().getId()));
+        ExpiringCode expiringCode = checkIfUserExists(codeStore.peekCode(code, identityZoneManager.getCurrentIdentityZone().getId()));
         if (expiringCode == null) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } else {
             PasswordChange passwordChange = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
             String userId = passwordChange.getUserId();
             UaaUser uaaUser = userDatabase.retrieveUserById(userId);
-            String newCode = codeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), identityZoneManager.getCurrentIdentityZoneId()).getCode();
-            model.addAttribute("code", newCode);
+            model.addAttribute("code", expiringCode.getCode());
             model.addAttribute("email", uaaUser.getEmail());
             model.addAttribute("username", uaaUser.getUsername());
             if (forceChange) {
