@@ -121,6 +121,10 @@ public interface WindowType {
         }
     }
 
-    WindowType[] ALL_WINDOW_TYPES = {NON_GLOBAL.CredentialsID, NON_GLOBAL.RemoteAddressID, NON_GLOBAL.NoID, GLOBAL};
+    // Built on demand (not a constant): an interface constant referencing implementing enum values is null
+    // when NON_GLOBAL is initialized first (class-initialization cycle), which made results order-dependent.
+    static WindowType[] allWindowTypes() {
+        return new WindowType[]{NON_GLOBAL.CredentialsID, NON_GLOBAL.RemoteAddressID, NON_GLOBAL.NoID, GLOBAL};
+    }
 }
 
