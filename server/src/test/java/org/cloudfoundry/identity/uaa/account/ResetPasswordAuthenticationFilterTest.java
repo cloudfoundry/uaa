@@ -182,6 +182,36 @@ class ResetPasswordAuthenticationFilterTest {
     }
 
     @Test
+    void rejected_password_does_not_extend_the_code_lifetime() throws Exception {
+        when(service.resetPassword(any(ExpiringCode.class), anyString())).thenThrow(new InvalidPasswordException("failed", HttpStatus.BAD_REQUEST));
+
+        assertThat(codeLifetimeAfterFailedSubmit(false)).isNotNull();
+    }
+
+    @Test
+    void mismatched_confirmation_does_not_extend_the_code_lifetime() throws Exception {
+        assertThat(codeLifetimeAfterFailedSubmit(true)).isNotNull();
+    }
+
+    private ExpiringCode codeLifetimeAfterFailedSubmit(boolean mismatchedConfirmation) throws Exception {
+        var store = new InMemoryExpiringCodeStore(new TimeServiceImpl());
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60_000);
+        var code = store.generateCode("{}", expiresAt, "forgot_password_for_id:id", IdentityZoneHolder.get().getId()).getCode();
+        var submit = MockMvcRequestBuilders.post("/reset_password.do")
+                .param("code", code)
+                .param("password", password)
+                .param("password_confirmation", mismatchedConfirmation ? "different" : password)
+                .param("email", email)
+                .buildRequest(new MockServletContext());
+
+        new ResetPasswordAuthenticationFilter(service, entryPoint, store).doFilterInternal(submit, response, chain);
+
+        ExpiringCode renewed = store.peekCode((String) submit.getAttribute("code"), IdentityZoneHolder.get().getId());
+        assertThat(renewed.getExpiresAt()).isBeforeOrEqualTo(expiresAt);
+        return renewed;
+    }
+
+    @Test
     void invalid_code_password_reset() throws Exception {
         request.setParameter("code", "invalid");
         error_during_password_reset(InvalidCodeException.class);
