@@ -22,16 +22,17 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpSession;
 import java.util.Date;
 import java.util.stream.Stream;
 
@@ -262,6 +263,39 @@ class ForcePasswordChangeControllerMockMvcTest {
         mockMvc.perform(validPost)
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/force_password_change", "/force_password_change/"})
+    void submit_password_change_when_no_change_is_pending(String path) throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(post("/login.do")
+                        .param("username", user.getUserName())
+                        .param("password", "secret")
+                        .session(session)
+                        .with(cookieCsrf())
+                        .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/"));
+        assertThat(SessionUtils.isPasswordChangeRequired(MockMvcUtils.getZoneSession(session))).isFalse();
+
+        MvcResult submitResult = mockMvc.perform(post(path)
+                        .param("password", "test")
+                        .param("password_confirmation", "test")
+                        .session(session)
+                        .with(cookieCsrf()))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        mockMvc.perform(post("/login.do")
+                        .param("username", user.getUserName())
+                        .param("password", "secret")
+                        .session(new MockHttpSession())
+                        .with(cookieCsrf())
+                        .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/"));
+        assertThat(submitResult.getResponse().getRedirectedUrl()).isEqualTo("/");
     }
 
     static class PasswordPolicyWithInvalidPassword {

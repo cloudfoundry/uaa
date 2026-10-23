@@ -8,6 +8,9 @@ import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,8 +23,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -72,7 +77,7 @@ class CodeStoreEndpointsTests {
     @Test
     void generateCode() {
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, "EMAIL");
 
         ExpiringCode result = codeStoreEndpoints.generateCode(expiringCode);
 
@@ -85,45 +90,72 @@ class CodeStoreEndpointsTests {
 
         assertThat(result.getData()).isEqualTo(EMPTY_JSON);
 
-        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, null, currentIdentityZoneId);
+        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, "EMAIL", currentIdentityZoneId);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"EMAIL", "INVITATION", "REGISTRATION", "email", "my-application-code"})
+    void generateCodeStoresGivenIntent(String intent) {
+        Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, intent);
+
+        ExpiringCode result = codeStoreEndpoints.generateCode(expiringCode);
+
+        assertThat(result.getIntent()).isEqualTo(intent);
+        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, intent, currentIdentityZoneId);
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "  "})
+    void generateCodeWithoutIntent(String intent) {
+        Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, intent);
+
+        assertThatThrownBy(() -> codeStoreEndpoints.generateCode(expiringCode))
+                .isInstanceOf(CodeStoreException.class)
+                .hasMessage("intent is required. Known intents: EMAIL, INVITATION, REGISTRATION; custom values are accepted.")
+                .extracting("status")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(spiedExpiringCodeStore, never()).generateCode(any(), any(), any(), any());
     }
 
     @Test
     void generateCodeWithNullData() {
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, null, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, null, "EMAIL");
 
         assertThatThrownBy(() -> codeStoreEndpoints.generateCode(expiringCode))
                 .isInstanceOf(CodeStoreException.class)
                 .hasMessage("data and expiresAt are required.")
                 .extracting("status")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
-        verify(spiedExpiringCodeStore).generateCode(null, expiresAt, null, currentIdentityZoneId);
+        verify(spiedExpiringCodeStore).generateCode(null, expiresAt, "EMAIL", currentIdentityZoneId);
     }
 
     @Test
     void generateCodeWithNullExpiresAt() {
-        ExpiringCode expiringCode = new ExpiringCode(null, null, EMPTY_JSON, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, null, EMPTY_JSON, "EMAIL");
 
         assertThatThrownBy(() -> codeStoreEndpoints.generateCode(expiringCode))
                 .isInstanceOf(CodeStoreException.class)
                 .hasMessage("data and expiresAt are required.")
                 .extracting("status")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
-        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, null, null, currentIdentityZoneId);
+        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, null, "EMAIL", currentIdentityZoneId);
     }
 
     @Test
     void generateCodeWithExpiresAtInThePast() {
         Timestamp expiresAt = new Timestamp(currentTime.get() - 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, "EMAIL");
 
         assertThatThrownBy(() -> codeStoreEndpoints.generateCode(expiringCode))
                 .isInstanceOf(CodeStoreException.class)
                 .hasMessage("expiresAt must be in the future.")
                 .extracting("status")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
-        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, null, currentIdentityZoneId);
+        verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, "EMAIL", currentIdentityZoneId);
     }
 
     @Test
@@ -133,7 +165,7 @@ class CodeStoreEndpointsTests {
         spiedExpiringCodeStore.setGenerator(generator);
 
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, "EMAIL");
 
         assertThatNoException().isThrownBy(() -> codeStoreEndpoints.generateCode(expiringCode));
 
@@ -143,13 +175,13 @@ class CodeStoreEndpointsTests {
                 .extracting("status")
                 .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         verify(spiedExpiringCodeStore, times(2))
-                .generateCode(EMPTY_JSON, expiresAt, null, currentIdentityZoneId);
+                .generateCode(EMPTY_JSON, expiresAt, "EMAIL", currentIdentityZoneId);
     }
 
     @Test
     void retrieveCode() {
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, "EMAIL");
         ExpiringCode generatedCode = codeStoreEndpoints.generateCode(expiringCode);
 
         String code = generatedCode.getCode();
@@ -163,7 +195,7 @@ class CodeStoreEndpointsTests {
                 .isEqualTo(HttpStatus.NOT_FOUND);
 
         InOrder inOrder = inOrder(spiedExpiringCodeStore);
-        inOrder.verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, null, currentIdentityZoneId);
+        inOrder.verify(spiedExpiringCodeStore).generateCode(EMPTY_JSON, expiresAt, "EMAIL", currentIdentityZoneId);
         inOrder.verify(spiedExpiringCodeStore).retrieveCode(code, currentIdentityZoneId);
     }
 
@@ -193,7 +225,7 @@ class CodeStoreEndpointsTests {
         Arrays.fill(oneMb, 'a');
         String data = new String(oneMb);
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, data, "EMAIL");
 
         ExpiringCode generatedCode = codeStoreEndpoints.generateCode(expiringCode);
 
@@ -202,7 +234,7 @@ class CodeStoreEndpointsTests {
 
         assertThat(actualCode).isEqualTo(generatedCode);
         InOrder inOrder = inOrder(spiedExpiringCodeStore);
-        inOrder.verify(spiedExpiringCodeStore).generateCode(data, expiresAt, null, currentIdentityZoneId);
+        inOrder.verify(spiedExpiringCodeStore).generateCode(data, expiresAt, "EMAIL", currentIdentityZoneId);
         inOrder.verify(spiedExpiringCodeStore).retrieveCode(code, currentIdentityZoneId);
     }
 
@@ -210,7 +242,7 @@ class CodeStoreEndpointsTests {
     void retrieveCodeWithExpiredCode() {
         int expiresIn = 1000;
         Timestamp expiresAt = new Timestamp(currentTime.get() + expiresIn);
-        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, null);
+        ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, EMPTY_JSON, "EMAIL");
 
         ExpiringCode generatedCode = codeStoreEndpoints.generateCode(expiringCode);
         currentTime.addAndGet(expiresIn + 1);

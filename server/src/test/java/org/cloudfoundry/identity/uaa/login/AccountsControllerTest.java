@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.AccountsController;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -48,6 +47,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -116,6 +116,20 @@ class AccountsControllerTest {
     }
 
     @Test
+    void sendActivationEmailKeepsTheEmailForTheConfirmationPage() throws Exception {
+        MockHttpServletRequestBuilder post = post("/create_account.do")
+                .param("email", "user1@example.com")
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("client_id", "app");
+
+        mockMvc.perform(post)
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"))
+                .andExpect(flash().attribute("email", "user1@example.com"));
+    }
+
+    @Test
     void attemptCreateAccountWithEmailDomainRestriction() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder post = post("/create_account.do")
@@ -138,9 +152,7 @@ class AccountsControllerTest {
     }
 
     @Test
-    void sendActivationEmailWithUserNameConflict() throws Exception {
-        doThrow(new UaaException("username already exists", 409)).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
-
+    void sendActivationEmailForAnExistingAccountRedirectsLikeANewAddress() throws Exception {
         MockHttpServletRequestBuilder post = post("/create_account.do")
                 .param("email", "user1@example.com")
                 .param("password", "password")
@@ -148,9 +160,9 @@ class AccountsControllerTest {
                 .param("client_id", "app");
 
         mockMvc.perform(post)
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(view().name("accounts/new_activation_email"))
-                .andExpect(model().attribute("error_message_code", "username_exists"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"))
+                .andExpect(model().attributeDoesNotExist("error_message_code"));
 
         Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
     }
@@ -203,30 +215,32 @@ class AccountsControllerTest {
 
     @Test
     void verifyUser() throws Exception {
-        when(accountCreationService.completeActivation("the_secret_code"))
-                .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
+        AccountCreationService.AccountCreationResponse response = new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback");
+        response.setPasswordResetCode("the_reset_code");
+        when(accountCreationService.completeActivation("the_secret_code")).thenReturn(response);
 
         MockHttpServletRequestBuilder get = get("/verify_user")
                 .param("code", "the_secret_code");
 
         mockMvc.perform(get)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?success=verify_success&form_redirect_uri=//example.com/callback"));
+                .andExpect(redirectedUrl("/reset_password?code=the_reset_code&force_change=true"));
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
     @Test
     void verifyUserWithPriorHeadRequest() throws Exception {
-        when(accountCreationService.completeActivation("the_secret_code"))
-                .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
+        AccountCreationService.AccountCreationResponse response = new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback");
+        response.setPasswordResetCode("the_reset_code");
+        when(accountCreationService.completeActivation("the_secret_code")).thenReturn(response);
 
         mockMvc.perform(head("/verify_user").param("code", "the_secret_code"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
         mockMvc.perform(get("/verify_user").param("code", "the_secret_code"))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?success=verify_success&form_redirect_uri=//example.com/callback"));
+                .andExpect(redirectedUrl("/reset_password?code=the_reset_code&force_change=true"));
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         Mockito.verify(accountCreationService, times(1)).completeActivation("the_secret_code");

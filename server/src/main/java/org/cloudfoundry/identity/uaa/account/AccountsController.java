@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -65,7 +66,8 @@ public class AccountsController {
                                       @Valid @ModelAttribute ValidEmail email, BindingResult result,
                                       @RequestParam String password,
                                       @RequestParam("password_confirmation") String passwordConfirmation,
-                                      @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent) {
+                                      @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
+                                      RedirectAttributes redirectAttributes) {
 
         BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
         if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
@@ -95,6 +97,7 @@ public class AccountsController {
         } catch (InvalidPasswordException e) {
             return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString());
         }
+        redirectAttributes.addFlashAttribute("email", email.getEmail());
         return "redirect:accounts/email_sent";
     }
 
@@ -124,12 +127,10 @@ public class AccountsController {
             return "accounts/link_prompt";
         }
 
-        String redirectLocation = accountCreation.getRedirectLocation();
-        String res = "redirect:/login?success=verify_success";
-        if (!redirectLocation.equals(accountCreationService.getDefaultRedirect())) {
-            res += "&form_redirect_uri=" + redirectLocation;
-        }
-        return res;
+        // Confirmation establishes email ownership but leaves the account without a usable
+        // password. Send the owner to the reset-password page to set their own password; any
+        // client redirect is carried by the reset code and applied once the password is set.
+        return "redirect:/reset_password?code=" + accountCreation.getPasswordResetCode() + "&force_change=true";
     }
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {

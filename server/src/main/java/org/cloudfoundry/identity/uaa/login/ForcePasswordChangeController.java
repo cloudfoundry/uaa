@@ -45,6 +45,9 @@ public class ForcePasswordChangeController {
             @RequestParam("password_confirmation") String passwordConfirmation,
             HttpServletRequest request,
             HttpServletResponse response, HttpSession httpSession) {
+        if (!SessionUtils.isPasswordChangeRequired(httpSession)) {
+            return "redirect:/";
+        }
         SecurityContext securityContext = SecurityContextHolder.getContext();
         UaaAuthentication authentication = (UaaAuthentication) securityContext.getAuthentication();
         UaaPrincipal principal = authentication.getPrincipal();

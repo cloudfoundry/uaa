@@ -433,6 +433,50 @@ class InvitationsEndpointMockMvcTests {
     }
 
     @Test
+    void inviteVerifiedUser_isReportedAsFailedInviteWithoutUserIdOrLink(@Autowired JdbcTemplate jdbcTemplate) throws Exception {
+        String email = "verified-" + generator.generate().toLowerCase() + "@" + emailDomain;
+        sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, scimInviteToken, null, clientId, "example.com", email);
+        jdbcTemplate.update("UPDATE users SET verified = ? WHERE username = ?", true, email);
+        int codesBefore = jdbcTemplate.queryForObject("SELECT count(*) FROM expiring_code_store", Integer.class);
+
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                webApplicationContext, mockMvc, scimInviteToken, null, clientId, "example.com", email);
+
+        assertThat(response.getNewInvites()).isEmpty();
+        assertThat(response.getFailedInvites()).hasSize(1);
+        InvitationsResponse.Invitee failed = response.getFailedInvites().getFirst();
+        assertThat(failed.getEmail()).isEqualTo(email);
+        assertThat(failed.isSuccess()).isFalse();
+        assertThat(failed.getErrorCode()).isEqualTo("user.already-verified");
+        assertThat(failed.getErrorMessage()).isEqualTo("The user is already verified.");
+        assertThat(failed.getUserId()).isNull();
+        assertThat(failed.getInviteLink()).isNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM expiring_code_store", Integer.class)).isEqualTo(codesBefore);
+
+        jdbcTemplate.update("DELETE FROM users WHERE username = ?", email);
+    }
+
+    @Test
+    void inviteBatch_verifiedUserFailsWhileOthersStillGetLinks(@Autowired JdbcTemplate jdbcTemplate) throws Exception {
+        String verifiedEmail = "verified-" + generator.generate().toLowerCase() + "@" + emailDomain;
+        String unverifiedEmail = "unverified-" + generator.generate().toLowerCase() + "@" + emailDomain;
+        String newEmail = "new-" + generator.generate().toLowerCase() + "@" + emailDomain;
+        sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, scimInviteToken, null, clientId, "example.com", verifiedEmail, unverifiedEmail);
+        jdbcTemplate.update("UPDATE users SET verified = ? WHERE username = ?", true, verifiedEmail);
+
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                webApplicationContext, mockMvc, scimInviteToken, null, clientId, "example.com", verifiedEmail, unverifiedEmail, newEmail);
+
+        assertThat(response.getNewInvites()).extracting(InvitationsResponse.Invitee::getEmail)
+                .containsExactlyInAnyOrder(unverifiedEmail, newEmail);
+        assertThat(response.getNewInvites()).allSatisfy(invitee -> assertThat(invitee.getInviteLink()).isNotNull());
+        assertThat(response.getFailedInvites()).extracting(InvitationsResponse.Invitee::getEmail).containsExactly(verifiedEmail);
+        assertThat(response.getFailedInvites().getFirst().getErrorCode()).isEqualTo("user.already-verified");
+
+        jdbcTemplate.update("DELETE FROM users WHERE username IN (?, ?, ?)", verifiedEmail, unverifiedEmail, newEmail);
+    }
+
+    @Test
     void acceptInvitationEmailWithDefaultCompanyName() throws Exception {
         MvcResult mvcResult = mockMvc.perform(get(getAcceptInvitationLink(webApplicationContext, mockMvc, clientId, clientSecret, generator, emailDomain, null, "admin", "adminsecret")))
                 .andReturn();

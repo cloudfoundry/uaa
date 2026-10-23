@@ -3,10 +3,11 @@ package org.cloudfoundry.identity.uaa.login;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
+import org.cloudfoundry.identity.uaa.account.ForgotPasswordInfo;
+import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -46,15 +48,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,6 +78,7 @@ class EmailAccountCreationServiceTests {
     private MultitenantClientServices mockClientDetailsService;
     private ClientDetails mockClientDetails;
     private PasswordValidator mockPasswordValidator;
+    private ResetPasswordService mockResetPasswordService;
     private IdentityZoneManager mockIdentityZoneManager;
     private ScimUser user;
     private ExpiringCode code;
@@ -91,6 +98,7 @@ class EmailAccountCreationServiceTests {
         mockClientDetailsService = mock(MultitenantClientServices.class);
         mockClientDetails = mock(ClientDetails.class);
         mockPasswordValidator = mock(PasswordValidator.class);
+        mockResetPasswordService = mock(ResetPasswordService.class);
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         emailAccountCreationService = initEmailAccountCreationService();
 
@@ -104,6 +112,10 @@ class EmailAccountCreationServiceTests {
         currentIdentityZoneId = "zoneId" + randomValueStringGenerator.generate();
 
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
+
+        ExpiringCode resetCode = new ExpiringCode("reset_password_code", new Timestamp(System.currentTimeMillis()), "{}", "forgot_password_for_id:newly-created-user-id");
+        when(mockResetPasswordService.forgotPassword(anyString(), any(), any()))
+                .thenReturn(new ForgotPasswordInfo("newly-created-user-id", "user@example.com", resetCode));
     }
 
     private EmailAccountCreationService initEmailAccountCreationService() {
@@ -114,6 +126,7 @@ class EmailAccountCreationServiceTests {
                 mockScimUserProvisioning,
                 mockClientDetailsService,
                 mockPasswordValidator,
+                mockResetPasswordService,
                 mockIdentityZoneManager
         );
     }
@@ -199,8 +212,19 @@ class EmailAccountCreationServiceTests {
                 eq(currentIdentityZoneId))
         ).thenReturn(Collections.singletonList(user));
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        when(mockIdentityZone.getName()).thenReturn("something");
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
 
-        assertThatThrownBy(() -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
+        assertThatCode(() -> emailAccountCreationService.beginActivation("user@example.com", "password", "login", null)).doesNotThrowAnyException();
+
+        verify(mockMessageService).sendMessage(
+                eq("user@example.com"),
+                any(MessageType.class),
+                anyString(),
+                anyString()
+        );
+        verify(mockCodeStore, never()).generateCode(anyString(), any(Timestamp.class), anyString(), anyString());
     }
 
     @Test
@@ -256,6 +280,33 @@ class EmailAccountCreationServiceTests {
         assertThat(accountCreation.getUserId()).isEqualTo("newly-created-user-id");
 
         assertThat(accountCreation.getUserId()).isNotNull();
+    }
+
+    @Test
+    void completeActivationDiscardsRegistrationPasswordAndRequiresPasswordReset() {
+        setUpForSuccess("");
+        when(mockCodeStore.retrieveCode("the_secret_code", currentIdentityZoneId)).thenReturn(code);
+        when(mockScimUserProvisioning.retrieve(anyString(), eq(currentIdentityZoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(currentIdentityZoneId))).thenReturn(user);
+        when(mockClientDetailsService.loadClientByClientId(anyString(), anyString())).thenReturn(mockClientDetails);
+
+        AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
+
+        // The password supplied on the registration form must be discarded (replaced with a value
+        // that is not it) and the change-required flag set while the account is still unverified,
+        // and the account must be verified last. Verifying first would briefly leave the account
+        // verified while still accepting the registration password.
+        ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
+        InOrder inOrder = inOrder(mockScimUserProvisioning);
+        inOrder.verify(mockScimUserProvisioning).changePassword(eq("newly-created-user-id"), isNull(), passwordCaptor.capture(), eq(currentIdentityZoneId));
+        inOrder.verify(mockScimUserProvisioning).updatePasswordChangeRequired("newly-created-user-id", true, currentIdentityZoneId);
+        inOrder.verify(mockScimUserProvisioning).verifyUser(eq("newly-created-user-id"), anyInt(), eq(currentIdentityZoneId));
+        assertThat(passwordCaptor.getValue()).isNotEqualTo("password");
+
+        // An ownership-bound reset code must be issued so the confirming owner can set their own
+        // password through the link.
+        verify(mockResetPasswordService).forgotPassword(eq("user@example.com"), anyString(), anyString());
+        assertThat(accountCreation.getPasswordResetCode()).isEqualTo("reset_password_code");
     }
 
     @Test

@@ -249,6 +249,48 @@ class InvitationsEndpointMockMvcZonePathTests {
         assertResponseAndCodeCorrect(expiringCodeStore, new String[]{email}, redirectUrl, mode, zoneResult.getIdentityZone(), response, zonedClientDetails);
     }
 
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void inviteVerifiedUserWithinZone_isReportedAsFailedInviteWithoutUserIdOrLink(ZoneResolutionMode mode, @Autowired JdbcTemplate jdbcTemplate) throws Exception {
+        String subdomain = generator.generate().toLowerCase();
+        UaaClientDetails adminClient = new UaaClientDetails("admin", null, null, "client_credentials",
+                "clients.admin,scim.read,scim.write,idps.write,uaa.admin", "http://redirect.url");
+        adminClient.setClientSecret("admin-secret");
+        IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, adminClient, IdentityZoneHolder.getCurrentZoneId());
+        String zonedClientId = generator.generate().toLowerCase();
+        String zonedClientSecret = generator.generate().toLowerCase();
+        MockMvcUtils.createClient(mockMvc, zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret,
+                Collections.singleton("oauth"), Arrays.asList("scim.read", "scim.invite"), Arrays.asList("client_credentials", "password"),
+                "scim.read,scim.invite", Collections.singleton("http://redirect.url"), zoneResult.getIdentityZone());
+        String userToken = MockMvcUtils.getScimInviteUserToken(mockMvc, zonedClientId, zonedClientSecret, zoneResult.getIdentityZone(), "admin", "admin-secret");
+        String email = "verified@example.com";
+
+        InvitationsResponse first = inviteWithinZone(mode, subdomain, zonedClientId, userToken, email);
+        assertThat(first.getNewInvites()).hasSize(1);
+        jdbcTemplate.update("UPDATE users SET verified = ? WHERE username = ? AND identity_zone_id = ?", true, email, zoneResult.getIdentityZone().getId());
+
+        InvitationsResponse response = inviteWithinZone(mode, subdomain, zonedClientId, userToken, email);
+
+        assertThat(response.getNewInvites()).isEmpty();
+        assertThat(response.getFailedInvites()).hasSize(1);
+        InvitationsResponse.Invitee failed = response.getFailedInvites().getFirst();
+        assertThat(failed.getErrorCode()).isEqualTo("user.already-verified");
+        assertThat(failed.getErrorMessage()).isEqualTo("The user is already verified.");
+        assertThat(failed.getUserId()).isNull();
+        assertThat(failed.getInviteLink()).isNull();
+    }
+
+    private InvitationsResponse inviteWithinZone(ZoneResolutionMode mode, String subdomain, String zonedClientId, String userToken, String email) throws Exception {
+        MockHttpServletRequestBuilder post = mode.createRequestBuilder(subdomain, HttpMethod.POST, "/invite_users")
+                .param(OAuth2Utils.CLIENT_ID, zonedClientId)
+                .param(OAuth2Utils.REDIRECT_URI, "example.com")
+                .header("Authorization", "Bearer " + userToken)
+                .contentType(APPLICATION_JSON)
+                .content(writeValueAsString(new InvitationsRequest(new String[]{email})));
+        MvcResult mvcResult = mockMvc.perform(post).andExpect(status().isOk()).andReturn();
+        return readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
+    }
+
     @Nested
     @DefaultTestContext
     @TestPropertySource(

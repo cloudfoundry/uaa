@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
+import java.nio.charset.StandardCharsets;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -48,6 +49,9 @@ import org.springframework.web.context.WebApplicationContext;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -350,8 +354,8 @@ public class InvitationsServiceMockMvcTests {
                         post
                 )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=" + REDIRECT_URI))
                 .andReturn();
+        assertRedirectsToLoginWithSingleFormRedirectUri(result.getResponse().getRedirectedUrl(), REDIRECT_URI);
 
         assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should be verified after password reset").isTrue();
 
@@ -363,6 +367,42 @@ public class InvitationsServiceMockMvcTests {
                 )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void acceptInvitationKeepsRedirectUrlWithQueryAsOneFormRedirectParameter() throws Exception {
+        String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.admin clients.read clients.write clients.secret scim.read scim.write", null);
+        String patternClientId = generator.generate().toLowerCase();
+        String patternClientSecret = generator.generate().toLowerCase();
+        MockMvcUtils.createClient(this.mockMvc, adminToken, patternClientId, patternClientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read", "scim.invite"), Arrays.asList("client_credentials", "password"), "scim.read,scim.invite", Collections.singleton(REDIRECT_URI + "/**"), IdentityZone.getUaa());
+        String patternInviteToken = MockMvcUtils.getScimInviteUserToken(mockMvc, patternClientId, patternClientSecret, null, "admin", "adminsecret");
+        String redirectUri = REDIRECT_URI + "/page?first=1&second=2#fragment";
+
+        String email = generator.generate().toLowerCase() + "@test.org";
+        URL inviteLink = MockMvcUtils.inviteUser(webApplicationContext, mockMvc, email, patternInviteToken, null, patternClientId, OriginKeys.UAA, redirectUri);
+
+        String code = extractInvitationCode(inviteLink.toString());
+        MvcResult result = mockMvc.perform(get("/invitations/accept")
+                        .param("code", code)
+                        .accept(MediaType.TEXT_HTML))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        code = jdbcTemplate.queryForObject("SELECT code FROM expiring_code_store", String.class);
+        MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        MockHttpServletRequestBuilder post = post("/invitations/accept.do")
+                .param("password", "s3cret")
+                .param("password_confirmation", "s3cret")
+                .param("code", code)
+                .with(cookieCsrf());
+        if (session != null) {
+            post = post.session(session);
+        }
+        result = mockMvc.perform(post)
+                .andExpect(status().isFound())
+                .andReturn();
+
+        assertRedirectsToLoginWithSingleFormRedirectUri(result.getResponse().getRedirectedUrl(), redirectUri);
     }
 
     @Test
@@ -423,6 +463,15 @@ public class InvitationsServiceMockMvcTests {
 
         assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(provider.getOriginKey());
         assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("Saml user should not yet be verified after clicking on the accept link").isFalse();
+    }
+
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("/login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("invite_accepted");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
     }
 
     private static <T> T queryUserForField(JdbcTemplate jdbcTemplate, String email, String field, Class<T> type) {

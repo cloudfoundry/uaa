@@ -1618,6 +1618,12 @@ public class IntegrationTestUtils {
             throw new RuntimeException(e);
         }
 
+        // Confirming the account now lands on a forced password-set page; the owner must establish
+        // their password through the link before the account can be used to log in.
+        webDriver.findElement(By.name("password")).sendKeys(password);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(password);
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
+
         return userEmail;
     }
 

@@ -103,6 +103,10 @@ public class InvitationsEndpoint {
                     if (providers.size() == 1) {
                         FindResult findResult = findOrCreateUser(email, providers.getFirst().getOriginKey());
                         ScimUser user = findResult.user();
+                        if (user.isVerified()) {
+                            invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "user.already-verified", "The user is already verified."));
+                            continue;
+                        }
                         String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", !IdentityZoneHolder.isUaa(), IdentityZoneHolder.get());
 
                         Map<String, String> data = new HashMap<>();
