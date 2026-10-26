@@ -25,6 +25,10 @@ public class TokenValidityResolver {
     }
 
     public Date resolve(String clientId) {
+        return resolve(clientId, timeService.getCurrentTimeMillis());
+    }
+
+    public Date resolve(String clientId, long nowMillis) {
         Integer tokenValiditySeconds = ofNullable(
                 clientTokenValidity.getValiditySeconds(clientId)
         ).orElse(
@@ -35,7 +39,7 @@ public class TokenValidityResolver {
             tokenValiditySeconds = globalTokenValiditySeconds;
         }
 
-        return Date.from(Instant.ofEpochMilli(timeService.getCurrentTimeMillis()).plusSeconds(tokenValiditySeconds));
+        return Date.from(Instant.ofEpochMilli(nowMillis).plusSeconds(tokenValiditySeconds));
     }
 
     /**
@@ -48,6 +52,10 @@ public class TokenValidityResolver {
      * @return the effective expiration date
      */
     public Date resolve(String clientId, RefreshTokenRequestData requestData) {
-        return resolve(clientId);
+        return resolve(clientId, requestData, timeService.getCurrentTimeMillis());
+    }
+
+    public Date resolve(String clientId, RefreshTokenRequestData requestData, long nowMillis) {
+        return resolve(clientId, nowMillis);
     }
 }

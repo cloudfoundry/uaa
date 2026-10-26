@@ -39,6 +39,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_TOKEN_EXCHANGE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -49,7 +50,7 @@ class RefreshTokenCreatorTest {
     @BeforeEach
     void setup() throws Exception {
         TokenValidityResolver validityResolver = mock(TokenValidityResolver.class);
-        when(validityResolver.resolve(eq("someclient"), any())).thenReturn(new Date());
+        when(validityResolver.resolve(eq("someclient"), any(), anyLong())).thenReturn(new Date(System.currentTimeMillis() + 60_000));
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost");
         refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, new TimeServiceImpl(), new KeyInfoService("http://localhost"));
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
@@ -93,7 +94,7 @@ class RefreshTokenCreatorTest {
                 Sets.newHashSet("urn:oasis:names:tc:SAML:2.0:ac:classes:Password"),
                 Maps.newHashMap());
 
-        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
+        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef", System.currentTimeMillis());
 
         Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class);
         assertThat(refreshClaims).containsEntry(AUTH_TIME, 1L);
@@ -128,7 +129,7 @@ class RefreshTokenCreatorTest {
                 Sets.newHashSet(),
                 Maps.newHashMap());
 
-        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
+        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef", System.currentTimeMillis());
 
         Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class);
         assertThat(refreshClaims).doesNotContainKey(AUTH_TIME)
@@ -158,7 +159,7 @@ class RefreshTokenCreatorTest {
                 Maps.newHashMap());
 
         refreshTokenCreator.setRestrictRefreshGrant(true);
-        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
+        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef", System.currentTimeMillis());
 
         assertThat(refreshToken).isNull();
     }
