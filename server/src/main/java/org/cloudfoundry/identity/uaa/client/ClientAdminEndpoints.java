@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import com.jayway.jsonpath.JsonPathException;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -45,8 +46,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.expression.spel.SpelEvaluationException;
-import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jmx.export.annotation.ManagedMetric;
@@ -76,6 +75,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.util.HtmlUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -473,9 +473,9 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 count = clients.size();
             }
         } catch (IllegalArgumentException _) {
-            String msg = "Invalid filter expression: [" + filter + "]";
+            String msg = "Invalid filter expression: [" + HtmlUtils.htmlEscape(filter) + "]";
             if (StringUtils.hasText(sortBy)) {
-                msg += " [" + sortBy + "]";
+                msg += " [" + HtmlUtils.htmlEscape(sortBy) + "]";
             }
             throw new UaaException(msg, HttpStatus.BAD_REQUEST.value());
         }
@@ -492,8 +492,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         try {
             return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes,
                     attributeNameMapper, Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI));
-        } catch (SpelEvaluationException | SpelParseException _) {
-            throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]",
+        } catch (JsonPathException _) {
+            throw new UaaException("Invalid attributes: [" + HtmlUtils.htmlEscape(attributesCommaSeparated) + "]",
                     HttpStatus.BAD_REQUEST.value());
         }
     }
@@ -634,6 +634,12 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         incrementErrorCounts(e);
         return new ResponseEntity<>(new InvalidClientDetailsException(e.getMessage()),
                 HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(UaaException.class)
+    public ResponseEntity<UaaException> handleUaaException(UaaException e) {
+        incrementErrorCounts(e);
+        return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
     }
 
     private void incrementErrorCounts(Exception e) {

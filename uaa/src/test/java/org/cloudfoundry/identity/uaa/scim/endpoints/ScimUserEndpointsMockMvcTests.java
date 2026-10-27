@@ -1074,6 +1074,17 @@ class ScimUserEndpointsMockMvcTests {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"[", "..id", "id,[?(@ =~ /.*/)]"})
+    void getUsers_withAttributeThatIsNotAPlainName_isBadRequest(String attributes) throws Exception {
+        mockMvc.perform(get("/Users")
+                        .header("Authorization", "Bearer " + scimReadWriteToken)
+                        .param("attributes", attributes)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value("Invalid attributes: [" + attributes + "]"));
+    }
+
     @Test
     void getUserWithScimCreateToken() throws Exception {
         getUser(scimCreateToken, HttpStatus.FORBIDDEN.value());

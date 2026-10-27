@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.resources;
 
+import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -26,8 +27,12 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class SearchResultsFactory {
+
+    private static final Pattern ATTRIBUTE_NAME_CHARACTERS = Pattern.compile("[A-Za-z0-9_.-]+");
+
     public static <T> SearchResults<Map<String, Object>> cropAndBuildSearchResultFrom(
             List<T> input,
             int startIndex,
@@ -96,6 +101,7 @@ public class SearchResultsFactory {
 
         Map<String, JsonPath> jsonPaths = Arrays.stream(attributes)
                 .collect(new MapCollector<>(attribute -> attribute, attribute -> {
+                    validateAttributeName(attribute);
                     String jsonPath = "$." + mapper.mapToInternal(attribute);
                     return JsonPath.compile(jsonPath);
                 }));
@@ -118,4 +124,17 @@ public class SearchResultsFactory {
         return new SearchResults<>(schemas, results, startIndex, count, total);
     }
 
+    /**
+     * Attributes are plain names, optionally dotted for sub-attributes (e.g. {@code name.familyName}).
+     * Trailing whitespace is ignored.
+     */
+    private static void validateAttributeName(String attribute) {
+        String name = attribute.stripTrailing();
+        if (!ATTRIBUTE_NAME_CHARACTERS.matcher(name).matches()
+                || name.startsWith(".")
+                || name.endsWith(".")
+                || name.contains("..")) {
+            throw new InvalidPathException("Invalid attribute name: " + attribute);
+        }
+    }
 }
