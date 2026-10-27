@@ -15,6 +15,8 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -54,7 +56,7 @@ class CaCertAwareLdapSocketFactoryTest {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
         KeyPair serverKeyPair = keyPairGenerator.generateKeyPair();
-        X509Certificate serverCert = getSelfCertificate(serverKeyPair, "UAA Test", "UAA Test Unit", "server-cert",
+        X509Certificate serverCert = getSelfCertificate(serverKeyPair, "UAA Test", "UAA Test Unit", "localhost",
                 new Date(), 60L * 60, "SHA256withRSA");
         String serverCertPem = pemEncode(serverCert);
 
@@ -102,6 +104,63 @@ class CaCertAwareLdapSocketFactoryTest {
         // not that this specific connection succeeds).
         assertThatThrownBy(() -> factory.createSocket("localhost", 1))
                 .isInstanceOf(IOException.class);
+    }
+
+    @Test
+    void createSocket_noArg_returnsHostnameAwareSocketThatHandshakesAfterConnect() throws Exception {
+        TestCert cert = newTestCert();
+        try (ServerHandle server = startTlsServer(cert.keyPair(), cert.certificate())) {
+            IdentityZoneHolder.set(zone("zone-noarg"));
+            CaCertAwareLdapSocketFactory.registerZoneTrust("zone-noarg", List.of(pemEncode(cert.certificate())), false);
+
+            try (Socket socket = CaCertAwareLdapSocketFactory.getDefault().createSocket()) {
+                assertThat(socket).isInstanceOf(HostnameAwareSslSocket.class);
+                socket.connect(new InetSocketAddress("localhost", server.port()), 5000);
+                SSLSocket sslSocket = (SSLSocket) socket;
+                assertThat(sslSocket.getSSLParameters().getEndpointIdentificationAlgorithm()).isEqualTo("LDAPS");
+                sslSocket.startHandshake();
+                assertThat(sslSocket.getSession().isValid()).isTrue();
+            }
+        }
+    }
+
+    @Test
+    void createSocket_noArg_hostnameMismatchFailsHandshake() throws Exception {
+        TestCert cert = newTestCert();
+        try (ServerHandle server = startTlsServer(cert.keyPair(), cert.certificate())) {
+            IdentityZoneHolder.set(zone("zone-mismatch"));
+            CaCertAwareLdapSocketFactory.registerZoneTrust("zone-mismatch", List.of(pemEncode(cert.certificate())), false);
+
+            assertThatThrownBy(() -> {
+                try (Socket socket = CaCertAwareLdapSocketFactory.getDefault().createSocket()) {
+                    socket.connect(new InetSocketAddress("127.0.0.1", server.port()), 5000);
+                    ((SSLSocket) socket).startHandshake();
+                }
+            }).isInstanceOf(SSLHandshakeException.class);
+        }
+    }
+
+    @Test
+    void createSocket_noRegisteredTrust_doesNotDoubleWrap() throws Exception {
+        TestCert cert = newTestCert();
+        try (ServerHandle server = startTlsServer(cert.keyPair(), cert.certificate())) {
+            IdentityZoneHolder.set(zone("zone-unregistered-wrap"));
+            try (Socket socket = CaCertAwareLdapSocketFactory.getDefault().createSocket("localhost", server.port())) {
+                assertThat(socket).isInstanceOf(HostnameAwareSslSocket.class);
+                assertThat(socket).extracting("delegate").isNotInstanceOf(HostnameAwareSslSocket.class);
+            }
+        }
+    }
+
+    private record TestCert(KeyPair keyPair, X509Certificate certificate) {
+    }
+
+    private static TestCert newTestCert() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        KeyPair keyPair = generator.generateKeyPair();
+        return new TestCert(keyPair, getSelfCertificate(keyPair, "UAA Test", "UAA Test Unit", "localhost",
+                new Date(), 60L * 60, "SHA256withRSA"));
     }
 
     private static IdentityZone zone(String id) {
