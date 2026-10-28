@@ -66,6 +66,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
+import java.time.Instant;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -530,6 +531,27 @@ class DeprecatedUaaTokenServicesTests {
         validateExternalAttributes(accessToken);
 
         assertCommonEventProperties(accessToken, CLIENT_ID, tokenSupport.expectedJson);
+    }
+
+    @MethodSource("data")
+    @ParameterizedTest(name = "{index}: {0}")
+    void createAccessToken_expMinusIatEqualsValidity_evenWhenTwoClockReadsCrossASecondBoundary(TestTokenEnhancer enhancer) {
+        initDeprecatedUaaTokenServicesTests(enhancer);
+        long firstRead  = Instant.parse("2037-01-01T00:00:00Z").toEpochMilli() + 999;
+        long secondRead = firstRead + 2;
+        when(tokenSupport.timeService.getCurrentTimeMillis())
+                .thenReturn(firstRead)
+                .thenReturn(secondRead);
+
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.clientScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null));
+
+        assertThat(TokenClaims.validFor(accessToken)).isEqualTo(tokenSupport.accessTokenValidity);
     }
 
     @MethodSource("data")
@@ -2071,7 +2093,7 @@ class DeprecatedUaaTokenServicesTests {
         // Issue far in the future so the token clears Nimbus, then advance the mock past the 1s validity
         // to trigger the real expiry check. A near-epoch issuance would be rejected by Nimbus as expired,
         // masking the gate under test with a generic "could not verify token signature" error.
-        long issuedAtMillis = 2_000_000_000_000L;
+        long issuedAtMillis = Instant.parse("2037-01-01T00:00:00Z").toEpochMilli();
         when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(issuedAtMillis);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         String accessTokenValue = accessToken.getValue();
