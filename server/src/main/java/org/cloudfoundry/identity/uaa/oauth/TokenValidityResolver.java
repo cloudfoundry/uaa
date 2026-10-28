@@ -42,10 +42,6 @@ public class TokenValidityResolver {
         return Date.from(Instant.ofEpochMilli(nowMillis).plusSeconds(tokenValiditySeconds));
     }
 
-    public Date resolve(String clientId, RefreshTokenRequestData requestData) {
-        return resolve(clientId, requestData, timeService.getCurrentTimeMillis());
-    }
-
     /**
      * Extension point for enterprise implementations that need to constrain refresh token
      * validity based on request context (e.g. a JIT session boundary carried in the assertion).
