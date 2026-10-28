@@ -42,19 +42,23 @@ public class TokenValidityResolver {
         return Date.from(Instant.ofEpochMilli(nowMillis).plusSeconds(tokenValiditySeconds));
     }
 
-    /**
-     * Extension point for enterprise implementations that need to constrain refresh token
-     * validity based on request context (e.g. a JIT session boundary carried in the assertion).
-     * The default implementation ignores {@code requestData} and delegates to {@link #resolve(String)}.
-     *
-     * @param clientId    the OAuth client identifier
-     * @param requestData the refresh token request context; may be {@code null}
-     * @return the effective expiration date
-     */
     public Date resolve(String clientId, RefreshTokenRequestData requestData) {
         return resolve(clientId, requestData, timeService.getCurrentTimeMillis());
     }
 
+    /**
+     * Extension point for enterprise implementations that need to constrain refresh token
+     * validity based on request context (e.g. a JIT session boundary carried in the assertion).
+     * The default implementation ignores {@code requestData} and delegates to
+     * {@link #resolve(String, long)} so iat and exp share one clock snapshot. Overrides that
+     * compute a default expiry must use {@code nowMillis} via {@link #resolve(String, long)},
+     * not an independent clock read, to preserve exp - iat == validity.
+     *
+     * @param clientId    the OAuth client identifier
+     * @param requestData the refresh token request context; may be {@code null}
+     * @param nowMillis   the issuance instant shared across all claims of this token
+     * @return the effective expiration date
+     */
     public Date resolve(String clientId, RefreshTokenRequestData requestData, long nowMillis) {
         return resolve(clientId, nowMillis);
     }
