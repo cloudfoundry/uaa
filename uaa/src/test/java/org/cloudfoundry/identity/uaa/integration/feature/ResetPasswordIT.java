@@ -202,6 +202,12 @@ class ResetPasswordIT {
         beginPasswordReset(username);
         String link = getPasswordResetLink(email);
         webDriver.get(link);
+
+        webDriver.findElement(By.name("password")).sendKeys("new_password");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
+        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText()).contains("Password reset successful");
+
         webDriver.get(link);
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Sorry, your reset password link is no longer valid. You can request another one below.");
     }

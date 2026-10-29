@@ -36,7 +36,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
 
 public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
     private final ResetPasswordService service;
@@ -102,7 +101,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void refreshCode(HttpServletRequest request, ExpiringCode expiringCode) {
-        ExpiringCode newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + 1000 * 60 * 10), expiringCode.getIntent(), IdentityZoneHolder.get().getId());
+        ExpiringCode newCode = expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), expiringCode.getIntent(), IdentityZoneHolder.get().getId());
         request.setAttribute("code", newCode.getCode());
     }
 
