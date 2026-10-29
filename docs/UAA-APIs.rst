@@ -2124,6 +2124,9 @@ Change Email Flow:
             "email": "example@newemail.com"
         }
 
+* ``redirect_url`` is the value of the ``change_email_redirect_url`` attribute of the client that started the email
+  change, and ``null`` when the client has no such attribute or no client was given.
+
 * Response Codes::
 
         200 - OK
@@ -2134,6 +2137,55 @@ Change Email Flow:
 * Example CURL ::
 
         $ curl 'http://localhost:8080/email_changes' -i -X POST -H 'Content-Type: application/json' -d 6FfI4o
+
+
+Create a Code: ``POST /Codes``
+------------------------------
+
+Stores a one time code and returns it. Codes are stored per identity zone and can be read back once with ``GET /Codes/{code}``.
+
+* Request: ``POST /Codes``
+
+* Authorization: a token with the scope ``oauth.login`` or a UAA admin token.
+
+* Request Body::
+
+        {
+          "data": "{\"user_id\":\"a-user-id\"}",
+          "expiresAt": 1792688400000,
+          "intent": "MY_APPLICATION_CODE"
+        }
+
+  ``data`` (required) is stored with the code, as a string. ``expiresAt`` (required) is milliseconds since the epoch and must be in the future.
+  ``intent`` (required, not blank) says what the code may be used for.
+
+* Intents:
+
+  The UAA flows accept a code only when its intent matches the flow, and the match is case sensitive:
+
+  * ``EMAIL``: email change verification (``POST /email_changes`` and ``/verify_email``)
+  * ``INVITATION``: invitation acceptance (``/invitations/accept``)
+  * ``REGISTRATION``: account activation (``/verify_user``)
+
+  Any other value is stored as given; use it for codes that your own application creates and redeems.
+  Intents that the UAA creates for its own flows (for example the ones for password reset, autologin and passcodes) are also stored as given.
+  Codes stored without an intent before this requirement was added remain redeemable until they expire.
+
+* Response Codes::
+
+        201 - Created
+        400 - Bad Request (the intent is missing or blank, data or expiresAt are missing, or expiresAt is in the past)
+        401 - Unauthorized
+        403 - Forbidden
+
+* Error message for a missing intent::
+
+        intent is required. Known intents: EMAIL, INVITATION, REGISTRATION; custom values are accepted.
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/Codes' -i -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' \
+            -d '{"data":"{}","expiresAt":1792688400000,"intent":"MY_APPLICATION_CODE"}'
 
 
 Verify User Links: ``GET /Users/{id}/verify-link``
@@ -2355,6 +2407,28 @@ The redirect_uri will be validated against allowed redirect_uri for the client.
 
 .. note::
 
+   **Verified users and** ``scim.invite.allow_reinvite``
+
+   By default an email address that belongs to a verified user is invited like any other address: the response
+   contains the user's ``userId`` and a new ``inviteLink``. When the server sets ``scim.invite.allow_reinvite: false``
+   and the token has ``scim.invite`` but may not read users (``GET /Users`` would refuse it, for example because it has
+   neither ``scim.read`` nor the zone administrator scope), the address is reported in ``failed_invites`` instead. No
+   user id or link is returned and no invitation is created::
+
+       {
+           "new_invites":[],
+           "failed_invites":[
+               {"email":"user1@cqv4f7.com","userId":null,"origin":null,"success":false,"errorCode":"user.already-verified","errorMessage":"The user is already verified.","inviteLink":null}
+           ]
+       }
+
+   The other addresses of the request are processed as usual, and users who are not verified yet, as well as new
+   users, are always invited. A client that re-invites existing users and needs the user id or the link should hold
+   ``scim.read`` before the property is set to ``false``. See ``scim.invite.allow_reinvite`` in
+   ``docs/UAA-Configuration-Reference.md``.
+
+.. note::
+
    **Existing unverified UAA-origin users and password handling**
 
    When ``POST /invite_users`` is called for an email address that already belongs
@@ -2371,6 +2445,21 @@ The redirect_uri will be validated against allowed redirect_uri for the client.
 
    Newly created users (first-time invitations where the account did not exist
    before) are unaffected: the supplied password is set normally.
+
+.. note::
+
+   **Accepting an invitation through an external identity provider**
+
+   When the invited user accepts the invitation by signing in at a SAML or OIDC provider, the response of the provider
+   must carry an email address, and it must match the invited email address (the comparison ignores case). A sign-in that
+   carries a different address is rejected.
+
+   * SAML: if the assertion has no email attribute, the invitation is accepted only for a first-time invitee, that is a
+     user created by the invitation who is still unverified and whose username equals the invited email address. For any
+     other invited user (already verified, or a username that differs from the email address) the sign-in is rejected.
+   * OIDC: if the token has no email claim, UAA derives an address from the username claim. That address has to match
+     the invited email address as well, so a token without an email claim only works when the username claim equals the
+     invited email address.
 
 
 

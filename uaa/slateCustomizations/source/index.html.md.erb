@@ -2182,6 +2182,12 @@ _Response Fields_
 
 <%= render('InvitationsEndpointDocs/inviteUsers/response-fields.md') %>
 
+An email address that belongs to a user who is already verified is invited like any other address by default. When the
+server sets `scim.invite.allow_reinvite: false` and the token has `scim.invite` but may not read users (`GET /Users`
+would refuse it, for example because it has neither `scim.read` nor the zone administrator scope), the address is listed
+under `failed_invites` with the error code `user.already-verified`, without a `userId` or an `inviteLink`, and no
+invitation is created. Users who are not verified yet and new users are always invited.
+
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
@@ -2985,6 +2991,35 @@ and the UAA remembers the URL that was accessed.
 _Request Parameters_
 
 <%= render('LoginInfoEndpointDocs/perform_auto_login/query-parameters.md') %>
+
+# Expiring Codes
+
+## Create a Code
+
+`POST /Codes` stores a one time code with an expiry and an intent, and returns the generated code. A code can be read back
+once with `GET /Codes/{code}`; reading it removes it. Codes are stored per identity zone.
+
+The `intent` is required and must not be blank; a request without one is rejected with `400 Bad Request` and the message
+`intent is required. Known intents: EMAIL, INVITATION, REGISTRATION; custom values are accepted.`
+The UAA flows only accept a code whose intent matches the flow: `EMAIL` for email change verification, `INVITATION` for
+invitation acceptance and `REGISTRATION` for account activation. Any other value is stored as given and is meant for codes
+that your own application creates and redeems.
+
+<%= render('CodeStoreEndpointDocs/document_create_code/curl-request.md') %>
+<%= render('CodeStoreEndpointDocs/document_create_code/http-request.md') %>
+<%= render('CodeStoreEndpointDocs/document_create_code/http-response.md') %>
+
+_Request Headers_
+
+<%= render('CodeStoreEndpointDocs/document_create_code/request-headers.md') %>
+
+_Request Body_
+
+<%= render('CodeStoreEndpointDocs/document_create_code/request-fields.md') %>
+
+_Response Body_
+
+<%= render('CodeStoreEndpointDocs/document_create_code/response-fields.md') %>
 
 # External Login Server
 

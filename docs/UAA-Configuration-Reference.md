@@ -185,6 +185,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | [↪](#scimuserids_enabled) `scim.userids_enabled` | `true`| Enable /ids/Users endpoint|
 | [↪](#scimuseroverride) `scim.user.override` | `false`| Override existing bootstrap users|
 | [↪](#scimdeletedeactivate) `scim.delete.deactivate` | `false`| Deactivate instead of delete|
+| [↪](#sciminviteallow_reinvite) `scim.invite.allow_reinvite` | `true`| Invite verified users for any `scim.invite` caller|
 | [↪](#usermaxcount) `userMaxCount` | `500`| Max users returned by list endpoint|
 | [↪](#groupmaxcount) `groupMaxCount` | `500`| Max groups returned by list endpoint|
 | [↪](#deleteusers) `delete.users` | — (null)| Users to delete on bootstrap|
@@ -1184,6 +1185,16 @@ Bootstrap client definitions loaded at startup. Each entry is keyed by client ID
 - `jwks` — Inline JWKS for private_key_jwt auth
 - `jwks_uri` — URI to fetch JWKS
 - `name` — Display name
+- `signup_redirect_url` — Where a user is sent after confirming a self-service signup and setting a password, when the
+  signup request carries no `redirect_uri` that matches one of the client's registered redirect URIs. Without it the
+  default is the UAA home page.
+- `change_email_redirect_url` — Where a user is sent after verifying an email change, when the verification link
+  carries no `redirect_uri` that matches one of the client's registered redirect URIs. Without it the user is sent to
+  the profile page (or the login page when signed out). `POST /email_changes` returns this value as `redirect_url`.
+
+`signup_redirect_url` and `change_email_redirect_url` are stored as additional information of the client. They are
+keys of the client definition (see `scripts/boot/uaa.yml`) and top-level attributes of the client in the client
+registration API.
 
 [Back to table](#oauth-clients--users)
 
@@ -1848,6 +1859,37 @@ of permanently deleting the record.
 
 ---
 
+### `scim.invite.allow_reinvite`
+
+**Default:** `true`
+**Source:** `@Value("${scim.invite.allow_reinvite:true}")` in [`InvitationsEndpoint`](../server/src/main/java/org/cloudfoundry/identity/uaa/invitations/InvitationsEndpoint.java)
+**Type:** `boolean`
+
+Controls what `POST /invite_users` returns for an email address that belongs to a user who is already verified.
+
+- `true` (default): the user is invited like any other user. The response lists the address under `new_invites` with
+  the user's `userId` and a new `inviteLink`.
+- `false`: when the token has `scim.invite` but may not read users, that is when `GET /Users` would refuse it (for
+  example it has neither `scim.read` nor the zone administrator scope), the address is listed under `failed_invites`
+  with the error code `user.already-verified` and the message `The user is already verified.`. No user id and no link
+  are returned, and no invitation code is created. A token that may read users still gets the user id and the link.
+
+With either value, users who are not verified yet and new users are invited as before, so an expired invitation can
+always be sent again, and the other addresses of a batch are processed as usual.
+
+Before setting `false`, check the clients that call `/invite_users`. A client that holds `scim.invite` without
+`scim.read`, re-invites existing users and relies on the user id or the link in the response (for example to assign
+permissions or to send the link itself) receives `failed_invites` for verified users. Give such a client `scim.read`,
+or leave the property at `true`.
+
+Which users are verified: users created with `POST /Users` are verified unless the request says otherwise, users of
+the `uaa` origin become verified when they accept an invitation, and users of an external origin are verified only
+when their identity provider says so (for example the `email_verified` claim of an OpenID Connect provider).
+
+[Back to table](#scim-user-provisioning)
+
+---
+
 ### `userMaxCount`
 
 **Default:** `500`
@@ -1891,6 +1933,24 @@ List of usernames to delete on bootstrap. Used to remove specific users during s
 **Type:** `boolean`
 
 When `true`, "Create Account" and "Forgot Password" links are displayed on the login page.
+
+> **Note on self-service account confirmation.** Clicking the activation link in the confirmation
+> email verifies ownership of the email address but does **not** activate the password typed on the
+> registration form. The owner is sent to a password-setup page (stating that a password change is
+> required due to changes in the system) and must establish their own password through the link
+> before the account can be used to sign in. This ensures a password chosen before the email address
+> was verified can never be used to authenticate. Any client or signup redirect configured for the
+> registration (an explicit `redirect_uri` or the client's `signup_redirect_url`) is applied after the
+> owner has set their password, provided it matches one of the client's registered redirect URIs.
+>
+> **Note on addresses that already have an account.** The registration form (`/create_account.do`) and
+> the change email form (`/change_email.do`) answer the same way whether or not the address already
+> has a verified account in the zone's `uaa` origin: the user is sent to the "email sent" page, and no
+> `422` response or "There is already a user with that username" message is shown. After a
+> registration the page names the address the email was sent to. When the address already has an
+> account, no activation or verification link is created. The owner of the address instead receives an
+> email stating that the address already has an account and that nothing has changed. Clients that
+> parsed the previous `422` page of these two forms must be updated.
 
 [Back to table](#login--branding)
 
@@ -3296,6 +3356,13 @@ URL paths instead of different subdomains.
 metadata generation in non-default zones, as the zone information is already encoded in the URL path. See the
 `login.entityBaseURL` documentation for details on how this affects SAML endpoint URLs.
 
+**Required since 2026-10-26:** A zone path request must come from a recognized host, like any other request. The
+hostname must be the host of [`uaa.url`](#uaaurl), the host of [`login.url`](#loginurl), `localhost`, or one of the
+[`zones.internal.hostnames`](#zonesinternalhostnames); otherwise the request is answered with a `404` before it reaches
+the zone. Earlier versions accepted any hostname for a zone path request. Deployments that reach zone paths through a
+hostname that is not yet listed must add it to `zones.internal.hostnames`. When only `localhost` is configured, any
+hostname is accepted.
+
 [Back to table](#zone-paths)
 
 ---
@@ -3308,7 +3375,8 @@ metadata generation in non-default zones, as the zone information is already enc
 
 A comprehensive list of hostnames that route to the UAA default zone. The UAA uses these
 to distinguish zone subdomains. If a request's hostname is not in this list and has extra
-subdomain levels, it is treated as a zone subdomain.
+subdomain levels, it is treated as a zone subdomain. A hostname that matches none of the
+configured root domains is not served, including for zone path requests (`/z/{subdomain}/`) since 2026-10-26.
 
 ```yaml
 zones:

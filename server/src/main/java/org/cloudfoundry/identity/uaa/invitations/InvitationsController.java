@@ -287,7 +287,7 @@ public class InvitationsController {
         }
         String res = "redirect:/login?success=invite_accepted";
         if (!invitation.getRedirectUri().equals("/home")) {
-            res += "&" + FORM_REDIRECT_PARAMETER + "=" + invitation.getRedirectUri();
+            res += "&" + FORM_REDIRECT_PARAMETER + "=" + URLEncoder.encode(invitation.getRedirectUri(), StandardCharsets.UTF_8);
         }
         return res;
     }
@@ -321,7 +321,7 @@ public class InvitationsController {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_enterprise.do");
         }
 
-        String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000 * 60 * 10)), null, identityZoneManager.getCurrentIdentityZoneId()).getCode();
+        String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000 * 60 * 10)), expiringCode.getIntent(), identityZoneManager.getCurrentIdentityZoneId()).getCode();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
         AuthenticationManager authenticationManager;
@@ -346,7 +346,7 @@ public class InvitationsController {
             if (!user.getPrimaryEmail().equalsIgnoreCase(((ExtendedLdapUserDetails) authentication.getPrincipal()).getEmailAddress())) {
                 model.addAttribute(EMAIL, data.get(EMAIL));
                 model.addAttribute("provider", OriginKeys.LDAP);
-                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), null, identityZoneManager.getCurrentIdentityZoneId()).getCode());
+                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), identityZoneManager.getCurrentIdentityZoneId()).getCode());
                 return handleUnprocessableEntity(model, response, "error_message", "invite.email_mismatch", "invitations/accept_invite");
             }
 

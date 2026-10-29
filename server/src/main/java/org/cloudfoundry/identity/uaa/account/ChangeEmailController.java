@@ -25,6 +25,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Controller
@@ -72,16 +74,7 @@ public class ChangeEmailController {
         String userId = ((UaaPrincipal) securityContext.getAuthentication().getPrincipal()).getId();
         String userEmail = ((UaaPrincipal) securityContext.getAuthentication().getPrincipal()).getName();
 
-        try {
-            changeEmailService.beginEmailChange(userId, userEmail, newEmail.getNewEmail(), clientId, redirectUri);
-        } catch (UaaException e) {
-            if (e.getHttpStatus() == 409) {
-                model.addAttribute("error_message_code", "username_exists");
-                model.addAttribute("email", ((UaaPrincipal) securityContext.getAuthentication().getPrincipal()).getEmail());
-                response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
-                return "change_email";
-            }
-        }
+        changeEmailService.beginEmailChange(userId, userEmail, newEmail.getNewEmail(), clientId, redirectUri);
 
         return "redirect:email_sent?code=email_change";
     }
@@ -125,7 +118,7 @@ public class ChangeEmailController {
             if (redirectLocation == null) {
                 return "redirect:login?success=change_email_success";
             } else {
-                return "redirect:login?success=change_email_success&form_redirect_uri=" + redirectLocation;
+                return "redirect:login?success=change_email_success&form_redirect_uri=" + URLEncoder.encode(redirectLocation, StandardCharsets.UTF_8);
             }
         }
     }

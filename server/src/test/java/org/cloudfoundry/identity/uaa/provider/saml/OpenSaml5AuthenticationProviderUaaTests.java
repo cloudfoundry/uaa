@@ -508,9 +508,78 @@ class OpenSaml5AuthenticationProviderUaaTests {
         assertThat(user.isVerified()).isFalse();
     }
 
+    @Test
+    void invitedVerifiedUserAuthenticationWhenAssertionHasNoEmail() {
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("email", "emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
+
+        ScimUser scimUser = getInvitedUser(true);
+        assertThat(userDatabase.retrieveUserById(scimUser.getId()).isVerified()).isTrue();
+        Map<String, String> userAttributes = getUserAttributes("Marissa-invited", null, null, null, null);
+        Saml2AuthenticationToken authenticationToken = authenticationToken("marissa-invited", attributeStatements(userAttributes));
+
+        assertThatThrownBy(() -> authenticate(authenticationToken))
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasMessageContaining("invited user is already verified");
+
+        UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
+        assertThat(user.getUsername()).isEqualTo("marissa.invited@test.org");
+        assertThat(user.getEmail()).isEqualTo("marissa.invited@test.org");
+    }
+
+    @Test
+    void invitedUnverifiedUserWithDifferentUsernameAuthenticationWhenAssertionHasNoEmail() {
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("email", "emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
+
+        ScimUser scimUser = getInvitedUser(false, "marissa-existing");
+        assertThat(userDatabase.retrieveUserById(scimUser.getId()).isVerified()).isFalse();
+        Map<String, String> userAttributes = getUserAttributes("Marissa-invited", null, null, null, null);
+        Saml2AuthenticationToken authenticationToken = authenticationToken("marissa-invited", attributeStatements(userAttributes));
+
+        assertThatThrownBy(() -> authenticate(authenticationToken))
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasMessageContaining("username differs from the invited email");
+
+        UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
+        assertThat(user.getUsername()).isEqualTo("marissa-existing");
+        assertThat(user.getEmail()).isEqualTo("marissa.invited@test.org");
+    }
+
+    @Test
+    void invitedUnverifiedUserAuthenticationWhenAssertionHasNoEmail() {
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("email", "emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
+
+        ScimUser scimUser = getInvitedUser(false);
+        Map<String, String> userAttributes = getUserAttributes("Marissa-invited", null, null, null, null);
+        authenticate(authenticationToken("marissa-invited", attributeStatements(userAttributes)));
+
+        UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
+        assertThat(user.getUsername()).isEqualTo("marissa-invited");
+        assertThat(user.getEmail()).isEqualTo("marissa.invited@test.org");
+    }
+
     private ScimUser getInvitedUser() {
-        ScimUser invitedUser = new ScimUser(null, "marissa.invited@test.org", "Marissa", "Bloggs");
-        invitedUser.setVerified(false);
+        return getInvitedUser(false);
+    }
+
+    private ScimUser getInvitedUser(boolean verified) {
+        return getInvitedUser(verified, "marissa.invited@test.org");
+    }
+
+    private ScimUser getInvitedUser(boolean verified, String username) {
+        ScimUser invitedUser = new ScimUser(null, username, "Marissa", "Bloggs");
+        invitedUser.setVerified(verified);
         invitedUser.setPrimaryEmail("marissa.invited@test.org");
         invitedUser.setOrigin(OriginKeys.UAA);
         ScimUser scimUser = userProvisioning.createUser(invitedUser, "getInvitedUser-password",

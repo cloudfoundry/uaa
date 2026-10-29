@@ -69,7 +69,8 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
         if (user.getUserName().equals(user.getPrimaryEmail())) {
             if (!results.isEmpty()) {
-                throw new UaaException("Conflict", 409);
+                messageService.sendMessage(newEmail, MessageType.CHANGE_EMAIL, "You already have an account", getAccountExistsEmailHtml(newEmail));
+                return;
             }
         }
 
@@ -127,7 +128,9 @@ public class EmailChangeEmailService implements ChangeEmailService {
                 Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
                         clientDetails.getRegisteredRedirectUri();
                 String changeEmailRedirectUrl = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
-                redirectLocation = findMatchingRedirectUri(redirectUris, redirectUri, changeEmailRedirectUrl);
+                // without a configured fallback, only a requested URI that matches a registered one is used
+                String matchingRedirectUri = findMatchingRedirectUri(redirectUris, redirectUri, changeEmailRedirectUrl != null ? changeEmailRedirectUrl : "");
+                redirectLocation = StringUtils.hasText(matchingRedirectUri) ? matchingRedirectUri : null;
             } catch (NoSuchClientException _) {
                 // ignore
             }
@@ -148,6 +151,18 @@ public class EmailChangeEmailService implements ChangeEmailService {
         } else {
             return identityZoneManager.getCurrentIdentityZone().getName() + " Email change verification";
         }
+    }
+
+    private String getAccountExistsEmailHtml(String newEmail) {
+        final Context ctx = new Context();
+        if (identityZoneManager.isCurrentZoneUaa()) {
+            String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
+            ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
+        } else {
+            ctx.setVariable("serviceName", identityZoneManager.getCurrentIdentityZone().getName());
+        }
+        ctx.setVariable("email", newEmail);
+        return templateEngine.process("account_exists", ctx);
     }
 
     private String getEmailChangeEmailHtml(String email, String newEmail, String code) {

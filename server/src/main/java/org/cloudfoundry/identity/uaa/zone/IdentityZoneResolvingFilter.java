@@ -52,12 +52,17 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
 
     private static final String INTERNAL_ERROR_MESSAGE = "Internal server error while fetching identity zone for subdomain ";
     private static final String NOT_FOUND_MESSAGE = "Cannot find identity zone for subdomain ";
+    private static final String UNRECOGNIZED_HOSTNAME_MESSAGE = "Cannot find identity zone, unrecognized hostname: ";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String effectiveSubdomain = resolveEffectiveSubdomain(request, response);
-        if (effectiveSubdomain == null && response.isCommitted()) {
+        if (effectiveSubdomain == null) {
+            // no zone to look up: either the response is already sent (400), or the host is not a recognized one
+            if (!response.isCommitted()) {
+                handleZoneNotFound(null, request, response, filterChain);
+            }
             return;
         }
 
@@ -85,6 +90,10 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Cannot use both subdomain and zone path");
                 return null;
             }
+            if (subdomainFromHost == null && !defaultZoneHostnames.isEmpty()) {
+                // the zone comes from the path, but the host is still none of the configured root domains
+                return null;
+            }
             return subdomainFromPath;
         }
         return subdomainFromHost;
@@ -94,9 +103,6 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
      * Looks up identity zone by subdomain. On generic exception sends 500 and returns null; caller should check response.isCommitted().
      */
     private IdentityZone resolveZoneBySubdomain(String subdomain, HttpServletResponse response) throws IOException {
-        if (subdomain == null) {
-            return null;
-        }
         try {
             return dao.retrieveBySubdomain(subdomain);
         } catch (EmptyResultDataAccessException _) {
@@ -119,7 +125,8 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
             return;
         }
         request.setAttribute("error_message_code", "zone.not.found");
-        response.sendError(HttpServletResponse.SC_NOT_FOUND, NOT_FOUND_MESSAGE + subdomain);
+        String message = subdomain == null ? UNRECOGNIZED_HOSTNAME_MESSAGE + request.getServerName() : NOT_FOUND_MESSAGE + subdomain;
+        response.sendError(HttpServletResponse.SC_NOT_FOUND, message);
     }
 
     private void doFilterWithZone(IdentityZone identityZone, HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {

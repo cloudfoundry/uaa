@@ -329,8 +329,23 @@ class ResetPasswordControllerTest extends TestClassNullifier {
                 .andExpect(status().isOk())
                 .andExpect(view().name("reset_password"));
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(view().name("forgot_password"));
+                .andExpect(status().isOk())
+                .andExpect(view().name("reset_password"));
+    }
+
+    @Test
+    void resetPasswordPageDoesNotExtendTheCodeLifetime() throws Exception {
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60_000);
+        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", expiresAt, FORGOT_PASSWORD_INTENT_PREFIX + "some-user-id", IdentityZoneHolder.get().getId());
+
+        MvcResult result = mockMvc.perform(get("/reset_password").param("code", code.getCode()))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String formCode = (String) result.getModelAndView().getModel().get("code");
+        ExpiringCode codeInTheForm = codeStore.peekCode(formCode, IdentityZoneHolder.get().getId());
+        assertThat(codeInTheForm).isNotNull();
+        assertThat(codeInTheForm.getExpiresAt()).isBeforeOrEqualTo(expiresAt);
     }
 
     @Test

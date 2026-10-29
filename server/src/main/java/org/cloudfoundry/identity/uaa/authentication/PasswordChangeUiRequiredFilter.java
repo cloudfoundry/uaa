@@ -9,6 +9,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatchers;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import jakarta.servlet.FilterChain;
@@ -33,7 +34,9 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
 
     public PasswordChangeUiRequiredFilter(UaaSavedRequestCache cache) {
         this.cache = cache;
-        this.matchPath = PathPatternRequestMatcher.withDefaults().matcher(MATCH_PATH);
+        this.matchPath = RequestMatchers.anyOf(
+                PathPatternRequestMatcher.withDefaults().matcher(MATCH_PATH),
+                PathPatternRequestMatcher.withDefaults().matcher(MATCH_PATH + "/"));
         this.completedPath = PathPatternRequestMatcher.withDefaults().matcher(COMPLETED_PATH);
     }
 
