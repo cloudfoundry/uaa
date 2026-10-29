@@ -30,13 +30,18 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -241,9 +246,43 @@ class ChangeEmailControllerTest {
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param("code", "the_secret_code");
 
-        mockMvc.perform(get)
+        MvcResult result = mockMvc.perform(get)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("login?success=change_email_success&form_redirect_uri=//example.com/callback"));
+                .andReturn();
+
+        assertRedirectsToLoginWithSingleFormRedirectUri(result, "//example.com/callback");
+    }
+
+    @Test
+    void verifyEmailKeepsRedirectUrlWithQueryAsOneFormRedirectParameter() throws Exception {
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(), "user-id-001", null);
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("userId", "user-id-001");
+        response.put("username", "new@example.com");
+        response.put("email", "new@example.com");
+        response.put("redirect_url", "http://app.example.com/page?first=1&second=2#fragment");
+        when(changeEmailService.completeVerification("the_secret_code")).thenReturn(response);
+
+        MockHttpServletRequestBuilder get = get("/verify_email")
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("code", "the_secret_code");
+
+        MvcResult result = mockMvc.perform(get)
+                .andExpect(status().isFound())
+                .andReturn();
+
+        assertRedirectsToLoginWithSingleFormRedirectUri(result, "http://app.example.com/page?first=1&second=2#fragment");
+    }
+
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(MvcResult result, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(result.getResponse().getRedirectedUrl()).build();
+        assertThat(redirect.getPath()).isEqualTo("login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("change_email_success");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
     }
 
     @Test

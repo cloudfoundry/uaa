@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
+import java.nio.charset.StandardCharsets;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -60,6 +61,9 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.net.URL;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -628,8 +632,8 @@ public class InvitationsServiceMockMvcZonePathTests {
                         post
                 )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=" + REDIRECT_URI))
                 .andReturn();
+        assertRedirectsToLoginWithSingleFormRedirectUri(result.getResponse().getRedirectedUrl(), REDIRECT_URI);
 
         assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should be verified after password reset").isTrue();
 
@@ -760,6 +764,15 @@ public class InvitationsServiceMockMvcZonePathTests {
 
         assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(provider.getOriginKey());
         assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("Saml user should not yet be verified after clicking on the accept link").isFalse();
+    }
+
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("/login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("invite_accepted");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
     }
 
     private static <T> T queryUserForField(JdbcTemplate jdbcTemplate, String email, String field, Class<T> type) {

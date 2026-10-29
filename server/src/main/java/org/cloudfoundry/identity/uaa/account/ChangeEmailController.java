@@ -25,6 +25,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Controller
@@ -125,7 +127,7 @@ public class ChangeEmailController {
             if (redirectLocation == null) {
                 return "redirect:login?success=change_email_success";
             } else {
-                return "redirect:login?success=change_email_success&form_redirect_uri=" + redirectLocation;
+                return "redirect:login?success=change_email_success&form_redirect_uri=" + URLEncoder.encode(redirectLocation, StandardCharsets.UTF_8);
             }
         }
     }

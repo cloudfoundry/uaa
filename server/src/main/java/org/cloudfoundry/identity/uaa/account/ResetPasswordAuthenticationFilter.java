@@ -34,6 +34,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 
 public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
@@ -82,7 +84,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             if (!StringUtils.hasText(redirectUri) || "home".equals(redirectUri)) {
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset");
             } else {
-                response.sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + redirectUri);
+                response.sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8));
             }
         } catch (InvalidPasswordException e) {
             if (expiringCode != null) {
