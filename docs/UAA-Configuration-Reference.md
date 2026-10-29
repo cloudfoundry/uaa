@@ -1900,6 +1900,15 @@ When `true`, "Create Account" and "Forgot Password" links are displayed on the l
 > was verified can never be used to authenticate. Any client or signup redirect configured for the
 > registration (an explicit `redirect_uri` or the client's `signup_redirect_url`) is applied after the
 > owner has set their password, provided it matches one of the client's registered redirect URIs.
+>
+> **Note on addresses that already have an account.** The registration form (`/create_account.do`) and
+> the change email form (`/change_email.do`) answer the same way whether or not the address already
+> has a verified account in the zone's `uaa` origin: the user is sent to the "email sent" page, and no
+> `422` response or "There is already a user with that username" message is shown. After a
+> registration the page names the address the email was sent to. When the address already has an
+> account, no activation or verification link is created. The owner of the address instead receives an
+> email stating that the address already has an account and that nothing has changed. Clients that
+> parsed the previous `422` page of these two forms must be updated.
 
 [Back to table](#login--branding)
 

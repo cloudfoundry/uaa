@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import jakarta.mail.Message;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
@@ -151,6 +152,81 @@ class AccountsControllerMockMvcZonePathTests {
                 .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
                 .andReturn();
         assertThat(result.getResponse().getContentAsString()).contains("Create your account", "Cloud Foundry");
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void creatingAnAccountInAnotherZoneShowsTheEmailOnTheConfirmationPage(ZoneResolutionMode mode) throws Exception {
+        useRandomActivationCodes();
+        String subdomain = generator.generate();
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/create_account.do")
+                        .with(cookieCsrf())
+                        .session(session)
+                        .param("email", userEmail)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        MvcResult page = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/accounts/email_sent")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(page.getResponse().getContentAsString()).contains(userEmail);
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void creatingAnAccountInAnotherZoneForAnExistingVerifiedUserRedirectsLikeANewAddress(ZoneResolutionMode mode) throws Exception {
+        useRandomActivationCodes();
+        String subdomain = generator.generate();
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+        createVerifiedUaaUser(userEmail, zone.getId());
+
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void creatingAnAccountInAnotherZoneForAnExistingVerifiedUserMailsTheOwnerWithoutAnActivationLink(ZoneResolutionMode mode) throws Exception {
+        useRandomActivationCodes();
+        String subdomain = generator.generate();
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+        createVerifiedUaaUser(userEmail, zone.getId());
+
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/create_account.do")
+                .with(cookieCsrf())
+                .param("email", userEmail)
+                .param("password", USER_PASSWORD)
+                .param("password_confirmation", USER_PASSWORD));
+
+        assertThat(fakeJavaMailSender.getSentMessages()).hasSize(1);
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().getFirst();
+        assertThat(message.getRecipients(Message.RecipientType.TO)).hasSize(1);
+        assertThat(message.getRecipients(Message.RecipientType.TO).getFirst()).hasToString(userEmail);
+        assertThat(message.getContentString()).doesNotContain("verify_user");
+    }
+
+    private void useRandomActivationCodes() {
+        webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new AlphanumericRandomValueStringGenerator(24));
+    }
+
+    private void createVerifiedUaaUser(String email, String zoneId) {
+        ScimUser existing = new ScimUser(null, email, "Given", "Family");
+        existing.setPrimaryEmail(email);
+        existing.setOrigin(OriginKeys.UAA);
+        existing.setVerified(true);
+        webApplicationContext.getBean(JdbcScimUserProvisioning.class).createUser(existing, USER_PASSWORD, zoneId);
     }
 
     /**

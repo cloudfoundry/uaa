@@ -48,7 +48,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -129,10 +128,8 @@ class ChangeEmailControllerTest {
     }
 
     @Test
-    void changeEmailWithUsernameConflict() throws Exception {
+    void changeEmailToAnAddressThatHasAnAccountRedirectsLikeAFreeAddress() throws Exception {
         setupSecurityContext();
-
-        doThrow(new UaaException("username already exists", 409)).when(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "", null);
 
         MockHttpServletRequestBuilder post = post("/change_email.do")
                 .contentType(APPLICATION_FORM_URLENCODED)
@@ -140,10 +137,10 @@ class ChangeEmailControllerTest {
                 .param("client_id", "");
 
         mockMvc.perform(post)
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(view().name("change_email"))
-                .andExpect(model().attribute("error_message_code", "username_exists"))
-                .andExpect(model().attribute("email", "user@example.com"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("email_sent?code=email_change"));
+
+        verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "", null);
     }
 
     @Test

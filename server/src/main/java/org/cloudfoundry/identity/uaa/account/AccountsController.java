@@ -20,11 +20,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Controller
@@ -65,7 +68,8 @@ public class AccountsController {
                                       @Valid @ModelAttribute ValidEmail email, BindingResult result,
                                       @RequestParam String password,
                                       @RequestParam("password_confirmation") String passwordConfirmation,
-                                      @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent) {
+                                      @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
+                                      RedirectAttributes redirectAttributes) {
 
         BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
         if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
@@ -95,6 +99,7 @@ public class AccountsController {
         } catch (InvalidPasswordException e) {
             return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString());
         }
+        redirectAttributes.addFlashAttribute("email", email.getEmail());
         return "redirect:accounts/email_sent";
     }
 
@@ -122,6 +127,16 @@ public class AccountsController {
             model.addAttribute("signupLink", environment.getProperty("links.signup"));
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
             return "accounts/link_prompt";
+        }
+
+        if (accountCreation.getPasswordResetCode() == null) {
+            // the password was set by whoever created the account, so there is nothing left to set
+            String redirectLocation = accountCreation.getRedirectLocation();
+            String res = "redirect:/login?success=verify_success";
+            if (!redirectLocation.equals(accountCreationService.getDefaultRedirect())) {
+                res += "&form_redirect_uri=" + URLEncoder.encode(redirectLocation, StandardCharsets.UTF_8);
+            }
+            return res;
         }
 
         // Confirmation establishes email ownership but leaves the account without a usable

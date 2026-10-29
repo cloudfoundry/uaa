@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -88,7 +87,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (!users.isEmpty()) {
                 if (users.getFirst().isVerified()) {
-                    throw new UaaException("User already active.", HttpStatus.CONFLICT.value());
+                    messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, buildAccountExistsSubjectText(), getAccountExistsEmailHtml(email));
                 } else {
                     generateAndSendCode(email, clientId, subject, users.getFirst().getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
                 }
@@ -128,6 +127,16 @@ public class EmailAccountCreationService implements AccountCreationService {
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), zoneId);
 
+        String clientId = data.get("client_id");
+        String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
+
+        if (Boolean.parseBoolean(data.get(ScimUtils.USER_PROVISIONED))) {
+            // The code was requested through the user API, so a caller that may create users set the password.
+            // Opening the link only has to verify the email address.
+            user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), zoneId);
+            return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), getRedirect(clientId, redirectUri));
+        }
+
         // Confirming the activation link proves ownership of the email address, but it does not
         // prove that the person confirming is the one who chose the password on the registration
         // form. Discard the registration password so it can never authenticate, and require the
@@ -139,8 +148,6 @@ public class EmailAccountCreationService implements AccountCreationService {
         scimUserProvisioning.updatePasswordChangeRequired(user.getId(), true, zoneId);
         user = scimUserProvisioning.verifyUser(user.getId(), -1, zoneId);
 
-        String clientId = data.get("client_id");
-        String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
         // Resolve the signup redirect (honouring the client's signup_redirect_url fallback) so it is
         // preserved across the reset flow and applied once the owner has set their password.
         String redirectLocation = getRedirect(clientId, redirectUri);
@@ -209,6 +216,23 @@ public class EmailAccountCreationService implements AccountCreationService {
         } else {
             return "Activate your account";
         }
+    }
+
+    private String buildAccountExistsSubjectText() {
+        return "You already have an account";
+    }
+
+    private String getAccountExistsEmailHtml(String email) {
+        IdentityZone currentIdentityZone = identityZoneManager.getCurrentIdentityZone();
+        final Context ctx = new Context();
+        String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
+        if (currentIdentityZone.isUaa()) {
+            ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
+        } else {
+            ctx.setVariable("serviceName", currentIdentityZone.getName());
+        }
+        ctx.setVariable("email", email);
+        return templateEngine.process("account_exists", ctx);
     }
 
     private String getEmailHtml(String code, String email, IdentityZone currentIdentityZone) {

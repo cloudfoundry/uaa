@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import jakarta.mail.Message;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
@@ -137,6 +138,78 @@ class AccountsControllerMockMvcTests {
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).contains("Create your account");
+    }
+
+    @Test
+    void activationEmailSentPageWithoutAnAddressStillRenders() throws Exception {
+        mockMvc.perform(get("/accounts/email_sent"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"));
+    }
+
+    @Test
+    void creatingAnAccountShowsTheEmailOnTheConfirmationPage() throws Exception {
+        useRandomActivationCodes();
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .session(session)
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        MvcResult page = mockMvc.perform(get("/accounts/email_sent").session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(page.getResponse().getContentAsString()).contains(userEmail);
+    }
+
+    @Test
+    void creatingAnAccountForAnExistingVerifiedUserRedirectsLikeANewAddress() throws Exception {
+        useRandomActivationCodes();
+        createVerifiedUaaUser(userEmail);
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+    }
+
+    @Test
+    void creatingAnAccountForAnExistingVerifiedUserMailsTheOwnerWithoutAnActivationLink() throws Exception {
+        useRandomActivationCodes();
+        createVerifiedUaaUser(userEmail);
+
+        mockMvc.perform(post("/create_account.do")
+                .with(cookieCsrf())
+                .param("email", userEmail)
+                .param("password", "secr3T")
+                .param("password_confirmation", "secr3T"));
+
+        assertThat(fakeJavaMailSender.getSentMessages()).hasSize(1);
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().getFirst();
+        assertThat(message.getRecipients(Message.RecipientType.TO)).hasSize(1);
+        assertThat(message.getRecipients(Message.RecipientType.TO).getFirst()).hasToString(userEmail);
+        assertThat(message.getContentString()).doesNotContain("verify_user");
+    }
+
+    private void useRandomActivationCodes() {
+        webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new AlphanumericRandomValueStringGenerator(24));
+    }
+
+    private void createVerifiedUaaUser(String email) {
+        ScimUser existing = new ScimUser(null, email, "Given", "Family");
+        existing.setPrimaryEmail(email);
+        existing.setOrigin(OriginKeys.UAA);
+        existing.setVerified(true);
+        webApplicationContext.getBean(JdbcScimUserProvisioning.class)
+                .createUser(existing, USER_PASSWORD, IdentityZoneHolder.get().getId());
     }
 
     @Test
