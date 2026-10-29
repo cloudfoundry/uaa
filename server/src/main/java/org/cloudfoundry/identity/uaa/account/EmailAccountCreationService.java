@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
@@ -52,6 +53,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ScimUserProvisioning scimUserProvisioning;
     private final MultitenantClientServices clientDetailsService;
     private final PasswordValidator passwordValidator;
+    private final ResetPasswordService resetPasswordService;
     private final IdentityZoneManager identityZoneManager;
 
     public EmailAccountCreationService(
@@ -61,6 +63,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             ScimUserProvisioning scimUserProvisioning,
             MultitenantClientServices clientDetailsService,
             PasswordValidator passwordValidator,
+            ResetPasswordService resetPasswordService,
             IdentityZoneManager identityZoneManager) {
 
         this.templateEngine = templateEngine;
@@ -69,6 +72,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
+        this.resetPasswordService = resetPasswordService;
         this.identityZoneManager = identityZoneManager;
     }
 
@@ -121,14 +125,33 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
-        ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), identityZoneManager.getCurrentIdentityZoneId());
-        user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
+        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
+        ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), zoneId);
+
+        // Confirming the activation link proves ownership of the email address, but it does not
+        // prove that the person confirming is the one who chose the password on the registration
+        // form. Discard the registration password so it can never authenticate, and require the
+        // confirming owner to establish their own password through the ownership-proving link.
+        // Replace the password and set the flag while the account is still unverified, then verify
+        // it last: these are separate updates, so verifying first would briefly leave the account
+        // verified while still holding the registration password, which a concurrent login could use.
+        scimUserProvisioning.changePassword(user.getId(), null, new AlphanumericRandomValueStringGenerator(40).generate(), zoneId);
+        scimUserProvisioning.updatePasswordChangeRequired(user.getId(), true, zoneId);
+        user = scimUserProvisioning.verifyUser(user.getId(), -1, zoneId);
 
         String clientId = data.get("client_id");
         String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
+        // Resolve the signup redirect (honouring the client's signup_redirect_url fallback) so it is
+        // preserved across the reset flow and applied once the owner has set their password.
         String redirectLocation = getRedirect(clientId, redirectUri);
 
-        return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
+        // Issue an ownership-bound, single-use code so the owner sets their password through the
+        // same reset flow used for password recovery (no previous password is required).
+        ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(user.getUserName(), clientId, redirectLocation);
+
+        AccountCreationResponse response = new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
+        response.setPasswordResetCode(forgotPasswordInfo.getResetPasswordCode().getCode());
+        return response;
     }
 
     private String getRedirect(String clientId, String redirectUri) {
