@@ -1,6 +1,11 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.util.AopTestUtils;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
+import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -47,6 +52,8 @@ import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 import jakarta.servlet.http.Cookie;
 import java.sql.Timestamp;
 import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Set;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -76,6 +83,8 @@ public class ResetPasswordControllerMockMvcZonePathTests {
     private ExpiringCodeStore codeStore;
     @Autowired
     private MockMvc mockMvc;
+    @Autowired
+    private FilterRegistrationBean<IdentityZoneResolvingFilter> identityZoneResolvingFilter;
 
     @BeforeEach
     void initResetPasswordTest() {
@@ -481,6 +490,55 @@ public class ResetPasswordControllerMockMvcZonePathTests {
                 .param("password", password)
                 .param("password_confirmation", passwordConfirmation);
         return post;
+    }
+
+    @Test
+    void forgotPasswordForAnUnknownHostIsNotServedWhenRootDomainsAreConfigured() throws Exception {
+        Set<String> originalHostnames = identityZoneResolvingFilter.getFilter().getDefaultZoneHostnames();
+        identityZoneResolvingFilter.getFilter().restoreDefaultHostnames(Set.of("uaa.example.com"));
+        try {
+            mockMvc.perform(post("/forgot_password.do")
+                            .header("Host", "request-host.example.org")
+                            .param("username", "marissa"))
+                    .andExpect(status().isNotFound());
+        } finally {
+            identityZoneResolvingFilter.getFilter().restoreDefaultHostnames(originalHostnames);
+        }
+    }
+
+    @Test
+    void forgotPasswordLinkInZonePathRequestDoesNotUseTheRequestHostWhenLoginUrlIsBlank() throws Exception {
+        String subdomain = subdomainGenerator.generate();
+        ScimUser user = createUserInOtherZone(subdomain);
+        FakeJavaMailSender sender = webApplicationContext.getBean(FakeJavaMailSender.class);
+        sender.clearMessage();
+        Set<String> originalHostnames = identityZoneResolvingFilter.getFilter().getDefaultZoneHostnames();
+        identityZoneResolvingFilter.getFilter().restoreDefaultHostnames(Set.of("uaa.example.com"));
+        String originalLoginUrl = setLoginUrl("");
+        try {
+            mockMvc.perform(ZoneResolutionMode.ZONE_PATH.createRequestBuilder(subdomain, HttpMethod.POST, "/forgot_password.do")
+                    .header("Host", "request-host.example.org")
+                    .param("username", user.getUserName()));
+        } finally {
+            setLoginUrl(originalLoginUrl);
+            identityZoneResolvingFilter.getFilter().restoreDefaultHostnames(originalHostnames);
+        }
+        assertThat(contents(sender)).noneMatch(content -> content.contains("request-host.example.org"));
+    }
+
+    private String setLoginUrl(String loginUrl) {
+        ResetPasswordController controller = AopTestUtils.getUltimateTargetObject(webApplicationContext.getBean(ResetPasswordController.class));
+        String original = (String) ReflectionTestUtils.getField(controller, "externalLoginUrl");
+        ReflectionTestUtils.setField(controller, "externalLoginUrl", loginUrl);
+        return original;
+    }
+
+    private static List<String> contents(FakeJavaMailSender sender) throws Exception {
+        List<String> contents = new ArrayList<>();
+        for (FakeJavaMailSender.MimeMessageWrapper message : sender.getSentMessages()) {
+            contents.add(message.getContentString());
+        }
+        return contents;
     }
 
     /**

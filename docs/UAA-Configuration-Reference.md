@@ -3314,6 +3314,13 @@ URL paths instead of different subdomains.
 metadata generation in non-default zones, as the zone information is already encoded in the URL path. See the
 `login.entityBaseURL` documentation for details on how this affects SAML endpoint URLs.
 
+**Required since 2026-10-26:** A zone path request must come from a recognized host, like any other request. The
+hostname must be the host of [`uaa.url`](#uaaurl), the host of [`login.url`](#loginurl), `localhost`, or one of the
+[`zones.internal.hostnames`](#zonesinternalhostnames); otherwise the request is answered with a `404` before it reaches
+the zone. Earlier versions accepted any hostname for a zone path request. Deployments that reach zone paths through a
+hostname that is not yet listed must add it to `zones.internal.hostnames`. When only `localhost` is configured, any
+hostname is accepted.
+
 [Back to table](#zone-paths)
 
 ---
@@ -3326,7 +3333,8 @@ metadata generation in non-default zones, as the zone information is already enc
 
 A comprehensive list of hostnames that route to the UAA default zone. The UAA uses these
 to distinguish zone subdomains. If a request's hostname is not in this list and has extra
-subdomain levels, it is treated as a zone subdomain.
+subdomain levels, it is treated as a zone subdomain. A hostname that matches none of the
+configured root domains is not served, including for zone path requests (`/z/{subdomain}/`) since 2026-10-26.
 
 ```yaml
 zones:
