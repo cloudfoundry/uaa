@@ -2182,6 +2182,12 @@ _Response Fields_
 
 <%= render('InvitationsEndpointDocs/inviteUsers/response-fields.md') %>
 
+An email address that belongs to a user who is already verified is invited like any other address by default. When the
+server sets `scim.invite.allow_reinvite: false` and the token has `scim.invite` but may not read users (`GET /Users`
+would refuse it, for example because it has neither `scim.read` nor the zone administrator scope), the address is listed
+under `failed_invites` with the error code `user.already-verified`, without a `userId` or an `inviteLink`, and no
+invitation is created. Users who are not verified yet and new users are always invited.
+
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |

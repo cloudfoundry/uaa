@@ -185,6 +185,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | [↪](#scimuserids_enabled) `scim.userids_enabled` | `true`| Enable /ids/Users endpoint|
 | [↪](#scimuseroverride) `scim.user.override` | `false`| Override existing bootstrap users|
 | [↪](#scimdeletedeactivate) `scim.delete.deactivate` | `false`| Deactivate instead of delete|
+| [↪](#sciminviteallow_reinvite) `scim.invite.allow_reinvite` | `true`| Invite verified users for any `scim.invite` caller|
 | [↪](#usermaxcount) `userMaxCount` | `500`| Max users returned by list endpoint|
 | [↪](#groupmaxcount) `groupMaxCount` | `500`| Max groups returned by list endpoint|
 | [↪](#deleteusers) `delete.users` | — (null)| Users to delete on bootstrap|
@@ -1184,6 +1185,16 @@ Bootstrap client definitions loaded at startup. Each entry is keyed by client ID
 - `jwks` — Inline JWKS for private_key_jwt auth
 - `jwks_uri` — URI to fetch JWKS
 - `name` — Display name
+- `signup_redirect_url` — Where a user is sent after confirming a self-service signup and setting a password, when the
+  signup request carries no `redirect_uri` that matches one of the client's registered redirect URIs. Without it the
+  default is the UAA home page.
+- `change_email_redirect_url` — Where a user is sent after verifying an email change, when the verification link
+  carries no `redirect_uri` that matches one of the client's registered redirect URIs. Without it the user is sent to
+  the profile page (or the login page when signed out). `POST /email_changes` returns this value as `redirect_url`.
+
+`signup_redirect_url` and `change_email_redirect_url` are stored as additional information of the client. They are
+keys of the client definition (see `scripts/boot/uaa.yml`) and top-level attributes of the client in the client
+registration API.
 
 [Back to table](#oauth-clients--users)
 
@@ -1843,6 +1854,37 @@ username on every startup.
 
 When `true`, SCIM user DELETE operations deactivate the user (set `active=false`) instead
 of permanently deleting the record.
+
+[Back to table](#scim-user-provisioning)
+
+---
+
+### `scim.invite.allow_reinvite`
+
+**Default:** `true`
+**Source:** `@Value("${scim.invite.allow_reinvite:true}")` in [`InvitationsEndpoint`](../server/src/main/java/org/cloudfoundry/identity/uaa/invitations/InvitationsEndpoint.java)
+**Type:** `boolean`
+
+Controls what `POST /invite_users` returns for an email address that belongs to a user who is already verified.
+
+- `true` (default): the user is invited like any other user. The response lists the address under `new_invites` with
+  the user's `userId` and a new `inviteLink`.
+- `false`: when the token has `scim.invite` but may not read users, that is when `GET /Users` would refuse it (for
+  example it has neither `scim.read` nor the zone administrator scope), the address is listed under `failed_invites`
+  with the error code `user.already-verified` and the message `The user is already verified.`. No user id and no link
+  are returned, and no invitation code is created. A token that may read users still gets the user id and the link.
+
+With either value, users who are not verified yet and new users are invited as before, so an expired invitation can
+always be sent again, and the other addresses of a batch are processed as usual.
+
+Before setting `false`, check the clients that call `/invite_users`. A client that holds `scim.invite` without
+`scim.read`, re-invites existing users and relies on the user id or the link in the response (for example to assign
+permissions or to send the link itself) receives `failed_invites` for verified users. Give such a client `scim.read`,
+or leave the property at `true`.
+
+Which users are verified: users created with `POST /Users` are verified unless the request says otherwise, users of
+the `uaa` origin become verified when they accept an invitation, and users of an external origin are verified only
+when their identity provider says so (for example the `email_verified` claim of an OpenID Connect provider).
 
 [Back to table](#scim-user-provisioning)
 

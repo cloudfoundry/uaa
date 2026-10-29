@@ -2124,6 +2124,9 @@ Change Email Flow:
             "email": "example@newemail.com"
         }
 
+* ``redirect_url`` is the value of the ``change_email_redirect_url`` attribute of the client that started the email
+  change, and ``null`` when the client has no such attribute or no client was given.
+
 * Response Codes::
 
         200 - OK
@@ -2404,6 +2407,28 @@ The redirect_uri will be validated against allowed redirect_uri for the client.
 
 .. note::
 
+   **Verified users and** ``scim.invite.allow_reinvite``
+
+   By default an email address that belongs to a verified user is invited like any other address: the response
+   contains the user's ``userId`` and a new ``inviteLink``. When the server sets ``scim.invite.allow_reinvite: false``
+   and the token has ``scim.invite`` but may not read users (``GET /Users`` would refuse it, for example because it has
+   neither ``scim.read`` nor the zone administrator scope), the address is reported in ``failed_invites`` instead. No
+   user id or link is returned and no invitation is created::
+
+       {
+           "new_invites":[],
+           "failed_invites":[
+               {"email":"user1@cqv4f7.com","userId":null,"origin":null,"success":false,"errorCode":"user.already-verified","errorMessage":"The user is already verified.","inviteLink":null}
+           ]
+       }
+
+   The other addresses of the request are processed as usual, and users who are not verified yet, as well as new
+   users, are always invited. A client that re-invites existing users and needs the user id or the link should hold
+   ``scim.read`` before the property is set to ``false``. See ``scim.invite.allow_reinvite`` in
+   ``docs/UAA-Configuration-Reference.md``.
+
+.. note::
+
    **Existing unverified UAA-origin users and password handling**
 
    When ``POST /invite_users`` is called for an email address that already belongs
@@ -2420,6 +2445,21 @@ The redirect_uri will be validated against allowed redirect_uri for the client.
 
    Newly created users (first-time invitations where the account did not exist
    before) are unaffected: the supplied password is set normally.
+
+.. note::
+
+   **Accepting an invitation through an external identity provider**
+
+   When the invited user accepts the invitation by signing in at a SAML or OIDC provider, the response of the provider
+   must carry an email address, and it must match the invited email address (the comparison ignores case). A sign-in that
+   carries a different address is rejected.
+
+   * SAML: if the assertion has no email attribute, the invitation is accepted only for a first-time invitee, that is a
+     user created by the invitation who is still unverified and whose username equals the invited email address. For any
+     other invited user (already verified, or a username that differs from the email address) the sign-in is rejected.
+   * OIDC: if the token has no email claim, UAA derives an address from the username claim. That address has to match
+     the invited email address as well, so a token without an email claim only works when the username claim equals the
+     invited email address.
 
 
 

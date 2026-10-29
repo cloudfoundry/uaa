@@ -433,6 +433,135 @@ class InvitationsEndpointMockMvcTests {
     }
 
     @Test
+    void inviteVerifiedUserWithScimInviteOnly_returnsUserIdAndLinkByDefault() throws Exception {
+        String inviteOnlyToken = createScimInviteOnlyClient(mockMvc);
+        ScimUser verifiedUser = createVerifiedUser(mockMvc, "verified-" + generator.generate().toLowerCase() + "@" + emailDomain);
+
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                webApplicationContext, mockMvc, inviteOnlyToken, null, clientId, "example.com", verifiedUser.getPrimaryEmail());
+
+        assertInvitedWithUserIdAndLink(response, verifiedUser);
+    }
+
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "scim.invite.allow_reinvite=true")
+    class WhenReinviteIsAllowed {
+
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
+
+        @Test
+        void inviteVerifiedUserWithScimInviteOnly_returnsUserIdAndLink() throws Exception {
+            String inviteOnlyToken = createScimInviteOnlyClient(mockMvc);
+            ScimUser verifiedUser = createVerifiedUser(mockMvc, "verified-" + generator.generate().toLowerCase() + "@" + emailDomain);
+
+            InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                    webApplicationContext, mockMvc, inviteOnlyToken, null, clientId, "example.com", verifiedUser.getPrimaryEmail());
+
+            assertInvitedWithUserIdAndLink(response, verifiedUser);
+        }
+    }
+
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "scim.invite.allow_reinvite=false")
+    class WhenReinviteIsNotAllowed {
+
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
+
+        @Test
+        void inviteVerifiedUserWithScimInviteOnlyClient_isReportedAsAlreadyVerified(@Autowired JdbcTemplate jdbcTemplate) throws Exception {
+            String inviteOnlyToken = createScimInviteOnlyClient(mockMvc);
+            ScimUser verifiedUser = createVerifiedUser(mockMvc, "verified-" + generator.generate().toLowerCase() + "@" + emailDomain);
+            int codesBefore = jdbcTemplate.queryForObject("SELECT count(*) FROM expiring_code_store", Integer.class);
+
+            InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                    webApplicationContext, mockMvc, inviteOnlyToken, null, clientId, "example.com", verifiedUser.getPrimaryEmail());
+
+            assertReportedAsAlreadyVerified(response, verifiedUser.getPrimaryEmail());
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM expiring_code_store", Integer.class)).isEqualTo(codesBefore);
+        }
+
+        @Test
+        void inviteVerifiedUserWithScimInviteOnlyUserToken_isReportedAsAlreadyVerified() throws Exception {
+            String userToken = MockMvcUtils.getScimInviteUserToken(mockMvc, clientId, clientSecret, null, "admin", "adminsecret");
+            ScimUser verifiedUser = createVerifiedUser(mockMvc, "verified-" + generator.generate().toLowerCase() + "@" + emailDomain);
+
+            InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                    webApplicationContext, mockMvc, userToken, null, clientId, "example.com", verifiedUser.getPrimaryEmail());
+
+            assertReportedAsAlreadyVerified(response, verifiedUser.getPrimaryEmail());
+        }
+
+        @Test
+        void inviteBatchWithScimInviteOnly_onlyTheVerifiedUserIsReported() throws Exception {
+            String inviteOnlyToken = createScimInviteOnlyClient(mockMvc);
+            ScimUser verifiedUser = createVerifiedUser(mockMvc, "verified-" + generator.generate().toLowerCase() + "@" + emailDomain);
+            String unverifiedEmail = "unverified-" + generator.generate().toLowerCase() + "@" + emailDomain;
+            String newEmail = "new-" + generator.generate().toLowerCase() + "@" + emailDomain;
+            sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, inviteOnlyToken, null, clientId, "example.com", unverifiedEmail);
+
+            InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                    webApplicationContext, mockMvc, inviteOnlyToken, null, clientId, "example.com", verifiedUser.getPrimaryEmail(), unverifiedEmail, newEmail);
+
+            assertThat(response.getNewInvites())
+                    .extracting(InvitationsResponse.Invitee::getEmail)
+                    .containsExactlyInAnyOrder(unverifiedEmail, newEmail);
+            assertThat(response.getNewInvites()).allSatisfy(invitee -> {
+                assertThat(invitee.getUserId()).isNotNull();
+                assertThat(invitee.getInviteLink()).isNotNull();
+            });
+            assertThat(response.getFailedInvites())
+                    .singleElement()
+                    .satisfies(invitee -> assertThat(invitee.getErrorCode()).isEqualTo("user.already-verified"))
+                    .extracting(InvitationsResponse.Invitee::getEmail)
+                    .isEqualTo(verifiedUser.getPrimaryEmail());
+        }
+
+        @Test
+        void inviteUnverifiedUserWithScimInviteOnly_returnsUserIdAndLink() throws Exception {
+            String inviteOnlyToken = createScimInviteOnlyClient(mockMvc);
+            String unverifiedEmail = "unverified-" + generator.generate().toLowerCase() + "@" + emailDomain;
+            String firstUserId = sendRequestWithTokenAndReturnResponse(
+                    webApplicationContext, mockMvc, inviteOnlyToken, null, clientId, "example.com", unverifiedEmail)
+                    .getNewInvites().getFirst().getUserId();
+
+            InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                    webApplicationContext, mockMvc, inviteOnlyToken, null, clientId, "example.com", unverifiedEmail);
+
+            assertThat(response.getFailedInvites()).isEmpty();
+            assertThat(response.getNewInvites()).singleElement().satisfies(invitee -> {
+                assertThat(invitee.getUserId()).isEqualTo(firstUserId);
+                assertThat(invitee.getInviteLink()).isNotNull();
+            });
+        }
+
+        @Test
+        void inviteVerifiedUserWithScimRead_returnsUserIdAndLink() throws Exception {
+            String scimReadAndInviteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, "scim.read scim.invite", null);
+            ScimUser verifiedUser = createVerifiedUser(mockMvc, "verified-" + generator.generate().toLowerCase() + "@" + emailDomain);
+
+            InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                    webApplicationContext, mockMvc, scimReadAndInviteToken, null, clientId, "example.com", verifiedUser.getPrimaryEmail());
+
+            assertInvitedWithUserIdAndLink(response, verifiedUser);
+        }
+
+        @Test
+        void inviteVerifiedUserAsUaaAdmin_returnsUserIdAndLink() throws Exception {
+            String uaaAdminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "uaa.admin", null);
+            ScimUser verifiedUser = createVerifiedUser(mockMvc, "verified-" + generator.generate().toLowerCase() + "@" + emailDomain);
+
+            InvitationsResponse response = sendRequestWithTokenAndReturnResponse(
+                    webApplicationContext, mockMvc, uaaAdminToken, null, clientId, "example.com", verifiedUser.getPrimaryEmail());
+
+            assertInvitedWithUserIdAndLink(response, verifiedUser);
+        }
+    }
+
+    @Test
     void acceptInvitationEmailWithDefaultCompanyName() throws Exception {
         MvcResult mvcResult = mockMvc.perform(get(getAcceptInvitationLink(webApplicationContext, mockMvc, clientId, clientSecret, generator, emailDomain, null, "admin", "adminsecret")))
                 .andReturn();
@@ -484,6 +613,47 @@ class InvitationsEndpointMockMvcTests {
 
         assertThat(mvcResult.getResponse().getContentAsString())
                 .contains("<form action=\"/invitations/accept.do\" method=\"post\" novalidate=\"novalidate\">");
+    }
+
+    private String createScimInviteOnlyClient(MockMvc mockMvc) throws Exception {
+        String inviteOnlyClientId = generator.generate().toLowerCase();
+        String inviteOnlyClientSecret = generator.generate().toLowerCase();
+        String clientAdminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.write", null);
+        MockMvcUtils.createClient(mockMvc, clientAdminToken, inviteOnlyClientId, inviteOnlyClientSecret, Collections.singleton("oauth"),
+                Collections.singletonList("scim.invite"), Collections.singletonList("client_credentials"), "scim.invite");
+        return MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, inviteOnlyClientId, inviteOnlyClientSecret, "scim.invite", null);
+    }
+
+    private static ScimUser createVerifiedUser(MockMvc mockMvc, String email) throws Exception {
+        String scimWriteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "scim.write", null);
+        ScimUser user = new ScimUser(null, email, "givenName", "familyName");
+        user.setPrimaryEmail(email);
+        user.setPassword("password");
+        ScimUser created = MockMvcUtils.createUser(mockMvc, scimWriteToken, user);
+        assertThat(created.isVerified()).isTrue();
+        return created;
+    }
+
+    private static void assertInvitedWithUserIdAndLink(InvitationsResponse response, ScimUser user) {
+        assertThat(response.getFailedInvites()).isEmpty();
+        assertThat(response.getNewInvites()).singleElement().satisfies(invitee -> {
+            assertThat(invitee.getEmail()).isEqualTo(user.getPrimaryEmail());
+            assertThat(invitee.getUserId()).isEqualTo(user.getId());
+            assertThat(invitee.isSuccess()).isTrue();
+            assertThat(invitee.getInviteLink()).isNotNull();
+        });
+    }
+
+    private static void assertReportedAsAlreadyVerified(InvitationsResponse response, String email) {
+        assertThat(response.getNewInvites()).isEmpty();
+        assertThat(response.getFailedInvites()).singleElement().satisfies(invitee -> {
+            assertThat(invitee.getEmail()).isEqualTo(email);
+            assertThat(invitee.isSuccess()).isFalse();
+            assertThat(invitee.getErrorCode()).isEqualTo("user.already-verified");
+            assertThat(invitee.getErrorMessage()).isEqualTo("The user is already verified.");
+            assertThat(invitee.getUserId()).isNull();
+            assertThat(invitee.getInviteLink()).isNull();
+        });
     }
 
     private static InvitationsResponse sendRequestWithTokenAndReturnResponse(WebApplicationContext webApplicationContext,

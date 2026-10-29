@@ -143,6 +143,10 @@ public class SamlUaaAuthenticationUserManager implements ApplicationEventPublish
             if (!context.getEmailAttribute().equalsIgnoreCase(user.getEmail())) {
                 throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
             }
+        } else if (user.isVerified()) {
+            throw new BadCredentialsException("SAML User email missing. Authenticated email is required because the invited user is already verified.");
+        } else if (!user.getUsername().equals(user.getEmail())) {
+            throw new BadCredentialsException("SAML User email missing. Authenticated email is required because the invited user's username differs from the invited email.");
         } else {
             context.addEmailAttribute(user.getEmail());
         }
