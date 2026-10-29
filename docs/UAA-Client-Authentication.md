@@ -64,6 +64,57 @@ The new parameter for federated Credentials in UAA clients is (Work in progress 
 
 * jwt_creds
 
+Each entry of `jwt_creds` describes one trusted combination of issuer and subject:
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `iss` | yes | The issuer of the client assertion. Always compared verbatim, because it selects the key set the assertion is verified against. |
+| `sub` | one of `sub` or `sub_pattern` | The subject of the client assertion, compared verbatim. |
+| `sub_pattern` | one of `sub` or `sub_pattern` | A subject pattern, see below. Mutually exclusive with `sub`. |
+| `aud` | no | The expected audience. Defaults to the token endpoint of the UAA. |
+
+#### Subject patterns
+
+Some issuers derive the subject from the context the token was requested in. GitLab, for
+example, issues `project_path:myteam/deploy:ref_type:branch:ref:main`, where the last component
+is the branch, and GitHub issues `repo:octo-org/octo-repo:environment:Production`. Configuring
+one credential per branch or environment does not scale and runs into the limit of ten
+credentials per client, so `sub_pattern` accepts a wildcard instead:
+
+```json
+[{"iss":"https://gitlab.example.com","sub_pattern":"project_path:myteam/deploy:ref_type:branch:ref:*"}]
+```
+
+Subjects are structured by two separators, `:` between the claim components and `/` inside a
+component that carries a path. A pattern has a wildcard for each:
+
+| Wildcard | Matches | Use for |
+| --- | --- | --- |
+| `*` | one component, crossing neither `:` nor `/` | a group, a project, an environment |
+| `**` | across `/` but never across `:` | a git ref, which may contain `/` |
+
+For the pattern above, `…:ref:main` is accepted and `…:ref:main:extra` is not. A branch such as
+`release/1.0` or `feature/nested` contains a `/`, so it needs `…:ref:**`. Every other character,
+including `.`, is matched literally, and the pattern always has to match the whole subject.
+
+The distinction matters where a component identifies who is calling. `repo:*:ref:refs/heads/main`
+admits one repository, because `*` cannot cross the `/` between organisation and repository;
+`repo:**:ref:refs/heads/main` would admit every repository of every organisation on that issuer.
+Prefer `*` and reach for `**` only where the component genuinely holds a path.
+
+A pattern must contain at least one wildcard and at least one component that is entirely
+literal, so `*`, `a*` and `*:*` are rejected: they would authorise most of what the issuer can
+assert. Patterns are limited to 256 characters and five wildcards. The same length limit applies
+to the subject being matched, so a pattern does not match an asserted subject longer than 256
+characters.
+
+Only the subject can be a pattern. The issuer is always compared verbatim, and a pattern only
+widens which subjects that one issuer may assert; the assertion is still rejected unless its
+signature verifies against the key set of that issuer.
+
+When deleting a credential, the subject is compared verbatim. Deleting `sub_pattern` removes the
+credential stored under that pattern and does not remove the credentials it would match.
+
 ### tls_client_auth ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705))
 
 Mutual-TLS client authentication: a client presents an X.509 certificate at the TLS layer

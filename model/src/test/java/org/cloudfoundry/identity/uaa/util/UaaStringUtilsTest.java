@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.GrantedAuthority;
@@ -245,6 +246,77 @@ class UaaStringUtilsTest {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
             assertThat(matches(p1, n)).as(msg).isFalse();
         }
+    }
+
+    @Test
+    void constructComponentWildcardPattern_escapesRegExCharacters() {
+        assertThat(UaaStringUtils.constructComponentWildcardPattern("repo:org/r:ref:*"))
+                .isEqualTo("repo\\:org\\/r\\:ref\\:[^:/]*");
+        assertThat(UaaStringUtils.constructComponentWildcardPattern("repo:org/r:ref:**"))
+                .isEqualTo("repo\\:org\\/r\\:ref\\:[^:]*");
+        assertThat(UaaStringUtils.constructComponentWildcardPattern("repo:org/r:ref:main"))
+                .isEqualTo("repo\\:org\\/r\\:ref\\:main");
+    }
+
+    @ParameterizedTest(name = "[{index}] \"{0}\" matches \"{1}\"")
+    @CsvSource(delimiter = '|', value = {
+            // the GitLab CI sub claim, wildcard on the branch component
+            "project_path:g/r:ref_type:branch:ref:* | project_path:g/r:ref_type:branch:ref:main",
+            // '**' crosses '/', so a branch that contains one still matches
+            "project_path:g/r:ref_type:branch:ref:** | project_path:g/r:ref_type:branch:ref:feature/nested",
+            "project_path:g/r:ref_type:branch:ref:** | project_path:g/r:ref_type:branch:ref:release/1.0",
+            // a '.' in the branch name must not break the match
+            "project_path:g/r:ref_type:branch:ref:* | project_path:g/r:ref_type:branch:ref:release-1.0",
+            // the GitHub Actions sub claim
+            "repo:octo-org/octo-repo:ref:refs/heads/* | repo:octo-org/octo-repo:ref:refs/heads/demo-branch",
+            "repo:octo-org/octo-repo:environment:*   | repo:octo-org/octo-repo:environment:Production",
+            // several wildcards in one pattern, the repo bound to a single path component
+            "project_path:mygroup/*:ref_type:branch:ref:** | project_path:mygroup/anyrepo:ref_type:branch:ref:main",
+            // a wildcard may match an empty segment
+            "a:b:* | a:b:",
+    })
+    void constructComponentWildcardPattern_matches(String pattern, String subject) {
+        assertThat(matches(UaaStringUtils.constructComponentWildcardPattern(pattern), subject))
+                .as("[%s] should match [%s]", subject, pattern)
+                .isTrue();
+    }
+
+    @ParameterizedTest(name = "[{index}] \"{0}\" does not match \"{1}\"")
+    @CsvSource(delimiter = '|', value = {
+            // a wildcard must stay inside its own segment and not swallow further components
+            "project_path:g/r:ref_type:branch:ref:* | project_path:g/r:ref_type:branch:ref:main:evil",
+            "a:b:*                                  | a:b:x:y",
+            // a wildcard earlier in the claim must not authorise a different group
+            "project_path:mygroup/*:ref_type:branch:ref:** | project_path:evilgroup/r:ref_type:branch:ref:main",
+            // a single '*' must not span '/', so it cannot swallow both org and repository
+            "repo:*:ref:refs/heads/main | repo:evilorg/evilrepo:ref:refs/heads/main",
+            // nor may it reach into a nested subgroup
+            "project_path:mygroup/*:ref_type:branch:ref:** | project_path:mygroup/sub/evil:ref_type:branch:ref:main",
+            // a literal prefix must not admit a longer group of which it is a prefix
+            "project_path:mygroup*:ref:* | project_path:mygroupEVIL/r:ref:main",
+            // '**' still may not cross the ':' claim separator
+            "project_path:g/r:ref_type:branch:ref:** | project_path:g/r:ref_type:branch:ref:main:evil",
+            // '.' is a literal, not a regex wildcard
+            "a.b:* | aXb:c",
+            // the pattern is anchored at both ends, so no prefix or suffix may be added
+            "a:b:*    | zzza:b:main",
+            "a:b:main | a:b:mainX",
+            // regex metacharacters in the pattern are literals
+            "a+:* | aaa:x",
+            "a[b]c:* | abc:x",
+    })
+    void constructComponentWildcardPattern_doesNotMatch(String pattern, String subject) {
+        assertThat(matches(UaaStringUtils.constructComponentWildcardPattern(pattern), subject))
+                .as("[%s] should not match [%s]", subject, pattern)
+                .isFalse();
+    }
+
+    @Test
+    void constructComponentWildcardPattern_alternationIsALiteral() {
+        String pattern = UaaStringUtils.constructComponentWildcardPattern("a(b|c):*");
+        assertThat(matches(pattern, "ab:x")).isFalse();
+        assertThat(matches(pattern, "ac:x")).isFalse();
+        assertThat(matches(pattern, "a(b|c):x")).isTrue();
     }
 
     @Test

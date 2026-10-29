@@ -743,6 +743,11 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
 
         if (existing instanceof UaaClientDetails existingUaa && input instanceof UaaClientDetails inputUaa && details instanceof UaaClientDetails detailsUaa) {
+            // Reject malformed input before it is parsed below, where the batch update would
+            // otherwise answer with a server error before validation runs.
+            if (StringUtils.hasText(inputUaa.getClientJwtConfig())) {
+                ClientJwtConfiguration.readSuppliedValue(inputUaa.getClientJwtConfig());
+            }
             UaaClient existingAsClient = new UaaClient(
                     existingUaa.getClientId(),
                     existingUaa.getClientSecret(),
