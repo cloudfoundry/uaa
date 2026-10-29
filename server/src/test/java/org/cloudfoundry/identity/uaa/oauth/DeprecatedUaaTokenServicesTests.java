@@ -2100,6 +2100,7 @@ class DeprecatedUaaTokenServicesTests {
         when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(issuedAtMillis + 2000L);
         assertThatThrownBy(() -> tokenServices.loadAuthentication(accessTokenValue))
                 .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("Invalid access token: expired at")
                 .hasMessageNotContaining(accessTokenValue);
     }
 
