@@ -25,6 +25,10 @@ public class TokenValidityResolver {
     }
 
     public Date resolve(String clientId) {
+        return resolve(clientId, timeService.getCurrentTimeMillis());
+    }
+
+    public Date resolve(String clientId, long nowMillis) {
         Integer tokenValiditySeconds = ofNullable(
                 clientTokenValidity.getValiditySeconds(clientId)
         ).orElse(
@@ -35,19 +39,36 @@ public class TokenValidityResolver {
             tokenValiditySeconds = globalTokenValiditySeconds;
         }
 
-        return Date.from(Instant.ofEpochMilli(timeService.getCurrentTimeMillis()).plusSeconds(tokenValiditySeconds));
+        return Date.from(Instant.ofEpochMilli(nowMillis).plusSeconds(tokenValiditySeconds));
+    }
+
+    /**
+     * Resolves refresh-token expiry using the current clock reading.
+     *
+     * @deprecated Since 79.11.0. This overload reads the clock internally, so the resulting
+     * expiry may not align with the rest of the token's timestamps. Use
+     * {@link #resolve(String, RefreshTokenRequestData, long)} instead and pass the token's
+     * issuance instant, so expiry and issuance share a single clock reading.
+     */
+    @Deprecated(since = "79.11.0", forRemoval = true)
+    public final Date resolve(String clientId, RefreshTokenRequestData requestData) {
+        return resolve(clientId, requestData, timeService.getCurrentTimeMillis());
     }
 
     /**
      * Extension point for enterprise implementations that need to constrain refresh token
      * validity based on request context (e.g. a JIT session boundary carried in the assertion).
-     * The default implementation ignores {@code requestData} and delegates to {@link #resolve(String)}.
+     * The default implementation ignores {@code requestData} and delegates to
+     * {@link #resolve(String, long)} so iat and exp share one clock snapshot. Overrides that
+     * compute a default expiry must use {@code nowMillis} via {@link #resolve(String, long)},
+     * not an independent clock read, to preserve exp - iat == validity.
      *
      * @param clientId    the OAuth client identifier
      * @param requestData the refresh token request context; may be {@code null}
+     * @param nowMillis   the issuance instant shared across all claims of this token
      * @return the effective expiration date
      */
-    public Date resolve(String clientId, RefreshTokenRequestData requestData) {
-        return resolve(clientId);
+    public Date resolve(String clientId, RefreshTokenRequestData requestData, long nowMillis) {
+        return resolve(clientId, nowMillis);
     }
 }

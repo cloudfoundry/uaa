@@ -313,6 +313,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String accessTokenId = generateUniqueTokenId();
         String clientAuth = authenticationData.clientAuth;
         refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(jwtToken, claims, clientAuth);
+        long issuedAtMillis = timeService.getCurrentTimeMillis();
         CompositeToken compositeToken =
                 createCompositeToken(
                         accessTokenId,
@@ -328,7 +329,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         claims.getRevSig(),
                         isRevocable,
                         authenticationData,
-                        null
+                        null,
+                        issuedAtMillis
                 );
 
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(
@@ -454,9 +456,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String revocableHashSignature,
             boolean isRevocable,
             UserAuthenticationData userAuthenticationData,
-            OAuth2Authentication authentication) throws AuthenticationException {
+            OAuth2Authentication authentication,
+            long issuedAtMillis) throws AuthenticationException {
         CompositeToken compositeToken = new CompositeToken(tokenId);
-        compositeToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
+        compositeToken.setExpiration(accessTokenValidityResolver.resolve(clientId, issuedAtMillis));
         compositeToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
 
         Set<String> requestedScopes = userAuthenticationData.scopes;
@@ -502,7 +505,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 revocableHashSignature,
                 isRevocable,
                 additionalRootClaims,
-                lateOverrideClaims);
+                lateOverrideClaims,
+                issuedAtMillis);
         UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
         if (ClientAuthentication.TLS_CLIENT_AUTH.equals(
                 jwtAccessToken.get(CLIENT_AUTH_METHOD)) && !mtlsFeaturePolicy.isEnabled()) {
@@ -526,7 +530,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopes, grantType)) {
             IdToken idTokenContent;
             try {
-                idTokenContent = idTokenCreator.create(clientDetails, user, userAuthenticationData, tokenActor);
+                idTokenContent = idTokenCreator.create(clientDetails, user, userAuthenticationData, tokenActor, issuedAtMillis);
             } catch (RuntimeException | IdTokenCreationException _) {
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
@@ -586,7 +590,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String revocableHashSignature,
             boolean isRevocable,
             Map<String, Object> additionalRootClaims,
-            Map<String, Object> lateOverrideClaims) {
+            Map<String, Object> lateOverrideClaims,
+            long issuedAtMillis) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
 
@@ -617,7 +622,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
         }
 
-        claims.put(IAT, timeService.getCurrentTimeMillis() / MILLIS_PER_SECOND);
+        claims.put(IAT, issuedAtMillis / MILLIS_PER_SECOND);
         claims.put(EXPIRY_IN_SECONDS, token.getExpiration().getTime() / MILLIS_PER_SECOND);
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()) != null) {
@@ -732,6 +737,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         CompositeExpiringOAuth2RefreshToken refreshToken = null;
+        long issuedAtMillis = timeService.getCurrentTimeMillis();
         if (client.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN)) {
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
                     oAuth2Request.getGrantType(),
@@ -745,7 +751,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     authNContextClassRef,
                     additionalRootClaims
             );
-            refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, revocableHashSignature);
+            refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, revocableHashSignature, issuedAtMillis);
         }
 
         String clientId = oAuth2Request.getClientId();
@@ -796,7 +802,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         revocableHashSignature,
                         isAccessTokenRevocable,
                         authenticationData,
-                        authentication);
+                        authentication,
+                        issuedAtMillis);
 
         return persistRevocableToken(tokenId, accessToken, refreshToken, client, clientId, userId, isOpaque, isAccessTokenRevocable, null);
     }

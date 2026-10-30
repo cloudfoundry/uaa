@@ -10,13 +10,14 @@ import org.cloudfoundry.identity.uaa.oauth.common.ExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
@@ -39,19 +41,25 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_TOKEN_EXCHANGE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class RefreshTokenCreatorTest {
+    private static final long FAR_FUTURE_MILLIS = Instant.parse("2037-01-01T00:00:00Z").toEpochMilli();
+
     private RefreshTokenCreator refreshTokenCreator;
+    private TimeService mockTimeService;
 
     @BeforeEach
     void setup() throws Exception {
         TokenValidityResolver validityResolver = mock(TokenValidityResolver.class);
-        when(validityResolver.resolve(eq("someclient"), any())).thenReturn(new Date());
+        when(validityResolver.resolve(eq("someclient"), any(), anyLong())).thenReturn(new Date(FAR_FUTURE_MILLIS + 60_000));
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost");
-        refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, new TimeServiceImpl(), new KeyInfoService("http://localhost"));
+        mockTimeService = mock(TimeService.class);
+        refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, mockTimeService, new KeyInfoService("http://localhost"));
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(new HashMap<>(Collections.singletonMap("newKey", "secret")));
     }
@@ -93,13 +101,15 @@ class RefreshTokenCreatorTest {
                 Sets.newHashSet("urn:oasis:names:tc:SAML:2.0:ac:classes:Password"),
                 Maps.newHashMap());
 
-        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
+        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef", FAR_FUTURE_MILLIS);
 
         Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class);
+        assertThat(refreshClaims).containsEntry(IAT, FAR_FUTURE_MILLIS / 1000);
         assertThat(refreshClaims).containsEntry(AUTH_TIME, 1L);
         assertThat((List<String>) refreshClaims.get(AMR)).contains("pwd");
         assertThat((Map<String, List<String>>) refreshClaims.get(ACR)).containsKey("values");
         assertThat(((Map<String, List<String>>) refreshClaims.get(ACR)).get("values")).contains("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
+        verifyNoInteractions(mockTimeService);
     }
 
     @Test
@@ -128,12 +138,13 @@ class RefreshTokenCreatorTest {
                 Sets.newHashSet(),
                 Maps.newHashMap());
 
-        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
+        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef", FAR_FUTURE_MILLIS);
 
         Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class);
         assertThat(refreshClaims).doesNotContainKey(AUTH_TIME)
                 .doesNotContainKey(AMR)
                 .doesNotContainKey(ACR);
+        verifyNoInteractions(mockTimeService);
     }
 
     @Test
@@ -158,9 +169,10 @@ class RefreshTokenCreatorTest {
                 Maps.newHashMap());
 
         refreshTokenCreator.setRestrictRefreshGrant(true);
-        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
+        ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef", FAR_FUTURE_MILLIS);
 
         assertThat(refreshToken).isNull();
+        verifyNoInteractions(mockTimeService);
     }
 
     @Test
