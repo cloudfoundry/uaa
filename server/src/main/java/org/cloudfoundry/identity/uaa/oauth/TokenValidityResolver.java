@@ -43,6 +43,19 @@ public class TokenValidityResolver {
     }
 
     /**
+     * Resolves refresh-token expiry using the current clock reading.
+     *
+     * @deprecated Since 79.11.0. This overload reads the clock internally, so the resulting
+     * expiry may not align with the rest of the token's timestamps. Use
+     * {@link #resolve(String, RefreshTokenRequestData, long)} instead and pass the token's
+     * issuance instant, so expiry and issuance share a single clock reading.
+     */
+    @Deprecated(since = "79.11.0", forRemoval = true)
+    public final Date resolve(String clientId, RefreshTokenRequestData requestData) {
+        return resolve(clientId, requestData, timeService.getCurrentTimeMillis());
+    }
+
+    /**
      * Extension point for enterprise implementations that need to constrain refresh token
      * validity based on request context (e.g. a JIT session boundary carried in the assertion).
      * The default implementation ignores {@code requestData} and delegates to
