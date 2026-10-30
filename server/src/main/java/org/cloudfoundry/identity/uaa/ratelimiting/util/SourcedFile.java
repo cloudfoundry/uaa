@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
+import java.nio.file.InvalidPathException;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -29,7 +30,7 @@ public class SourcedFile {
         }
         for (String dir : dirs) {
             dir = StringUtils.stripToEmpty(dir);
-            if (dir.startsWith("/")) {
+            if (dir.startsWith("/") || isAbsolutePath(dir)) {
                 InputStream is = getFileInputStream(dir, name);
                 if (is != null) {
                     return loadFile(is, "file(" + dir + "/" + name + ")");
@@ -62,13 +63,22 @@ public class SourcedFile {
         return SourcedFile.class.getClassLoader().getResourceAsStream("/" + name);
     }
 
+    // Covers platform-native absolute paths (e.g. "C:\dir" on Windows); on POSIX only "/..." is absolute.
+    private static boolean isAbsolutePath(String dir) {
+        try {
+            return FileSystems.getDefault().getPath(dir).isAbsolute();
+        } catch (InvalidPathException _) {
+            return false;
+        }
+    }
+
     private static InputStream getFileInputStream(String dir, String name) {
         try {
             File file = FileSystems.getDefault().getPath(dir, name).toFile();
             if (file.isFile()) {
                 return new FileInputStream( file );
             }
-        } catch (IOException _) {
+        } catch (IOException | InvalidPathException _) {
             // ignore!
         }
         return null;
