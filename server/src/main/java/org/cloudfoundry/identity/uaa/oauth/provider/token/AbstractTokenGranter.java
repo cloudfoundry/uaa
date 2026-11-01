@@ -80,8 +80,7 @@ public abstract class AbstractTokenGranter implements TokenGranter {
 
     protected void validateGrantType(String grantType, ClientDetails clientDetails) {
         Collection<String> authorizedGrantTypes = clientDetails.getAuthorizedGrantTypes();
-        if (authorizedGrantTypes != null && !authorizedGrantTypes.isEmpty()
-                && !authorizedGrantTypes.contains(grantType)) {
+        if (authorizedGrantTypes == null || !authorizedGrantTypes.contains(grantType)) {
             throw new InvalidClientException("Unauthorized grant type");
         }
     }
