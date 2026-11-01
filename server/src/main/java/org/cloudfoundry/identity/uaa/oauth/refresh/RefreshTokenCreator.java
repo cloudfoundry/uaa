@@ -42,7 +42,12 @@ public class RefreshTokenCreator {
         this.keyInfoService = keyInfoService;
     }
 
-    public CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
+    /**
+     * @deprecated Since 79.11.0. Use {@link #createRefreshToken(UaaUser, RefreshTokenRequestData, String, long)}
+     * instead and pass the token's issuance instant so exp and iat share a single clock reading.
+     */
+    @Deprecated(since = "79.11.0", forRemoval = true)
+    public final CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
             RefreshTokenRequestData tokenRequestData,
             String revocableHashSignature) {
         return createRefreshToken(user, tokenRequestData, revocableHashSignature, timeService.getCurrentTimeMillis());
