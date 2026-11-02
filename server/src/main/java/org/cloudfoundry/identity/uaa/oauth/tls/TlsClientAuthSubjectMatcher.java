@@ -1,0 +1,168 @@
+package org.cloudfoundry.identity.uaa.oauth.tls;
+
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.security.auth.x500.X500Principal;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
+/**
+ * Compares a presented client certificate against the single expected subject value configured for
+ * a client, per RFC 8705 section 2.1.2.
+ *
+ * <p>Chain validation (see {@link TlsClientAuthentication#validateClientCert}) establishes only
+ * that the certificate was issued by the configured CA. Section 2.1 makes the subject the thing
+ * that identifies the client: the client "is successfully authenticated if the subject information
+ * in the certificate matches the single expected subject configured or registered for that
+ * particular client". Without this comparison, every certificate a shared CA ever issued
+ * authenticates as every client trusting that CA.
+ */
+public final class TlsClientAuthSubjectMatcher {
+
+    private static final Logger logger = LoggerFactory.getLogger(TlsClientAuthSubjectMatcher.class);
+
+    /** {@code GeneralName} tag numbers from RFC 5280 section 4.2.1.6, as used by the JDK. */
+    private static final int SAN_RFC822_NAME = 1;
+    private static final int SAN_DNS_NAME = 2;
+    private static final int SAN_URI = 6;
+    private static final int SAN_IP_ADDRESS = 7;
+
+    private TlsClientAuthSubjectMatcher() {
+    }
+
+    /**
+     * Whether {@code cert} carries the subject value this client is registered with.
+     *
+     * <p>Fails closed: an unconfigured, ambiguous (more than one parameter) or unparseable subject
+     * binding is not a match.
+     */
+    public static boolean matches(X509Certificate cert, TlsClientAuthConfiguration config) {
+        if (cert == null || config == null) {
+            return false;
+        }
+        List<String> configured = config.configuredSubjectBindings();
+        if (configured.size() != 1) {
+            // RFC 8705 2.1.2 permits exactly one. Zero means nothing identifies the client; more
+            // than one is ambiguous and the spec does not define how to combine them, so rather
+            // than pick an interpretation (any-of would be weaker than either alone) refuse.
+            logger.debug("tls_client_auth: expected exactly one subject binding parameter, found {}", configured);
+            return false;
+        }
+        return switch (configured.getFirst()) {
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN ->
+                    subjectDnMatches(cert, config.getSubjectDn());
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS ->
+                    sanMatches(cert, SAN_DNS_NAME, config.getSanDns(), TlsClientAuthSubjectMatcher::equalsIgnoreCase);
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI ->
+                    sanMatches(cert, SAN_URI, config.getSanUri(), String::equals);
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_EMAIL ->
+                    sanMatches(cert, SAN_RFC822_NAME, config.getSanEmail(), String::equals);
+            case TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_IP ->
+                    sanMatches(cert, SAN_IP_ADDRESS, config.getSanIp(), TlsClientAuthSubjectMatcher::ipAddressesEqual);
+            default -> false;
+        };
+    }
+
+    /** Checks the genuine TLS peer's identity independently of the forwarded workload certificate. */
+    public static boolean matchesTrustedProxy(X509Certificate cert, TlsClientAuthConfiguration config) {
+        return cert != null && config != null
+                && config.getTrustedProxySubjectDn() != null && !config.getTrustedProxySubjectDn().isBlank()
+                && subjectDnMatches(cert, config.getTrustedProxySubjectDn());
+    }
+
+    /**
+     * Parses a registered DN into the form it is compared in, or {@code null} if it is malformed or
+     * empty. Registration validation uses this too, so a DN is accepted exactly when it can match.
+     */
+    public static X500Principal parseDistinguishedName(String dn) {
+        if (dn == null) {
+            return null;
+        }
+        try {
+            X500Principal principal = new X500Principal(dn);
+            return principal.getName().isEmpty() ? null : principal;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Compares the certificate's subject DN with the registered one.
+     *
+     * <p>RFC 8705 section 2.1 calls for "a predictable treatment of DN values, such as the
+     * distinguishedNameMatch rule from [RFC4517]". Both sides are compared as {@link X500Principal}s,
+     * whose equality is defined on the RFC 2253 canonical form of the encoded name: attribute types
+     * spelled as keywords ({@code CN}, {@code SERIALNUMBER}) or OIDs ({@code 2.5.4.3}) are the same
+     * type, and spacing and case are insignificant, while RDN order stays significant -- a DN is an
+     * ordered sequence, and reordering it names a different directory entry. Comparing rendered
+     * strings would not do: the JDK renders attribute types outside RFC 2253's short list as OIDs
+     * with hex-encoded values, so a registered {@code SERIALNUMBER=123} could never match.
+     */
+    private static boolean subjectDnMatches(X509Certificate cert, String expectedDn) {
+        X500Principal expected = parseDistinguishedName(expectedDn);
+        if (expected == null) {
+            // A registered DN that will not parse can never be matched; treat it as no match rather
+            // than failing the request with an error, so a misconfigured client is refused the same
+            // way as one presenting the wrong certificate.
+            logger.warn("tls_client_auth: could not parse a registered distinguished name for comparison");
+            return false;
+        }
+        return expected.equals(cert.getSubjectX500Principal());
+    }
+
+    private static boolean sanMatches(X509Certificate cert, int generalNameType, String expected,
+            java.util.function.BiPredicate<String, String> comparison) {
+        Collection<List<?>> sans;
+        try {
+            sans = cert.getSubjectAlternativeNames();
+        } catch (CertificateParsingException e) {
+            logger.warn("tls_client_auth: could not parse subjectAltName extension: {}", e.getMessage());
+            return false;
+        }
+        if (sans == null) {
+            return false;
+        }
+        for (List<?> san : sans) {
+            if (san == null || san.size() < 2) {
+                continue;
+            }
+            // Each entry is [Integer type, value]; the type must match too, otherwise a value
+            // registered as a dNSName could be satisfied by an email SAN that happens to read the
+            // same, which is a different assertion about the certificate.
+            if (!(san.get(0) instanceof Integer type) || type != generalNameType) {
+                continue;
+            }
+            if (san.get(1) instanceof String presented && comparison.test(expected, presented)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean equalsIgnoreCase(String expected, String presented) {
+        return expected.equalsIgnoreCase(presented);
+    }
+
+    /**
+     * RFC 8705 section 2.1.2 requires IP comparison "to be done in binary format", so that the same
+     * address written differently (notably the many legal spellings of an IPv6 address) compares
+     * equal. Both values are parsed as literals only -- a hostname parses to nothing and matches
+     * nothing -- so authentication never depends on name resolution.
+     */
+    private static boolean ipAddressesEqual(String expected, String presented) {
+        byte[] expectedBytes = TlsClientAuthConfiguration.parseIpLiteral(expected);
+        byte[] presentedBytes = TlsClientAuthConfiguration.parseIpLiteral(presented);
+        if (expectedBytes == null || presentedBytes == null) {
+            logger.warn("tls_client_auth: an IP address to compare is not an IP literal");
+            return false;
+        }
+        return Arrays.equals(expectedBytes, presentedBytes);
+    }
+}

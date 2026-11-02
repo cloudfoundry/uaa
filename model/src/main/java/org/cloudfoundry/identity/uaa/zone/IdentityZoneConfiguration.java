@@ -13,6 +13,8 @@
  */
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.Nulls;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
@@ -31,6 +33,13 @@ public class IdentityZoneConfiguration {
     private static final String PASSWORD = "password";
 
     private ClientSecretPolicy clientSecretPolicy = new ClientSecretPolicy();
+    /**
+     * Omitted while it equals a new {@link MtlsConfig} (Jackson excludes a value the filter instance
+     * equals), so zones that never configure mTLS serialize as they did before mTLS existed.
+     */
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = MtlsConfig.class)
+    private MtlsConfig mtls = new MtlsConfig();
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
     private CorsPolicy corsPolicy = new CorsPolicy();

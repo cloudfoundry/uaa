@@ -18,6 +18,11 @@ updates:
     interval: daily
     time: "11:00"
   open-pull-requests-limit: 10
+  cooldown:
+    default-days: 3
+    exclude:
+    - "org.springframework.boot:*"
+    - "org.springframework.boot"  # Gradle plugin ID
   ignore:
   - dependency-name: "org.springframework.boot:*"
     versions:
