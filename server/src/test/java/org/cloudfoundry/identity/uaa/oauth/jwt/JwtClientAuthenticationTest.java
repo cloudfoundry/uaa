@@ -633,14 +633,60 @@ class JwtClientAuthenticationTest {
                 "repo:myteam/deploy:ref:other", EXTERNAL_ISSUER)).isTrue();
     }
 
+    // A credential without an audience expects the token endpoint. When another matching
+    // credential names the asserted audience explicitly, that one has to decide, whatever the
+    // stored order.
+    @ParameterizedTest(name = "broad pattern first: {0}")
+    @ValueSource(booleans = {true, false})
+    void clientJwtFederatedPatternNamingTheAudienceWinsOverBroaderPattern(boolean broadFirst) throws Exception {
+        ClientJwtCredential broad = new ClientJwtCredential(null, EXTERNAL_ISSUER, null, "repo:myteam/*:ref:**");
+        ClientJwtCredential narrow = new ClientJwtCredential(null, EXTERNAL_ISSUER, "narrow-audience", "repo:myteam/deploy:ref:**");
+        List<ClientJwtCredential> order = broadFirst ? List.of(broad, narrow) : List.of(narrow, broad);
+
+        assertThat(validateFederatedAssertion(new ClientJwtConfiguration(order),
+                "repo:myteam/deploy:ref:main", EXTERNAL_ISSUER, "narrow-audience")).isTrue();
+    }
+
+    @ParameterizedTest(name = "exact first: {0}")
+    @ValueSource(booleans = {true, false})
+    void clientJwtFederatedPatternNamingTheAudienceWinsOverExactCredentialWithout(boolean exactFirst) throws Exception {
+        ClientJwtCredential exact = new ClientJwtCredential("repo:myteam/deploy:ref:main", EXTERNAL_ISSUER, null);
+        ClientJwtCredential pattern = new ClientJwtCredential(null, EXTERNAL_ISSUER, "pattern-audience", "repo:myteam/deploy:ref:*");
+        List<ClientJwtCredential> order = exactFirst ? List.of(exact, pattern) : List.of(pattern, exact);
+
+        assertThat(validateFederatedAssertion(new ClientJwtConfiguration(order),
+                "repo:myteam/deploy:ref:main", EXTERNAL_ISSUER, "pattern-audience")).isTrue();
+    }
+
+    @Test
+    void clientJwtFederatedAudienceNamedByNoMatchingCredentialIsRejected() throws Exception {
+        ClientJwtCredential broad = new ClientJwtCredential(null, EXTERNAL_ISSUER, null, "repo:myteam/*:ref:**");
+        ClientJwtCredential narrow = new ClientJwtCredential(null, EXTERNAL_ISSUER, "narrow-audience", "repo:myteam/deploy:ref:**");
+        ClientJwtConfiguration configuration = new ClientJwtConfiguration(List.of(broad, narrow));
+
+        assertThatThrownBy(() -> validateFederatedAssertion(configuration,
+                "repo:myteam/deploy:ref:main", EXTERNAL_ISSUER, "some-other-audience"))
+                .isInstanceOf(BadCredentialsException.class);
+        // the credential without an audience still accepts the token endpoint
+        assertThat(validateFederatedAssertion(configuration,
+                "repo:myteam/deploy:ref:main", EXTERNAL_ISSUER, "http://localhost:8080/uaa/oauth/token")).isTrue();
+    }
+
     private boolean validateFederatedAssertion(ClientJwtCredential credential, String assertedSubject, String assertionIssuer) throws Exception {
         return validateFederatedAssertion(getMockedClientJwtConfiguration(credential), assertedSubject, assertionIssuer);
     }
 
     private boolean validateFederatedAssertion(ClientJwtConfiguration clientJwtConfiguration, String assertedSubject, String assertionIssuer) throws Exception {
+        return validateFederatedAssertion(clientJwtConfiguration, assertedSubject, assertionIssuer, "audience");
+    }
+
+    private boolean validateFederatedAssertion(ClientJwtConfiguration clientJwtConfiguration, String assertedSubject,
+            String assertionIssuer, String assertionAudience) throws Exception {
         jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher, externalOAuthAuthenticationManager);
         mockKeyInfoService(KEY_ID, JwtHelperX5tTest.CERTIFICATE_1, JwtHelperX5tTest.SIGNING_KEY_1);
-        mockOIDCDefinition(assertedSubject, assertionIssuer, "audience");
+        mockOIDCDefinition(assertedSubject, assertionIssuer, assertionAudience);
+        // a credential without an audience expects the token endpoint, so it must be known here
+        when(keyInfoService.getTokenEndpointUrl()).thenReturn("http://localhost:8080/uaa/oauth/token");
         String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
         when(externalOAuthAuthenticationManager.idTokenWasIssuedByTheUaa(assertionIssuer)).thenReturn(false);
         // doThrow, so that a test may drive this helper more than once without the stubbing

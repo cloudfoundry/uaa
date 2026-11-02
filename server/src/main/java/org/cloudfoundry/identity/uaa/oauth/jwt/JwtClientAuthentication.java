@@ -184,15 +184,16 @@ public class JwtClientAuthentication {
             return null;
         }
         // The issuer is never pattern matched: it selects the key set the assertion is verified
-        // against, so it is checked first and always verbatim. Exact credentials are preferred
-        // over patterns, because the stored order is not stable and a pattern may overlap
-        // another credential's subject, which would otherwise make the audience that credential
-        // requires depend on iteration order.
+        // against, so it is checked first and always verbatim.
+        // Several credentials may match, in no stable order. One that names the asserted audience
+        // must decide before one without, which expects the token endpoint instead; within either
+        // group every candidate verifies identically, so the order no longer affects the outcome.
         return clientJwtConfiguration.getClientJwtCredentials().stream()
                 .filter(e -> e.getIssuer().equals(clientClaims.getIssuer()))
                 .filter(e -> e.matchesSubject(clientClaims.getSubject()))
                 .filter(e -> isAudienceSupported(e.getAudience(), clientClaims.getAudience()))
-                .min(Comparator.comparing(ClientJwtCredential::isSubjectPattern))
+                .min(Comparator.comparing((ClientJwtCredential e) -> e.getAudience() == null)
+                        .thenComparing(ClientJwtCredential::isSubjectPattern))
                 .orElse(null);
     }
 
