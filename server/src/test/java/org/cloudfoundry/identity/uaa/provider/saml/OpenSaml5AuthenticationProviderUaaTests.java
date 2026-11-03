@@ -569,6 +569,29 @@ class OpenSaml5AuthenticationProviderUaaTests {
         assertThat(user.getEmail()).isEqualTo("marissa.invited@test.org");
     }
 
+    @Test
+    void reinvitedUnverifiedUserAuthenticationWhenAssertionHasNoEmail() {
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("email", "emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
+
+        ScimUser scimUser = getInvitedUser(false);
+        // the invitation found this account instead of creating it
+        RequestContextHolder.currentRequestAttributes().setAttribute("created_new_user", false, RequestAttributes.SCOPE_SESSION);
+        Map<String, String> userAttributes = getUserAttributes("Marissa-invited", null, null, null, null);
+        Saml2AuthenticationToken authenticationToken = authenticationToken("marissa-invited", attributeStatements(userAttributes));
+
+        assertThatThrownBy(() -> authenticate(authenticationToken))
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasMessageContaining("SAML User email missing");
+
+        UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
+        assertThat(user.getUsername()).isEqualTo("marissa.invited@test.org");
+        assertThat(user.getEmail()).isEqualTo("marissa.invited@test.org");
+    }
+
     private ScimUser getInvitedUser() {
         return getInvitedUser(false);
     }

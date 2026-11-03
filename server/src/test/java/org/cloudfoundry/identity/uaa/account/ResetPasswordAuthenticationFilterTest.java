@@ -17,6 +17,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,11 +37,14 @@ import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -209,6 +213,42 @@ class ResetPasswordAuthenticationFilterTest {
         ExpiringCode renewed = store.peekCode((String) submit.getAttribute("code"), IdentityZoneHolder.get().getId());
         assertThat(renewed.getExpiresAt()).isBeforeOrEqualTo(expiresAt);
         return renewed;
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void failed_submit_with_a_code_that_expires_meanwhile_reports_an_invalid_code(boolean mismatchedConfirmation) throws Exception {
+        AtomicLong now = new AtomicLong(System.currentTimeMillis());
+        TimeService clock = new TimeService() {
+            @Override
+            public long getCurrentTimeMillis() {
+                return now.get();
+            }
+        };
+        // The code is valid when it is redeemed and expires while the submitted password is checked.
+        var store = new InMemoryExpiringCodeStore(clock) {
+            @Override
+            public ExpiringCode retrieveCode(String code, String zoneId) {
+                ExpiringCode retrieved = super.retrieveCode(code, zoneId);
+                now.addAndGet(60_000);
+                return retrieved;
+            }
+        };
+        var code = store.generateCode("{}", new Timestamp(now.get() + 30_000), "forgot_password_for_id:id", IdentityZoneHolder.get().getId()).getCode();
+        when(service.resetPassword(any(ExpiringCode.class), anyString())).thenThrow(new InvalidPasswordException("failed", HttpStatus.BAD_REQUEST));
+        var submit = MockMvcRequestBuilders.post("/reset_password.do")
+                .param("code", code)
+                .param("password", password)
+                .param("password_confirmation", mismatchedConfirmation ? "different" : password)
+                .param("email", email)
+                .buildRequest(new MockServletContext());
+
+        new ResetPasswordAuthenticationFilter(service, entryPoint, store).doFilterInternal(submit, response, chain);
+
+        ArgumentCaptor<AuthenticationException> failure = ArgumentCaptor.forClass(AuthenticationException.class);
+        verify(entryPoint).commence(same(submit), same(response), failure.capture());
+        assertThat(failure.getValue()).hasCauseInstanceOf(InvalidCodeException.class);
+        assertThat(submit.getAttribute("code")).isNull();
     }
 
     @Test

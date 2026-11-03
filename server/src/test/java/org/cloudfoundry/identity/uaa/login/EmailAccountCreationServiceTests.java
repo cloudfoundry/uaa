@@ -336,6 +336,25 @@ class EmailAccountCreationServiceTests {
     }
 
     @Test
+    void completeActivationForAnAlreadyVerifiedAccountKeepsItsPassword() {
+        setUpForSuccess("");
+        user.setVerified(true);
+        when(mockCodeStore.retrieveCode("the_secret_code", currentIdentityZoneId)).thenReturn(code);
+        when(mockScimUserProvisioning.retrieve(anyString(), eq(currentIdentityZoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(currentIdentityZoneId))).thenReturn(user);
+        when(mockClientDetailsService.loadClientByClientId(anyString(), anyString())).thenReturn(mockClientDetails);
+
+        AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
+
+        // Another activation link for the same account stays valid after the account was confirmed.
+        // Opening it must keep the password the owner has set and must not ask for another change.
+        verify(mockScimUserProvisioning, never()).changePassword(anyString(), any(), anyString(), anyString());
+        verify(mockScimUserProvisioning, never()).updatePasswordChangeRequired(anyString(), anyBoolean(), anyString());
+        verifyNoInteractions(mockResetPasswordService);
+        assertThat(accountCreation.getPasswordResetCode()).isNull();
+    }
+
+    @Test
     void completeActivation_usesAntPathMatching() {
         setUpForSuccess("http://redirect.uri/");
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenReturn(user);

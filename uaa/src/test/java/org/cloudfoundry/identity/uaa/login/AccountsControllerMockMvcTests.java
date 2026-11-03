@@ -457,6 +457,43 @@ class AccountsControllerMockMvcTests {
     }
 
     @Test
+    void openingAnotherActivationLinkAfterPasswordSetupKeepsThePassword() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        // Two registrations for the same unconfirmed address send two activation links.
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "firstPass1")
+                        .param("password_confirmation", "firstPass1"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+        String firstActivationCode = "test" + generator.counter.get();
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "laterPass2")
+                        .param("password_confirmation", "laterPass2"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+        String secondActivationCode = "test" + generator.counter.get();
+
+        // The owner confirms with the second link and sets a password.
+        confirmAccountAndSetPassword(secondActivationCode, "", userEmail);
+
+        // Opening the first link afterwards must not replace that password.
+        mockMvc.perform(get("/verify_user")
+                        .param("code", firstActivationCode))
+                .andExpect(status().isFound());
+
+        loginWithAccount("")
+                .andExpect(authenticated());
+    }
+
+    @Test
     void creatingAnAccountWithAnEmptyClientId() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
@@ -498,6 +535,30 @@ class AccountsControllerMockMvcTests {
     @Test
     void creatingAnAccountWithFallbackClientRedirect() throws Exception {
         createAccount("http://redirect.uri/fallback", null);
+    }
+
+    @Test
+    void creatingAnAccountWithFallbackClientRedirectThatIsNotARegisteredRedirectUri() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+        // the client's redirect URIs are http://redirect.uri/*, so this fallback matches none of them
+        UaaClientDetails clientDetails = createTestClient("http://other.uri/after-signup");
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD)
+                        .param("client_id", clientDetails.getClientId()))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        String afterReset = confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
+
+        // signup_redirect_url is set on the client by an administrator, so it applies after the
+        // password is set even when it is not one of the client's registered redirect URIs.
+        assertRedirectsToLoginWithSingleFormRedirectUri(afterReset, "http://other.uri/after-signup");
     }
 
     @Test
@@ -777,12 +838,16 @@ class AccountsControllerMockMvcTests {
     }
 
     private UaaClientDetails createTestClient() throws Exception {
+        return createTestClient("http://redirect.uri/fallback");
+    }
+
+    private UaaClientDetails createTestClient(String signupRedirectUrl) throws Exception {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(200));
         clientDetails.setClientSecret("test-client-secret");
         clientDetails.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
         clientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.uri/*"));
-        clientDetails.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://redirect.uri/fallback");
+        clientDetails.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, signupRedirectUrl);
 
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(testAccounts.getAdminClientId(),
