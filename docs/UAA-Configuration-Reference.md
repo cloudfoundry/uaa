@@ -1939,9 +1939,11 @@ When `true`, "Create Account" and "Forgot Password" links are displayed on the l
 > registration form. The owner is sent to a password-setup page (stating that a password change is
 > required due to changes in the system) and must establish their own password through the link
 > before the account can be used to sign in. This ensures a password chosen before the email address
-> was verified can never be used to authenticate. Any client or signup redirect configured for the
-> registration (an explicit `redirect_uri` or the client's `signup_redirect_url`) is applied after the
-> owner has set their password, provided it matches one of the client's registered redirect URIs.
+> was verified can never be used to authenticate. The redirect configured for the registration is
+> applied after the owner has set their password: an explicit `redirect_uri` when it matches one of the
+> client's registered redirect URIs, otherwise the client's `signup_redirect_url`, which does not have
+> to be a registered redirect URI. Opening another activation link for an account that is already
+> confirmed changes nothing: the password stays as it is and the user is sent to the login page.
 >
 > **Note on addresses that already have an account.** The registration form (`/create_account.do`) and
 > the change email form (`/change_email.do`) answer the same way whether or not the address already

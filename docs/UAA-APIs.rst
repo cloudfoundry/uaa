@@ -2454,9 +2454,14 @@ The redirect_uri will be validated against allowed redirect_uri for the client.
    must carry an email address, and it must match the invited email address (the comparison ignores case). A sign-in that
    carries a different address is rejected.
 
-   * SAML: if the assertion has no email attribute, the invitation is accepted only for a first-time invitee, that is a
-     user created by the invitation who is still unverified and whose username equals the invited email address. For any
-     other invited user (already verified, or a username that differs from the email address) the sign-in is rejected.
+   * SAML: if the assertion has no email attribute, there is no address to compare. UAA then accepts the sign-in only
+     when the invited account is still unverified and its username equals the invited email address. That is the state
+     of an account created by an invitation that has not been accepted yet. Any other account is rejected: one that is
+     verified, or one whose username differs from its email address.
+
+     UAA does not record whether the invitation created the account, so an existing account in the same state is
+     accepted too. UAA marks a SAML user verified only when the provider's ``email_verified`` attribute says so. To have
+     every acceptance compared with the invited address, map the ``email`` attribute for the provider.
    * OIDC: if the token has no email claim, UAA derives an address from the username claim. That address has to match
      the invited email address as well, so a token without an email claim only works when the username claim equals the
      invited email address.

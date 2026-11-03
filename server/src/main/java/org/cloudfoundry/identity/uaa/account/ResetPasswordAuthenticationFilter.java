@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -42,6 +43,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
     private final AuthenticationEntryPoint entryPoint;
     private final ExpiringCodeStore expiringCodeStore;
     public static final String RESET_PASSWORD_URL = "/reset_password.do";
+    private static final String INVALID_CODE_MESSAGE = "Sorry, your reset password link is no longer valid. Please request a new one";
     private static final RequestMatcher matcher = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, RESET_PASSWORD_URL);
 
     public ResetPasswordAuthenticationFilter(
@@ -76,7 +78,7 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
             validation.throwIfNotValid();
             if (expiringCode == null) {
-                throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
+                throw new InvalidCodeException("invalid_code", INVALID_CODE_MESSAGE, 422);
             }
             ResetPasswordService.ResetPasswordResponse resetPasswordResponse = service.resetPassword(expiringCode, password);
             String redirectUri = resetPasswordResponse.getRedirectUri();
@@ -86,23 +88,27 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8));
             }
         } catch (InvalidPasswordException e) {
-            if (expiringCode != null) {
-                refreshCode(request, expiringCode);
-            }
-            entryPoint.commence(request, response, new BadCredentialsException(e.getMessagesAsOneString(), e));
+            commenceWithRefreshedCode(request, response, expiringCode, new BadCredentialsException(e.getMessagesAsOneString(), e));
         } catch (UaaException e) {
             entryPoint.commence(request, response, new InternalAuthenticationServiceException(e.getMessage(), e));
         } catch (PasswordConfirmationException pe) {
-            if (expiringCode != null) {
-                refreshCode(request, expiringCode);
-            }
-            entryPoint.commence(request, response, new BadCredentialsException("Password did not pass validation.", pe));
+            commenceWithRefreshedCode(request, response, expiringCode, new BadCredentialsException("Password did not pass validation.", pe));
         }
     }
 
-    private void refreshCode(HttpServletRequest request, ExpiringCode expiringCode) {
-        ExpiringCode newCode = expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), expiringCode.getIntent(), IdentityZoneHolder.get().getId());
-        request.setAttribute("code", newCode.getCode());
+    private void commenceWithRefreshedCode(HttpServletRequest request, HttpServletResponse response, ExpiringCode expiringCode, AuthenticationException failure) throws IOException, ServletException {
+        if (expiringCode != null) {
+            try {
+                ExpiringCode newCode = expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), expiringCode.getIntent(), IdentityZoneHolder.get().getId());
+                request.setAttribute("code", newCode.getCode());
+            } catch (IllegalArgumentException _) {
+                // the code expired while the password was checked, so there is no code left to submit again
+                InvalidCodeException expired = new InvalidCodeException("invalid_code", INVALID_CODE_MESSAGE, 422);
+                entryPoint.commence(request, response, new InternalAuthenticationServiceException(expired.getMessage(), expired));
+                return;
+            }
+        }
+        entryPoint.commence(request, response, failure);
     }
 
 }

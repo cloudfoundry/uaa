@@ -34,8 +34,6 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -210,34 +208,6 @@ class InvitationsControllerTest {
 
         assertThat(result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE")).isEqualTo(true);
         assertThat(result.getRequest().getSession().getAttribute("user_id")).isEqualTo("user-id-001");
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void acceptInvitePage_for_unverifiedSamlUser_recordsWhetherTheInvitationCreatedTheUser(boolean createdNewUser) throws Exception {
-        Map<String, String> codeData = getInvitationsCode("test-saml");
-        codeData.put("created_new_user", String.valueOf(createdNewUser));
-        String zoneId = IdentityZoneHolder.get().getId();
-        when(expiringCodeStore.peekCode("the_secret_code", zoneId)).thenReturn(createCode(codeData));
-        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
-        SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation("http://test.saml.com")
-                .setIdpEntityAlias("test-saml")
-                .setNameID("test")
-                .setLinkText("testsaml")
-                .setIconUrl("test.com")
-                .setZoneId(zoneId);
-        provider.setConfig(definition);
-        provider.setType(OriginKeys.SAML);
-        when(providerProvisioning.retrieveByOrigin(eq("test-saml"), anyString())).thenReturn(provider);
-        MockHttpServletRequestBuilder get = get("/invitations/accept")
-                .param("code", "the_secret_code");
-
-        MvcResult result = mockMvc.perform(get)
-                .andExpect(redirectedUrl("/saml2/authenticate/test-saml"))
-                .andReturn();
-
-        assertThat(result.getRequest().getSession().getAttribute("created_new_user")).isEqualTo(createdNewUser);
     }
 
     @Test

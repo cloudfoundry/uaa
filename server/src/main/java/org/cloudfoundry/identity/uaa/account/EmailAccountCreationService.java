@@ -130,6 +130,12 @@ public class EmailAccountCreationService implements AccountCreationService {
         String clientId = data.get("client_id");
         String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
 
+        if (user.isVerified()) {
+            // The account is already verified, for example through another activation link. Leave its password
+            // alone: the owner has set it, or can set it through forgot password.
+            return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), getRedirect(clientId, redirectUri));
+        }
+
         if (Boolean.parseBoolean(data.get(ScimUtils.USER_PROVISIONED))) {
             // The code was requested through the user API, so a caller that may create users set the password.
             // Opening the link only has to verify the email address.
