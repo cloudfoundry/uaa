@@ -109,6 +109,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -851,6 +852,45 @@ class AuditCheckMockMvcTests {
         }
 
         @Test
+        void membershipEventsUseRequestZoneAndActor() throws Exception {
+            ScimGroup group = JsonUtils.readValue(mockMvc.perform(post("/Groups")
+                            .headers(zoneSeeder.getZoneSubdomainRequestHeader()).with(httpBearer(scimWriteUserToken))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsBytes(new ScimGroup("zone-membership-" + generator.generate()))))
+                    .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), ScimGroup.class);
+            resetAuditTestReceivers();
+            mockMvc.perform(post("/Groups/" + group.getId() + "/members")
+                            .headers(zoneSeeder.getZoneSubdomainRequestHeader()).with(httpBearer(scimWriteUserToken))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsBytes(new ScimGroupMember(scimWriteUser.getId()))))
+                    .andExpect(status().isCreated());
+
+            List<AuditEvent> events = capturedAuditEvents();
+            assertThat(events).extracting(AuditEvent::getType).containsExactly(GroupMembershipAddedEvent, GroupModifiedEvent);
+            assertLegacyGroupSnapshot(events.getLast(), group, scimWriteUser.getId());
+            assertThat(events.getLast().getIdentityZoneId()).isEqualTo(zoneSeeder.getIdentityZoneId());
+            assertThat(events.getLast().getOrigin()).contains("client=" + adminClient.getClientId());
+            AuditEvent event = events.getFirst();
+            assertThat(event.getPrincipalId()).isEqualTo(group.getId());
+            assertThat(event.getIdentityZoneId()).isEqualTo(zoneSeeder.getIdentityZoneId()).isNotEqualTo("uaa");
+            assertThat(event.getOrigin()).contains("client=" + adminClient.getClientId());
+            assertThat(JsonUtils.readValueAsMap(event.getData())).containsEntry("member_name", scimWriteUser.getUserName())
+                    .containsEntry("member_id", scimWriteUser.getId());
+
+            resetAuditTestReceivers();
+            mockMvc.perform(delete("/Groups/" + group.getId() + "/members/" + scimWriteUser.getId())
+                            .headers(zoneSeeder.getZoneSubdomainRequestHeader()).with(httpBearer(scimWriteUserToken)))
+                    .andExpect(status().isOk());
+            events = capturedAuditEvents();
+            assertThat(events).extracting(AuditEvent::getType).containsExactly(GroupMembershipRemovedEvent, GroupModifiedEvent);
+            assertLegacyGroupSnapshot(events.getLast(), group);
+            assertThat(events).allSatisfy(audit -> {
+                assertThat(audit.getIdentityZoneId()).isEqualTo(zoneSeeder.getIdentityZoneId());
+                assertThat(audit.getOrigin()).contains("client=" + adminClient.getClientId());
+            });
+        }
+
+        @Test
         void generateUserModifiedEvent_whenCreatingUser(
                 @Autowired MockMvc mockMvc
         ) throws Exception {
@@ -1213,7 +1253,7 @@ class AuditCheckMockMvcTests {
         result = mockMvc.perform(groupPut).andExpect(status().isOk());
         group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
-        assertThatNumberOfAuditEventsReceivedIsEqualTo(1);
+        assertThatNumberOfAuditEventsReceivedIsEqualTo(2);
 
         event = (GroupModifiedEvent) testListener.getLatestEvent();
         assertThat(event.getAuditEvent().getType()).isEqualTo(GroupModifiedEvent);
@@ -1250,6 +1290,182 @@ class AuditCheckMockMvcTests {
 
         assertGroupMembershipLogMessage(testLogger.getLatestMessage(),
                 GroupDeletedEvent, group.getDisplayName(), group.getId(), jacob.getId(), emily.getId(), jonas.getId());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PUT", "PATCH"})
+    void membershipChangesPrecedeUnchangedGroupModifiedEvent(String method) throws Exception {
+        ScimUser added = createUser(adminToken, "added", "Added", "User", "added@example.com", testPassword, true);
+        ScimUser retained = createUser(adminToken, "retained", "Retained", "User", "retained@example.com", testPassword, true);
+        ScimGroup group = createMembershipAuditGroup(List.of(new ScimGroupMember(testUser.getId()),
+                new ScimGroupMember(retained.getId())));
+        ScimGroup update = new ScimGroup(group.getId(), group.getDisplayName(), identityZoneManager.getCurrentIdentityZoneId());
+        if ("PATCH".equals(method)) {
+            ScimGroupMember removed = new ScimGroupMember(testUser.getId());
+            removed.setOperation("delete");
+            update.setMembers(List.of(removed, new ScimGroupMember(added.getId())));
+        } else {
+            update.setMembers(List.of(new ScimGroupMember(retained.getId()), new ScimGroupMember(added.getId())));
+        }
+        resetAuditTestReceivers();
+
+        MockHttpServletRequestBuilder request = "PATCH".equals(method)
+                ? patch("/Groups/" + group.getId()) : put("/Groups/" + group.getId());
+        mockMvc.perform(request.header(AUTHORIZATION, "Bearer " + adminToken)
+                        .header("If-Match", "*").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsBytes(update)))
+                .andExpect(status().isOk());
+
+        List<AuditEvent> events = capturedAuditEvents();
+        assertThat(events).extracting(AuditEvent::getType)
+                .containsExactly(GroupMembershipRemovedEvent, GroupMembershipAddedEvent, GroupModifiedEvent);
+        assertMembershipAudit(events.get(0), group, testUser.getId(), testUser.getUserName(), "USER");
+        assertMembershipAudit(events.get(1), group, added.getId(), added.getUserName(), "USER");
+        Map<String, Object> snapshot = JsonUtils.readValueAsMap(events.get(2).getData());
+        assertThat(snapshot).containsOnlyKeys("group_name", "members").containsEntry("group_name", group.getDisplayName());
+        assertThat((List<String>) snapshot.get("members")).containsExactlyInAnyOrder(retained.getId(), added.getId());
+        assertThat(testLogger.getMessageAtIndex(0)).startsWith("GroupMembershipRemovedEvent ").contains(testUser.getUserName());
+        assertThat(testLogger.getMessageAtIndex(1)).startsWith("GroupMembershipAddedEvent ").contains(added.getUserName());
+        assertThat(testLogger.getLatestMessage()).startsWith("GroupModifiedEvent ");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PUT", "PATCH"})
+    void metadataOnlyUpdateAndRemoveAllMembers(String method) throws Exception {
+        ScimGroup group = createMembershipAuditGroup(List.of(new ScimGroupMember(testUser.getId())));
+        ScimGroup metadata = "PATCH".equals(method) ? new ScimGroup() : group;
+        metadata.setDescription("Only the description changed");
+        resetAuditTestReceivers();
+        MockHttpServletRequestBuilder metadataRequest = "PATCH".equals(method)
+                ? patch("/Groups/" + group.getId()) : put("/Groups/" + group.getId());
+        mockMvc.perform(metadataRequest.header(AUTHORIZATION, "Bearer " + adminToken)
+                        .header("If-Match", "*").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsBytes(metadata)))
+                .andExpect(status().isOk());
+        assertThat(capturedAuditEvents()).extracting(AuditEvent::getType).containsExactly(GroupModifiedEvent);
+
+        if ("PATCH".equals(method)) {
+            ScimGroupMember removed = new ScimGroupMember(testUser.getId());
+            removed.setOperation("delete");
+            group.setMembers(List.of(removed));
+        } else {
+            group.setMembers(List.of());
+        }
+        resetAuditTestReceivers();
+        MockHttpServletRequestBuilder removalRequest = "PATCH".equals(method)
+                ? patch("/Groups/" + group.getId()) : put("/Groups/" + group.getId());
+        mockMvc.perform(removalRequest.header(AUTHORIZATION, "Bearer " + adminToken)
+                        .header("If-Match", "*").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsBytes(group)))
+                .andExpect(status().isOk());
+        List<AuditEvent> events = capturedAuditEvents();
+        assertThat(events).extracting(AuditEvent::getType).containsExactly(GroupMembershipRemovedEvent, GroupModifiedEvent);
+        assertMembershipAudit(events.getFirst(), group, testUser.getId(), testUser.getUserName(), "USER");
+        assertThat((List<?>) JsonUtils.readValueAsMap(events.getLast().getData()).get("members")).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"USER", "GROUP"})
+    void singleMemberEndpointsEmitDedicatedEventsAndFinalSnapshot(String memberType) throws Exception {
+        ScimUser retained = createUser(adminToken, "retained", "Retained", "User", "retained@example.com", testPassword, true);
+        ScimGroup group = createMembershipAuditGroup(List.of(new ScimGroupMember(retained.getId())));
+        ScimGroupMember member;
+        String memberName;
+        if ("GROUP".equals(memberType)) {
+            ScimGroup nested = createMembershipAuditGroup(List.of());
+            member = new ScimGroupMember(nested.getId(), ScimGroupMember.Type.GROUP);
+            memberName = nested.getDisplayName();
+        } else {
+            member = new ScimGroupMember();
+            member.setMemberId(testUser.getId());
+            memberName = testUser.getUserName();
+        }
+        String path = "/Groups/" + group.getId() + "/members";
+        resetAuditTestReceivers();
+        mockMvc.perform(post(path).header(AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtils.writeValueAsBytes(member)))
+                .andExpect(status().isCreated());
+        List<AuditEvent> events = capturedAuditEvents();
+        assertThat(events).extracting(AuditEvent::getType).containsExactly(GroupMembershipAddedEvent, GroupModifiedEvent);
+        assertMembershipAudit(events.getFirst(), group, member.getMemberId(), memberName, memberType);
+        assertLegacyGroupSnapshot(events.getLast(), group, retained.getId(), member.getMemberId());
+        assertThat(testLogger.getMessageAtIndex(0)).startsWith("GroupMembershipAddedEvent ");
+        assertThat(testLogger.getMessageAtIndex(1)).startsWith("GroupModifiedEvent ");
+
+        resetAuditTestReceivers();
+        mockMvc.perform(post(path).header(AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtils.writeValueAsBytes(member)))
+                .andExpect(status().isConflict());
+        assertThatNumberOfAuditEventsReceivedIsEqualTo(0);
+
+        resetAuditTestReceivers();
+        mockMvc.perform(delete(path + "/" + member.getMemberId()).header(AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk());
+        events = capturedAuditEvents();
+        assertThat(events).extracting(AuditEvent::getType).containsExactly(GroupMembershipRemovedEvent, GroupModifiedEvent);
+        assertMembershipAudit(events.getFirst(), group, member.getMemberId(), memberName, memberType);
+        assertLegacyGroupSnapshot(events.getLast(), group, retained.getId());
+        assertThat(testLogger.getMessageAtIndex(0)).startsWith("GroupMembershipRemovedEvent ");
+        assertThat(testLogger.getMessageAtIndex(1)).startsWith("GroupModifiedEvent ");
+
+        resetAuditTestReceivers();
+        mockMvc.perform(delete(path + "/" + member.getMemberId()).header(AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+        assertThatNumberOfAuditEventsReceivedIsEqualTo(0);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void failedGroupUpdateDoesNotEmitMembershipSuccessEvents(boolean staleVersion) throws Exception {
+        ScimUser added = createUser(adminToken, "valid", "Valid", "User", "valid@example.com", testPassword, true);
+        ScimGroup group = createMembershipAuditGroup(List.of(new ScimGroupMember(testUser.getId())));
+        group.setMembers(List.of(new ScimGroupMember(testUser.getId()), new ScimGroupMember(added.getId()),
+                new ScimGroupMember("missing-member-" + generator.generate())));
+        resetAuditTestReceivers();
+        ResultActions result = mockMvc.perform(put("/Groups/" + group.getId()).header(AUTHORIZATION, "Bearer " + adminToken)
+                        .header("If-Match", staleVersion ? "-1" : "*").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsBytes(group)));
+        if (staleVersion) {
+            result.andExpect(status().isConflict());
+        } else {
+            result.andExpect(status().isBadRequest());
+        }
+        assertThatNumberOfAuditEventsReceivedIsEqualTo(0);
+        ScimGroup persisted = JsonUtils.readValue(mockMvc.perform(get("/Groups/" + group.getId())
+                        .header(AUTHORIZATION, "Bearer " + adminToken)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(), ScimGroup.class);
+        assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId).contains(testUser.getId());
+        if (staleVersion) {
+            assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId).doesNotContain(added.getId());
+        }
+    }
+
+    private ScimGroup createMembershipAuditGroup(List<ScimGroupMember> members) throws Exception {
+        ScimGroup group = new ScimGroup(null, "membership-audit-" + generator.generate(),
+                identityZoneManager.getCurrentIdentityZoneId());
+        group.setMembers(members);
+        return JsonUtils.readValue(mockMvc.perform(post("/Groups").header(AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtils.writeValueAsBytes(group)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), ScimGroup.class);
+    }
+
+    private List<AuditEvent> capturedAuditEvents() {
+        return testListener.getEvents().stream().map(AbstractUaaEvent::getAuditEvent).toList();
+    }
+
+    private void assertLegacyGroupSnapshot(AuditEvent event, ScimGroup group, String... memberIds) {
+        assertThat(event.getPrincipalId()).isEqualTo(group.getId());
+        Map<String, Object> data = JsonUtils.readValueAsMap(event.getData());
+        assertThat(data).containsOnlyKeys("group_name", "members").containsEntry("group_name", group.getDisplayName());
+        assertThat((List<String>) data.get("members")).containsExactlyInAnyOrder(memberIds);
+    }
+
+    private void assertMembershipAudit(AuditEvent event, ScimGroup group, String memberId, String name, String type) {
+        assertThat(event.getOrigin()).contains("client=" + testAccounts.getAdminClientId());
+        assertThat(event.getPrincipalId()).isEqualTo(group.getId());
+        assertThat(event.getIdentityZoneId()).isEqualTo(identityZoneManager.getCurrentIdentityZoneId());
+        assertThat(JsonUtils.readValueAsMap(event.getData())).containsExactlyInAnyOrderEntriesOf(Map.of(
+                "group_name", group.getDisplayName(), "member_id", memberId, "member_name", name, "member_type", type));
     }
 
     private static ScimUser buildRandomScimUser() {
