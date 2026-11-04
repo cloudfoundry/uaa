@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -206,7 +207,8 @@ class ScimGroupEndpointsTests {
                 identityZoneManager,
                 20,
                 exceptionToStatusMap,
-                jdbcScimGroupExternalMembershipManager);
+                jdbcScimGroupExternalMembershipManager,
+                mock(ScimEventPublisher.class));
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
         verify(memberManager, times(0)).getMembers(anyString(), any(Boolean.class), anyString());
     }
@@ -221,21 +223,22 @@ class ScimGroupEndpointsTests {
                 identityZoneManager,
                 20,
                 exceptionToStatusMap,
-                jdbcScimGroupExternalMembershipManager);
+                jdbcScimGroupExternalMembershipManager,
+                mock(ScimEventPublisher.class));
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName,members", "id pr", "created", "ascending", 1, 100), 11);
         verify(memberManager, atLeastOnce()).getMembers(anyString(), any(Boolean.class), anyString());
     }
 
     @Test
     void whenSettingAnInvalidGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
-        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, 0, null, null))
+        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, 0, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid \"groupMaxCount\" value (got 0). Should be positive number.");
     }
 
     @Test
     void whenSettingANegativeValueGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
-        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, -1, null, null))
+        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, -1, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid \"groupMaxCount\" value (got -1). Should be positive number.");
     }
@@ -699,7 +702,8 @@ class ScimGroupEndpointsTests {
                 identityZoneManager,
                 20,
                 exceptionToStatusMap,
-                jdbcScimGroupExternalMembershipManager);
+                jdbcScimGroupExternalMembershipManager,
+                mock(ScimEventPublisher.class));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         validateView(scimGroupEndpoints.handleException(new ScimResourceNotFoundException(""), request), HttpStatus.NOT_FOUND);
