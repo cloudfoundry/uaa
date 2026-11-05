@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.audit;
 
-import tools.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
@@ -41,7 +40,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
+import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
@@ -58,6 +59,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
@@ -74,31 +76,46 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Utf8;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.util.AopTestUtils;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.GenericWebApplicationContext;
+import tools.jackson.core.type.TypeReference;
 
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.httpBearer;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -108,8 +125,8 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -125,6 +142,12 @@ class AuditCheckMockMvcTests {
     private UaaTestAccounts testAccounts;
     private TestApplicationEventListener<AbstractUaaEvent> testListener;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+    @MockitoSpyBean
+    private ScimEventPublisher scimEventPublisher;
+    @MockitoSpyBean
+    private ScimGroupEndpoints groupEndpoints;
     private ScimUser testUser;
     private final String testPassword = "secr3T";
     @Autowired
@@ -1419,7 +1442,14 @@ class AuditCheckMockMvcTests {
     void failedGroupUpdateDoesNotEmitMembershipSuccessEvents(boolean staleVersion) throws Exception {
         ScimUser added = createUser(adminToken, "valid", "Valid", "User", "valid@example.com", testPassword, true);
         ScimGroup group = createMembershipAuditGroup(List.of(new ScimGroupMember(testUser.getId())));
-        group.setMembers(List.of(new ScimGroupMember(testUser.getId()), new ScimGroupMember(added.getId()),
+        String originalName = group.getDisplayName();
+        String originalDescription = group.getDescription();
+        int originalVersion = group.getVersion();
+        var originalCreated = group.getMeta().getCreated();
+        var originalModified = group.getMeta().getLastModified();
+        group.setDisplayName("changed-" + generator.generate());
+        group.setDescription("Must roll back");
+        group.setMembers(List.of(new ScimGroupMember(added.getId()),
                 new ScimGroupMember("missing-member-" + generator.generate())));
         resetAuditTestReceivers();
         ResultActions result = mockMvc.perform(put("/Groups/" + group.getId()).header(AUTHORIZATION, "Bearer " + adminToken)
@@ -1434,9 +1464,251 @@ class AuditCheckMockMvcTests {
         ScimGroup persisted = JsonUtils.readValue(mockMvc.perform(get("/Groups/" + group.getId())
                         .header(AUTHORIZATION, "Bearer " + adminToken)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(), ScimGroup.class);
-        assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId).contains(testUser.getId());
-        if (staleVersion) {
-            assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId).doesNotContain(added.getId());
+        assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId).containsExactly(testUser.getId());
+        assertThat(persisted.getDisplayName()).isEqualTo(originalName);
+        assertThat(persisted.getDescription()).isEqualTo(originalDescription);
+        assertThat(persisted.getVersion()).isEqualTo(originalVersion);
+        assertThat(persisted.getMeta().getCreated()).isEqualTo(originalCreated);
+        assertThat(persisted.getMeta().getLastModified()).isEqualTo(originalModified);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"PUT,true", "PUT,false", "PATCH,true", "PATCH,false", "POST,true", "POST,false", "DELETE,true", "DELETE,false"})
+    void membershipEventsWaitForOuterTransactionAndRespectRollback(String method, boolean rollback) throws Exception {
+        boolean removing = "DELETE".equals(method);
+        boolean bulk = "PUT".equals(method) || "PATCH".equals(method);
+        ScimGroup group = createMembershipAuditGroup(removing ? List.of(new ScimGroupMember(testUser.getId())) : List.of());
+        ScimGroup update = new ScimGroup(group.getId(), group.getDisplayName(), identityZoneManager.getCurrentIdentityZoneId());
+        update.setDescription("Committed bulk metadata");
+        update.setMembers(List.of(new ScimGroupMember(testUser.getId())));
+        var outer = new TransactionTemplate(transactionTemplate.getTransactionManager());
+        outer.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        resetAuditTestReceivers();
+        outer.executeWithoutResult(transaction -> {
+            try {
+                String path = "/Groups/" + group.getId();
+                MockHttpServletRequestBuilder request = switch (method) {
+                    case "PUT" -> put(path).header("If-Match", "*").content(JsonUtils.writeValueAsBytes(update));
+                    case "PATCH" -> patch(path).header("If-Match", "*").content(JsonUtils.writeValueAsBytes(update));
+                    case "POST" -> post(path + "/members").content(JsonUtils.writeValueAsBytes(new ScimGroupMember(testUser.getId())));
+                    case "DELETE" -> delete(path + "/members/" + testUser.getId());
+                    default -> throw new IllegalArgumentException(method);
+                };
+                mockMvc.perform(request.header(AUTHORIZATION, "Bearer " + adminToken).contentType(MediaType.APPLICATION_JSON))
+                        .andExpect("POST".equals(method) ? status().isCreated() : status().isOk());
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+            assertThat(capturedAuditEvents()).isEmpty();
+            if (rollback) {
+                transaction.setRollbackOnly();
+            }
+        });
+        String[] expectedMembers = rollback == removing ? new String[]{testUser.getId()} : new String[0];
+        if (rollback) {
+            assertThat(capturedAuditEvents()).isEmpty();
+        } else {
+            List<AuditEvent> events = capturedAuditEvents();
+            assertThat(events).extracting(AuditEvent::getType)
+                    .containsExactly(removing ? GroupMembershipRemovedEvent : GroupMembershipAddedEvent, GroupModifiedEvent);
+            assertMembershipAudit(events.getFirst(), group, testUser.getId(), testUser.getUserName(), "USER");
+            assertLegacyGroupSnapshot(events.getLast(), group, expectedMembers);
+        }
+        ScimGroup persisted = JsonUtils.readValue(mockMvc.perform(get("/Groups/" + group.getId())
+                        .header(AUTHORIZATION, "Bearer " + adminToken)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(), ScimGroup.class);
+        assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId).containsExactly(expectedMembers);
+        assertThat(persisted.getDescription()).isEqualTo(bulk && !rollback ? update.getDescription() : group.getDescription());
+        assertThat(persisted.getDisplayName()).isEqualTo(group.getDisplayName());
+        assertThat(persisted.getVersion()).isEqualTo(group.getVersion() + (bulk && !rollback ? 1 : 0));
+        assertThat(persisted.getMeta().getCreated()).isEqualTo(group.getMeta().getCreated());
+        if (!bulk || rollback) {
+            assertThat(persisted.getMeta().getLastModified()).isEqualTo(group.getMeta().getLastModified());
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"PUT,POST", "PATCH,POST", "PUT,DELETE", "PATCH,DELETE"})
+    void concurrentBulkAndSingleMembershipChangesSerialize(String bulkMethod, String singleMethod) throws Exception {
+        ScimUser other = createUser(adminToken, "other", "Other", "User", "other@example.com", testPassword, true);
+        boolean adding = "POST".equals(singleMethod);
+        ScimGroup group = createMembershipAuditGroup(adding
+                ? List.of(new ScimGroupMember(testUser.getId()))
+                : List.of(new ScimGroupMember(testUser.getId()), new ScimGroupMember(other.getId())));
+        ScimGroup update = new ScimGroup(group.getId(), group.getDisplayName(), identityZoneManager.getCurrentIdentityZoneId());
+        if ("PATCH".equals(bulkMethod)) {
+            ScimGroupMember removed = new ScimGroupMember(testUser.getId());
+            removed.setOperation("delete");
+            update.setMembers(List.of(removed));
+        } else {
+            update.setMembers(adding ? List.of() : List.of(new ScimGroupMember(other.getId())));
+        }
+        CountDownLatch bulkSnapshot = new CountDownLatch(1);
+        CountDownLatch releaseBulk = new CountDownLatch(1);
+        CountDownLatch singleRequestEntered = new CountDownLatch(1);
+        CountDownLatch singleSnapshot = new CountDownLatch(1);
+        Map<String, List<AuditEvent>> byOperation = new ConcurrentHashMap<>();
+        ApplicationListener<AbstractUaaEvent> listener = event -> {
+            String operation = Thread.currentThread().getName();
+            if (operation.equals("membership-bulk") || operation.equals("membership-single")) {
+                byOperation.computeIfAbsent(operation, _ -> new ArrayList<>()).add(event.getAuditEvent());
+            }
+        };
+        MockMvcUtils.removeEventListener(configurableApplicationContext, testListener);
+        configurableApplicationContext.addApplicationListener(listener);
+        doAnswer(invocation -> {
+            Object prepared = invocation.callRealMethod();
+            bulkSnapshot.countDown();
+            assertThat(releaseBulk.await(10, TimeUnit.SECONDS)).isTrue();
+            return prepared;
+        }).when(scimEventPublisher).prepareMembershipChanges(any(), any());
+        if (adding) {
+            doAnswer(invocation -> {
+                singleRequestEntered.countDown();
+                return invocation.callRealMethod();
+            }).when(AopTestUtils.<ScimGroupEndpoints>getUltimateTargetObject(groupEndpoints)).addMemberToGroup(eq(group.getId()), any());
+        } else {
+            doAnswer(invocation -> {
+                singleRequestEntered.countDown();
+                return invocation.callRealMethod();
+            }).when(AopTestUtils.<ScimGroupEndpoints>getUltimateTargetObject(groupEndpoints)).deleteGroupMembership(eq(group.getId()), anyString());
+        }
+        doAnswer(invocation -> {
+            if (Thread.currentThread().getName().equals("membership-single")) {
+                singleSnapshot.countDown();
+            }
+            return invocation.callRealMethod();
+        }).when(scimEventPublisher).prepareMembershipEvent(any(), any(), any());
+        var workers = Executors.newFixedThreadPool(2);
+        try {
+            var bulk = workers.submit(() -> {
+                Thread.currentThread().setName("membership-bulk");
+                MockHttpServletRequestBuilder request = "PATCH".equals(bulkMethod)
+                        ? patch("/Groups/" + group.getId()) : put("/Groups/" + group.getId());
+                return mockMvc.perform(request.header(AUTHORIZATION, "Bearer " + adminToken)
+                                .header("If-Match", "*").contentType(MediaType.APPLICATION_JSON)
+                                .content(JsonUtils.writeValueAsBytes(update)))
+                        .andExpect(status().isOk()).andReturn();
+            });
+            assertThat(bulkSnapshot.await(10, TimeUnit.SECONDS)).isTrue();
+            var single = workers.submit(() -> {
+                Thread.currentThread().setName("membership-single");
+                String path = "/Groups/" + group.getId() + "/members";
+                MockHttpServletRequestBuilder request = adding
+                        ? post(path).contentType(MediaType.APPLICATION_JSON)
+                                .content(JsonUtils.writeValueAsBytes(new ScimGroupMember(other.getId())))
+                        : delete(path + "/" + other.getId());
+                return mockMvc.perform(request.header(AUTHORIZATION, "Bearer " + adminToken))
+                        .andExpect(adding ? status().isCreated() : status().isOk()).andReturn();
+            });
+            assertThat(singleRequestEntered.await(10, TimeUnit.SECONDS)).isTrue();
+            // The contender has entered its endpoint, but must not read its audit snapshot or finish.
+            assertThat(singleSnapshot.await(300, TimeUnit.MILLISECONDS)).isFalse();
+            assertThatThrownBy(() -> single.get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            releaseBulk.countDown();
+            bulk.get(10, TimeUnit.SECONDS);
+            single.get(10, TimeUnit.SECONDS);
+            assertThat(singleSnapshot.getCount()).isZero();
+            List<AuditEvent> bulkEvents = byOperation.get("membership-bulk");
+            List<AuditEvent> singleEvents = byOperation.get("membership-single");
+            assertThat(bulkEvents).extracting(AuditEvent::getType)
+                    .containsExactly(GroupMembershipRemovedEvent, GroupModifiedEvent);
+            assertThat(singleEvents).extracting(AuditEvent::getType)
+                    .containsExactly(adding ? GroupMembershipAddedEvent : GroupMembershipRemovedEvent, GroupModifiedEvent);
+            assertMembershipAudit(bulkEvents.getFirst(), group, testUser.getId(), testUser.getUserName(), "USER");
+            assertMembershipAudit(singleEvents.getFirst(), group, other.getId(), other.getUserName(), "USER");
+            assertLegacyGroupSnapshot(bulkEvents.getLast(), group, adding ? new String[0] : new String[]{other.getId()});
+            assertLegacyGroupSnapshot(singleEvents.getLast(), group, adding ? new String[]{other.getId()} : new String[0]);
+            ScimGroup persisted = JsonUtils.readValue(mockMvc.perform(get("/Groups/" + group.getId())
+                            .header(AUTHORIZATION, "Bearer " + adminToken)).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(), ScimGroup.class);
+            assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId)
+                    .containsExactly(adding ? new String[]{other.getId()} : new String[0]);
+        } finally {
+            releaseBulk.countDown();
+            workers.shutdownNow();
+            assertThat(workers.awaitTermination(15, TimeUnit.SECONDS)).isTrue();
+            MockMvcUtils.removeEventListener(configurableApplicationContext, listener);
+        }
+    }
+
+    @Test
+    void patchWaitsForSingleMemberInsertBeforeReadingAndMerging() throws Exception {
+        ScimUser added = createUser(adminToken, "added", "Added", "User", "added@example.com", testPassword, true);
+        ScimGroup group = createMembershipAuditGroup(List.of(new ScimGroupMember(testUser.getId())));
+        ScimGroup update = new ScimGroup();
+        ScimGroupMember removed = new ScimGroupMember(testUser.getId());
+        removed.setOperation("delete");
+        update.setMembers(List.of(removed));
+        CountDownLatch insertReady = new CountDownLatch(1);
+        CountDownLatch releaseInsert = new CountDownLatch(1);
+        CountDownLatch patchRequestEntered = new CountDownLatch(1);
+        CountDownLatch patchSnapshot = new CountDownLatch(1);
+        Map<String, List<AuditEvent>> byOperation = new ConcurrentHashMap<>();
+        ApplicationListener<AbstractUaaEvent> listener = event -> {
+            String operation = Thread.currentThread().getName();
+            if (operation.equals("membership-post-first") || operation.equals("membership-patch-second")) {
+                byOperation.computeIfAbsent(operation, _ -> new ArrayList<>()).add(event.getAuditEvent());
+            }
+        };
+        MockMvcUtils.removeEventListener(configurableApplicationContext, testListener);
+        configurableApplicationContext.addApplicationListener(listener);
+        doAnswer(invocation -> {
+            Object prepared = invocation.callRealMethod();
+            if (Thread.currentThread().getName().equals("membership-post-first")) {
+                insertReady.countDown();
+                assertThat(releaseInsert.await(10, TimeUnit.SECONDS)).isTrue();
+            }
+            return prepared;
+        }).when(scimEventPublisher).prepareMembershipEvent(any(), any(), any());
+        doAnswer(invocation -> {
+            patchRequestEntered.countDown();
+            return invocation.callRealMethod();
+        }).when(AopTestUtils.<ScimGroupEndpoints>getUltimateTargetObject(groupEndpoints)).patchGroup(any(), eq(group.getId()), anyString(), any());
+        doAnswer(invocation -> {
+            patchSnapshot.countDown();
+            return invocation.callRealMethod();
+        }).when(scimEventPublisher).prepareMembershipChanges(any(), any());
+        var workers = Executors.newFixedThreadPool(2);
+        try {
+            var postResult = workers.submit(() -> {
+                Thread.currentThread().setName("membership-post-first");
+                return mockMvc.perform(post("/Groups/" + group.getId() + "/members")
+                                .header(AUTHORIZATION, "Bearer " + adminToken).contentType(MediaType.APPLICATION_JSON)
+                                .content(JsonUtils.writeValueAsBytes(new ScimGroupMember(added.getId()))))
+                        .andExpect(status().isCreated()).andReturn();
+            });
+            assertThat(insertReady.await(10, TimeUnit.SECONDS)).isTrue();
+            var patchResult = workers.submit(() -> {
+                Thread.currentThread().setName("membership-patch-second");
+                return mockMvc.perform(patch("/Groups/" + group.getId())
+                                .header(AUTHORIZATION, "Bearer " + adminToken).header("If-Match", "*")
+                                .contentType(MediaType.APPLICATION_JSON).content(JsonUtils.writeValueAsBytes(update)))
+                        .andExpect(status().isOk()).andReturn();
+            });
+            assertThat(patchRequestEntered.await(10, TimeUnit.SECONDS)).isTrue();
+            assertThat(patchSnapshot.await(300, TimeUnit.MILLISECONDS)).isFalse();
+            assertThatThrownBy(() -> patchResult.get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            releaseInsert.countDown();
+            postResult.get(10, TimeUnit.SECONDS);
+            patchResult.get(10, TimeUnit.SECONDS);
+            List<AuditEvent> postEvents = byOperation.get("membership-post-first");
+            List<AuditEvent> patchEvents = byOperation.get("membership-patch-second");
+            assertThat(postEvents).extracting(AuditEvent::getType).containsExactly(GroupMembershipAddedEvent, GroupModifiedEvent);
+            assertThat(patchEvents).extracting(AuditEvent::getType).containsExactly(GroupMembershipRemovedEvent, GroupModifiedEvent);
+            assertMembershipAudit(postEvents.getFirst(), group, added.getId(), added.getUserName(), "USER");
+            assertMembershipAudit(patchEvents.getFirst(), group, testUser.getId(), testUser.getUserName(), "USER");
+            assertLegacyGroupSnapshot(postEvents.getLast(), group, testUser.getId(), added.getId());
+            assertLegacyGroupSnapshot(patchEvents.getLast(), group, added.getId());
+            ScimGroup persisted = JsonUtils.readValue(mockMvc.perform(get("/Groups/" + group.getId())
+                            .header(AUTHORIZATION, "Bearer " + adminToken)).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(), ScimGroup.class);
+            assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId).containsExactly(added.getId());
+        } finally {
+            releaseInsert.countDown();
+            workers.shutdownNow();
+            assertThat(workers.awaitTermination(15, TimeUnit.SECONDS)).isTrue();
+            MockMvcUtils.removeEventListener(configurableApplicationContext, listener);
         }
     }
 
