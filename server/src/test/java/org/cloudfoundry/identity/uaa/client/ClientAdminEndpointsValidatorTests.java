@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.lang.reflect.Modifier;
 import java.security.Security;
 import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -257,6 +258,16 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
+    void redirectUriValidation_preservesPublicInstanceMethod() throws NoSuchMethodException {
+        int modifiers = ClientAdminEndpointsValidator.class
+                .getMethod("validateClientRedirectUri", ClientDetails.class).getModifiers();
+
+        assertThat(Modifier.isStatic(modifiers))
+                .as("validateClientRedirectUri must remain an instance method for binary compatibility")
+                .isFalse();
+    }
+
+    @Test
     void validateOneValidOneInvalidURL() {
         Set<String> urls = new HashSet<>();
         urls.add("http://valid.com");
@@ -265,7 +276,7 @@ class ClientAdminEndpointsValidatorTests {
         client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
         assertThatThrownBy(() ->
-                ClientAdminEndpointsValidator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+                validator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -276,7 +287,7 @@ class ClientAdminEndpointsValidatorTests {
         client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         client.setRegisteredRedirectUri(urls);
         assertThatThrownBy(() ->
-                ClientAdminEndpointsValidator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+                validator.validateClientRedirectUri(client)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
     @Test
@@ -289,7 +300,7 @@ class ClientAdminEndpointsValidatorTests {
         urls.add("https://valid.com/path/*/path");
         urls.add("http://sub.valid.com/*/with/path**");
         client.setRegisteredRedirectUri(urls);
-        ClientAdminEndpointsValidator.validateClientRedirectUri(client);
+        validator.validateClientRedirectUri(client);
     }
 
     private void testValidatorForInvalidURL(String url) {
@@ -303,7 +314,7 @@ class ClientAdminEndpointsValidatorTests {
 
     private void testValidatorForURL(String url) {
         client.setRegisteredRedirectUri(Collections.singleton(url));
-        ClientAdminEndpointsValidator.validateClientRedirectUri(client);
+        validator.validateClientRedirectUri(client);
     }
 
     private List<String> convertToHttps(List<String> urls) {

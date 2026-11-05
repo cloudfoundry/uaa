@@ -337,7 +337,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         return client;
     }
 
-    public static void validateClientRedirectUri(ClientDetails client) {
+    public void validateClientRedirectUri(ClientDetails client) {
+        validateRedirectUris(client);
+    }
+
+    public static void validateRedirectUris(ClientDetails client) {
         Set<String> uris = client.getRegisteredRedirectUri();
 
         for (String grantType : Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT)) {

@@ -1065,16 +1065,16 @@ Response body   *example* ::
 Identity Zone clients API: ``/identity-zones/clients``
 ------------------------------------------------------
 
-With the ``zones.write`` scope, limited clients can be created in an identity zone through this endpoint. This client can only be used to support web SSO using the authorization code flow, and using the zone's internal Identity Provider.
+With the ``zones.write`` scope, limited clients can be created in an identity zone through this endpoint. Clients may use the supported UAA grant types listed below, including authorization_code and implicit for browser SSO, and must use the zone's internal Identity Provider. Clients using authorization_code or implicit must register at least one valid redirect URL.
 
 Client limitations
 
-====================  ===========================
-Authorization Type    authorization_code
+====================  =========================================
+Authorization Type    Supported UAA grant types (below)
 Scopes                openid
 Authorities           uaa.resource
 Allowed Providers     uaa
-====================  ===========================
+====================  =========================================
 
 Identity Zone Client API Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1122,8 +1122,8 @@ Fields            *Available Fields* ::
 
                     ======================  ===============  ======== =======================================================
                     client_id               String(36)       Required Unique identifier for this client - used in API requests as basic auth or client_id parameter
-                    client_secret           String(255)      Required Password for the client - used in API requests as basic auth or client_secret parameter
-                    authorized_grant_types  List<String>     Required Limited to ["authorization_code"]
+                    client_secret           String(255)      Optional Password for the client. Required for grant types other than implicit unless tls_client_auth_ca or tls_client_auth_ca_ref is configured
+                    authorized_grant_types  List<String>     Required Supported values: authorization_code, implicit, password, client_credentials, refresh_token, user_token, urn:ietf:params:oauth:grant-type:saml2-bearer, urn:ietf:params:oauth:grant-type:jwt-bearer, urn:ietf:params:oauth:grant-type:token-exchange
                     scope                   List<String>     Required Limited to ["openid"]
                     authorities             List<String>     Required Limited to ["uaa.resource"]
                     allowedproviders        List<String>     Required Limited to ["uaa"]
