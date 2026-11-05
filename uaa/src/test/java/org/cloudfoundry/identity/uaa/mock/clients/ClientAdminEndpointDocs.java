@@ -3,12 +3,16 @@ package org.cloudfoundry.identity.uaa.mock.clients;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.headers.HeaderDescriptor;
@@ -38,6 +42,8 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.response
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ClientAdminEndpointDocs extends AdminClientCreator {
     private String clientAdminToken;
@@ -489,6 +495,79 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
                         ))
                 )
                 );
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "secret,rejected,a",
+            "'update,secret',rejected,a",
+            "secret,compliant,Another2Compliant",
+            "'update,secret',compliant,Another2Compliant",
+            "secret,unchanged,weak",
+            "'update,secret',unchanged,weak"
+    })
+    void modifyClientTxSecretPolicy(String action, String scenario, String requestedSecret) throws Exception {
+        String subdomain = new AlphanumericRandomValueStringGenerator().generate();
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
+                subdomain, mockMvc, webApplicationContext, null, identityZoneManager.getCurrentIdentityZoneId());
+        String currentSecret = "unchanged".equals(scenario) ? requestedSecret : "Compliant1Secret";
+        ClientDetailsModification client = createBaseClient(null, currentSecret, null,
+                Collections.singletonList("uaa.none"), Collections.singletonList("uaa.none"));
+        mockMvc.perform(post("/oauth/clients")
+                        .header("Authorization", "Bearer " + zone.getZoneAdminToken())
+                        .header(IdentityZoneSwitchingFilter.HEADER, zone.getIdentityZone().getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(writeValueAsString(client)))
+                .andExpect(status().isCreated());
+
+        zone.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(10, 255, 1, 0, 1, 0, 6));
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getIdentityZone().getId(),
+                zone.getIdentityZone().getConfig());
+
+        ResultActions result = mockMvc.perform(post("/oauth/clients/tx/modify")
+                .header("Authorization", "Bearer " + zone.getZoneAdminToken())
+                .header(IdentityZoneSwitchingFilter.HEADER, zone.getIdentityZone().getId())
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(writeValueAsString(new Object[]{map(
+                        entry("client_id", client.getClientId()),
+                        entry("client_secret", requestedSecret),
+                        entry("authorized_grant_types", Collections.singletonList("client_credentials")),
+                        entry("action", action)
+                )})));
+
+        if ("rejected".equals(scenario)) {
+            result.andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("invalid_client"));
+            assertThat(JsonUtils.readValueAsMap(result.andReturn().getResponse().getContentAsString())
+                    .get("error_description")).asString()
+                    .contains("Client Secret must be at least 10 characters in length.");
+        } else {
+            result.andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].approvals_deleted").value(!"unchanged".equals(scenario)));
+        }
+        result.andDo(document("ClientAdminEndpointDocs/modifyClientTx-" + scenario + "-" + action.replace(',', '-'),
+                preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
+                requestHeaders(authorizationHeader, IDENTITY_ZONE_ID_HEADER),
+                requestFields(
+                        fieldWithPath("[].client_id").required().description(clientIdDescription),
+                        fieldWithPath("[].client_secret").required().description(
+                                "A new secret must meet the zone's client secret policy, or the global policy if the zone has no override. "
+                                        + "Resubmitting the current secret is accepted even if it no longer meets the policy; approvals are retained."),
+                        fieldWithPath("[].authorized_grant_types").optional(null).description("Client grant types for the update action."),
+                        fieldWithPath("[].action").required().description("Use `secret` or `update,secret` to change the secret.")
+                )));
+        if ("rejected".equals(scenario)) {
+            result.andDo(document("ClientAdminEndpointDocs/modifyClientTx-rejected-" + action.replace(',', '-'),
+                    preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
+                    responseFields(
+                            fieldWithPath("error").description("`invalid_client` when the proposed secret violates the effective policy."),
+                            fieldWithPath("error_description").description("The client secret policy requirements that were not met.")
+                    )));
+        }
+        String acceptedSecret = "rejected".equals(scenario) ? currentSecret : requestedSecret;
+        assertThat(testClient.getClientCredentialsOAuthAccessToken(client.getClientId(), acceptedSecret, "", subdomain))
+                .isNotBlank();
     }
 
     private UaaClientDetails createBasicClientWithAdditionalInformation(List<String> scopes) {
