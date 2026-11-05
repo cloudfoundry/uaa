@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -248,16 +249,6 @@ class UaaStringUtilsTest {
         }
     }
 
-    @Test
-    void constructComponentWildcardPattern_escapesRegExCharacters() {
-        assertThat(UaaStringUtils.constructComponentWildcardPattern("repo:org/r:ref:*"))
-                .isEqualTo("repo\\:org\\/r\\:ref\\:[^:/]*");
-        assertThat(UaaStringUtils.constructComponentWildcardPattern("repo:org/r:ref:**"))
-                .isEqualTo("repo\\:org\\/r\\:ref\\:[^:]*");
-        assertThat(UaaStringUtils.constructComponentWildcardPattern("repo:org/r:ref:main"))
-                .isEqualTo("repo\\:org\\/r\\:ref\\:main");
-    }
-
     @ParameterizedTest(name = "[{index}] \"{0}\" matches \"{1}\"")
     @CsvSource(delimiter = '|', value = {
             // the GitLab CI sub claim, wildcard on the branch component
@@ -274,9 +265,22 @@ class UaaStringUtilsTest {
             "project_path:mygroup/*:ref_type:branch:ref:** | project_path:mygroup/anyrepo:ref_type:branch:ref:main",
             // a wildcard may match an empty segment
             "a:b:* | a:b:",
+            "ref:** | ref:",
+            // overlapping wildcards and literals require considering more than one match position
+            "ref:*ab | ref:aab",
+            "ref:*a*b | ref:aaab",
+            "ref:**/* | ref:a/b/c",
+            "ref:*/** | ref:a/b/c",
+            "ref:**a*b | ref:x/aab",
+            "ref:*****b | ref:a/b",
+            // Unicode literals and wildcard matches use whole code points
+            "ref:🌻*🌻 | ref:🌻branch🌻",
+            "ref:* | ref:🌻",
+            // regex metacharacters remain literal
+            "a[b]+(c).\\d:* | a[b]+(c).\\d:x",
     })
-    void constructComponentWildcardPattern_matches(String pattern, String subject) {
-        assertThat(matches(UaaStringUtils.constructComponentWildcardPattern(pattern), subject))
+    void matchesComponentWildcard_matches(String pattern, String subject) {
+        assertThat(UaaStringUtils.matchesComponentWildcard(pattern, subject))
                 .as("[%s] should match [%s]", subject, pattern)
                 .isTrue();
     }
@@ -304,19 +308,38 @@ class UaaStringUtilsTest {
             // regex metacharacters in the pattern are literals
             "a+:* | aaa:x",
             "a[b]c:* | abc:x",
+            // a later single wildcard must not cross '/' even after an earlier double wildcard
+            "ref:**a*b | ref:a/x/b",
+            "ref:*/* | ref:a/b/c",
+            "ref:*****b | ref:a:b",
     })
-    void constructComponentWildcardPattern_doesNotMatch(String pattern, String subject) {
-        assertThat(matches(UaaStringUtils.constructComponentWildcardPattern(pattern), subject))
+    void matchesComponentWildcard_doesNotMatch(String pattern, String subject) {
+        assertThat(UaaStringUtils.matchesComponentWildcard(pattern, subject))
                 .as("[%s] should not match [%s]", subject, pattern)
                 .isFalse();
     }
 
     @Test
-    void constructComponentWildcardPattern_alternationIsALiteral() {
-        String pattern = UaaStringUtils.constructComponentWildcardPattern("a(b|c):*");
-        assertThat(matches(pattern, "ab:x")).isFalse();
-        assertThat(matches(pattern, "ac:x")).isFalse();
-        assertThat(matches(pattern, "a(b|c):x")).isTrue();
+    void matchesComponentWildcard_alternationIsALiteral() {
+        String pattern = "a(b|c):*";
+        assertThat(UaaStringUtils.matchesComponentWildcard(pattern, "ab:x")).isFalse();
+        assertThat(UaaStringUtils.matchesComponentWildcard(pattern, "ac:x")).isFalse();
+        assertThat(UaaStringUtils.matchesComponentWildcard(pattern, "a(b|c):x")).isTrue();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"'', '', true", "*, '', true", "**, '', true", "a, '', false", "'', a, false"})
+    void matchesComponentWildcard_emptyInputs(String pattern, String subject, boolean expected) {
+        assertThat(UaaStringUtils.matchesComponentWildcard(pattern, subject)).isEqualTo(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ref:*a*a*a*a*b", "ref:**a**a*b", "ref:*****b"})
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void matchesComponentWildcard_rejectsLongNearMatchInBoundedTime(String pattern) {
+        String subject = "ref:" + "a".repeat(100_000) + "c";
+
+        assertThat(UaaStringUtils.matchesComponentWildcard(pattern, subject)).isFalse();
     }
 
     @Test

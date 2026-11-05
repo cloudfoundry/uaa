@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -242,6 +243,24 @@ class ClientJwtCredentialsEndpointMockMvcTests {
         List<ClientJwtCredential> remaining = getClient(clientId).getClientJwtCredentials();
         assertThat(remaining).hasSize(1);
         assertThat(remaining.getFirst().isSubjectPattern()).isFalse();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ClientJwtChangeRequest.ChangeMode.class, names = {"ADD", "DELETE"})
+    void addAndDeleteInvalidSubjectPatternViaClientJwtEndpointAreRejected(
+            ClientJwtChangeRequest.ChangeMode changeMode) throws Exception {
+        String clientId = "jwt-bad-pattern-ep-" + UUID.randomUUID().toString().substring(0, 8);
+        createClientWithJwtConfig(clientId, "{\"jwt_creds\":[{\"iss\":\"" + ISSUER + "\",\"sub\":\"" + clientId + "\"}]}")
+                .andExpect(status().isCreated());
+
+        ClientJwtChangeRequest change = new ClientJwtChangeRequest();
+        change.setClientId(clientId);
+        change.setIssuer(ISSUER);
+        change.setSubjectPattern("*");
+        change.setChangeMode(changeMode);
+
+        changeClientJwt(clientId, change).andExpect(status().isBadRequest());
+        assertThat(getClient(clientId).getClientJwtCredentials()).hasSize(1);
     }
 
     @Test

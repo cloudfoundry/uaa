@@ -11,20 +11,16 @@ import lombok.Data;
 import lombok.Setter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.util.WildcardPatternCache;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
-// Validation and the sub/sub_pattern invariant are enforced in the constructor, so the fields
-// must not be reassignable afterwards.
+// Suppress Lombok's setters so the legacy setters below can preserve the sub/sub_pattern invariant.
 @Setter(AccessLevel.NONE)
 public class ClientJwtCredential {
 
@@ -56,8 +52,9 @@ public class ClientJwtCredential {
         // disagree about whether this credential carries one.
         String pattern = StringUtils.hasText(subjectPattern) ? subjectPattern : null;
         this.subjectPattern = pattern;
-        // sub and sub_pattern are mutually exclusive, so a subject supplied alongside a pattern
-        // is a conflict rather than something to overwrite.
+        // sub and sub_pattern are logically mutually exclusive. The one exception is the
+        // identical subject value emitted below for rolling-upgrade compatibility; accepting it
+        // lets persisted credentials round-trip.
         if (pattern != null && StringUtils.hasText(subject) && !pattern.equals(subject)) {
             throw new IllegalArgumentException("Invalid federated jwt credentials");
         }
@@ -72,6 +69,25 @@ public class ClientJwtCredential {
 
     public ClientJwtCredential(String subject, String issuer, String audience) {
         this(subject, issuer, audience, null);
+    }
+
+    public void setSubject(String subject) {
+        if (!StringUtils.hasText(subject)
+                || (isSubjectPattern() && !subjectPattern.equals(subject))) {
+            throw new IllegalArgumentException("Invalid federated jwt credentials");
+        }
+        this.subject = subject;
+    }
+
+    public void setIssuer(String issuer) {
+        if (!StringUtils.hasText(issuer)) {
+            throw new IllegalArgumentException("Invalid federated jwt credentials");
+        }
+        this.issuer = issuer;
+    }
+
+    public void setAudience(String audience) {
+        this.audience = audience;
     }
 
     private boolean isValid() {
@@ -96,16 +112,7 @@ public class ClientJwtCredential {
                         && component.chars().anyMatch(Character::isLetterOrDigit))) {
             return false;
         }
-        try {
-            subjectPatternOf(pattern);
-        } catch (PatternSyntaxException e) {
-            return false;
-        }
         return true;
-    }
-
-    private static Pattern subjectPatternOf(String pattern) {
-        return WildcardPatternCache.compile(pattern, UaaStringUtils::constructComponentWildcardPattern);
     }
 
     @JsonIgnore
@@ -127,7 +134,7 @@ public class ClientJwtCredential {
             return subject.equals(assertedSubject);
         }
         return assertedSubject.length() <= MAX_SUBJECT_PATTERN_LENGTH
-                && subjectPatternOf(subjectPattern).matcher(assertedSubject).matches();
+                && UaaStringUtils.matchesComponentWildcard(subjectPattern, assertedSubject);
     }
 
     public static List<ClientJwtCredential> parse(String clientJwtCredentials) {
