@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.scim.event.GroupMembershipEvent;
+import org.cloudfoundry.identity.uaa.scim.services.ScimGroupMembershipService;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -75,6 +76,7 @@ public class ScimGroupEndpoints {
     private final ScimGroupProvisioning dao;
     private final ScimGroupMembershipManager membershipManager;
     private final ScimEventPublisher scimEventPublisher;
+    private final ScimGroupMembershipService groupMembershipService;
     private final IdentityZoneManager identityZoneManager;
 
     private final JdbcScimGroupExternalMembershipManager externalMembershipManager;
@@ -91,7 +93,8 @@ public class ScimGroupEndpoints {
             final @Value("${groupMaxCount:500}") int groupMaxCount,
             final @Qualifier("exceptionToStatusMap") Map<Class<? extends Exception>, HttpStatus> statuses,
             final @Qualifier("externalGroupMembershipManager") JdbcScimGroupExternalMembershipManager externalMembershipManager,
-            final ScimEventPublisher scimEventPublisher) {
+            final ScimEventPublisher scimEventPublisher,
+            final ScimGroupMembershipService groupMembershipService) {
         if (groupMaxCount <= 0) {
             throw new IllegalArgumentException(
                     "Invalid \"groupMaxCount\" value (got %d). Should be positive number.".formatted(groupMaxCount)
@@ -101,6 +104,7 @@ public class ScimGroupEndpoints {
         this.dao = scimGroupProvisioning;
         this.membershipManager = membershipManager;
         this.scimEventPublisher = scimEventPublisher;
+        this.groupMembershipService = groupMembershipService;
         this.identityZoneManager = identityZoneManager;
         this.groupMaxCount = groupMaxCount;
         this.statuses = statuses;
@@ -407,6 +411,12 @@ public class ScimGroupEndpoints {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
         String groupIdRequest = UaaStringUtils.getCleanedUserControlString(groupId);
+        return groupMembershipService.withLock(groupIdRequest, identityZoneManager.getCurrentIdentityZoneId(),
+                () -> updateGroupUnderLock(group, groupIdRequest, etag, httpServletResponse));
+    }
+
+    private ScimGroup updateGroupUnderLock(ScimGroup group, String groupIdRequest, String etag,
+            HttpServletResponse httpServletResponse) {
         logger.debug("updating group: {}", groupIdRequest);
         int version = getVersion(groupIdRequest, etag);
         group.setVersion(version);
@@ -429,16 +439,8 @@ public class ScimGroupEndpoints {
                     identityZoneManager.getCurrentIdentityZoneId()));
             addETagHeader(httpServletResponse, updated);
         } catch (IncorrectResultSizeDataAccessException ex) {
-            logger.error("Error updating group, restoring to previous state");
-            // restore to correct state before reporting error
-            existing.setVersion(getVersion(groupIdRequest, "*"));
-            dao.update(groupIdRequest, existing, identityZoneManager.getCurrentIdentityZoneId());
             throw new ScimException(ex.getMessage(), ex, HttpStatus.CONFLICT);
         } catch (ScimResourceNotFoundException ex) {
-            logger.error("Error updating group, restoring to previous state: {}", existing);
-            // restore to correct state before reporting error
-            existing.setVersion(getVersion(groupIdRequest, "*"));
-            dao.update(groupIdRequest, existing, identityZoneManager.getCurrentIdentityZoneId());
             throw new ScimException(ex.getMessage(), ex, HttpStatus.BAD_REQUEST);
         }
         scimEventPublisher.publishMembershipChanges(membershipEvents, existing, updated);
@@ -455,12 +457,14 @@ public class ScimGroupEndpoints {
             throw new ScimException("Missing If-Match for PATCH", HttpStatus.BAD_REQUEST);
         }
         String groupIdRequest = UaaStringUtils.getCleanedUserControlString(groupId);
-        logger.debug("patching group: {}", groupIdRequest);
-        int version = getVersion(groupIdRequest, etag);
-        patch.setVersion(version);
-        ScimGroup current = getGroup(groupId, httpServletResponse);
-        current.patch(patch);
-        return updateGroup(current, groupId, etag, httpServletResponse);
+        return groupMembershipService.withLock(groupIdRequest, identityZoneManager.getCurrentIdentityZoneId(), () -> {
+            logger.debug("patching group: {}", groupIdRequest);
+            int version = getVersion(groupIdRequest, etag);
+            patch.setVersion(version);
+            ScimGroup current = getGroup(groupIdRequest, httpServletResponse);
+            current.patch(patch);
+            return updateGroupUnderLock(current, groupIdRequest, etag, httpServletResponse);
+        });
     }
 
     @DeleteMapping({"/Groups/{groupId}"})
@@ -577,14 +581,16 @@ public class ScimGroupEndpoints {
     public ScimGroupMember addMemberToGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
 
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
-        ScimGroup group = dao.retrieve(groupId, zoneId);
-        GroupMembershipEvent event = scimEventPublisher.prepareMembershipEvent(group,
-                member, AuditEventType.GroupMembershipAddedEvent);
-        ScimGroupMember added = membershipManager.addMember(groupId, member, zoneId);
-        group.setMembers(membershipManager.getMembers(groupId, false, zoneId));
-        scimEventPublisher.publishMembershipEvent(event);
-        scimEventPublisher.groupModified(group);
-        return added;
+        return groupMembershipService.withLock(groupId, zoneId, () -> {
+            ScimGroup group = dao.retrieve(groupId, zoneId);
+            GroupMembershipEvent event = scimEventPublisher.prepareMembershipEvent(group,
+                    member, AuditEventType.GroupMembershipAddedEvent);
+            ScimGroupMember added = membershipManager.addMember(groupId, member, zoneId);
+            group.setMembers(membershipManager.getMembers(groupId, false, zoneId));
+            scimEventPublisher.publishMembershipEvent(event);
+            scimEventPublisher.groupModifiedAfterCommit(group);
+            return added;
+        });
     }
 
     @DeleteMapping({"/Groups/{groupId}/members/{memberId}", "/Groups/{groupId}/members/{memberId}/"})
@@ -592,15 +598,17 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupMember deleteGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
-        ScimGroup group = dao.retrieve(groupId, zoneId);
-        ScimGroupMember member = membershipManager.getMemberById(groupId, memberId, zoneId);
-        GroupMembershipEvent event = scimEventPublisher.prepareMembershipEvent(group, member,
-                AuditEventType.GroupMembershipRemovedEvent);
-        ScimGroupMember removed = membershipManager.removeMemberById(groupId, memberId, zoneId);
-        group.setMembers(membershipManager.getMembers(groupId, false, zoneId));
-        scimEventPublisher.publishMembershipEvent(event);
-        scimEventPublisher.groupModified(group);
-        return removed;
+        return groupMembershipService.withLock(groupId, zoneId, () -> {
+            ScimGroup group = dao.retrieve(groupId, zoneId);
+            ScimGroupMember member = membershipManager.getMemberById(groupId, memberId, zoneId);
+            GroupMembershipEvent event = scimEventPublisher.prepareMembershipEvent(group, member,
+                    AuditEventType.GroupMembershipRemovedEvent);
+            ScimGroupMember removed = membershipManager.removeMemberById(groupId, memberId, zoneId);
+            group.setMembers(membershipManager.getMembers(groupId, false, zoneId));
+            scimEventPublisher.publishMembershipEvent(event);
+            scimEventPublisher.groupModifiedAfterCommit(group);
+            return removed;
+        });
     }
 
     @ExceptionHandler

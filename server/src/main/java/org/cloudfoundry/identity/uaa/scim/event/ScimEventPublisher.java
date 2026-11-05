@@ -12,6 +12,8 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.DataAccessException;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -74,6 +76,11 @@ public class ScimEventPublisher implements ApplicationEventPublisherAware {
                 identityZoneManager.getCurrentIdentityZoneId()));
     }
 
+    public void groupModifiedAfterCommit(final ScimGroup group) {
+        publishAfterCommit(GroupModifiedEvent.groupModified(group.getId(), group.getDisplayName(),
+                getMembers(group), identityZoneManager.getCurrentIdentityZoneId()));
+    }
+
     public void groupDeleted(final ScimGroup group) {
         publish(GroupModifiedEvent.groupDeleted(
                 group.getId(),
@@ -120,7 +127,20 @@ public class ScimEventPublisher implements ApplicationEventPublisherAware {
     }
 
     public void publishMembershipEvent(GroupMembershipEvent event) {
-        publish(event);
+        publishAfterCommit(event);
+    }
+
+    private void publishAfterCommit(ApplicationEvent event) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publish(event);
+                }
+            });
+        } else {
+            publish(event);
+        }
     }
 
     private static Set<String> memberIds(List<ScimGroupMember> members) {

@@ -44,7 +44,9 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.services.ScimGroupMembershipService;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -82,6 +84,7 @@ import org.springframework.test.util.AopTestUtils;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
@@ -146,6 +149,8 @@ class AuditCheckMockMvcTests {
     private TransactionTemplate transactionTemplate;
     @MockitoSpyBean
     private ScimEventPublisher scimEventPublisher;
+    @Autowired
+    private ScimGroupMembershipService groupMembershipService;
     @MockitoSpyBean
     private ScimGroupEndpoints groupEndpoints;
     private ScimUser testUser;
@@ -1470,6 +1475,41 @@ class AuditCheckMockMvcTests {
         assertThat(persisted.getVersion()).isEqualTo(originalVersion);
         assertThat(persisted.getMeta().getCreated()).isEqualTo(originalCreated);
         assertThat(persisted.getMeta().getLastModified()).isEqualTo(originalModified);
+    }
+
+    @Test
+    void groupLockRequiresCurrentZoneAndReleasesAfterFailure() throws Exception {
+        ScimGroup group = createMembershipAuditGroup(List.of());
+        assertThatThrownBy(() -> groupMembershipService.withLock(group.getId(), "wrong-zone", () -> {
+            throw new AssertionError("Wrong zone must not enter membership operation");
+        })).isInstanceOf(ScimResourceNotFoundException.class);
+        assertThatThrownBy(() -> groupMembershipService.withLock(group.getId(),
+                identityZoneManager.getCurrentIdentityZoneId(), () -> {
+                    throw new IllegalStateException("Operation failed");
+                })).isInstanceOf(IllegalStateException.class);
+        assertThat(groupMembershipService.withLock(group.getId(), identityZoneManager.getCurrentIdentityZoneId(),
+                () -> "lock released")).isEqualTo("lock released");
+    }
+
+    @Test
+    void membershipUpdateRejectsRepeatableReadBeforeCallbackOrWrites() throws Exception {
+        ScimGroup group = createMembershipAuditGroup(List.of(new ScimGroupMember(testUser.getId())));
+        var outer = new TransactionTemplate(transactionTemplate.getTransactionManager());
+        outer.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
+        resetAuditTestReceivers();
+        assertThatThrownBy(() -> outer.executeWithoutResult(_ ->
+                groupMembershipService.withLock(group.getId(), identityZoneManager.getCurrentIdentityZoneId(), () -> {
+                    throw new AssertionError("Unsupported isolation must reject before the write callback");
+                })))
+                .isInstanceOf(IllegalTransactionStateException.class)
+                .hasMessageContaining("READ_COMMITTED");
+        assertThat(capturedAuditEvents()).isEmpty();
+        ScimGroup persisted = JsonUtils.readValue(mockMvc.perform(get("/Groups/" + group.getId())
+                        .header(AUTHORIZATION, "Bearer " + adminToken)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(), ScimGroup.class);
+        assertThat(persisted.getDisplayName()).isEqualTo(group.getDisplayName());
+        assertThat(persisted.getVersion()).isEqualTo(group.getVersion());
+        assertThat(persisted.getMembers()).extracting(ScimGroupMember::getMemberId).containsExactly(testUser.getId());
     }
 
     @ParameterizedTest
