@@ -400,6 +400,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     private boolean updateClientSecret(ClientDetailsModification detail) {
         boolean deleteApprovals = !authenticateClient(detail.getClientId(), detail.getClientSecret());
         if (deleteApprovals) {
+            clientDetailsValidator.getClientSecretValidator().validate(detail.getClientSecret());
             clientRegistrationService.updateClientSecret(detail.getClientId(), detail.getClientSecret(), identityZoneManager.getCurrentIdentityZoneId());
             deleteApprovals(detail.getClientId());
             detail.setApprovalsDeleted(true);

@@ -2774,6 +2774,11 @@ _Response Fields_
 
 ## Mixed Actions
 
+For `secret` and `update,secret`, a new client secret must meet the identity zone's client secret policy.
+If the zone has no policy override, the global client secret policy applies. A policy violation returns
+`400 Bad Request` with `error` set to `invalid_client` and `error_description` describing the unmet requirements.
+Resubmitting the client's current secret is accepted even if it no longer meets the policy, and approvals are retained.
+
 <%= render('ClientAdminEndpointDocs/modifyClientTx/curl-request.md') %>
 <%= render('ClientAdminEndpointDocs/modifyClientTx/http-request.md') %>
 <%= render('ClientAdminEndpointDocs/modifyClientTx/http-response.md') %>
@@ -2789,6 +2794,17 @@ _Request Fields_
 _Response Fields_
 
 <%= render('ClientAdminEndpointDocs/modifyClientTx/response-fields.md') %>
+
+### Secret Policy Error
+
+This example uses a zone policy requiring 10–255 characters, at least one uppercase letter and one digit.
+
+<%= render('ClientAdminEndpointDocs/modifyClientTx-rejected-secret/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/modifyClientTx-rejected-secret/http-response.md') %>
+
+_Policy Error Response Fields_
+
+<%= render('ClientAdminEndpointDocs/modifyClientTx-rejected-secret/response-fields.md') %>
 
 ## Batch Delete
 

@@ -3231,6 +3231,23 @@ Rules           The 'secret' and 'update,secret' will change the secret and dele
                 To change secret without deleting approvals use the /oauth/clients/tx/secret API
 ==============  ===============================================
 
+For actions ``secret`` and ``update,secret``, a new client secret must satisfy the
+identity zone's client secret policy. If the zone has no policy override, the global
+client secret policy applies. A policy violation returns ``400 Bad Request`` with
+``error`` set to ``invalid_client`` and ``error_description`` describing the unmet
+requirements. Resubmitting the client's current secret is accepted even if it no
+longer meets the policy, and approvals are retained.
+
+For example, when the policy requires at least 10 characters, a change to ``a``
+returns ``400 Bad Request`` with a response such as::
+
+    {
+      "error": "invalid_client",
+      "error_description": "Client Secret must be at least 10 characters in length."
+    }
+
+The description may list additional unmet requirements, depending on the policy.
+
 Example request::
 
     POST /oauth/clients/tx/modify

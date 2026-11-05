@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -1467,6 +1468,132 @@ class ClientAdminEndpointsMockMvcTests {
         assertThat(abstractUaaEventCaptor.getValue().getClass()).isEqualTo(SecretFailureEvent.class);
         SecretFailureEvent event = (SecretFailureEvent) abstractUaaEventCaptor.getValue();
         assertThat(event.getAuditEvent().getPrincipalId()).isEqualTo(client.getClientId());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "/oauth/clients/tx/modify,secret",
+            "/oauth/clients/tx/modify/,secret",
+            "/oauth/clients/tx/modify,'update,secret'",
+            "/oauth/clients/tx/modify/,'update,secret'"
+    })
+    void secretChangeModifyTxEnforcesSecretPolicy(String url, String action) throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
+        zone.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(10, 255, 1, 0, 1, 0, 6));
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getIdentityZone().getId(), zone.getIdentityZone().getConfig());
+
+        String compliantSecret = "Compliant1Secret";
+        ClientDetailsModification client = createBaseClient(null, compliantSecret, Collections.singleton("client_credentials"));
+        client.setAction(ClientDetailsModification.ADD);
+        mockMvc.perform(post(url)
+                        .header("Authorization", "Bearer " + zone.getZoneAdminToken())
+                        .header(IdentityZoneSwitchingFilter.HEADER, zone.getIdentityZone().getId())
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(new ClientDetailsModification[]{client})))
+                .andExpect(status().isOk());
+
+        client.setClientSecret("a");
+        client.setAction(action);
+        mockMvc.perform(post(url)
+                        .header("Authorization", "Bearer " + zone.getZoneAdminToken())
+                        .header(IdentityZoneSwitchingFilter.HEADER, zone.getIdentityZone().getId())
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(new ClientDetailsModification[]{client})))
+                .andExpect(status().isBadRequest());
+
+        assertThat(testClient.getClientCredentialsOAuthAccessToken(client.getClientId(), compliantSecret, "", subdomain)).isNotBlank();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "/oauth/clients/tx/modify,secret",
+            "/oauth/clients/tx/modify/,secret",
+            "/oauth/clients/tx/modify,'update,secret'",
+            "/oauth/clients/tx/modify/,'update,secret'"
+    })
+    void secretChangeModifyTxReportsSecretPolicyViolation(String url, String action) throws Exception {
+        MockMvcUtils.IdentityZoneCreationResult zone = createZoneWithClientSecretPolicy();
+
+        ClientDetailsModification client = createBaseClient(null, "Compliant1Secret", Collections.singleton("client_credentials"));
+        client.setAction(ClientDetailsModification.ADD);
+        modifyClientsTxInZone(url, zone, client).andExpect(status().isOk());
+
+        client.setClientSecret("a");
+        client.setAction(action);
+        String errorBody = modifyClientsTxInZone(url, zone, client)
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse().getContentAsString();
+        Map<String, Object> error = JsonUtils.readValue(errorBody, new TypeReference<>() {
+        });
+        assertThat(error).containsEntry("error", "invalid_client");
+        assertThat((String) error.get("error_description")).contains("Client Secret must be at least 10 characters in length.");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "/oauth/clients/tx/modify,secret",
+            "/oauth/clients/tx/modify/,secret",
+            "/oauth/clients/tx/modify,'update,secret'",
+            "/oauth/clients/tx/modify/,'update,secret'"
+    })
+    void secretChangeModifyTxAcceptsCompliantSecret(String url, String action) throws Exception {
+        MockMvcUtils.IdentityZoneCreationResult zone = createZoneWithClientSecretPolicy();
+
+        ClientDetailsModification client = createBaseClient(null, "Compliant1Secret", Collections.singleton("client_credentials"));
+        client.setAction(ClientDetailsModification.ADD);
+        modifyClientsTxInZone(url, zone, client).andExpect(status().isOk());
+
+        String newSecret = "Another2Compliant";
+        client.setClientSecret(newSecret);
+        client.setAction(action);
+        modifyClientsTxInZone(url, zone, client).andExpect(status().isOk());
+
+        assertThat(testClient.getClientCredentialsOAuthAccessToken(client.getClientId(), newSecret, "", zone.getIdentityZone().getSubdomain())).isNotBlank();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "/oauth/clients/tx/modify,secret",
+            "/oauth/clients/tx/modify/,secret",
+            "/oauth/clients/tx/modify,'update,secret'",
+            "/oauth/clients/tx/modify/,'update,secret'"
+    })
+    void secretChangeModifyTxAcceptsUnchangedSecretAddedBeforePolicy(String url, String action) throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
+
+        String currentSecret = "weak";
+        ClientDetailsModification client = createBaseClient(null, currentSecret, Collections.singleton("client_credentials"));
+        client.setAction(ClientDetailsModification.ADD);
+        modifyClientsTxInZone(url, zone, client).andExpect(status().isOk());
+
+        zone.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(10, 255, 1, 0, 1, 0, 6));
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getIdentityZone().getId(), zone.getIdentityZone().getConfig());
+
+        client.setAction(action);
+        modifyClientsTxInZone(url, zone, client).andExpect(status().isOk());
+
+        assertThat(testClient.getClientCredentialsOAuthAccessToken(client.getClientId(), currentSecret, "", subdomain)).isNotBlank();
+    }
+
+    private MockMvcUtils.IdentityZoneCreationResult createZoneWithClientSecretPolicy() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
+        zone.getIdentityZone().getConfig().setClientSecretPolicy(new ClientSecretPolicy(10, 255, 1, 0, 1, 0, 6));
+        MockMvcUtils.setZoneConfiguration(webApplicationContext, zone.getIdentityZone().getId(), zone.getIdentityZone().getConfig());
+        return zone;
+    }
+
+    private ResultActions modifyClientsTxInZone(String url, MockMvcUtils.IdentityZoneCreationResult zone, ClientDetailsModification client) throws Exception {
+        return mockMvc.perform(post(url)
+                .header("Authorization", "Bearer " + zone.getZoneAdminToken())
+                .header(IdentityZoneSwitchingFilter.HEADER, zone.getIdentityZone().getId())
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(new ClientDetailsModification[]{client})));
     }
 
     @ParameterizedTest
