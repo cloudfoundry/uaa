@@ -52,7 +52,7 @@ class ClientAdminBootstrapWiringTest {
 
         @TestConfiguration
         @Profile("client-admin-wiring-test")
-        @Import(ClientAdminBootstrap.class)
+        @Import({ClientAdminBootstrap.class, ZoneDependencies.class})
         static class Config {
             @Bean
             static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
@@ -115,7 +115,7 @@ class ClientAdminBootstrapWiringTest {
 
         @TestConfiguration
         @Profile("client-admin-wiring-test")
-        @Import(ClientAdminBootstrap.class)
+        @Import({ClientAdminBootstrap.class, ZoneDependencies.class})
         static class Config {
             @Bean
             static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
@@ -175,7 +175,7 @@ class ClientAdminBootstrapWiringTest {
 
         @TestConfiguration
         @Profile("client-admin-wiring-test")
-        @Import(ClientAdminBootstrap.class)
+        @Import({ClientAdminBootstrap.class, ZoneDependencies.class})
         static class Config {
             @Bean
             static PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
@@ -221,6 +221,20 @@ class ClientAdminBootstrapWiringTest {
         @Test
         void allowpublic_isEmptySet_whenOauthClientConfigAbsent() throws ReflectiveOperationException {
             assertThat(getAllowPublicClients(clientAdminBootstrap)).isEmpty();
+        }
+    }
+
+    @TestConfiguration
+    @Profile("client-admin-wiring-test")
+    static class ZoneDependencies {
+        @Bean("identityZoneConfigurationBootstrap")
+        org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap zoneBootstrap() {
+            return mock(org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap.class);
+        }
+
+        @Bean
+        org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager identityZoneManager() {
+            return new org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl();
         }
     }
 

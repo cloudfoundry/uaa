@@ -43,6 +43,7 @@ import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.JsonFieldType.VARIES;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.subsectionWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
@@ -224,6 +225,9 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
+                fieldWithPath("config.mtls.enabled").optional().type(BOOLEAN).description("Zone mTLS switch, false when omitted. Both this flag and deployment-wide uaa.mtls.enabled must be enabled. Changes apply without restarting; a zone cannot override the deployment off-switch. Disabling does not revoke issued tokens.").attributes(key("constraints").value("Optional")),
+                subsectionWithPath("config.mtls.trustBundles").optional().type(OBJECT).description("Zone-scoped map of named PEM CA bundles for mTLS clients. Names contain 1 to 128 letters, digits, dots, underscores or hyphens and start with a letter or digit. Clients reference these using tls-client-auth-ca-ref or tls-client-auth-trusted-proxy-ca-ref. Updating a bundle rotates trust without client changes; removed references fail authentication at token time. The default zone is configured through uaa.mtls.trust_bundles.").attributes(key("constraints").value("Optional")),
+
                 fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
@@ -392,6 +396,9 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.tokenPolicy.refreshTokenRotate").type(BOOLEAN).description(REFRESH_TOKEN_ROTATE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("[].config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
+                fieldWithPath("[].config.mtls.enabled").optional().type(BOOLEAN).description("Zone mTLS switch, false when omitted. Both this flag and deployment-wide uaa.mtls.enabled must be enabled. Changes apply without restarting; a zone cannot override the deployment off-switch. Disabling does not revoke issued tokens.").attributes(key("constraints").value("Optional")),
+                subsectionWithPath("[].config.mtls.trustBundles").optional().type(OBJECT).description("Zone-scoped map of named PEM CA bundles for mTLS clients. Names contain 1 to 128 letters, digits, dots, underscores or hyphens and start with a letter or digit. Clients reference these using tls-client-auth-ca-ref or tls-client-auth-trusted-proxy-ca-ref. Updating a bundle rotates trust without client changes; removed references fail authentication at token time. The default zone is configured through uaa.mtls.trust_bundles.").attributes(key("constraints").value("Optional")),
+
                 fieldWithPath("[].config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("[].config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("[].config.clientSecretPolicy.requireUpperCaseCharacter").type(NUMBER).description(SECRET_POLICY_UPPERCASE).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
@@ -539,6 +546,9 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(VARIES).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenRotate").type(BOOLEAN).description(REFRESH_TOKEN_ROTATE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
+
+                fieldWithPath("config.mtls.enabled").optional().type(BOOLEAN).description("Zone mTLS switch, false when omitted. Both this flag and deployment-wide uaa.mtls.enabled must be enabled. Changes apply without restarting; a zone cannot override the deployment off-switch. Disabling does not revoke issued tokens.").attributes(key("constraints").value("Optional")),
+                subsectionWithPath("config.mtls.trustBundles").optional().type(OBJECT).description("Zone-scoped map of named PEM CA bundles for mTLS clients. Names contain 1 to 128 letters, digits, dots, underscores or hyphens and start with a letter or digit. Clients reference these using tls-client-auth-ca-ref or tls-client-auth-trusted-proxy-ca-ref. Updating a bundle rotates trust without client changes; removed references fail authentication at token time. The default zone is configured through uaa.mtls.trust_bundles.").attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
@@ -723,6 +733,9 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenPolicy.refreshTokenUnique").type(VARIES).description(REFRESH_TOKEN_UNIQUE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenRotate").type(BOOLEAN).description(REFRESH_TOKEN_ROTATE).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
+
+                fieldWithPath("config.mtls.enabled").optional().type(BOOLEAN).description("Zone mTLS switch, false when omitted. Both this flag and deployment-wide uaa.mtls.enabled must be enabled. Changes apply without restarting; a zone cannot override the deployment off-switch. Disabling does not revoke issued tokens.").attributes(key("constraints").value("Optional")),
+                subsectionWithPath("config.mtls.trustBundles").optional().type(OBJECT).description("Zone-scoped map of named PEM CA bundles for mTLS clients. Names contain 1 to 128 letters, digits, dots, underscores or hyphens and start with a letter or digit. Clients reference these using tls-client-auth-ca-ref or tls-client-auth-trusted-proxy-ca-ref. Updating a bundle rotates trust without client changes; removed references fail authentication at token time. The default zone is configured through uaa.mtls.trust_bundles.").attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),

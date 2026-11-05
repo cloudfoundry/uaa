@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManagers;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundleEndpoints;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
@@ -36,8 +39,12 @@ class ClientAdminSecurityConfiguration {
             @Qualifier("clientAdminOAuth2ResourceFilter") FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> resourceFilter
     ) throws Exception {
         var originalChain = http
-                .securityMatcher("/oauth/clients/**")
+                .securityMatcher("/oauth/clients/**", MtlsTrustBundleEndpoints.PATH)
                 .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.GET, MtlsTrustBundleEndpoints.PATH)
+                            .access(AuthorizationManagers.allOf(
+                                    AuthenticatedAuthorizationManager.authenticated(),
+                                    isAdminOrHasScopes("clients.read")));
 
                     auth.requestMatchers("/oauth/clients/*/secret").access(isAdminOrHasScopes("clients.secret"));
 

@@ -14,6 +14,8 @@ import lombok.ToString;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.util.DefaultIndenter;
+import tools.jackson.core.util.DefaultPrettyPrinter;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include;
 
@@ -74,7 +76,7 @@ public class RateLimiterStatus {
         String json = generatedJson;
         if (json == null) {
             try {
-                json = OM.writerWithDefaultPrettyPrinter().writeValueAsString(this);
+                json = OM.writer().with(PRETTY_PRINTER).writeValueAsString(this);
             }
             catch (JacksonException e) {
                 json = "JacksonException (" + e.getMessage() + "): "
@@ -117,4 +119,9 @@ public class RateLimiterStatus {
     }
 
     private static final ObjectMapper OM = new JsonMapper();
+    // Fixed "\n" line endings so output does not vary by platform (Jackson defaults to the system line separator)
+    private static final DefaultIndenter INDENTER = new DefaultIndenter("  ", "\n");
+    private static final DefaultPrettyPrinter PRETTY_PRINTER = new DefaultPrettyPrinter()
+            .withObjectIndenter(INDENTER)
+            .withArrayIndenter(INDENTER);
 }

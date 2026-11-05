@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,9 +43,11 @@ class SourcedFileTest {
     }
 
     @Test
-    void loadEnv() {
-        assertThat(SourcedFile.locateAndLoadLocalFile("uaa-ratelimit.yml", SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").getPath().replace("uaa-ratelimit.yml", ""))).isNotNull();
-        assertThat(SourcedFile.locateAndLoadLocalFile("", SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").getPath().replace("uaa-ratelimit.yml", ""))).isNull();
+    void loadEnv() throws Exception {
+        // Path.of(URI) yields a valid native path on Windows too (URL.getPath() yields "/C:/...")
+        String resourceDir = Path.of(SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").toURI()).getParent().toString();
+        assertThat(SourcedFile.locateAndLoadLocalFile("uaa-ratelimit.yml", resourceDir)).isNotNull();
+        assertThat(SourcedFile.locateAndLoadLocalFile("", resourceDir)).isNull();
         assertThat(SourcedFile.locateAndLoadLocalFile("random", "/dev")).isNull();
         assertThat(SourcedFile.locateAndLoadLocalFile("?", "/proc/1/fdinfo")).isNull();
     }

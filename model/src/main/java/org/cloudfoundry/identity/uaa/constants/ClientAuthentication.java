@@ -9,7 +9,8 @@ import java.util.Optional;
  * OIDC possible values are: client_secret_post, client_secret_basic, client_secret_jwt, private_key_jwt, and none
  * UAA knows only: client_secret_post, client_secret_basic, private_key_jwt, and none
  *
- * Planned: tls_client_auth
+ * tls_client_auth (RFC 8705) is accepted only by UAA's own /oauth/mtls/token endpoint. It is deliberately not in
+ * UAA_SUPPORTED_METHODS, which governs how UAA authenticates to external identity providers.
  */
 public final class ClientAuthentication {
 
@@ -20,6 +21,7 @@ public final class ClientAuthentication {
     public static final String CLIENT_SECRET_POST = "client_secret_post";
     public static final String PRIVATE_KEY_JWT = "private_key_jwt";
     public static final String NONE = "none";
+    public static final String TLS_CLIENT_AUTH = "tls_client_auth";
 
     public static final List<String> UAA_SUPPORTED_METHODS = List.of(CLIENT_SECRET_BASIC, CLIENT_SECRET_POST, NONE, PRIVATE_KEY_JWT);
 

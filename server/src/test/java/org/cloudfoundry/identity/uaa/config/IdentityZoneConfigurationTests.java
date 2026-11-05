@@ -50,6 +50,51 @@ class IdentityZoneConfigurationTests {
     }
 
     @Test
+    void mtlsConfigurationDefaultsToDisabledWithNoBundles() {
+        assertThat(definition.getMtls().isEnabled()).isFalse();
+        assertThat(definition.getMtls().getTrustBundles()).isEmpty();
+    }
+
+    @Test
+    void unconfiguredMtlsIsOmittedSoZoneJsonIsUnchanged() {
+        // Zones that never configure mTLS serialize exactly as they did before the feature existed.
+        assertThat(JsonUtils.convertValue(definition, java.util.Map.class))
+                .doesNotContainKey("mtls").doesNotContainKey("mtlsTrustBundles");
+    }
+
+    @Test
+    void configuredMtlsIsSerialized() {
+        definition.getMtls().setEnabled(true);
+        assertThat(JsonUtils.convertValue(definition, java.util.Map.class))
+                .containsEntry("mtls", java.util.Map.of("enabled", true, "trustBundles", java.util.Map.of()));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"{}", "{\"mtls\":{}}", "{\"mtls\":{\"trustBundles\":{}}}"})
+    void storedZoneConfigurationWithoutAnMtlsSwitchIsDisabled(String json) {
+        // Zones stored before mTLS existed, or that never set the switch, must not opt in.
+        assertThat(JsonUtils.readValue(json, IdentityZoneConfiguration.class).getMtls().isEnabled()).isFalse();
+    }
+
+    @Test
+    void nestedMtlsConfigurationSurvivesJsonRoundTrip() {
+        definition = JsonUtils.readValue("{\"mtls\":{\"enabled\":false,\"trustBundles\":{\"workload\":\"pem\"}}}",
+                IdentityZoneConfiguration.class);
+        assertThat(JsonUtils.convertValue(definition, java.util.Map.class))
+                .containsEntry("mtls", java.util.Map.of("enabled", false, "trustBundles", java.util.Map.of("workload", "pem")))
+                .doesNotContainKey("mtlsTrustBundles");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"{\"mtls\":null}", "{\"mtls\":{\"enabled\":null}}"})
+    void nullMtlsPolicyMeansTheDisabledDefault(String json) {
+        // The previous release ignored an "mtls" key entirely; a null must not turn into a 400.
+        IdentityZoneConfiguration configuration = JsonUtils.readValue(json, IdentityZoneConfiguration.class);
+        assertThat(configuration.getMtls().isEnabled()).isFalse();
+        assertThat(configuration.getMtls().getTrustBundles()).isEmpty();
+    }
+
+    @Test
     void default_user_groups_when_json_is_deserialized() {
         definition.setUserConfig(null);
         String s = JsonUtils.writeValueAsString(definition);

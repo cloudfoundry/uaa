@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
@@ -46,6 +47,7 @@ class UaaClientAuthenticationProviderTest {
     private ClientDetails client;
     private ClientDetailsAuthenticationProvider authenticationProvider;
     private JwtClientAuthentication jwtClientAuthentication;
+    private TlsClientAuthentication tlsClientAuthentication;
 
     @Autowired
     private NamedParameterJdbcTemplate namedJdbcTemplate;
@@ -57,12 +59,13 @@ class UaaClientAuthenticationProviderTest {
     void setUpForClientTests() {
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         jwtClientAuthentication = mock(JwtClientAuthentication.class);
+        tlsClientAuthentication = mock(TlsClientAuthentication.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
         jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(namedJdbcTemplate, mockIdentityZoneManager, passwordEncoder);
         UaaClientDetailsUserDetailsService clientDetailsService = new UaaClientDetailsUserDetailsService(jdbcClientDetailsService);
         client = createClient();
-        authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, passwordEncoder, jwtClientAuthentication);
+        authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, passwordEncoder, jwtClientAuthentication, tlsClientAuthentication);
     }
 
     public UaaClientDetails createClient() {
@@ -121,6 +124,16 @@ class UaaClientAuthenticationProviderTest {
     void provider_authenticate_client_with_one_password() {
         Authentication a = getToken(client.getClientId(), SECRET);
         testClientAuthentication(a);
+    }
+
+    @Test
+    void provider_rejectsClientSecretForClientConfiguredForTlsClientAuth() {
+        client = createClient("tls-client-auth-ca", "-----BEGIN CERTIFICATE-----\nCA\n-----END CERTIFICATE-----");
+        Authentication authentication = getToken(client.getClientId(), SECRET);
+
+        assertThatThrownBy(() -> authenticationProvider.authenticate(authentication))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("tls_client_auth");
     }
 
     @Test

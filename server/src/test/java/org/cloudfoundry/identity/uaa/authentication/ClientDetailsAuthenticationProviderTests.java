@@ -1,0 +1,502 @@
+package org.cloudfoundry.identity.uaa.authentication;
+
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
+import org.cloudfoundry.identity.uaa.client.UaaClient;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
+import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthentication;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.mockito.ArgumentCaptor;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Security;
+import java.security.cert.X509Certificate;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MtlsEnabledZoneExtension.class)
+class ClientDetailsAuthenticationProviderTests {
+
+    @BeforeEach
+    void setUp() {
+        Security.addProvider(new BouncyCastleFipsProvider());
+    }
+
+    @Test
+    void tlsClientAuthPathIsDetectedAsTlsClientAuth() {
+        UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
+        when(details.getRequestPath()).thenReturn("/oauth/mtls/token");
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(details)).isTrue();
+    }
+
+    @Test
+    void tlsClientAuthPathIncludesTokenDescendants() {
+        UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
+        when(details.getRequestPath()).thenReturn("/oauth/mtls/token/alias");
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(details)).isTrue();
+    }
+
+    @Test
+    void unrelatedMtlsPathIsNotTlsClientAuth() {
+        UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
+        when(details.getRequestPath()).thenReturn("/oauth/mtls/not-token");
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(details)).isFalse();
+    }
+
+    @Test
+    void regularTokenPathIsNotTlsClientAuth() {
+        UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
+        when(details.getRequestPath()).thenReturn("/oauth/token");
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(details)).isFalse();
+    }
+
+    /**
+     * The tests above stub {@code getRequestPath()} directly; this one builds the details from a
+     * real request, because the defect is in which property of the request the path comes from.
+     *
+     * <p>Every other mTLS gate keys off {@code getServletPath()}, which the container has already
+     * decoded and normalised. {@code UaaAuthenticationDetails.getRequestPath()} is built from
+     * {@code getRequestURI()}, which per the servlet spec is the raw, undecoded URI. Tomcat decodes
+     * {@code %6d} to {@code m}, so a request for {@code /oauth/%6dtls/token} has servlet path
+     * {@code /oauth/mtls/token} -- the filters, the security matcher and Spring's handler routing
+     * all treat it as the mTLS endpoint -- while this gate sees the escape and decides the request
+     * is NOT on the mTLS path. That disagreement disables the check whose own javadoc says
+     * "Without this check the endpoint is an unrestricted alias of /oauth/token".
+     */
+    @Test
+    void tlsClientAuthPathFollowsTheDecodedServletPathNotTheRawUri() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/%6dtls/token");
+        request.setRequestURI("/oauth/%6dtls/token");
+        request.setServletPath("/oauth/mtls/token");
+
+        assertThat(RawPeerCertificateCaptureFilter.isMtlsTokenPath(request.getServletPath()))
+                .as("precondition: every other gate resolves this request to the mTLS endpoint")
+                .isTrue();
+
+        assertThat(ClientDetailsAuthenticationProvider.isTlsClientAuthPath(
+                new UaaAuthenticationDetails(request)))
+                .as("the client-authentication gate must resolve the path the same way the rest of "
+                        + "the mTLS machinery does, or it silently stops applying")
+                .isTrue();
+    }
+
+    /**
+     * A client that has {@code tls-client-auth-ca} is mTLS-only. If its configuration cannot be read (a claim-mappings
+     * value that is not JSON, say, in a row written before validation existed or straight to the database), treating it
+     * as an ordinary client would let it fall through to {@code client_secret} authentication and obtain an
+     * <em>unbound</em> token -- the opposite of what its registration says. It must be refused.
+     */
+    @Test
+    void aClientWhoseTlsConfigurationCannotBeReadIsRefusedRatherThanTreatedAsAnOrdinaryClient() {
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.matches(any(), any())).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), encoder, mock(JwtClientAuthentication.class),
+                mock(TlsClientAuthentication.class));
+        UaaClient client = new UaaClient("broken-client", "secret", List.of(), Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS, "this is not json"), null);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
+        request.setServletPath("/oauth/token");
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("broken-client", "secret");
+        authentication.setDetails(new UaaAuthenticationDetails(request));
+
+        assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                .as("a client with tls-client-auth-ca must never authenticate with a secret, readable or not")
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    /**
+     * The key being present is what makes a client mTLS-only. A value that is not a usable PEM string -- blank, or not a
+     * string at all, in a row that bypassed registration validation -- must not quietly turn the client back into an
+     * ordinary one whose secret works at {@code /oauth/token}.
+     */
+    @ParameterizedTest
+    @MethodSource("unreadableCaValues")
+    void aClientWithAnUnreadableTlsClientAuthCaCannotAuthenticateWithItsSecret(Object caValue) {
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.matches(any(), any())).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), encoder, mock(JwtClientAuthentication.class),
+                mock(TlsClientAuthentication.class));
+        UaaClient client = new UaaClient("broken-ca-client", "secret", List.of(), Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, caValue), null);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
+        request.setServletPath("/oauth/token");
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("broken-ca-client", "secret");
+        authentication.setDetails(new UaaAuthenticationDetails(request));
+
+        assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    static java.util.stream.Stream<Object> unreadableCaValues() {
+        return java.util.stream.Stream.of("", "   ", 42, List.of("pem"),
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "pem"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("unreadableProxyCaValues")
+    void malformedProxyTrustCannotBecomeDirectCertificateAuthentication(Object proxyCa) {
+        Map<String, Object> persisted = new HashMap<>();
+        persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "client-ca");
+        persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, proxyCa);
+        UaaClient client = new UaaClient("proxy-only", null, List.of(), persisted, null);
+        assertThatThrownBy(() -> ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(client))
+                .as("an unreadable proxy trust entry must not silently select direct authentication")
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("tls-client-auth-trusted-proxy-ca cannot be read");
+    }
+
+    static java.util.stream.Stream<Object> unreadableProxyCaValues() {
+        return java.util.stream.Stream.of(null, "", " ", 42, List.of("pem"), Map.of("ca", "pem"));
+    }
+
+    @Test
+    void clientWithPersistedNullCaCannotAuthenticateWithItsSecret() {
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.matches(any(), any())).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), encoder, mock(JwtClientAuthentication.class),
+                mock(TlsClientAuthentication.class));
+        Map<String, Object> persisted = new HashMap<>();
+        persisted.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, null);
+        UaaClient client = new UaaClient("null-ca-client", "secret", List.of(), persisted, null);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
+        request.setServletPath("/oauth/token");
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("null-ca-client", "secret");
+        authentication.setDetails(new UaaAuthenticationDetails(request));
+
+        assertThat(client.getAdditionalInformation()).containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
+                .containsEntry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, null);
+        assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                .as("the presence of a persisted CA key must keep the client mTLS-only even if its value is null")
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("tls-client-auth-ca cannot be read");
+    }
+
+    /**
+     * Proxy trust marks a client as mTLS-only. A stored client that has it without workload trust (a row that
+     * bypassed registration validation) must not become an ordinary client whose secret works.
+     */
+    @ParameterizedTest
+    @MethodSource("proxyOnlyConfigurations")
+    void aStoredProxyOnlyClientCannotAuthenticateWithItsSecret(Map<String, Object> persisted) {
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.matches(any(), any())).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), encoder, mock(JwtClientAuthentication.class),
+                mock(TlsClientAuthentication.class));
+        UaaClient client = new UaaClient("proxy-only", "secret", List.of(), new HashMap<>(persisted), null);
+
+        for (String path : List.of("/oauth/token", "/oauth/mtls/token")) {
+            MockHttpServletRequest request = new MockHttpServletRequest("POST", path);
+            request.setServletPath(path);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken("proxy-only", "secret");
+            authentication.setDetails(new UaaAuthenticationDetails(request));
+
+            assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                    .as("at %s", path)
+                    .isInstanceOf(BadCredentialsException.class)
+                    .hasMessageContaining("requires tls-client-auth-ca or tls-client-auth-ca-ref");
+        }
+    }
+
+    static java.util.stream.Stream<Map<String, Object>> proxyOnlyConfigurations() {
+        return java.util.stream.Stream.of(
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem",
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router"),
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA_REF, "proxy",
+                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router"),
+                Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router"));
+    }
+
+    @Test
+    void tlsConfigIsReadFromFlatAdditionalInfo() {
+        Map<String, Object> additionalInfo = new HashMap<>();
+        additionalInfo.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA,
+                "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n");
+
+        UaaClient mockClient = mock(UaaClient.class);
+        when(mockClient.getAdditionalInformation()).thenReturn(additionalInfo);
+
+        TlsClientAuthConfiguration config =
+            ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(mockClient);
+        assertThat(config).isNotNull();
+        assertThat(config.getTrustedCaPem())
+            .isEqualTo("-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n");
+    }
+
+    @Test
+    void validateTlsClientAuthPassesClientConfigToCertificateChainLookup() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        when(uaaClient.getAdditionalInformation()).thenReturn(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem"
+        ));
+        TlsClientAuthentication tlsClientAuthentication = mock(TlsClientAuthentication.class);
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), mock(PasswordEncoder.class),
+                mock(JwtClientAuthentication.class), tlsClientAuthentication);
+
+        provider.validateTlsClientAuth(ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(uaaClient));
+
+        ArgumentCaptor<TlsClientAuthConfiguration> configCaptor =
+                ArgumentCaptor.forClass(TlsClientAuthConfiguration.class);
+        verify(tlsClientAuthentication).getCertificateChainFromRequest(configCaptor.capture());
+        assertThat(configCaptor.getValue().getTrustedProxyCaPem()).isEqualTo("proxy-ca-pem");
+    }
+
+    @Test
+    void validateTlsClientAuthShortCircuitsWhenNoCertificatePresent() {
+        TlsClientAuthentication tlsClientAuthentication = mock(TlsClientAuthentication.class);
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(false);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), mock(PasswordEncoder.class),
+                mock(JwtClientAuthentication.class), tlsClientAuthentication);
+
+        boolean result = provider.validateTlsClientAuth(new TlsClientAuthConfiguration("ca-pem", null));
+
+        assertThat(result).isFalse();
+        verify(tlsClientAuthentication, never()).getCertificateChainFromRequest(any());
+    }
+
+    /**
+     * A blank {@code client_secret}, a {@code Basic client_id:} header or a client assertion reaches the provider as
+     * empty credentials. It is still a secret- or assertion-based method, so the request must not be accepted and
+     * relabeled {@code tls_client_auth}.
+     */
+    @ParameterizedTest
+    @MethodSource("blankCredentialRequests")
+    void mtlsClientPresentingBlankCredentialIsRefusedBeforeCertificateValidation(MockHttpServletRequest request) {
+        TlsClientAuthentication tlsClientAuthentication = mock(TlsClientAuthentication.class);
+        ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                mock(UserDetailsService.class), mock(PasswordEncoder.class),
+                mock(JwtClientAuthentication.class), tlsClientAuthentication);
+        UaaClient client = new UaaClient("mtls-client", null, List.of(), Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app"), null);
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("mtls-client", "");
+        authentication.setDetails(new UaaAuthenticationDetails(request));
+
+        assertThatThrownBy(() -> provider.additionalAuthenticationChecks(client, authentication))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("tls_client_auth: configured clients must authenticate at /oauth/mtls/token "
+                        + "without client credentials");
+        verify(tlsClientAuthentication, never()).hasCertificateFromRequest();
+    }
+
+    static java.util.stream.Stream<MockHttpServletRequest> blankCredentialRequests() {
+        MockHttpServletRequest blankSecret = mtlsTokenRequest();
+        blankSecret.addParameter("client_secret", "");
+        MockHttpServletRequest blankBasic = mtlsTokenRequest();
+        blankBasic.addHeader("Authorization", "Basic bXRscy1jbGllbnQ6");
+        MockHttpServletRequest assertion = mtlsTokenRequest();
+        assertion.addParameter("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+        assertion.addParameter("client_assertion", "eyJ");
+        return java.util.stream.Stream.of(blankSecret, blankBasic, assertion);
+    }
+
+    private static MockHttpServletRequest mtlsTokenRequest() {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/mtls/token");
+        request.setServletPath("/oauth/mtls/token");
+        request.addParameter("client_id", "mtls-client");
+        return request;
+    }
+
+    @Test
+    void getTlsClientAuthConfigurationReadsTrustedProxyCaFromFlatStringPath() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        when(uaaClient.getAdditionalInformation()).thenReturn(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-ca-pem"
+        ));
+
+        TlsClientAuthConfiguration config =
+                ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(uaaClient);
+
+        assertThat(config).isNotNull();
+        assertThat(config.getTrustedProxyCaPem()).isEqualTo("proxy-ca-pem");
+    }
+
+    @Test
+    void getTlsClientAuthConfigurationTrustedProxyCaNullWhenAbsent() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        when(uaaClient.getAdditionalInformation()).thenReturn(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem"
+        ));
+
+        TlsClientAuthConfiguration config =
+                ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(uaaClient);
+
+        assertThat(config).isNotNull();
+        assertThat(config.getTrustedProxyCaPem()).isNull();
+    }
+
+    @Test
+    void getTlsClientAuthConfigurationReadsRequiredClaimsFromFlatStringPath() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        when(uaaClient.getAdditionalInformation()).thenReturn(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                        "{\"space_guid\":\"the-expected-space-guid\"}"
+        ));
+
+        TlsClientAuthConfiguration config =
+                ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(uaaClient);
+
+        assertThat(config).isNotNull();
+        assertThat(config.getRequiredClaims()).containsEntry("space_guid", "the-expected-space-guid");
+    }
+
+    @Test
+    void getTlsClientAuthConfigurationRequiredClaimsNullWhenAbsent() {
+        UaaClient uaaClient = mock(UaaClient.class);
+        when(uaaClient.getAdditionalInformation()).thenReturn(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, "ca-pem"
+        ));
+
+        TlsClientAuthConfiguration config =
+                ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(uaaClient);
+
+        assertThat(config).isNotNull();
+        assertThat(config.getRequiredClaims()).isNull();
+    }
+
+    @Test
+    void validateTlsClientAuthEnforcesRequiredClaimsAgainstAClientSharingTheSameCa() throws Exception {
+        // Two UAA clients share the same tls-client-auth-ca (e.g. Diego's shared instance-identity
+        // CA). RFC 8705 section 2.1.2 requires each to register exactly one expected certificate
+        // subject value, so issuance by the shared CA is never on its own enough: a client with no
+        // subject binding authenticates nobody, and a bound client accepts only the certificate
+        // carrying its own subject.
+        KeyPair caKeyPair = generateKeyPair();
+        X500Name caName = new X500Name("CN=Shared Diego Instance Identity CA");
+        X509Certificate caCert = signCert(caName, caName, caKeyPair.getPublic(), caKeyPair.getPrivate(), true, BigInteger.ONE);
+
+        KeyPair appKeyPair = generateKeyPair();
+        X500Name appSubject = new X500Name("CN=app-instance,OU=space:some-other-space-guid");
+        X509Certificate appCert = signCert(appSubject, caName, appKeyPair.getPublic(), caKeyPair.getPrivate(), false, BigInteger.TWO);
+
+        TlsClientAuthentication tlsClientAuthentication = new TlsClientAuthentication();
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        X509Certificate[] presentedChain = new X509Certificate[]{appCert};
+        request.setAttribute("jakarta.servlet.request.X509Certificate", presentedChain);
+        request.setAttribute(RawPeerCertificateCaptureFilter.RAW_PEER_CERTIFICATE_ATTRIBUTE, presentedChain);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            UaaClient unconstrainedClient = mock(UaaClient.class);
+            when(unconstrainedClient.getAdditionalInformation()).thenReturn(Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)));
+
+            UaaClient boundToThisCertClient = mock(UaaClient.class);
+            when(boundToThisCertClient.getAdditionalInformation()).thenReturn(Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+                    appCert.getSubjectX500Principal().getName(javax.security.auth.x500.X500Principal.RFC2253)));
+
+            UaaClient constrainedClient = mock(UaaClient.class);
+            when(constrainedClient.getAdditionalInformation()).thenReturn(Map.ofEntries(
+                    Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert)),
+                    Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                            List.of(Map.of("field", "subject_ou", "pattern", "^space:(.+)$", "claim", "space_guid"))),
+                    Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
+                            Map.of("space_guid", "the-expected-space-guid")),
+                    Map.entry(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN,
+                            appCert.getSubjectX500Principal().getName(
+                                    javax.security.auth.x500.X500Principal.RFC2253))));
+
+            ClientDetailsAuthenticationProvider provider = new ClientDetailsAuthenticationProvider(
+                    mock(UserDetailsService.class), mock(PasswordEncoder.class),
+                    mock(JwtClientAuthentication.class), tlsClientAuthentication);
+
+            assertThat(provider.validateTlsClientAuth(
+                    ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(unconstrainedClient)))
+                    .as("a client registering no subject value cannot be authenticated by any certificate, "
+                            + "however impeccable its chain")
+                    .isFalse();
+            assertThat(provider.validateTlsClientAuth(
+                    ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(constrainedClient)))
+                    .as("the constrained client rejects a cert whose space_guid doesn't match its required claim")
+                    .isFalse();
+            assertThat(provider.validateTlsClientAuth(
+                    ClientDetailsAuthenticationProvider.getTlsClientAuthConfiguration(boundToThisCertClient)))
+                    .as("positive control: the client bound to THIS certificate's subject authenticates")
+                    .isTrue();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    private static KeyPair generateKeyPair() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", BouncyCastleFipsProvider.PROVIDER_NAME);
+        kpg.initialize(2048);
+        return kpg.generateKeyPair();
+    }
+
+    private static X509Certificate signCert(X500Name subject, X500Name issuer, PublicKey subjectKey,
+            PrivateKey signerKey, boolean isCa, BigInteger serial) throws Exception {
+        Date notBefore = new Date(System.currentTimeMillis() - 60_000);
+        Date notAfter = new Date(System.currentTimeMillis() + 3_600_000);
+        JcaX509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
+                issuer, serial, notBefore, notAfter, subject, subjectKey);
+        builder.addExtension(Extension.basicConstraints, true, new BasicConstraints(isCa));
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA")
+                .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
+                .build(signerKey);
+        X509CertificateHolder holder = builder.build(signer);
+        return new JcaX509CertificateConverter()
+                .setProvider(BouncyCastleFipsProvider.PROVIDER_NAME)
+                .getCertificate(holder);
+    }
+
+    private static String toPem(X509Certificate cert) throws Exception {
+        java.io.StringWriter sw = new java.io.StringWriter();
+        try (org.bouncycastle.util.io.pem.PemWriter pemWriter = new org.bouncycastle.util.io.pem.PemWriter(sw)) {
+            pemWriter.writeObject(new org.bouncycastle.util.io.pem.PemObject("CERTIFICATE", cert.getEncoded()));
+        }
+        return sw.toString();
+    }
+}

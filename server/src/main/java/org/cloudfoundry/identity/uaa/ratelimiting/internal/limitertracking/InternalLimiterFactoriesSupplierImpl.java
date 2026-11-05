@@ -200,7 +200,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         }
         sb.append(limiterMapping.name()).append(":");
         boolean multiple = limiterMapping.limitsCount() > 1;
-        for (WindowType type : WindowType.ALL_WINDOW_TYPES) {
+        for (WindowType type : WindowType.allWindowTypes()) {
             appendLimits(sb, multiple, type.windowType(), type.extractRequestsPerWindowFrom(limiterMapping));
         }
     }
