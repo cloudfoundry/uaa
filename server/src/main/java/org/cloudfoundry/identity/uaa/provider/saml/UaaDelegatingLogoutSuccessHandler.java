@@ -15,8 +15,13 @@ import org.springframework.stereotype.Component;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -31,6 +36,11 @@ import java.util.Optional;
  * <p>
  * On the LogoutResponse side, there is no Authentication available at that point, so will
  * always delegate to the {@link ZoneAwareWhitelistLogoutSuccessHandler}.
+ * <p>
+ * The LogoutResponse arrives on a new request to {@code /saml/SingleLogout/alias/{registrationId}} which
+ * only carries {@code SAMLResponse} and {@code RelayState}. The parameters of the original
+ * {@code /logout.do} request that determine the redirect target are therefore restored from the
+ * correlated SAML LogoutRequest before the zone-aware whitelist handler validates them.
  */
 @Component
 public class UaaDelegatingLogoutSuccessHandler implements LogoutSuccessHandler {
@@ -54,6 +64,10 @@ public class UaaDelegatingLogoutSuccessHandler implements LogoutSuccessHandler {
         if (shouldPerformSamlRelyingPartyLogout(request, authentication)) {
             saml2RelyingPartyInitiatedLogoutSuccessHandler.onLogoutSuccess(request, response, authentication);
             return;
+        }
+
+        if (authentication == null) {
+            request = restoreLogoutParameters(request);
         }
 
         if (shouldPerformOAuthRpInitiatedLogout(authentication)) {
@@ -97,5 +111,48 @@ public class UaaDelegatingLogoutSuccessHandler implements LogoutSuccessHandler {
 
         String singleLogoutServiceLocation = Optional.ofNullable(registration.getAssertingPartyMetadata()).map(AssertingPartyMetadata::getSingleLogoutServiceLocation).orElse(null);
         return singleLogoutServiceLocation != null;
+    }
+
+    private static HttpServletRequest restoreLogoutParameters(HttpServletRequest request) {
+        Object saved = request.getAttribute(UaaSaml2LogoutRequestRepository.LOGOUT_PARAMETERS_REQUEST_ATTRIBUTE);
+        if (!(saved instanceof UaaSaml2LogoutRequestRepository.LogoutParameters logoutParameters)) {
+            return request;
+        }
+
+        Map<String, String[]> parameters = new HashMap<>(request.getParameterMap());
+        logoutParameters.parameterNames().forEach(parameters::remove);
+        logoutParameters.parameters()
+                .forEach((name, value) -> parameters.put(name, new String[]{value}));
+        return new LogoutParametersRequestWrapper(request, parameters);
+    }
+
+    private static class LogoutParametersRequestWrapper extends HttpServletRequestWrapper {
+        private final Map<String, String[]> parameters;
+
+        LogoutParametersRequestWrapper(HttpServletRequest request, Map<String, String[]> parameters) {
+            super(request);
+            this.parameters = Collections.unmodifiableMap(parameters);
+        }
+
+        @Override
+        public String getParameter(String name) {
+            String[] values = parameters.get(name);
+            return values != null && values.length > 0 ? values[0] : null;
+        }
+
+        @Override
+        public Map<String, String[]> getParameterMap() {
+            return parameters;
+        }
+
+        @Override
+        public Enumeration<String> getParameterNames() {
+            return Collections.enumeration(parameters.keySet());
+        }
+
+        @Override
+        public String[] getParameterValues(String name) {
+            return parameters.get(name);
+        }
     }
 }
