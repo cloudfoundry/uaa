@@ -1069,12 +1069,12 @@ With the ``zones.write`` scope, limited clients can be created in an identity zo
 
 Client limitations
 
-====================  =========================================
-Authorization Type    Supported UAA grant types (below)
+====================  ==============================================================
+Authorization Type    See authorized_grant_types in the Fields table
 Scopes                openid
 Authorities           uaa.resource
 Allowed Providers     uaa
-====================  =========================================
+====================  ==============================================================
 
 Identity Zone Client API Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
