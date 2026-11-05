@@ -103,7 +103,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -111,6 +110,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.httpBearer;
@@ -1599,7 +1599,7 @@ class AuditCheckMockMvcTests {
         doAnswer(invocation -> {
             Object prepared = invocation.callRealMethod();
             bulkSnapshot.countDown();
-            assertThat(releaseBulk.await(10, TimeUnit.SECONDS)).isTrue();
+            await().atMost(10, TimeUnit.SECONDS).until(() -> releaseBulk.getCount() == 0);
             return prepared;
         }).when(scimEventPublisher).prepareMembershipChanges(any(), any());
         if (adding) {
@@ -1630,7 +1630,7 @@ class AuditCheckMockMvcTests {
                                 .content(JsonUtils.writeValueAsBytes(update)))
                         .andExpect(status().isOk()).andReturn();
             });
-            assertThat(bulkSnapshot.await(10, TimeUnit.SECONDS)).isTrue();
+            await().atMost(10, TimeUnit.SECONDS).until(() -> bulkSnapshot.getCount() == 0);
             var single = workers.submit(() -> {
                 Thread.currentThread().setName("membership-single");
                 String path = "/Groups/" + group.getId() + "/members";
@@ -1641,13 +1641,17 @@ class AuditCheckMockMvcTests {
                 return mockMvc.perform(request.header(AUTHORIZATION, "Bearer " + adminToken))
                         .andExpect(adding ? status().isCreated() : status().isOk()).andReturn();
             });
-            assertThat(singleRequestEntered.await(10, TimeUnit.SECONDS)).isTrue();
+            await().atMost(10, TimeUnit.SECONDS).until(() -> singleRequestEntered.getCount() == 0);
             // The contender has entered its endpoint, but must not read its audit snapshot or finish.
-            assertThat(singleSnapshot.await(300, TimeUnit.MILLISECONDS)).isFalse();
-            assertThatThrownBy(() -> single.get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            await().during(300, TimeUnit.MILLISECONDS).atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+                assertThat(singleSnapshot.getCount()).isOne();
+                assertThat(single.isDone()).isFalse();
+            });
             releaseBulk.countDown();
-            bulk.get(10, TimeUnit.SECONDS);
-            single.get(10, TimeUnit.SECONDS);
+            await().atMost(10, TimeUnit.SECONDS).until(bulk::isDone);
+            bulk.get();
+            await().atMost(10, TimeUnit.SECONDS).until(single::isDone);
+            single.get();
             assertThat(singleSnapshot.getCount()).isZero();
             List<AuditEvent> bulkEvents = byOperation.get("membership-bulk");
             List<AuditEvent> singleEvents = byOperation.get("membership-single");
@@ -1667,7 +1671,7 @@ class AuditCheckMockMvcTests {
         } finally {
             releaseBulk.countDown();
             workers.shutdownNow();
-            assertThat(workers.awaitTermination(15, TimeUnit.SECONDS)).isTrue();
+            await().atMost(15, TimeUnit.SECONDS).until(workers::isTerminated);
             MockMvcUtils.removeEventListener(configurableApplicationContext, listener);
         }
     }
@@ -1697,7 +1701,7 @@ class AuditCheckMockMvcTests {
             Object prepared = invocation.callRealMethod();
             if (Thread.currentThread().getName().equals("membership-post-first")) {
                 insertReady.countDown();
-                assertThat(releaseInsert.await(10, TimeUnit.SECONDS)).isTrue();
+                await().atMost(10, TimeUnit.SECONDS).until(() -> releaseInsert.getCount() == 0);
             }
             return prepared;
         }).when(scimEventPublisher).prepareMembershipEvent(any(), any(), any());
@@ -1718,7 +1722,7 @@ class AuditCheckMockMvcTests {
                                 .content(JsonUtils.writeValueAsBytes(new ScimGroupMember(added.getId()))))
                         .andExpect(status().isCreated()).andReturn();
             });
-            assertThat(insertReady.await(10, TimeUnit.SECONDS)).isTrue();
+            await().atMost(10, TimeUnit.SECONDS).until(() -> insertReady.getCount() == 0);
             var patchResult = workers.submit(() -> {
                 Thread.currentThread().setName("membership-patch-second");
                 return mockMvc.perform(patch("/Groups/" + group.getId())
@@ -1726,12 +1730,16 @@ class AuditCheckMockMvcTests {
                                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtils.writeValueAsBytes(update)))
                         .andExpect(status().isOk()).andReturn();
             });
-            assertThat(patchRequestEntered.await(10, TimeUnit.SECONDS)).isTrue();
-            assertThat(patchSnapshot.await(300, TimeUnit.MILLISECONDS)).isFalse();
-            assertThatThrownBy(() -> patchResult.get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            await().atMost(10, TimeUnit.SECONDS).until(() -> patchRequestEntered.getCount() == 0);
+            await().during(300, TimeUnit.MILLISECONDS).atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+                assertThat(patchSnapshot.getCount()).isOne();
+                assertThat(patchResult.isDone()).isFalse();
+            });
             releaseInsert.countDown();
-            postResult.get(10, TimeUnit.SECONDS);
-            patchResult.get(10, TimeUnit.SECONDS);
+            await().atMost(10, TimeUnit.SECONDS).until(postResult::isDone);
+            postResult.get();
+            await().atMost(10, TimeUnit.SECONDS).until(patchResult::isDone);
+            patchResult.get();
             List<AuditEvent> postEvents = byOperation.get("membership-post-first");
             List<AuditEvent> patchEvents = byOperation.get("membership-patch-second");
             assertThat(postEvents).extracting(AuditEvent::getType).containsExactly(GroupMembershipAddedEvent, GroupModifiedEvent);
@@ -1747,7 +1755,7 @@ class AuditCheckMockMvcTests {
         } finally {
             releaseInsert.countDown();
             workers.shutdownNow();
-            assertThat(workers.awaitTermination(15, TimeUnit.SECONDS)).isTrue();
+            await().atMost(15, TimeUnit.SECONDS).until(workers::isTerminated);
             MockMvcUtils.removeEventListener(configurableApplicationContext, listener);
         }
     }
