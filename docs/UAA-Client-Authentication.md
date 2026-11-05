@@ -70,7 +70,7 @@ Each entry of `jwt_creds` describes one trusted combination of issuer and subjec
 | --- | --- | --- |
 | `iss` | yes | The issuer of the client assertion. Always compared verbatim, because it selects the key set the assertion is verified against. |
 | `sub` | one of `sub` or `sub_pattern` | The subject of the client assertion, compared verbatim. |
-| `sub_pattern` | one of `sub` or `sub_pattern` | A subject pattern, see below. Mutually exclusive with `sub`. |
+| `sub_pattern` | one of `sub` or `sub_pattern` | A subject pattern, see below. Do not supply it with `sub`; if both fields are present, their values must be identical. |
 | `aud` | no | The expected audience. Defaults to the token endpoint of the UAA. |
 
 #### Subject patterns
@@ -104,9 +104,9 @@ Prefer `*` and reach for `**` only where the component genuinely holds a path.
 
 A pattern must contain at least one wildcard and at least one component that is entirely
 literal, so `*`, `a*` and `*:*` are rejected: they would authorise most of what the issuer can
-assert. Patterns are limited to 256 characters and five wildcards. The same length limit applies
-to the subject being matched, so a pattern does not match an asserted subject longer than 256
-characters.
+assert. Patterns are limited to 256 characters and five `*` characters, so `**` counts as two.
+The same length limit applies to the subject being matched, so a pattern does not match an
+asserted subject longer than 256 characters.
 
 Only the subject can be a pattern. The issuer is always compared verbatim, and a pattern only
 widens which subjects that one issuer may assert; the assertion is still rejected unless its
@@ -114,6 +114,22 @@ signature verifies against the key set of that issuer.
 
 When deleting a credential, the subject is compared verbatim. Deleting `sub_pattern` removes the
 credential stored under that pattern and does not remove the credentials it would match.
+
+For compatibility during rolling upgrades, UAA persists and returns a pattern credential with
+the pattern mirrored into `sub`. Submit only `sub_pattern` when registering a new pattern; if a
+client sends both fields back, UAA accepts them only when their values are identical.
+
+Do not register or activate subject patterns until every UAA node has been upgraded to a version
+that supports `sub_pattern`. During a mixed-version rollout, an older node ignores
+`sub_pattern` and compares the mirrored `sub` literally, so pattern-based authentication routed
+to that node fails closed. An older node that rewrites the client JWT configuration can also
+drop the unknown `sub_pattern` field and leave an exact credential. Complete the rollout before
+updating clients to use subject patterns.
+
+Before production activation, verify from the deployed UAA network that the configured issuer's
+OIDC discovery document and JWKS are reachable, and test a signed assertion with a representative
+dynamic subject. This exercises deployment-specific TLS trust, DNS, egress and issuer key-rotation
+behavior that unit tests cannot reproduce.
 
 ### tls_client_auth ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705))
 

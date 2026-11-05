@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +32,22 @@ class ClientJwtCredentialTest {
         assertThat(jwtCredential.getSubject()).isEqualTo("subject");
         assertThat(jwtCredential.getIssuer()).isEqualTo("issuer");
         assertThat(jwtCredential.getAudience()).isEqualTo("audience");
+    }
+
+    @Test
+    void settersPreserveExistingApi() {
+        ClientJwtCredential jwtCredential = new ClientJwtCredential("subject", "issuer", "audience");
+
+        jwtCredential.setSubject("updated-subject");
+        jwtCredential.setIssuer("updated-issuer");
+        jwtCredential.setAudience("updated-audience");
+
+        assertThat(jwtCredential)
+                .extracting(
+                        ClientJwtCredential::getSubject,
+                        ClientJwtCredential::getIssuer,
+                        ClientJwtCredential::getAudience)
+                .containsExactly("updated-subject", "updated-issuer", "updated-audience");
     }
 
     @Test
@@ -173,6 +193,16 @@ class ClientJwtCredentialTest {
         }
 
         @Test
+        void subjectSetterRejectsValueThatConflictsWithPattern() {
+            ClientJwtCredential credential = new ClientJwtCredential(null, "issuer", null, GITLAB_PATTERN);
+
+            assertThatThrownBy(() -> credential.setSubject("some-other-subject"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Invalid federated jwt credentials");
+            assertThat(credential.getSubject()).isEqualTo(GITLAB_PATTERN);
+        }
+
+        @Test
         void patternIsNotEqualToExactCredentialOfSameText() {
             ClientJwtCredential pattern = new ClientJwtCredential(null, "issuer", null, GITLAB_PATTERN);
             ClientJwtCredential exact = new ClientJwtCredential(GITLAB_PATTERN, "issuer", null);
@@ -198,6 +228,55 @@ class ClientJwtCredentialTest {
                     .contains("\"sub_pattern\":\"" + GITLAB_PATTERN + "\"");
         }
 
+        @Test
+        void olderNodeReadsPatternAsExactAndDropsUnknownFieldWhenRewriting() {
+            ClientJwtCredential credential = new ClientJwtCredential(
+                    null, "issuer", null, GITLAB_PATTERN);
+            String persisted = JsonUtils.writeValueAsString(credential);
+
+            LegacyClientJwtCredential legacyCredential =
+                    JsonUtils.readValue(persisted, LegacyClientJwtCredential.class);
+
+            assertThat(legacyCredential.getSubject()).isEqualTo(GITLAB_PATTERN);
+            assertThat(JsonUtils.writeValueAsString(legacyCredential))
+                    .contains("\"sub\":\"" + GITLAB_PATTERN + "\"")
+                    .doesNotContain("sub_pattern");
+        }
+
         private static final int MAX_LENGTH = 256;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static final class LegacyClientJwtCredential {
+
+        private final String subject;
+        private final String issuer;
+        private final String audience;
+
+        @JsonCreator
+        private LegacyClientJwtCredential(
+                @JsonProperty("sub") String subject,
+                @JsonProperty("iss") String issuer,
+                @JsonProperty("aud") String audience) {
+            this.subject = subject;
+            this.issuer = issuer;
+            this.audience = audience;
+        }
+
+        @JsonProperty("sub")
+        String getSubject() {
+            return subject;
+        }
+
+        @JsonProperty("iss")
+        String getIssuer() {
+            return issuer;
+        }
+
+        @JsonProperty("aud")
+        String getAudience() {
+            return audience;
+        }
     }
 }
