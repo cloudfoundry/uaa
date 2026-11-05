@@ -68,7 +68,7 @@ public class ScimAopConfig {
 
     @AfterReturning(pointcut = "(execution(* *..ScimGroupEndpoints+.updateGroup(..)) || execution(* *..ScimGroupEndpoints+.patchGroup(..))) && bean(scimGroupEndpoints)", returning = "group")
     public void groupModified(ScimGroup group) {
-        scimEventPublisher.groupModified(group);
+        scimEventPublisher.groupModifiedAfterCommit(group);
     }
 
     @AfterReturning(pointcut = "execution(* *..ScimGroupEndpoints+.deleteGroup(..)) && bean(scimGroupEndpoints)", returning = "group")
