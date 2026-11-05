@@ -3235,12 +3235,8 @@ For actions ``secret`` and ``update,secret``, a new client secret must satisfy t
 identity zone's client secret policy. If the zone has no policy override, the global
 client secret policy applies. A policy violation returns ``400 Bad Request`` with
 ``error`` set to ``invalid_client`` and ``error_description`` describing the unmet
-requirements. The entire batch is rolled back, including other client updates.
-Previously accepted secret changes that violate this policy now fail.
-
-Resubmitting the client's current secret is accepted even if the policy has become
-stricter since that secret was stored. In that case the secret is not changed and
-approvals are retained. A compliant new secret is accepted and approvals are deleted.
+requirements. Resubmitting the client's current secret is accepted even if it no
+longer meets the policy, and approvals are retained.
 
 For example, when the policy requires at least 10 characters, a change to ``a``
 returns ``400 Bad Request`` with a response such as::
