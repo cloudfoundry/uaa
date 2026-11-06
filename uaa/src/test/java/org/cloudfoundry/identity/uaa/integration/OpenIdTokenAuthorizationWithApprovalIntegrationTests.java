@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsReso
 import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextExtension;
 import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -34,6 +35,8 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -86,6 +89,9 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
     private ScimUser user;
 
+    // a user of another origin: the login client may authenticate it by user_id, but not a user of the uaa origin
+    private ScimUser externalUser;
+
     @BeforeEach
     void createRestTemplate() {
 
@@ -120,28 +126,13 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             }
         });
         user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com", true).getBody();
+        externalUser = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com", true, OriginKeys.LOGIN_SERVER).getBody();
     }
 
     @Test
     void openIdTokenUsingLoginClientOauthTokenEndpoint() {
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-
-        LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
-        postBody.add("client_id", "app");
-        postBody.add("client_secret", "appclientsecret");
-        postBody.add("redirect_uri", "https://uaa.cloudfoundry.com/redirect/cf");
-        postBody.add("response_type", "token id_token");
-        postBody.add("grant_type", "password");
-        postBody.add("source", "login");
-        postBody.add("user_id", user.getId());
-        postBody.add("add_new", "false");
-
-        ResponseEntity<Map> responseEntity = loginClient.exchange(serverRunning.getBaseUrl() + "/oauth/token",
-                HttpMethod.POST,
-                new HttpEntity<>(postBody, headers),
-                Map.class);
+        ResponseEntity<Map> responseEntity = loginClientTokenRequest(externalUser.getId());
 
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
 
@@ -153,6 +144,34 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
         String[] scopes = UriUtils.decode((String) params.get("scope"), "UTF-8").split(" ");
         assertThat(Arrays.asList(scopes)).containsExactlyInAnyOrder("scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read");
+    }
+
+    @Test
+    void openIdTokenUsingLoginClientOauthTokenEndpointIsRefusedForAUaaOriginUser() {
+
+        ResponseEntity<Map> responseEntity = loginClientTokenRequest(user.getId());
+
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    private ResponseEntity<Map> loginClientTokenRequest(String userId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+        postBody.add("client_id", "app");
+        postBody.add("client_secret", "appclientsecret");
+        postBody.add("redirect_uri", "https://uaa.cloudfoundry.com/redirect/cf");
+        postBody.add("response_type", "token id_token");
+        postBody.add("grant_type", "password");
+        postBody.add("source", "login");
+        postBody.add("user_id", userId);
+        postBody.add("add_new", "false");
+
+        return loginClient.exchange(serverRunning.getBaseUrl() + "/oauth/token",
+                HttpMethod.POST,
+                new HttpEntity<>(postBody, headers),
+                Map.class);
     }
 
     @Test
@@ -183,6 +202,14 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("id_token", "code")), ".+id_token=.+code=.+");
         //approved using login client
         doOpenIdHybridFlowForLoginClient(new HashSet<>(Arrays.asList("id_token", "code")), ".+id_token=.+code=.+");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"token code", "token id_token code", "id_token code"})
+    void openIdHybridFlowForLoginClientIsRefusedForAUaaOriginUser(String responseTypes) {
+        ResponseEntity<Map> result = postHybridFlowAsLoginClient(new HashSet<>(Arrays.asList(responseTypes.split(" "))), user.getId(), null);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -321,9 +348,27 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     private void doOpenIdHybridFlowForLoginClient(Set<String> responseTypes, String responseTypeMatcher) {
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+
+        ResponseEntity<Map> result = postHybridFlowAsLoginClient(responseTypes, externalUser.getId(), null);
+        if (result.getStatusCode() == HttpStatus.OK) {
+            // the user has not approved the client yet: the user approves, with the cookie of the first step
+            String cookie = result.getHeaders().getFirst(HttpHeaders.SET_COOKIE).split(";")[0];
+            result = postHybridFlowAsLoginClient(responseTypes, externalUser.getId(), cookie);
+        }
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
+        assertThat(location).as("Wrong location: " + location).matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher);
+    }
+
+    private ResponseEntity<Map> postHybridFlowAsLoginClient(Set<String> responseTypes, String userId, String approvalCookie) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.ALL));
+        if (approvalCookie != null) {
+            headers.add(HttpHeaders.COOKIE, approvalCookie);
+        }
 
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 
@@ -341,10 +386,11 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String redirectUri = resource.getPreEstablishedRedirectUri();
         String clientSecret = resource.getClientSecret();
         String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&" +
-                "state={state}&client_id={client_id}&client_secret={clientSecret}&redirect_uri={redirect_uri}&source=login&user_id={userId}&add_new=false");
+                "state={state}&client_id={client_id}&client_secret={clientSecret}&redirect_uri={redirect_uri}&source=login&user_id={userId}&add_new=false" +
+                (approvalCookie != null ? "&user_oauth_approval=true" : ""));
 
         HttpEntity<Void> request = new HttpEntity<>(null, headers);
-        ResponseEntity<Map> result = loginClient.exchange(
+        return loginClient.exchange(
                 serverRunning.getUrl(uri),
                 HttpMethod.POST,
                 request,
@@ -354,11 +400,7 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
                 clientId,
                 clientSecret,
                 redirectUri,
-                user.getId());
-
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
-        assertThat(location).as("Wrong location: " + location).matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher);
+                userId);
     }
 
     private void exchangeCodeForToken(String clientId, String redirectUri, String clientSecret, String value, MultiValueMap<String, String> formData) {
@@ -382,7 +424,15 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
                                                 String email, boolean verified) {
+        return createUser(username, firstName, lastName, email, verified, null);
+    }
+
+    private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
+                                                String email, boolean verified, String origin) {
         ScimUser user = new ScimUser();
+        if (origin != null) {
+            user.setOrigin(origin);
+        }
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
