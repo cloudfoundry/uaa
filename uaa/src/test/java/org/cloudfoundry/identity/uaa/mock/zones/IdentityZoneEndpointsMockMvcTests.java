@@ -58,6 +58,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1616,7 +1617,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         //create zone and clients
         UaaClientDetails client =
-                new UaaClientDetails("limited-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
+                new UaaClientDetails("limited-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost:8080/callback");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(UAA));
         client.addAdditionalInformation("foo", "bar");
@@ -1807,7 +1808,7 @@ class IdentityZoneEndpointsMockMvcTests {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
         UaaClientDetails client =
-                new UaaClientDetails("limited-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
+                new UaaClientDetails("limited-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost:8080/callback");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(UAA));
         client.addAdditionalInformation("foo", "bar");
@@ -1852,10 +1853,45 @@ class IdentityZoneEndpointsMockMvcTests {
         checkAuditEventListener(1, AuditEventType.ClientDeleteSuccess, clientDeleteEventListener, id, "http://localhost:8080/uaa/oauth/token", "identity");
     }
 
+    static Stream<Arguments> invalidRedirectUris() {
+        return Stream.of(
+                Arguments.of(null, GRANT_TYPE_AUTHORIZATION_CODE + " grant type requires at least one redirect URL."),
+                Arguments.of(List.of(), GRANT_TYPE_AUTHORIZATION_CODE + " grant type requires at least one redirect URL."),
+                Arguments.of(List.of(""), "One of the redirect_uri is invalid: "),
+                Arguments.of(List.of("not-a-url"), "One of the redirect_uri is invalid: not-a-url"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidRedirectUris")
+    void createLimitedClientInNewZoneUsingZoneEndpoint_withoutValidRedirectUri_isBadRequest(List<String> redirectUris, String expectedError) throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
+        Map<String, Object> client = new HashMap<>();
+        client.put("client_id", "limited-client");
+        client.put("client_secret", "secret");
+        client.put("scope", List.of("openid"));
+        client.put("authorities", List.of("uaa.resource"));
+        client.put("authorized_grant_types", List.of(GRANT_TYPE_AUTHORIZATION_CODE));
+        client.put(ClientConstants.ALLOWED_PROVIDERS, List.of(UAA));
+        if (redirectUris != null) {
+            client.put("redirect_uri", redirectUris);
+        }
+
+        mockMvc.perform(
+                        post("/identity-zones/" + zone.getId() + "/clients")
+                                .header("Authorization", "Bearer " + identityClientToken)
+                                .contentType(APPLICATION_JSON)
+                                .accept(APPLICATION_JSON)
+                                .content(JsonUtils.writeValueAsString(client)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(expectedError));
+        assertThat(clientCreateEventListener.getEventCount()).isZero();
+    }
+
     @Test
     void createAndDeleteLimitedClientInUAAZoneReturns403() throws Exception {
         UaaClientDetails client =
-                new UaaClientDetails("limited-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
+                new UaaClientDetails("limited-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost:8080/callback");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(UAA));
         mockMvc.perform(

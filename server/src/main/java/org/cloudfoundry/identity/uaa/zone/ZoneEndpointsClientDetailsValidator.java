@@ -19,6 +19,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.validateMtlsClientConfiguration;
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.validateMtlsClientRules;
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.checkRequestedGrantTypes;
+import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.validateRedirectUris;
 import static org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator.validateTlsClientAuthClaimConfig;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
@@ -84,6 +85,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             if (!Collections.singletonList(OriginKeys.UAA).equals(additionalInformation.get(ClientConstants.ALLOWED_PROVIDERS))) {
                 throw new InvalidClientDetailsException("only the internal IdP ('uaa') is allowed");
             }
+            validateRedirectUris(clientDetails);
 
             UaaClientDetails validatedClientDetails = new UaaClientDetails(clientDetails);
             validatedClientDetails.setAdditionalInformation(clientDetails.getAdditionalInformation());

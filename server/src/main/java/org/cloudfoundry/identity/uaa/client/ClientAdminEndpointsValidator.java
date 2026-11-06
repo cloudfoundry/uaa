@@ -338,6 +338,10 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     }
 
     public void validateClientRedirectUri(ClientDetails client) {
+        validateRedirectUris(client);
+    }
+
+    public static void validateRedirectUris(ClientDetails client) {
         Set<String> uris = client.getRegisteredRedirectUri();
 
         for (String grantType : Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT)) {
@@ -357,7 +361,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
     }
 
-    private boolean isMissingRedirectUris(Set<String> uris) {
+    private static boolean isMissingRedirectUris(Set<String> uris) {
         return uris == null || uris.isEmpty();
     }
 

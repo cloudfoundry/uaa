@@ -1065,16 +1065,16 @@ Response body   *example* ::
 Identity Zone clients API: ``/identity-zones/clients``
 ------------------------------------------------------
 
-With the ``zones.write`` scope, limited clients can be created in an identity zone through this endpoint. This client can only be used to support web SSO using the authorization code flow, and using the zone's internal Identity Provider.
+With the ``zones.write`` scope, limited clients can be created in an identity zone through this endpoint. Clients may use the supported UAA grant types listed below, including authorization_code and implicit for browser SSO, and must use the zone's internal Identity Provider. Clients using authorization_code or implicit must register at least one valid redirect URL.
 
 Client limitations
 
-====================  ===========================
-Authorization Type    authorization_code
+====================  ==============================================================
+Authorization Type    See authorized_grant_types in the Fields table
 Scopes                openid
 Authorities           uaa.resource
 Allowed Providers     uaa
-====================  ===========================
+====================  ==============================================================
 
 Identity Zone Client API Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1090,7 +1090,8 @@ Request body      *example* ::
                         "authorized_grant_types" : ["authorization_code"],
                         "scope" : ["openid"],
                         "authorities" : ["uaa.resource"],
-                        "allowedproviders" : ["uaa"]
+                        "allowedproviders" : ["uaa"],
+                        "redirect_uri" : ["https://example.com/callback"]
                     }
 
 Response body     *example* ::
@@ -1106,6 +1107,7 @@ Response body     *example* ::
                         "authorities" : ["uaa.resource"],
                         "resource_ids" : ["none"],
                         "allowedproviders" : ["uaa"],
+                        "redirect_uri" : ["https://example.com/callback"],
                         "createdwith" : "zones.write"
                     }
 
@@ -1120,13 +1122,13 @@ Fields            *Available Fields* ::
 
                     ======================  ===============  ======== =======================================================
                     client_id               String(36)       Required Unique identifier for this client - used in API requests as basic auth or client_id parameter
-                    client_secret           String(255)      Required Password for the client - used in API requests as basic auth or client_secret parameter
-                    authorized_grant_types  List<String>     Required Limited to ["authorization_code"]
+                    client_secret           String(255)      Optional Password for the client. Required for grant types other than implicit unless tls_client_auth_ca or tls_client_auth_ca_ref is configured
+                    authorized_grant_types  List<String>     Required Supported values: authorization_code, implicit, password, client_credentials, refresh_token, user_token, urn:ietf:params:oauth:grant-type:saml2-bearer, urn:ietf:params:oauth:grant-type:jwt-bearer, urn:ietf:params:oauth:grant-type:token-exchange
                     scope                   List<String>     Required Limited to ["openid"]
                     authorities             List<String>     Required Limited to ["uaa.resource"]
                     allowedproviders        List<String>     Required Limited to ["uaa"]
                     autoapprove             List<String>     Optional Set to ["openid"] if the UAA should auto approve this scope on the user's behalf
-                    redirect_uri            String           Optional To enforce a secure redirect, set this to the applications destination URL
+                    redirect_uri            List<String>     Optional The application's destination URLs. Required when authorized_grant_types includes authorization_code or implicit; each value must be a valid redirect URL
                     access_token_validity   int              Optional Value in seconds for how long an access token is valid for
                     refresh_token_validity  int              Optional Value in seconds for how long a refresh token is valid for
                     resource_ids            List<String>     Auto     Set to ["none"]
@@ -1138,7 +1140,7 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
 
                     curl -v -H"Authorization:Bearer $TOKEN" \
                       -XPOST -H'Content-type: application/json' \
-                      -d '{"client_id" : "limited-client",  "client_secret" : "limited-client-secret", "authorized_grant_types" : ["authorization_code"],"scope" : ["openid"],"authorities" : ["uaa.resource"], "allowedproviders" : ["uaa"]}' \
+                      -d '{"client_id" : "limited-client",  "client_secret" : "limited-client-secret", "authorized_grant_types" : ["authorization_code"],"scope" : ["openid"],"authorities" : ["uaa.resource"], "allowedproviders" : ["uaa"], "redirect_uri" : ["https://example.com/callback"]}' \
                       http://localhost:8080/uaa/identity-zones/testzone1/clients
 
 ================  ====================================================================================================================================================
