@@ -606,6 +606,43 @@ class ScimGroupEndpointsMockMvcTests {
                 .andExpect(jsonPath("$.error_description").value("Invalid attributes: [" + attributes + "]"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"id,", ",", "id,,", ",id", "id,,displayName"})
+    void getGroups_withEmptyAttributeName_isBadRequest(String attributes) throws Exception {
+        mockMvc.perform(get("/Groups")
+                        .header("Authorization", "Bearer " + scimReadToken)
+                        .param("attributes", attributes)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value("Invalid attributes: [" + attributes + "]"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"id", "id,displayName"})
+    void getGroups_withPlainAttributeNames_isOk(String attributes) throws Exception {
+        MvcResult result = mockMvc.perform(get("/Groups")
+                        .header("Authorization", "Bearer " + scimReadToken)
+                        .param("attributes", attributes)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resources[0].id").isString())
+                .andReturn();
+
+        SearchResults<Map<String, Object>> results = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertThat(results.getResources().iterator().next()).containsOnlyKeys(attributes.split(","));
+    }
+
+    @Test
+    void getGroups_withEmptyAttributes_returnsFullResources() throws Exception {
+        mockMvc.perform(get("/Groups")
+                        .header("Authorization", "Bearer " + scimReadToken)
+                        .param("attributes", "")
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resources[0].id").isString())
+                .andExpect(jsonPath("$.resources[0].displayName").isString());
+    }
+
     @Test
     void getGroupsInvalidAttributes() throws Exception {
         String nonexistentAttribute = "displayBlaBla";
