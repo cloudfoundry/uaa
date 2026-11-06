@@ -7,13 +7,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Checks the default zone's mTLS trust-bundle definitions after the zone bootstrap has finished.
+ * Checks the default zone's named mTLS configuration after the zone bootstrap has finished.
  *
  * <p>Only the default zone is inspected, and only when mTLS is enabled for both the deployment and
  * that zone: installations can have tens of thousands of zones, so startup must not scale with the
- * tenant count. Tenant bundle definitions are validated on every zone update. Client references to
- * bundles are not checked here, because that would require reading every client of the zone; a
- * reference that does not resolve is denied at token time.
+ * tenant count. Tenant definitions are validated on every zone update. Client references are not
+ * checked here, because that would require reading every client of the zone; a reference that does
+ * not resolve is denied at token time.
  */
 @Component
 public class MtlsTrustBundleStartupValidator implements SmartInitializingSingleton {
@@ -34,6 +34,7 @@ public class MtlsTrustBundleStartupValidator implements SmartInitializingSinglet
         IdentityZone defaultZone = zones.retrieve(IdentityZone.getUaaZoneId());
         if (MtlsFeaturePolicy.isEnabled(true, defaultZone)) {
             MtlsTrustBundles.validate(defaultZone.getConfig().getMtls().getTrustBundles());
+            MtlsResourcePolicies.validate(defaultZone.getConfig().getMtls().getResourcePolicies());
         }
     }
 }

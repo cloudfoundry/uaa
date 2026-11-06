@@ -221,6 +221,20 @@ class TlsClientAuthConfigurationTest {
     }
 
     @Test
+    void allowedResourcesReferenceRoundTripsViaJson() throws Exception {
+        TlsClientAuthConfiguration config = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
+        config.setAllowedResourcesRef("federation");
+
+        JsonMapper mapper = new JsonMapper();
+        String json = mapper.writeValueAsString(config);
+        TlsClientAuthConfiguration deserialized =
+                mapper.readValue(json, TlsClientAuthConfiguration.class);
+
+        assertThat(deserialized.getAllowedResourcesRef()).isEqualTo("federation");
+        assertThat(json).contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF);
+    }
+
+    @Test
     void unequalWhenRequiredClaimsDiffer() {
         TlsClientAuthConfiguration config1 = new TlsClientAuthConfiguration(EXAMPLE_CA, null);
         config1.setRequiredClaims(Map.of("space_guid", "space-a"));

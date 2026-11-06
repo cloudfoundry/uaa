@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsResourcePolicies;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
@@ -31,6 +32,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         if (mode == IdentityZoneValidator.Mode.CREATE || mode == IdentityZoneValidator.Mode.MODIFY) {
             try {
                 MtlsTrustBundles.validate(config.getMtls().getTrustBundles());
+                MtlsResourcePolicies.validate(config.getMtls().getResourcePolicies());
             } catch (InvalidClientDetailsException e) {
                 throw new InvalidIdentityZoneConfigurationException(e.getMessage(), e);
             }

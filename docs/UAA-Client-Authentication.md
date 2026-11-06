@@ -213,8 +213,9 @@ present a certificate whose chain validates to the configured CA; no separate
 | `tls-client-auth-required-claims` | no | Map of `claimName -> requiredValue`, checked against the values produced by `tls-client-auth-claim-mappings`. A UAA extension applied in addition to the subject binding, not instead of it -- authentication fails unless every entry matches exactly. |
 | `tls-client-auth-claim-mappings` | no | List of `{field, pattern, claim}` mappings from certificate subject fields (`subject_cn`, `subject_ou`, `subject_o`) to JWT claim names. `subject_cn` and `subject_o` map their values directly; `pattern` is rejected for either, since it is applied only to `subject_ou`, where it must contain at least one capturing group -- a pattern that only matches without capturing (e.g. `space:.+` instead of `space:(.+)`) is rejected too, since it would never produce a value. Patterns use RE2/J syntax and a linear-time matcher. OU values and pattern source are limited to 256 characters, and compiled patterns to 4096 instructions. Backreferences, lookaround, Java comments mode, and counted repetitions of groups are unsupported and rejected at registration; counts on literals and character classes are allowed. Invalid or unsupported patterns in stored configuration yield no claim, so a dependent required-claim check refuses authentication. Prefer simple anchored patterns such as `^space:(.+)$`. |
 | `tls-client-auth-sub-template` | no | Template string rendered (using the mapped claim values) to produce the JWT `sub` claim. At most 256 characters; must contain at least one `{claim}` placeholder; every placeholder must name a claim declared in `tls-client-auth-claim-mappings`. |
-| `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. Each entry is subject to the same constraints as `tls-client-auth-sub-template`: at most 256 characters, at least one `{claim}` placeholder, and every placeholder must name a declared claim. |
-| `tls-client-auth-allowed-resources` | no | List of exact [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) resource values (absolute URIs, no fragment) this client may request at token time via the `resource` request parameter -- see "RFC 8707 resource indicators" below. Mutually exclusive with `tls-client-auth-aud-templates`: two mechanisms for setting `aud` on one client is a footgun. Must be non-empty if present. |
+| `tls-client-auth-aud-templates` | no | List of template strings rendered to produce the JWT `aud` claim. Each entry is subject to the same constraints as `tls-client-auth-sub-template`: at most 256 characters, at least one `{claim}` placeholder, and every placeholder must name a declared claim. Mutually exclusive with both allowed-resource properties. |
+| `tls-client-auth-allowed-resources` | no | List of exact [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) resource values (absolute URIs, no fragment) this client may request at token time via the `resource` request parameter -- see "RFC 8707 resource indicators" below. Mutually exclusive with `tls-client-auth-allowed-resources-ref` and `tls-client-auth-aud-templates`. Must be non-empty if present. |
+| `tls-client-auth-allowed-resources-ref` | no | Name of an operator-managed allowed-resource policy in this client's identity zone. UAA resolves it for every token request, so policy changes apply without rewriting clients. Unknown or blank references are rejected during create, update, and bootstrap. Mutually exclusive with the inline list and audience templates. |
 
 Example (Gorouter-fronted; a Cloud Foundry app instance identity certificate mapped to
 `cf_instance_guid`/`app_guid`/`space_guid`/`org_guid` claims):
@@ -332,8 +333,8 @@ returns `404`. This endpoint never returns the bundle contents.
 
 #### RFC 8707 resource indicators
 
-A client configured with `tls-client-auth-allowed-resources` may pass a `resource` parameter to
-`/oauth/mtls/token`:
+A client configured with an inline `tls-client-auth-allowed-resources` list or a named policy
+reference may pass a `resource` parameter to `/oauth/mtls/token`:
 
 ```yaml
 tls-client-auth-allowed-resources:
@@ -352,6 +353,39 @@ client cannot request any resource -- an absent list authorizes nothing, it does
 an unrestricted `aud`. Requesting a value outside the list, requesting more than one resource in
 the same call, or a value that is not an absolute URI without a fragment (per the RFC) is refused
 as `invalid_target`, and no token is issued.
+
+#### Named allowed-resource policies
+
+Operators can share one allowed-resource policy across many default-zone clients:
+
+```yaml
+uaa:
+  mtls:
+    resource_policies:
+      cf-workload-federation:
+        allowed_resources:
+          - https://sts.amazonaws.com
+          - api://AzureADTokenExchange
+```
+
+Other zones configure the equivalent `config.mtls.resourcePolicies` map through the identity-zone
+API, using `allowedResources` inside each policy. Names follow the trust-bundle name rules and are
+case-sensitive. Policy lists must be non-empty; every entry must be an absolute URI without a
+fragment.
+
+```json
+{
+  "client_id": "cf:service-account:payments-worker",
+  "tls-client-auth-allowed-resources-ref": "cf-workload-federation"
+}
+```
+
+Policy definitions and references resolve only in the client's current identity zone. An unknown
+reference is rejected when a client is created, updated, or bootstrapped. UAA resolves the policy
+again during token issuance: adding a resource permits subsequent requests, removing one rejects
+subsequent requests, and removing the policy fails explicit resource requests as `invalid_target`.
+Existing tokens keep their original lifetime and audience. The inline property remains supported
+for existing clients.
 
 #### Registering a `tls_client_auth` client
 
@@ -450,7 +484,7 @@ typed mTLS mirror does not change equality, hash codes, or set membership after 
 `uaa.mtls.enabled` defaults to `false`. With it off the feature does nothing observable. OIDC discovery includes
 `tls_client_certificate_bound_access_tokens` only when mTLS is enabled for the deployment and the zone; RFC 8705
 section 3.3 treats the omitted value as `false`. Identity-zone configuration includes `config.mtls` only once it
-differs from the default (disabled, no bundles), and a `null` value reads as that default.
+differs from the default (disabled, no bundles or resource policies), and a `null` value reads as that default.
 
 **Token enhancers.** `MtlsClaimsEnhancer` is always registered alongside other `UaaTokenEnhancer` beans. It is active
 only when deployment and zone mTLS are both enabled. It never activates refresh-claim copying, so refreshed access

@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
@@ -53,6 +54,7 @@ class IdentityZoneConfigurationTests {
     void mtlsConfigurationDefaultsToDisabledWithNoBundles() {
         assertThat(definition.getMtls().isEnabled()).isFalse();
         assertThat(definition.getMtls().getTrustBundles()).isEmpty();
+        assertThat(definition.getMtls().getResourcePolicies()).isEmpty();
     }
 
     @Test
@@ -85,6 +87,20 @@ class IdentityZoneConfigurationTests {
                 .doesNotContainKey("mtlsTrustBundles");
     }
 
+    @Test
+    void namedMtlsResourcePoliciesSurviveJsonRoundTrip() {
+        MtlsResourcePolicy policy = new MtlsResourcePolicy();
+        policy.setAllowedResources(java.util.List.of(
+                "https://sts.amazonaws.com", "api://AzureADTokenExchange"));
+        definition.getMtls().setResourcePolicies(java.util.Map.of("federation", policy));
+
+        IdentityZoneConfiguration roundTripped = JsonUtils.readValue(
+                JsonUtils.writeValueAsString(definition), IdentityZoneConfiguration.class);
+
+        assertThat(roundTripped.getMtls().getResourcePolicies().get("federation").getAllowedResources())
+                .containsExactly("https://sts.amazonaws.com", "api://AzureADTokenExchange");
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"{\"mtls\":null}", "{\"mtls\":{\"enabled\":null}}"})
     void nullMtlsPolicyMeansTheDisabledDefault(String json) {
@@ -92,6 +108,7 @@ class IdentityZoneConfigurationTests {
         IdentityZoneConfiguration configuration = JsonUtils.readValue(json, IdentityZoneConfiguration.class);
         assertThat(configuration.getMtls().isEnabled()).isFalse();
         assertThat(configuration.getMtls().getTrustBundles()).isEmpty();
+        assertThat(configuration.getMtls().getResourcePolicies()).isEmpty();
     }
 
     @Test

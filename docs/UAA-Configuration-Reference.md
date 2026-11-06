@@ -129,6 +129,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 | [↪](#clientmaxcount) `clientMaxCount` | `500`| Max clients returned by list endpoint|
 | [↪](#uaamtlsenabled) `uaa.mtls.enabled` | `false`| Enables RFC 8705 mutual-TLS client authentication|
 | [↪](#uaamtlstrust_bundles) `uaa.mtls.trust_bundles` | `{}` | Named mTLS CA bundles for the default identity zone |
+| [↪](#uaamtlsresource_policies) `uaa.mtls.resource_policies` | `{}` | Named mTLS allowed-resource policies for the default identity zone |
 
 ### Password Policy
 
@@ -1382,6 +1383,55 @@ An authenticated client administrator can list names through `GET /oauth/mtls/tr
 not returned. See [Named CA trust bundles](UAA-Client-Authentication.md#named-ca-trust-bundles).
 
 **Related Properties:** `uaa.mtls.enabled`
+
+[Back to table](#oauth-clients--users)
+
+---
+
+### `uaa.mtls.resource_policies`
+
+**Default:** `{}`
+**Type:** `Map<String, { allowed_resources: List<String> }>`
+**Source:** `Binder` in
+[configuration wiring](../server/src/main/java/org/cloudfoundry/identity/uaa/SpringServletXmlBeansConfiguration.java)
+
+Defines named RFC 8707 allowed-resource policies for mTLS clients in the default UAA identity
+zone. Policy names are case-sensitive and follow the trust-bundle name rules: 1 to 128 letters,
+digits, dots, underscores, or hyphens, starting with a letter or digit. Each
+`allowed_resources` list must be non-empty. Every entry must be an absolute URI without a
+fragment.
+Use quoted bracket notation for YAML policy names containing dots or underscores, for example
+`"[prod.federation]"`, to preserve the literal name during Spring Boot map binding.
+
+```yaml
+uaa:
+  mtls:
+    resource_policies:
+      cf-workload-federation:
+        allowed_resources:
+          - https://sts.amazonaws.com
+          - api://AzureADTokenExchange
+      "[prod.federation]":
+        allowed_resources:
+          - https://sts.amazonaws.com
+```
+
+Clients select a policy with `tls-client-auth-allowed-resources-ref`. The reference is mutually
+exclusive with both `tls-client-auth-allowed-resources` and `tls-client-auth-aud-templates`.
+Unknown or blank references are rejected during client create, update, and `oauth.clients`
+bootstrap.
+
+UAA resolves the policy from the client's current identity zone on every token request. Updating
+the list therefore affects subsequent requests without rewriting client registrations. Removing
+a resource denies new requests for it; removing the referenced policy fails explicit resource
+requests closed as `invalid_target`. Existing tokens are not changed. No lookup falls back to
+another zone.
+
+Other zones configure the equivalent `config.mtls.resourcePolicies` map through the
+identity-zone API, with `allowedResources` as the nested list property. Default-zone YAML is
+reapplied at startup.
+
+**Related Properties:** `uaa.mtls.enabled`, `uaa.mtls.trust_bundles`
 
 [Back to table](#oauth-clients--users)
 

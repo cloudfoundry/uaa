@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
@@ -103,6 +104,21 @@ public class IdentityZoneConfigurationBootstrapTests {
         Map<String, Object> config = JsonUtils.convertValue(
                 provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig(), Map.class);
         assertThat(config).containsEntry("mtls", Map.of("enabled", true, "trustBundles", Map.of("configured-ca", certificate1())));
+    }
+
+    @Test
+    void bootstrapCopiesNamedResourcePoliciesToDefaultZone() throws Exception {
+        MtlsResourcePolicy policy = new MtlsResourcePolicy();
+        policy.setAllowedResources(List.of("https://sts.amazonaws.com"));
+        org.springframework.beans.BeanWrapper properties = new org.springframework.beans.BeanWrapperImpl(bootstrap);
+        assertThat(properties.isWritableProperty("mtlsResourcePolicies")).isTrue();
+        properties.setPropertyValue("mtlsResourcePolicies", Map.of("federation", policy));
+
+        bootstrap.afterPropertiesSet();
+
+        assertThat(provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig().getMtls()
+                .getResourcePolicies().get("federation").getAllowedResources())
+                .containsExactly("https://sts.amazonaws.com");
     }
 
     @Test

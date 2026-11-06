@@ -334,6 +334,8 @@ public class UaaClientDetails implements ClientDetails {
                     tlsClientAuthConfiguration.getRequiredClaims());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
                     tlsClientAuthConfiguration.getAllowedResources());
+            putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF,
+                    tlsClientAuthConfiguration.getAllowedResourcesRef());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, tlsClientAuthConfiguration.getSubjectDn());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS, tlsClientAuthConfiguration.getSanDns());
             putOrRemove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, tlsClientAuthConfiguration.getSanUri());
@@ -350,6 +352,7 @@ public class UaaClientDetails implements ClientDetails {
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS);
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+            this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF);
             TlsClientAuthConfiguration.SUBJECT_BINDING_PARAMETERS.forEach(this.additionalInformation::remove);
             // Not part of the typed configuration, but meaningless without TLS trust.
             this.additionalInformation.remove(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS);
