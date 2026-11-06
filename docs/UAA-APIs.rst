@@ -2676,10 +2676,9 @@ Filters: note that, per the specification, attribute values are comma separated 
 
 * Request: ``GET /Groups?attributes={requestedAttributes}&filter={filter}``
 
-  The optional ``attributes`` parameter is a comma-separated list of plain attribute
-  names. Omit it or leave it empty to return all attributes. Non-empty lists
-  containing empty names, including trailing commas (for example ``attributes=id,``
-  or ``attributes=,``), are rejected with ``400 Bad Request``.
+  The optional ``attributes`` parameter selects comma-separated attribute names;
+  omitted or empty returns all attributes. Empty entries in a non-empty list
+  return ``400 Bad Request``.
 
 * Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
@@ -3117,10 +3116,9 @@ Client Registration Administration APIs
 List Clients: ``GET /oauth/clients``
 ------------------------------------
 
-The optional ``attributes`` parameter is a comma-separated list of plain attribute
-names. Omit it or leave it empty to return all attributes. Non-empty lists
-containing empty names, including trailing commas (for example ``attributes=client_id,``
-or ``attributes=,``), are rejected with ``400 Bad Request``.
+The optional ``attributes`` parameter selects comma-separated attribute names;
+omitted or empty returns all attributes. Empty entries in a non-empty list
+return ``400 Bad Request``.
 
 ==============  ===========================================================================
 Request         ``GET /oauth/clients``
