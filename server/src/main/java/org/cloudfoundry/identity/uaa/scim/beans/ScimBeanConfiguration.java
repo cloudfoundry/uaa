@@ -147,8 +147,11 @@ public class ScimBeanConfiguration {
     }
 
     @Bean(name = "scimEventPublisher")
-    public ScimEventPublisher scimEventPublisher(@Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager) {
-        return new ScimEventPublisher(identityZoneManager);
+    public ScimEventPublisher scimEventPublisher(
+            @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager,
+            @Lazy @Qualifier("scimUserProvisioning") ScimUserProvisioning userProvisioning,
+            @Lazy @Qualifier("scimGroupProvisioning") ScimGroupProvisioning groupProvisioning) {
+        return new ScimEventPublisher(identityZoneManager, userProvisioning, groupProvisioning);
     }
 
     @Bean(name = "scimGroupProvisioning")
