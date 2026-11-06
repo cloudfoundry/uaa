@@ -596,7 +596,8 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                         .description("Optional. An [RFC 8707](https://www.rfc-editor.org/rfc/rfc8707) resource indicator "
                                 + "naming the target this token is for; it becomes the token's `aud` claim. Must be an "
                                 + "absolute URI without a fragment, and must be one of the values registered in the "
-                                + "client's `tls-client-auth-allowed-resources`. A value outside that list, more than one "
+                                + "client's `tls-client-auth-allowed-resources` or its referenced named policy. A value "
+                                + "outside that allow-list, more than one "
                                 + "`resource` parameter, or a client with no allow-list configured is refused with "
                                 + "`invalid_target`. Omit it to receive the client's default audience.")
         );

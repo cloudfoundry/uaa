@@ -11,9 +11,11 @@ import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetException;
 import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.TokenEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsResourcePolicies;
 import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
-import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthConfigurationReader;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -49,18 +51,21 @@ import static org.springframework.util.StringUtils.hasText;
 public class UaaTokenEndpoint extends TokenEndpoint {
 
     private final boolean allowQueryString;
+    private final IdentityZoneManager identityZoneManager;
 
     public UaaTokenEndpoint(
             final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
             final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
             final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oAuth2RequestValidator,
             final @Qualifier("oauth2TokenGranter") TokenGranter tokenGranter,
-            final @Qualifier("allowQueryStringForTokens") Boolean allowQueryStringForTokens
+            final @Qualifier("allowQueryStringForTokens") Boolean allowQueryStringForTokens,
+            final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager
     ) {
         this.setOAuth2RequestFactory(oAuth2RequestFactory);
         this.setClientDetailsService(clientDetailsService);
         this.setOAuth2RequestValidator(oAuth2RequestValidator);
         this.setTokenGranter(tokenGranter);
+        this.identityZoneManager = identityZoneManager;
 
         this.allowQueryString = Boolean.TRUE.equals(Optional
                 .ofNullable(allowQueryStringForTokens)
@@ -128,10 +133,10 @@ public class UaaTokenEndpoint extends TokenEndpoint {
 
     /**
      * RFC 8707 section 2: a client may request a specific {@code resource} (audience) at the mTLS
-     * token endpoint, but only one drawn from a per-client allow-list -- {@code
-     * tls-client-auth-allowed-resources}, validated for shape at registration by {@code
-     * ClientAdminEndpointsValidator} -- since without curation any client could name an arbitrary
-     * audience for itself, the same forgery shape already closed for {@code
+     * token endpoint, but only one drawn from a per-client inline or named allow-list -- {@code
+     * tls-client-auth-allowed-resources} or {@code tls-client-auth-allowed-resources-ref}, validated
+     * at registration by {@code ClientAdminEndpointsValidator} -- since without curation any client
+     * could name an arbitrary audience for itself, the same forgery shape already closed for {@code
      * tls-client-auth-sub-template}/{@code -aud-templates}. Runs before the grant, so an
      * unauthorized or malformed resource never reaches token issuance.
      *
@@ -187,11 +192,12 @@ public class UaaTokenEndpoint extends TokenEndpoint {
     }
 
     /**
-     * The client's {@code tls-client-auth-allowed-resources}: the typed field if one is set, otherwise
-     * {@code additionalInformation} -- the same two-step lookup {@code MtlsClaimsEnhancer} uses for the
-     * rest of this configuration. Clients loaded from the database carry their configuration in
-     * {@code additionalInformation}, so that is the path that matters in practice. Returns an empty list (authorizing nothing) rather than throwing when the
-     * client cannot be loaded or the value cannot be parsed, so a lookup failure fails closed.
+     * The client's inline allowed resources or its current zone's referenced named policy. The typed
+     * field is used when set, otherwise {@code additionalInformation} is read -- the same two-step
+     * lookup {@code MtlsClaimsEnhancer} uses for the rest of this configuration. Clients loaded from
+     * the database carry their configuration in {@code additionalInformation}, so that is the path
+     * that matters in practice. Returns an empty list (authorizing nothing) rather than throwing when
+     * the client or policy cannot be loaded or parsed, so a lookup failure fails closed.
      */
     private List<String> allowedResourcesFor(String clientId) {
         ClientDetails client;
@@ -200,16 +206,21 @@ public class UaaTokenEndpoint extends TokenEndpoint {
         } catch (Exception e) {
             return List.of();
         }
-        if (client instanceof UaaClientDetails uaaClient) {
-            TlsClientAuthConfiguration typed = uaaClient.getTlsClientAuthConfiguration();
-            if (typed != null && typed.getAllowedResources() != null) {
-                return typed.getAllowedResources();
-            }
-        }
         try {
-            List<String> allowed = TlsClientAuthConfigurationReader.readAllowedResources(client.getAdditionalInformation());
+            Map<String, MtlsResourcePolicy> policies = identityZoneManager == null
+                    ? Map.of()
+                    : identityZoneManager.getCurrentIdentityZone().getConfig().getMtls().getResourcePolicies();
+            if (client instanceof UaaClientDetails uaaClient) {
+                TlsClientAuthConfiguration typed = uaaClient.getTlsClientAuthConfiguration();
+                if (typed != null
+                        && (typed.getAllowedResources() != null || typed.getAllowedResourcesRef() != null)) {
+                    List<String> allowed = MtlsResourcePolicies.resolve(typed, policies);
+                    return allowed == null ? List.of() : allowed;
+                }
+            }
+            List<String> allowed = MtlsResourcePolicies.resolve(client.getAdditionalInformation(), policies);
             return allowed == null ? List.of() : allowed;
-        } catch (IllegalArgumentException e) {
+        } catch (RuntimeException e) {
             return List.of();
         }
     }

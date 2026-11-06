@@ -9,6 +9,8 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTargetExcept
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import java.security.MessageDigest;
@@ -61,12 +63,16 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
 
     private final TlsClientAuthentication tlsClientAuthentication;
     private final ClientDetailsService clientDetailsService;
+    private final IdentityZoneManager identityZoneManager;
 
     @Autowired
-    public MtlsClaimsEnhancer(TlsClientAuthentication tlsClientAuthentication,
-                               ClientDetailsService clientDetailsService) {
+    public MtlsClaimsEnhancer(
+            TlsClientAuthentication tlsClientAuthentication,
+            ClientDetailsService clientDetailsService,
+            IdentityZoneManager identityZoneManager) {
         this.tlsClientAuthentication = tlsClientAuthentication;
         this.clientDetailsService = clientDetailsService;
+        this.identityZoneManager = identityZoneManager;
     }
 
     /**
@@ -220,7 +226,15 @@ public class MtlsClaimsEnhancer implements UaaTokenEnhancer {
         String resource = authentication.getOAuth2Request().getRequestParameters()
                 .get(TlsClientAuthConfiguration.RESOURCE_PARAMETER);
         if (resource != null && !resource.isBlank()) {
-            List<String> allowedResources = config.getAllowedResources();
+            List<String> allowedResources;
+            try {
+                Map<String, MtlsResourcePolicy> policies = identityZoneManager
+                        .getCurrentIdentityZone().getConfig().getMtls().getResourcePolicies();
+                allowedResources = MtlsResourcePolicies.resolve(config, policies);
+            } catch (RuntimeException e) {
+                throw new InvalidTargetException(
+                        "client_id=" + clientId + " is not authorized to request the given resource");
+            }
             boolean workloadGrant = GRANT_TYPE_CLIENT_CREDENTIALS.equals(
                     authentication.getOAuth2Request().getGrantType());
             if (!workloadGrant || allowedResources == null || !allowedResources.contains(resource)) {

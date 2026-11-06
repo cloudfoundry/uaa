@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.oauth.tls.MtlsResourcePolicies;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
 import org.cloudfoundry.identity.uaa.oauth.tls.TlsClientAuthSubjectMatcher;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -24,6 +25,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PemCertificateParser;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +37,6 @@ import org.springframework.util.StringUtils;
 
 import tools.jackson.core.type.TypeReference;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -380,11 +380,23 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
      * is used is decided at request time.
      */
     public static void validateMtlsClientConfiguration(Map<String, Object> info, String clientId, IdentityZone zone) {
-        validateMtlsClientConfiguration(info, clientId, zone.getConfig().getMtls().getTrustBundles());
+        validateMtlsClientConfiguration(
+                info,
+                clientId,
+                zone.getConfig().getMtls().getTrustBundles(),
+                zone.getConfig().getMtls().getResourcePolicies());
     }
 
     public static void validateMtlsClientConfiguration(Map<String, Object> info, String clientId,
             Map<String, String> bundles) {
+        validateMtlsClientConfiguration(info, clientId, bundles, Map.of());
+    }
+
+    public static void validateMtlsClientConfiguration(
+            Map<String, Object> info,
+            String clientId,
+            Map<String, String> bundles,
+            Map<String, MtlsResourcePolicy> resourcePolicies) {
         boolean hasCa = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA)
                 || info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA_REF);
         boolean hasProxy = info.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA)
@@ -421,6 +433,14 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
         if (hasCa) {
             requireExactlyOneSubjectBinding(info, clientId);
+        }
+        try {
+            MtlsResourcePolicies.resolve(info, resourcePolicies);
+        } catch (RuntimeException e) {
+            throw new InvalidClientDetailsException(
+                    "Invalid mTLS allowed-resource configuration for client_id=" + clientId
+                            + ": " + e.getMessage(),
+                    e);
         }
     }
 
@@ -694,14 +714,28 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
         }
 
-        if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES)) {
+        boolean hasAllowedResources =
+                additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+        boolean hasAllowedResourcesRef =
+                additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF);
+        if (hasAllowedResources && hasAllowedResourcesRef) {
+            throw new InvalidClientDetailsException(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " and "
+                            + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF
+                            + " are mutually exclusive for client_id=" + clientId);
+        }
+        if (hasAllowedResources || hasAllowedResourcesRef) {
             if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES)) {
                 throw new InvalidClientDetailsException(
-                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES + " and "
+                        (hasAllowedResources
+                                ? TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES
+                                : TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF) + " and "
                                 + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES
                                 + " are mutually exclusive for client_id=" + clientId
                                 + ": two mechanisms for setting aud on one client is a footgun.");
             }
+        }
+        if (hasAllowedResources) {
             List<String> allowedResources;
             try {
                 Object rawAllowedResources =
@@ -718,15 +752,10 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                         "Invalid " + TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES
                                 + " for client_id=" + clientId + ": " + e.getMessage(), e);
             }
-            if (allowedResources == null || allowedResources.isEmpty()) {
-                throw new InvalidClientDetailsException(
-                        TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES
-                                + " for client_id=" + clientId + " must not be empty.");
-            }
-            for (String resource : allowedResources) {
-                requireValidResourceIndicator(
-                        resource, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES, clientId);
-            }
+            MtlsResourcePolicies.validateAllowedResources(
+                    allowedResources,
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES
+                            + " for client_id=" + clientId);
         }
 
         if (additionalInfo.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS)) {
@@ -761,37 +790,6 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * RFC 8707 section 2: "the resource parameter... MUST be an absolute URI... MUST NOT include a
-     * fragment component." Applied to every {@code tls-client-auth-allowed-resources} entry at
-     * registration time, since a value that could never be sent as a valid {@code resource} request
-     * parameter would otherwise sit in the allow-list looking configured while matching nothing.
-     */
-    private static void requireValidResourceIndicator(String resource, String propertyName, String clientId) {
-        if (resource == null || resource.isBlank()) {
-            throw new InvalidClientDetailsException(
-                    propertyName + " entry cannot be blank for client_id=" + clientId);
-        }
-        URI uri;
-        try {
-            uri = new URI(resource);
-        } catch (URISyntaxException e) {
-            throw new InvalidClientDetailsException(
-                    propertyName + " entry '" + resource + "' for client_id=" + clientId
-                            + " is not a valid URI (RFC 8707 section 2): " + e.getMessage(), e);
-        }
-        if (!uri.isAbsolute()) {
-            throw new InvalidClientDetailsException(
-                    propertyName + " entry '" + resource + "' for client_id=" + clientId
-                            + " must be an absolute URI (RFC 8707 section 2).");
-        }
-        if (uri.getFragment() != null) {
-            throw new InvalidClientDetailsException(
-                    propertyName + " entry '" + resource + "' for client_id=" + clientId
-                            + " must not include a fragment component (RFC 8707 section 2).");
         }
     }
 

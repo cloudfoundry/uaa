@@ -213,6 +213,23 @@ class GeneralIdentityZoneConfigurationValidatorTests {
                 .hasMessageContaining("broken");
     }
 
+    @Test
+    void malformedNamedResourcePolicyIsRejected() {
+        Map<String, Object> config = new HashMap<>(org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                zone.getConfig(), Map.class));
+        config.put("mtls", Map.of(
+                "enabled", true,
+                "resourcePolicies", Map.of(
+                        "federation", Map.of("allowedResources", List.of("not-a-uri")))));
+        zone.setConfig(org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(
+                config, IdentityZoneConfiguration.class));
+
+        assertThatThrownBy(() -> validator.validate(zone, IdentityZoneValidator.Mode.MODIFY))
+                .isInstanceOf(InvalidIdentityZoneConfigurationException.class)
+                .hasMessageContaining("federation")
+                .hasMessageContaining("absolute URI");
+    }
+
     @BeforeEach
     void setUp() {
         IdentityZoneHolder.clear();
