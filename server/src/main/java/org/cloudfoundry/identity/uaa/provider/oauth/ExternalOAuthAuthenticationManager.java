@@ -94,7 +94,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -138,6 +137,8 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildIdTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getInvitationOrigin;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getInvitedUserId;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
 import static org.springframework.http.HttpMethod.GET;
@@ -563,7 +564,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         String email = userFromRequest.getEmail();
         log.debug("ExternalOAuth user authenticated:{}", email);
         if (isInvitationAcceptance) {
-            String invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
+            if (!Objects.equals(authenticationData.getOrigin(), getInvitationOrigin())) {
+                throw new BadCredentialsException("OAuth identity provider does not match the invited identity provider.");
+            }
+            String invitedUserId = getInvitedUserId();
             log.debug("ExternalOAuth user accepted invitation, user_id:{}", invitedUserId);
             userFromDb = new UaaUser(getUserDatabase().retrieveUserPrototypeById(invitedUserId));
             if (email != null && !email.equalsIgnoreCase(userFromDb.getEmail())) {

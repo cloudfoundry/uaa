@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -85,6 +86,9 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             if (!StringUtils.hasText(redirectUri) || "home".equals(redirectUri)) {
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset");
             } else {
+                UaaSavedRequestAwareAuthenticationSuccessHandler.saveTrustedRedirect(
+                        request.getSession(),
+                        redirectUri);
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8));
             }
         } catch (InvalidPasswordException e) {

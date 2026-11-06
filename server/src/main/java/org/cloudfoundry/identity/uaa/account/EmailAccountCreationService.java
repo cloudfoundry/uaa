@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -145,14 +146,22 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         // Confirming the activation link proves ownership of the email address, but it does not
         // prove that the person confirming is the one who chose the password on the registration
-        // form. Discard the registration password so it can never authenticate, and require the
-        // confirming owner to establish their own password through the ownership-proving link.
-        // Replace the password and set the flag while the account is still unverified, then verify
-        // it last: these are separate updates, so verifying first would briefly leave the account
-        // verified while still holding the registration password, which a concurrent login could use.
-        scimUserProvisioning.changePassword(user.getId(), null, new AlphanumericRandomValueStringGenerator(40).generate(), zoneId);
-        scimUserProvisioning.updatePasswordChangeRequired(user.getId(), true, zoneId);
-        user = scimUserProvisioning.verifyUser(user.getId(), -1, zoneId);
+        // form. Atomically discard that password, require a change, and verify the account. The
+        // conditional update also ensures that only one of several concurrent activation links can
+        // claim the account; a losing request must not overwrite a password the owner has since set.
+        try {
+            user = scimUserProvisioning.verifyUserAndSetPassword(
+                    user.getId(),
+                    new AlphanumericRandomValueStringGenerator(40).generate(),
+                    true,
+                    zoneId);
+        } catch (OptimisticLockingFailureException e) {
+            user = scimUserProvisioning.retrieve(data.get("user_id"), zoneId);
+            if (!user.isVerified()) {
+                throw e;
+            }
+            return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), getRedirect(clientId, redirectUri));
+        }
 
         // Resolve the signup redirect (honouring the client's signup_redirect_url fallback) so it is
         // preserved across the reset flow and applied once the owner has set their password.

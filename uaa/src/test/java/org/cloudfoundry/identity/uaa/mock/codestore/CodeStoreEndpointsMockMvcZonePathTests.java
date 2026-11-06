@@ -12,7 +12,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
@@ -124,6 +123,19 @@ class CodeStoreEndpointsMockMvcZonePathTests {
                         .contentType(APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(code)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class)).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/Codes", "/Codes/"})
+    void generateCodeWithNullBody(String url) throws Exception {
+        mockMvc.perform(post(url)
+                        .header("Authorization", "Bearer " + loginToken)
+                        .contentType(APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .content("null"))
                 .andExpect(status().isBadRequest());
 
         assertThat(jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class)).isZero();

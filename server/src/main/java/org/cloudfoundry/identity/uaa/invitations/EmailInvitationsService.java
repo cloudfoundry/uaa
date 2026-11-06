@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -65,14 +66,24 @@ public class EmailInvitationsService implements InvitationsService {
 
         ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
 
-        if (UAA.equals(user.getOrigin())) {
-            user = scimUserProvisioning.verifyUser(userId, user.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
-
-            // Only reset the password for newly created users
+        if (UAA.equals(user.getOrigin()) && !user.isVerified()) {
             boolean createdNewUser = Boolean.parseBoolean(
                     userData.getOrDefault(CREATED_NEW_USER, "true")); // default true for in-flight codes
             if (StringUtils.hasText(password) && createdNewUser) {
-                scimUserProvisioning.changePassword(userId, null, password, identityZoneManager.getCurrentIdentityZoneId());
+                try {
+                    user = scimUserProvisioning.verifyUserAndSetPassword(
+                            userId,
+                            password,
+                            false,
+                            identityZoneManager.getCurrentIdentityZoneId());
+                } catch (OptimisticLockingFailureException e) {
+                    user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
+                    if (!user.isVerified()) {
+                        throw e;
+                    }
+                }
+            } else {
+                user = scimUserProvisioning.verifyUser(userId, user.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
             }
         }
 

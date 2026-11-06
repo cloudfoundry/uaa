@@ -191,12 +191,15 @@ class AccountsControllerTest {
                 .param("email", "wrong")
                 .param("password", "password")
                 .param("password_confirmation", "password")
-                .param("client_id", "app");
+                .param("client_id", "app")
+                .param("redirect_uri", "https://client.example.com/callback");
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("accounts/new_activation_email"))
-                .andExpect(model().attribute("error_message_code", "invalid_email"));
+                .andExpect(model().attribute("error_message_code", "invalid_email"))
+                .andExpect(model().attribute("client_id", "app"))
+                .andExpect(model().attribute("redirect_uri", "https://client.example.com/callback"));
     }
 
     @Test

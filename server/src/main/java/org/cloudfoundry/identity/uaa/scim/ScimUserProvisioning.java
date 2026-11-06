@@ -48,6 +48,13 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
 
     ScimUser verifyUser(String id, int version, String zoneId) throws ScimResourceNotFoundException, InvalidScimResourceException;
 
+    /**
+     * Atomically replaces the password and verifies an unverified user.
+     *
+     * @throws org.springframework.dao.OptimisticLockingFailureException if the user is already verified
+     */
+    ScimUser verifyUserAndSetPassword(String id, String newPassword, boolean passwordChangeRequired, String zoneId) throws ScimResourceNotFoundException;
+
     boolean checkPasswordMatches(String id, CharSequence password, String zoneId) throws ScimResourceNotFoundException;
 
     boolean checkPasswordChangeIndividuallyRequired(String id, String zoneId) throws ScimResourceNotFoundException;

@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.env.Environment;
@@ -71,6 +72,8 @@ public class AccountsController {
                                       @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
                                       RedirectAttributes redirectAttributes) {
 
+        model.addAttribute("client_id", clientId);
+        model.addAttribute("redirect_uri", redirectUri);
         BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
         if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
             return handleUnprocessableEntity(model, response, "error_message_code", "missing_consent");
@@ -134,6 +137,7 @@ public class AccountsController {
             String redirectLocation = accountCreation.getRedirectLocation();
             String res = "redirect:/login?success=verify_success";
             if (!redirectLocation.equals(accountCreationService.getDefaultRedirect())) {
+                UaaSavedRequestAwareAuthenticationSuccessHandler.saveTrustedRedirect(session, redirectLocation);
                 res += "&form_redirect_uri=" + URLEncoder.encode(redirectLocation, StandardCharsets.UTF_8);
             }
             return res;

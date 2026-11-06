@@ -121,6 +121,16 @@ class CodeStoreEndpointsTests {
     }
 
     @Test
+    void generateCodeWithNullBody() {
+        assertThatThrownBy(() -> codeStoreEndpoints.generateCode(null))
+                .isInstanceOf(CodeStoreException.class)
+                .hasMessage("intent is required. Known intents: EMAIL, INVITATION, REGISTRATION; custom values are accepted.")
+                .extracting("status")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(spiedExpiringCodeStore, never()).generateCode(any(), any(), any(), any());
+    }
+
+    @Test
     void generateCodeWithNullData() {
         Timestamp expiresAt = new Timestamp(currentTime.get() + 60000);
         ExpiringCode expiringCode = new ExpiringCode(null, expiresAt, null, "EMAIL");

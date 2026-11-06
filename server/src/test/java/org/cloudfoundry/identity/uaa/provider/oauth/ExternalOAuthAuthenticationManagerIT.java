@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -1061,6 +1062,27 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
+    void invitedUser_isRejectedWhenIdentityProviderDoesNotMatchInvitation() {
+        try {
+            setUpInvitedUser();
+            UaaHttpRequestUtils.setInvitationSessionAttributes("user-id", "other-origin");
+            claims.remove("preferred_username");
+            claims.put("preferred_username", "marissa@bloggs.com");
+            mockToken();
+
+            assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
+                    .isInstanceOf(BadCredentialsException.class)
+                    .hasMessageContaining("identity provider does not match");
+
+            ArgumentCaptor<ApplicationEvent> eventCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+            verify(publisher, atLeast(0)).publishEvent(eventCaptor.capture());
+            assertThat(eventCaptor.getAllValues()).noneMatch(InvitedUserAuthenticatedEvent.class::isInstance);
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
     void invitedVerifiedUser_isRejectedWhenTokenHasNoEmail() {
         try {
             setUpInvitedUser(true);
@@ -1461,9 +1483,8 @@ class ExternalOAuthAuthenticationManagerIT {
         userDatabase.addUser(existingShadowUser);
 
         RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
-        attributes.setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
-        attributes.setAttribute("user_id", existingShadowUser.getId(), RequestAttributes.SCOPE_SESSION);
         RequestContextHolder.setRequestAttributes(attributes);
+        UaaHttpRequestUtils.setInvitationSessionAttributes(existingShadowUser.getId(), ORIGIN);
     }
 
     // Asserts that the outgoing request body contains all the given substrings.

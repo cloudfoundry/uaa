@@ -50,6 +50,12 @@ public class ScimAopConfig {
         scimEventPublisher.userVerified(user);
     }
 
+    @AfterReturning(pointcut = "execution(* *..ScimUserProvisioning+.verifyUserAndSetPassword(..)) && bean(scimUserProvisioning)", returning = "user")
+    public void userVerifiedAndPasswordChanged(ScimUser user) {
+        passwordEventPublisher.passwordChange(user.getId());
+        scimEventPublisher.userVerified(user);
+    }
+
     @AfterReturning(pointcut = "execution(* *..ScimUserEndpoints+.deleteUser(..)) && bean(scimUserEndpoints)", returning = "user")
     public void userDeleted(ScimUser user) {
         scimEventPublisher.userDeleted(user);

@@ -109,7 +109,7 @@ class ZonePathContextRewritingFilterTests {
     }
 
     @Test
-    void pathWithDefaultZonePrefix_withContextPath_rewritesToIncludeZonePathAndDoesNotSetZoneSubdomainFromPath() throws Exception {
+    void pathWithDefaultZonePrefix_withContextPath_rewritesAndSelectsDefaultZone() throws Exception {
         request.setContextPath("/uaa");
         request.setRequestURI("/uaa" + ZONE_PATH_PREFIX + DEFAULT_ZONE_SUBDOMAIN_PATH + "/login");
         request.setServerName("localhost");
@@ -125,12 +125,12 @@ class ZonePathContextRewritingFilterTests {
         assertThat(passed.getServletPath()).isEqualTo("/login");
         assertThat(passed.getRequestURI()).isEqualTo("/uaa/z/" + DEFAULT_ZONE_SUBDOMAIN_PATH + "/login");
         assertThat(passed.getPathInfo()).isNull();
-        assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isNull();
+        assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isEqualTo("");
         assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_ORIGINAL_CONTEXT_PATH)).isEqualTo("/uaa");
     }
 
     @Test
-    void pathWithDefaultZonePrefix_withoutContextPath_rewritesToIncludeZonePathAndDoesNotSetZoneSubdomainFromPath() throws Exception {
+    void pathWithDefaultZonePrefix_withoutContextPath_rewritesAndSelectsDefaultZone() throws Exception {
         request.setContextPath("");
         request.setRequestURI(ZONE_PATH_PREFIX + DEFAULT_ZONE_SUBDOMAIN_PATH + "/login");
         request.setServerName("localhost");
@@ -144,7 +144,7 @@ class ZonePathContextRewritingFilterTests {
         assertThat(passed.getContextPath()).isEqualTo("/z/" + DEFAULT_ZONE_SUBDOMAIN_PATH);
         assertThat(passed.getServletPath()).isEqualTo("/login");
         assertThat(passed.getRequestURI()).isEqualTo("/z/" + DEFAULT_ZONE_SUBDOMAIN_PATH + "/login");
-        assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isNull();
+        assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isEqualTo("");
         assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_ORIGINAL_CONTEXT_PATH)).isEqualTo("");
     }
 
@@ -160,7 +160,7 @@ class ZonePathContextRewritingFilterTests {
         assertThat(passed.getContextPath()).isEqualTo("/uaa/z/" + DEFAULT_ZONE_SUBDOMAIN_PATH);
         assertThat(passed.getServletPath()).isEqualTo("/profile");
         assertThat(passed.getRequestURI()).isEqualTo("/uaa/z/" + DEFAULT_ZONE_SUBDOMAIN_PATH + "/profile");
-        assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isNull();
+        assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isEqualTo("");
     }
 
     @Test
@@ -176,7 +176,7 @@ class ZonePathContextRewritingFilterTests {
         assertThat(passed.getServletPath()).isEmpty();
         assertThat(passed.getPathInfo()).isEqualTo("/");
         assertThat(passed.getRequestURI()).isEqualTo("/uaa/z/" + DEFAULT_ZONE_SUBDOMAIN_PATH + "/");
-        assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isNull();
+        assertThat(passed.getAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH)).isEqualTo("");
     }
 
     @Test

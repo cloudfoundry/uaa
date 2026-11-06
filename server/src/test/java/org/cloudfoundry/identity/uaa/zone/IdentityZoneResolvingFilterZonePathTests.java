@@ -171,6 +171,34 @@ class IdentityZoneResolvingFilterZonePathTests {
             assertThat(chainInvoked.get()).isTrue();
             assertThat(zoneInHolderWhenChainInvoked.get().getSubdomain()).isEqualTo("pathzone");
         }
+
+        @Test
+        void defaultPathAndHostSubdomain_returns400() throws Exception {
+            request.setAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH, "");
+            request.setServerName("hostzone." + ROOT_HOST);
+            filter.setDefaultInternalHostnames(Collections.singleton(ROOT_HOST));
+
+            filter.doFilter(request, response, chainThatCapturesHolder());
+
+            assertThat(response.getStatus()).isEqualTo(MockHttpServletResponse.SC_BAD_REQUEST);
+            assertThat(response.getErrorMessage()).isEqualTo("Cannot use both subdomain and zone path");
+            assertThat(chainInvoked.get()).isFalse();
+        }
+
+        @Test
+        void defaultPathAndDefaultZoneHost_continuesWithDefaultZone() throws Exception {
+            request.setAttribute(ZonePathContextRewritingFilter.ZONE_SUBDOMAIN_FROM_PATH, "");
+            request.setServerName(ROOT_HOST);
+            filter.setDefaultInternalHostnames(Collections.singleton(ROOT_HOST));
+            IdentityZone uaaZone = IdentityZone.getUaa();
+            when(dao.retrieveBySubdomain(eq(""))).thenReturn(uaaZone);
+
+            filter.doFilter(request, response, chainThatCapturesHolder());
+
+            assertThat(response.getStatus()).isEqualTo(MockHttpServletResponse.SC_OK);
+            assertThat(chainInvoked.get()).isTrue();
+            assertThat(zoneInHolderWhenChainInvoked.get()).isEqualTo(uaaZone);
+        }
     }
 
     // ---------- Path-based: the host must still be recognized when root domains are configured ----------

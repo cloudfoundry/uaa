@@ -2124,8 +2124,9 @@ Change Email Flow:
             "email": "example@newemail.com"
         }
 
-* ``redirect_url`` is the value of the ``change_email_redirect_url`` attribute of the client that started the email
-  change, and ``null`` when the client has no such attribute or no client was given.
+* ``redirect_url`` is the requested ``redirect_uri`` when it matches one of the client's registered redirect URIs.
+  Otherwise, it is the value of the client's ``change_email_redirect_url`` attribute, or ``null`` when the client has
+  no such attribute or no client was given.
 
 * Response Codes::
 
@@ -2152,7 +2153,7 @@ Stores a one time code and returns it. Codes are stored per identity zone and ca
 
         {
           "data": "{\"user_id\":\"a-user-id\"}",
-          "expiresAt": 1792688400000,
+          "expiresAt": 4102444800000,
           "intent": "MY_APPLICATION_CODE"
         }
 
@@ -2185,7 +2186,7 @@ Stores a one time code and returns it. Codes are stored per identity zone and ca
 * Example CURL ::
 
         $ curl 'http://localhost:8080/Codes' -i -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' \
-            -d '{"data":"{}","expiresAt":1792688400000,"intent":"MY_APPLICATION_CODE"}'
+            -d '{"data":"{}","expiresAt":4102444800000,"intent":"MY_APPLICATION_CODE"}'
 
 
 Verify User Links: ``GET /Users/{id}/verify-link``
@@ -2196,8 +2197,8 @@ Verify User Links: ``GET /Users/{id}/verify-link``
 
 * Request Parameters::
 
-        client_id; the id of the client requesting the verification link (optional)
-        redirect_uri; the eventual URI that will be redirected after the user finishes resetting their password (optional)
+        client_id; the id of the client requesting the verification link (optional; defaults to the client id from the OAuth2 bearer token when available)
+        redirect_uri; the eventual URI that will be redirected after the user finishes resetting their password (required)
                       the redirect_uri whitelist that can be set per client accepts wildcards, and matches against this redirect_uri using Ant-style path pattern matching (as per <http://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/AntPathMatcher.html>)
 
 * Request Headers: Authorization header containing an `OAuth2`_ bearer token with::

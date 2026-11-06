@@ -171,13 +171,16 @@ class ChangeEmailControllerTest {
         MockHttpServletRequestBuilder post = post("/change_email.do")
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param("newEmail", "invalid")
-                .param("client_id", "app");
+                .param("client_id", "app")
+                .param("redirect_uri", "https://client.example.com/callback");
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("change_email"))
                 .andExpect(model().attribute("error_message_code", "invalid_email"))
-                .andExpect(model().attribute("email", "user@example.com"));
+                .andExpect(model().attribute("email", "user@example.com"))
+                .andExpect(model().attribute("client_id", "app"))
+                .andExpect(model().attribute("redirect_uri", "https://client.example.com/callback"));
     }
 
     @Test

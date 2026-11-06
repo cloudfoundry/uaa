@@ -39,8 +39,8 @@ public class CodeStoreEndpoints {
     @PostMapping({"/Codes", "/Codes/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ExpiringCode generateCode(@RequestBody ExpiringCode expiringCode) {
-        String intent = expiringCode.getIntent();
+    public ExpiringCode generateCode(@RequestBody(required = false) ExpiringCode expiringCode) {
+        String intent = expiringCode == null ? null : expiringCode.getIntent();
         if (intent == null || intent.isBlank()) {
             throw new CodeStoreException(INTENT_REQUIRED_MESSAGE, HttpStatus.BAD_REQUEST);
         }

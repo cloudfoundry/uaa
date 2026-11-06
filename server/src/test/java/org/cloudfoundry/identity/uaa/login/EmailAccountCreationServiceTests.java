@@ -31,9 +31,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -53,16 +53,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -294,15 +292,12 @@ class EmailAccountCreationServiceTests {
 
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
 
-        // The password supplied on the registration form must be discarded (replaced with a value
-        // that is not it) and the change-required flag set while the account is still unverified,
-        // and the account must be verified last. Verifying first would briefly leave the account
-        // verified while still accepting the registration password.
         ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
-        InOrder inOrder = inOrder(mockScimUserProvisioning);
-        inOrder.verify(mockScimUserProvisioning).changePassword(eq("newly-created-user-id"), isNull(), passwordCaptor.capture(), eq(currentIdentityZoneId));
-        inOrder.verify(mockScimUserProvisioning).updatePasswordChangeRequired("newly-created-user-id", true, currentIdentityZoneId);
-        inOrder.verify(mockScimUserProvisioning).verifyUser(eq("newly-created-user-id"), anyInt(), eq(currentIdentityZoneId));
+        verify(mockScimUserProvisioning).verifyUserAndSetPassword(
+                eq("newly-created-user-id"),
+                passwordCaptor.capture(),
+                eq(true),
+                eq(currentIdentityZoneId));
         assertThat(passwordCaptor.getValue()).isNotEqualTo("password");
 
         // An ownership-bound reset code must be issued so the confirming owner can set their own
@@ -328,8 +323,7 @@ class EmailAccountCreationServiceTests {
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
 
         verify(mockScimUserProvisioning).verifyUser(eq("newly-created-user-id"), anyInt(), eq(currentIdentityZoneId));
-        verify(mockScimUserProvisioning, never()).changePassword(anyString(), any(), anyString(), anyString());
-        verify(mockScimUserProvisioning, never()).updatePasswordChangeRequired(anyString(), anyBoolean(), anyString());
+        verify(mockScimUserProvisioning, never()).verifyUserAndSetPassword(anyString(), anyString(), anyBoolean(), anyString());
         verifyNoInteractions(mockResetPasswordService);
         assertThat(accountCreation.getPasswordResetCode()).isNull();
         assertThat(accountCreation.getRedirectLocation()).isEqualTo("home");
@@ -348,8 +342,31 @@ class EmailAccountCreationServiceTests {
 
         // Another activation link for the same account stays valid after the account was confirmed.
         // Opening it must keep the password the owner has set and must not ask for another change.
-        verify(mockScimUserProvisioning, never()).changePassword(anyString(), any(), anyString(), anyString());
-        verify(mockScimUserProvisioning, never()).updatePasswordChangeRequired(anyString(), anyBoolean(), anyString());
+        verify(mockScimUserProvisioning, never()).verifyUserAndSetPassword(anyString(), anyString(), anyBoolean(), anyString());
+        verifyNoInteractions(mockResetPasswordService);
+        assertThat(accountCreation.getPasswordResetCode()).isNull();
+    }
+
+    @Test
+    void concurrentActivationThatLosesTheVerificationRaceDoesNotIssueAResetCode() {
+        setUpForSuccess("");
+        ScimUser verifiedUser = new ScimUser(
+                "newly-created-user-id",
+                "user@example.com",
+                "givenName",
+                "familyName");
+        verifiedUser.setPrimaryEmail("user@example.com");
+        verifiedUser.setVerified(true);
+        when(mockCodeStore.retrieveCode("the_secret_code", currentIdentityZoneId)).thenReturn(code);
+        when(mockScimUserProvisioning.retrieve(anyString(), eq(currentIdentityZoneId)))
+                .thenReturn(user, verifiedUser);
+        when(mockScimUserProvisioning.verifyUserAndSetPassword(anyString(), anyString(), eq(true), eq(currentIdentityZoneId)))
+                .thenThrow(new OptimisticLockingFailureException("already verified"));
+        when(mockClientDetailsService.loadClientByClientId(anyString(), anyString())).thenReturn(mockClientDetails);
+
+        AccountCreationService.AccountCreationResponse accountCreation =
+                emailAccountCreationService.completeActivation("the_secret_code");
+
         verifyNoInteractions(mockResetPasswordService);
         assertThat(accountCreation.getPasswordResetCode()).isNull();
     }
@@ -477,6 +494,7 @@ class EmailAccountCreationServiceTests {
 
         when(mockClientDetails.getClientId()).thenReturn("login");
         when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(Collections.singleton("http://example.com/*"));
+        when(mockScimUserProvisioning.verifyUserAndSetPassword(anyString(), anyString(), anyBoolean(), anyString())).thenReturn(user);
         return JsonUtils.writeValueAsString(data);
     }
 

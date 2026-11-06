@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -509,6 +510,24 @@ class OpenSaml5AuthenticationProviderUaaTests {
     }
 
     @Test
+    void invitedUserAuthenticationRejectsDifferentIdentityProvider() {
+        ScimUser scimUser = getInvitedUser();
+        UaaHttpRequestUtils.setInvitationSessionAttributes(scimUser.getId(), "other-saml-provider");
+        Map<String, String> userAttributes =
+                getUserAttributes("Marissa-invited", null, "marissa.invited@test.org", null, null);
+        Saml2AuthenticationToken authenticationToken =
+                authenticationToken("marissa-invited", attributeStatements(userAttributes));
+
+        assertThatThrownBy(() -> authenticate(authenticationToken))
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasMessageContaining("identity provider does not match");
+
+        UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
+        assertThat(user.isVerified()).isFalse();
+        assertThat(user.getUsername()).isEqualTo("marissa.invited@test.org");
+    }
+
+    @Test
     void invitedVerifiedUserAuthenticationWhenAssertionHasNoEmail() {
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("email", "emailAddress");
@@ -586,9 +605,8 @@ class OpenSaml5AuthenticationProviderUaaTests {
                 identityZoneManager.getCurrentIdentityZone().getId());
 
         RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
-        attributes.setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
-        attributes.setAttribute("user_id", scimUser.getId(), RequestAttributes.SCOPE_SESSION);
         RequestContextHolder.setRequestAttributes(attributes);
+        UaaHttpRequestUtils.setInvitationSessionAttributes(scimUser.getId(), OriginKeys.SAML);
 
         return scimUser;
     }

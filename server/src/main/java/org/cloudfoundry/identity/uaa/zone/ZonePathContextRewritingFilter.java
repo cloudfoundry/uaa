@@ -115,7 +115,7 @@ public class ZonePathContextRewritingFilter extends OncePerRequestFilter {
         if (DEFAULT_ZONE_SUBDOMAIN_PATH.equalsIgnoreCase(subdomain)) {
             // /z/default/... keeps /z/default in context path (like any other zone); same session as root via session key mapping.
             // Use canonical "default" in path so session key mapping (endsWith "/z/default") matches.
-            // Do not set ZONE_SUBDOMAIN_FROM_PATH so IdentityZoneResolvingFilter resolves default zone from hostname.
+            // An empty path subdomain explicitly selects the default zone and prevents a tenant hostname from taking precedence.
             String newContextPath = getNewContextPath(contextPath, DEFAULT_ZONE_SUBDOMAIN_PATH);
             HttpServletRequest wrappedRequest = new ZonePathRewrittenRequest(
                     request,
@@ -124,6 +124,7 @@ public class ZonePathContextRewritingFilter extends OncePerRequestFilter {
                     pathResult.pathInfo()
             );
             wrappedRequest.setAttribute(ZONE_ORIGINAL_CONTEXT_PATH, contextPath);
+            wrappedRequest.setAttribute(ZONE_SUBDOMAIN_FROM_PATH, "");
             HttpServletResponse wrappedResponse = new CookiePathRewritingResponse(response, contextPath);
             filterChain.doFilter(wrappedRequest, wrappedResponse);
             return;

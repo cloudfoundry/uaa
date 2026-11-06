@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -58,6 +59,8 @@ public class ChangeEmailController {
             @RequestParam(required = false, value = "redirect_uri") String redirectUri,
             RedirectAttributes redirectAttributes, HttpServletResponse response) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
+        model.addAttribute("client_id", clientId);
+        model.addAttribute("redirect_uri", redirectUri);
 
         if (result.hasErrors()) {
             model.addAttribute("error_message_code", "invalid_email");
@@ -118,6 +121,9 @@ public class ChangeEmailController {
             if (redirectLocation == null) {
                 return "redirect:login?success=change_email_success";
             } else {
+                UaaSavedRequestAwareAuthenticationSuccessHandler.saveTrustedRedirect(
+                        request.getSession(),
+                        redirectLocation);
                 return "redirect:login?success=change_email_success&form_redirect_uri=" + URLEncoder.encode(redirectLocation, StandardCharsets.UTF_8);
             }
         }

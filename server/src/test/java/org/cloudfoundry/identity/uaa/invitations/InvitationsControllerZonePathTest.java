@@ -244,6 +244,7 @@ class InvitationsControllerZonePathTest {
 
         assertThat(result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE")).isEqualTo(true);
         assertThat(result.getRequest().getSession().getAttribute("user_id")).isEqualTo("user-id-001");
+        assertThat(result.getRequest().getSession().getAttribute("invitation_origin")).isEqualTo("test-saml");
     }
 
     @ParameterizedTest
@@ -269,6 +270,7 @@ class InvitationsControllerZonePathTest {
 
         assertThat(result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE")).isEqualTo(true);
         assertThat(result.getRequest().getSession().getAttribute("user_id")).isEqualTo("user-id-001");
+        assertThat(result.getRequest().getSession().getAttribute("invitation_origin")).isEqualTo("test-oidc");
     }
 
     @ParameterizedTest
@@ -332,6 +334,7 @@ class InvitationsControllerZonePathTest {
 
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
+        invitedUser.setOrigin(LDAP);
 
         when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
         when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
@@ -381,6 +384,7 @@ class InvitationsControllerZonePathTest {
 
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
+        invitedUser.setOrigin(LDAP);
 
         when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
         when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
@@ -401,6 +405,32 @@ class InvitationsControllerZonePathTest {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
+    void ldapInviteWithWrongIntentIsRejectedBeforeAuthenticationOrMutation(ZoneRequestPathMode mode) throws Exception {
+        mode.setZone();
+        Map<String, String> codeData = getInvitationsCode(LDAP);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(expiringCodeStore.retrieveCode("the_secret_code", zoneId))
+                .thenReturn(new ExpiringCode(
+                        "code",
+                        new Timestamp(System.currentTimeMillis()),
+                        JsonUtils.writeValueAsString(codeData),
+                        "wrong-intent"));
+
+        mockMvc.perform(requestPost(mode, "/invitations/accept_enterprise.do")
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"));
+
+        verify(zoneAwareAuthenticationManager, never()).getLdapAuthenticationManager(any(), any());
+        verify(scimUserProvisioning, never()).update(anyString(), any(), anyString());
+        verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneRequestPathMode.class)
     void unverifiedLdapUser_acceptsInvite_byLoggingIn_bad_credentials(ZoneRequestPathMode mode) throws Exception {
         mode.setZone();
         Map<String, String> codeData = getInvitationsCode("ldap");
@@ -416,6 +446,9 @@ class InvitationsControllerZonePathTest {
         Authentication auth = mock(Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
         when(ldapActual.authenticate(any())).thenThrow(new BadCredentialsException("bad creds"));
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setOrigin(LDAP);
+        when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
 
         mockMvc.perform(requestPost(mode, "/invitations/accept_enterprise.do")
                         .param("enterprise_username", "test-ldap-user")
@@ -449,6 +482,7 @@ class InvitationsControllerZonePathTest {
 
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
+        invitedUser.setOrigin(LDAP);
         when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
@@ -489,6 +523,7 @@ class InvitationsControllerZonePathTest {
 
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
+        invitedUser.setOrigin(LDAP);
         when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
         when(expiringCodeStore.generateCode(anyString(), any(), any(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
 
@@ -589,6 +624,30 @@ class InvitationsControllerZonePathTest {
         verify(expiringCodeStore).retrieveCode("thecode", zoneId);
         verify(expiringCodeStore, never()).generateCode(anyString(), any(), anyString(), eq(zoneId));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneRequestPathMode.class)
+    void acceptInviteWithWrongIntentIsRejectedBeforeCodeRegeneration(ZoneRequestPathMode mode) throws Exception {
+        mode.setZone();
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow(mode, "password", "password");
+        String zoneId = IdentityZoneHolder.get().getId();
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
+        when(expiringCodeStore.retrieveCode("thecode", zoneId))
+                .thenReturn(new ExpiringCode(
+                        "thecode",
+                        new Timestamp(System.currentTimeMillis()),
+                        JsonUtils.writeValueAsString(codeData),
+                        "wrong-intent"));
+
+        mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"))
+                .andExpect(view().name("invitations/accept_invite"));
+
+        verify(expiringCodeStore, never()).generateCode(anyString(), any(), any(), eq(zoneId));
+        verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
     @ParameterizedTest
