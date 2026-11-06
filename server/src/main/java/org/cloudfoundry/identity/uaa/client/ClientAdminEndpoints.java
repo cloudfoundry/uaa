@@ -490,7 +490,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                     clients.size());
         }
 
-        String[] attributes = attributesCommaSeparated.split(",");
+        String[] attributes = attributesCommaSeparated.split(",", -1);
         try {
             return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes,
                     attributeNameMapper, Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI));

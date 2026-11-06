@@ -182,7 +182,7 @@ public class ScimGroupEndpoints {
 
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
 
-        String[] attributes = attributesCommaSeparated.split(",");
+        String[] attributes = attributesCommaSeparated.split(",", -1);
         input = filterForCurrentUser(result, startIndex, count, Arrays.asList(attributes).contains("members"));
 
         try {

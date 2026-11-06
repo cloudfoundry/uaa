@@ -2675,6 +2675,12 @@ Get information about a group, including its members and what roles they hold wi
 Filters: note that, per the specification, attribute values are comma separated and the filter expressions can be combined with boolean keywords ("or" and "and").
 
 * Request: ``GET /Groups?attributes={requestedAttributes}&filter={filter}``
+
+  The optional ``attributes`` parameter is a comma-separated list of plain attribute
+  names. Omit it or leave it empty to return all attributes. Non-empty lists
+  containing empty names, including trailing commas (for example ``attributes=id,``
+  or ``attributes=,``), are rejected with ``400 Bad Request``.
+
 * Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.read
@@ -3110,6 +3116,11 @@ Client Registration Administration APIs
 
 List Clients: ``GET /oauth/clients``
 ------------------------------------
+
+The optional ``attributes`` parameter is a comma-separated list of plain attribute
+names. Omit it or leave it empty to return all attributes. Non-empty lists
+containing empty names, including trailing commas (for example ``attributes=client_id,``
+or ``attributes=,``), are rejected with ``400 Bad Request``.
 
 ==============  ===========================================================================
 Request         ``GET /oauth/clients``

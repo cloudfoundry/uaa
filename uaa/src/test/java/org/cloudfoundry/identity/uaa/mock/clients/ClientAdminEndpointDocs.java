@@ -189,6 +189,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
                 .accept(APPLICATION_JSON));
 
         Snippet queryParameters = queryParameters(
+                parameterWithName("attributes").optional(null).type(STRING).description("Comma separated list of plain attribute names to return. Omit or leave empty to return all attributes. Non-empty lists containing empty names, including trailing commas, are rejected with 400 Bad Request.").optional(),
                 parameterWithName("filter").optional("client_id pr").type(STRING).description("SCIM filter for querying clients"),
                 parameterWithName("sortBy").optional("client_id").type(STRING).description("Field to sort results by"),
                 parameterWithName("sortOrder").optional("ascending").type(STRING).description("Sort results in `ascending` or `descending` order"),

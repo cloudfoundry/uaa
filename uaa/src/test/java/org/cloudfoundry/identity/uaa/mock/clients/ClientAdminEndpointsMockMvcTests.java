@@ -1942,6 +1942,61 @@ class ClientAdminEndpointsMockMvcTests {
                 .andExpect(jsonPath("$.error_description").value("Invalid attributes: [" + attributes + "]"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"id,", ",", "client_id,,", ",client_id", "client_id,,scope"})
+    void getClients_withEmptyAttributeName_isBadRequest(String attributes) throws Exception {
+        ClientDetails adminsClient = createReadWriteClient(adminToken);
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+                adminsClient.getClientId(),
+                "secret",
+                "clients.read");
+
+        mockMvc.perform(get("/oauth/clients")
+                        .header("Authorization", "Bearer " + token)
+                        .param("attributes", attributes)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value("Invalid attributes: [" + attributes + "]"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"scope", "scope,authorities"})
+    void getClients_withPlainAttributeNames_isOk(String attributes) throws Exception {
+        ClientDetails adminsClient = createReadWriteClient(adminToken);
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+                adminsClient.getClientId(),
+                "secret",
+                "clients.read");
+
+        MvcResult result = mockMvc.perform(get("/oauth/clients")
+                        .header("Authorization", "Bearer " + token)
+                        .param("attributes", attributes)
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resources[0].scope").isArray())
+                .andReturn();
+
+        SearchResults<Map<String, Object>> results = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertThat(results.getResources().iterator().next()).containsOnlyKeys(attributes.split(","));
+    }
+
+    @Test
+    void getClients_withEmptyAttributes_returnsFullResources() throws Exception {
+        ClientDetails adminsClient = createReadWriteClient(adminToken);
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+                adminsClient.getClientId(),
+                "secret",
+                "clients.read");
+
+        mockMvc.perform(get("/oauth/clients")
+                        .header("Authorization", "Bearer " + token)
+                        .param("attributes", "")
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resources[0].client_id").isString())
+                .andExpect(jsonPath("$.resources[0].scope").isArray());
+    }
+
     @Test
     void getClients_withInvalidFilter_isBadRequest() throws Exception {
         ClientDetails adminsClient = createReadWriteClient(adminToken);
