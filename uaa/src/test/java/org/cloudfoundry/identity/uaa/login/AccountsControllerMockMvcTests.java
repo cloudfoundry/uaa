@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
@@ -47,7 +48,9 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.Map;
 import org.springframework.web.util.UriUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -488,6 +491,33 @@ class AccountsControllerMockMvcTests {
         mockMvc.perform(get("/verify_user")
                         .param("code", firstActivationCode))
                 .andExpect(status().isFound());
+
+        loginWithAccount("")
+                .andExpect(authenticated());
+    }
+
+    @Test
+    void openingAnOldActivationCodeOfAnExternalUserLeavesTheAccountWithTheSameUsernameAlone() throws Exception {
+        String zoneId = IdentityZoneHolder.get().getId();
+        JdbcScimUserProvisioning provisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
+        createVerifiedUaaUser(userEmail);
+
+        ScimUser external = new ScimUser(null, userEmail, "Given", "Family");
+        external.setPrimaryEmail(userEmail);
+        external.setOrigin("some-external-origin");
+        external.setVerified(false);
+        external = provisioning.createUser(external, "", zoneId);
+
+        // a code from the user API issued before codes carried a marker
+        String code = webApplicationContext.getBean(JdbcExpiringCodeStore.class).generateCode(
+                JsonUtils.writeValueAsString(Map.of("user_id", external.getId(), "email", userEmail)),
+                new Timestamp(System.currentTimeMillis() + 60_000), ExpiringCodeType.REGISTRATION.name(), zoneId).getCode();
+
+        // the external user is verified; no reset code is issued for the uaa account with the same username
+        mockMvc.perform(get("/verify_user").param("code", code))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?success=verify_success"));
+        assertThat(provisioning.retrieve(external.getId(), zoneId).isVerified()).isTrue();
 
         loginWithAccount("")
                 .andExpect(authenticated());

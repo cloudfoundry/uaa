@@ -137,9 +137,11 @@ public class EmailAccountCreationService implements AccountCreationService {
             return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), getRedirect(clientId, redirectUri));
         }
 
-        if (Boolean.parseBoolean(data.get(ScimUtils.USER_PROVISIONED))) {
+        if (Boolean.parseBoolean(data.get(ScimUtils.USER_PROVISIONED)) || !OriginKeys.UAA.equals(user.getOrigin())) {
             // The code was requested through the user API, so a caller that may create users set the password.
-            // Opening the link only has to verify the email address.
+            // Opening the link only has to verify the email address. The same goes for a user of another origin,
+            // whose password is not managed here: the reset code below is looked up by username in the uaa origin,
+            // so it could belong to a different account.
             user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), zoneId);
             return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), getRedirect(clientId, redirectUri));
         }
