@@ -44,6 +44,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 
 @Component
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
+    private static final String UAA_ORIGIN_NOT_ALLOWED = "uaa origin not allowed for external login server";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final IdentityZoneManager identityZoneManager;
     private final UaaUserDatabase userDatabase;
@@ -101,6 +102,12 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                     throw new BadCredentialsException("Bad Credentials");
                 }
             }
+            // The login server may only name users of other origins, whether by name or by ID. The origin of the
+            // request is compared as text, but a database may match it loosely (case, accents), so the user that was
+            // found is checked as well.
+            if (OriginKeys.UAA.equalsIgnoreCase(user.getOrigin())) {
+                throw new BadCredentialsException(UAA_ORIGIN_NOT_ALLOWED);
+            }
             Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
             publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
             return success;
@@ -117,8 +124,8 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
     }
 
     protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {
-        if (info.get(OriginKeys.ORIGIN) != null && info.get(OriginKeys.ORIGIN).equals(OriginKeys.UAA)) {
-            throw new BadCredentialsException("uaa origin not allowed for external login server");
+        if (OriginKeys.UAA.equalsIgnoreCase(info.get(OriginKeys.ORIGIN))) {
+            throw new BadCredentialsException(UAA_ORIGIN_NOT_ALLOWED);
         }
 
         // TODO: Verify this can be removed

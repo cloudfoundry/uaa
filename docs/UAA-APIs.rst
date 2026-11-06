@@ -44,7 +44,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **scim.invite** - Scope required by a client in order to participate in invitations using the ``/invite_users`` endpoint.
 * **password.write** - ``/User*/*/password`` endpoint. Admin scope to change a user's password.
 * **oauth.approval** - ``/approvals`` endpoint. Scope required to be able to approve/disapprove clients to act on a user's behalf. This is a default scope defined in uaa.yml.
-* **oauth.login** - Scope used to indicate a login application, such as external login servers, to perform trusted operations, such as create users not authenticated in the UAA.
+* **oauth.login** - Scope used to indicate a login application, such as external login servers, to perform trusted operations, such as create users not authenticated in the UAA. A client with this authority can authenticate users of other origins (LDAP, SAML, OIDC and so on) without their password, never users of the ``uaa`` origin; see `Trusted Authentication from Login Server`_. Give it only to clients that you trust as a login application.
 * **approvals.me** - not currently used
 * **openid** - Required to access the /userinfo endpoint. Intended for OpenID clients.
 * **groups.update** - Allows a group to be updated. Can also be accomplished with ``scim.write``
@@ -480,9 +480,19 @@ In addition to the normal authentication of the ``/authenticate`` and ``/oauth/a
     authorized_grant_types: client_credentials,
     authorities: oauth.login
 
-To authenticate the ``/oauth/authorize`` or ``/authenticate`` endpoint using this channel the Login Server has to provide a standard OAuth2 bearer token header _and_ some additional parameters to identify the user: ``source=login`` is mandatory, as is ``username`` and ``origin``, plus optionally ``[email, given_name, family_name]``.  The UAA will lookup the user in its internal database and if it is found the request is authenticated.  The UAA can be configured to automatically register authenicated users that are missing from its database, but this will only work if all the fields are provided.  The response from the UAA (if the Login Server asks for JSON content) has enough information to get approval from the user and pass the response back to the UAA.
+To authenticate the ``/oauth/authorize`` or ``/authenticate`` endpoint using this channel the Login Server has to provide a standard OAuth2 bearer token header _and_ some additional parameters to identify the user: ``source=login`` is mandatory, as is ``username`` and ``origin`` (or ``user_id`` on ``/oauth/authorize`` and ``/oauth/token``, see below), plus optionally ``[email, given_name, family_name]``.  The UAA will lookup the user in its internal database and if it is found the request is authenticated.  The UAA can be configured to automatically register authenicated users that are missing from its database, but this will only work if all the fields are provided.  The response from the UAA (if the Login Server asks for JSON content) has enough information to get approval from the user and pass the response back to the UAA.
 
 Using this trusted channel a Login Server can obtain create a user or perform an Oauth authorization (or tokens directly in the implicit grant) from the UAA, and also have complete control over authentication of the user, and the UI for logging in and approving token grants.
+
+The trusted channel is for users of other origins, such as LDAP or SAML users. A user of the ``uaa`` origin is always
+rejected, whether the request names the user by ``username`` and ``origin`` or by ``user_id``: the Login Server does not
+check the password of those users, so they have to authenticate with UAA directly.
+
+The same channel works on ``/oauth/token``: a request with a bearer token of the login client, ``grant_type=password``,
+``source=login``, ``add_new`` (``true`` or ``false``), the ``client_id`` and ``client_secret`` of the client that gets the
+token, and the user identified as above, returns a token for that user. On ``/oauth/authorize`` and ``/oauth/token`` the
+user can be identified by ``user_id`` instead of ``username`` and ``origin``. ``user_id`` takes priority, it never creates a
+user (``add_new`` has no effect), and it only finds users of other origins.
 
 An authorization code grant has two steps (as normal), but instead of a UI response the UAA sends JSON:
 
@@ -541,6 +551,7 @@ Authorization Step 1: Initial Authorization Request
   * ``source=login`` - mandatory
   * ``username`` - the user whom the client is acting on behalf of (the authenticated user in the Login Server)
   * ``origin`` - the origin whom the user is authenticated through (the authenticated user in the Login Server)
+  * ``user_id`` - the ID of an existing user, optional: it replaces ``username`` and ``origin``; the user must be of an origin other than ``uaa``
   * ``email`` - the email of the user, optional
   * ``given_name`` - the given (first) name of the user, optional
   * ``family_name`` - the family (last) name of the user, optional
