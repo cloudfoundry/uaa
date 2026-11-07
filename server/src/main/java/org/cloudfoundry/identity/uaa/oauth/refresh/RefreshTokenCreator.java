@@ -42,9 +42,21 @@ public class RefreshTokenCreator {
         this.keyInfoService = keyInfoService;
     }
 
-    public CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
+    /**
+     * @deprecated Since 79.11.0. Use {@link #createRefreshToken(UaaUser, RefreshTokenRequestData, String, long)}
+     * instead and pass the token's issuance instant so exp and iat share a single clock reading.
+     */
+    @Deprecated(since = "79.11.0", forRemoval = true)
+    public final CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
             RefreshTokenRequestData tokenRequestData,
             String revocableHashSignature) {
+        return createRefreshToken(user, tokenRequestData, revocableHashSignature, timeService.getCurrentTimeMillis());
+    }
+
+    public CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
+            RefreshTokenRequestData tokenRequestData,
+            String revocableHashSignature,
+            long issuedAtMillis) {
 
         String grantType = tokenRequestData.grantType;
         Set<String> scope = tokenRequestData.scopes;
@@ -54,7 +66,7 @@ public class RefreshTokenCreator {
 
         Map<String, String> additionalAuthorizationAttributes = new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(tokenRequestData.authorities);
 
-        Date expirationDate = refreshTokenValidityResolver.resolve(tokenRequestData.clientId, tokenRequestData);
+        Date expirationDate = refreshTokenValidityResolver.resolve(tokenRequestData.clientId, tokenRequestData, issuedAtMillis);
         String tokenId = UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX;
 
         String jwtToken = buildJwtToken(user,
@@ -63,7 +75,8 @@ public class RefreshTokenCreator {
                 grantType,
                 additionalAuthorizationAttributes,
                 expirationDate,
-                tokenId);
+                tokenId,
+                issuedAtMillis);
 
         return new CompositeExpiringOAuth2RefreshToken(jwtToken, expirationDate, tokenId);
     }
@@ -74,12 +87,13 @@ public class RefreshTokenCreator {
             String grantType,
             Map<String, String> additionalAuthorizationAttributes,
             Date expirationDate,
-            String tokenId) {
+            String tokenId,
+            long issuedAtMillis) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
         claims.put(JTI, tokenId);
         claims.put(SUB, user.getId());
-        claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
+        claims.put(IAT, issuedAtMillis / 1000);
         claims.put(EXPIRY_IN_SECONDS, expirationDate.getTime() / 1000);
         claims.put(CID, tokenRequestData.clientId);
         claims.put(CLIENT_ID, tokenRequestData.clientId);
