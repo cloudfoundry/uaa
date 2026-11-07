@@ -1184,6 +1184,9 @@ Bootstrap client definitions loaded at startup. Each entry is keyed by client ID
 - `allowpublic` — Allow public (no secret) auth
 - `jwks` — Inline JWKS for private_key_jwt auth
 - `jwks_uri` — URI to fetch JWKS
+- `jwt_creds` — JSON string of federated private_key_jwt credentials (RFC 7523), each with
+  `iss`, either `sub` or `sub_pattern`, and an optional `aud`. See
+  [UAA-Client-Authentication.md](UAA-Client-Authentication.md) for subject patterns.
 - `name` — Display name
 - `signup_redirect_url` — Where a user is sent after confirming a self-service signup and setting a password, when the
   signup request carries no `redirect_uri` that matches one of the client's registered redirect URIs. Without it the

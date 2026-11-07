@@ -1,6 +1,15 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 
@@ -23,6 +32,22 @@ class ClientJwtCredentialTest {
         assertThat(jwtCredential.getSubject()).isEqualTo("subject");
         assertThat(jwtCredential.getIssuer()).isEqualTo("issuer");
         assertThat(jwtCredential.getAudience()).isEqualTo("audience");
+    }
+
+    @Test
+    void settersPreserveExistingApi() {
+        ClientJwtCredential jwtCredential = new ClientJwtCredential("subject", "issuer", "audience");
+
+        jwtCredential.setSubject("updated-subject");
+        jwtCredential.setIssuer("updated-issuer");
+        jwtCredential.setAudience("updated-audience");
+
+        assertThat(jwtCredential)
+                .extracting(
+                        ClientJwtCredential::getSubject,
+                        ClientJwtCredential::getIssuer,
+                        ClientJwtCredential::getAudience)
+                .containsExactly("updated-subject", "updated-issuer", "updated-audience");
     }
 
     @Test
@@ -51,5 +76,207 @@ class ClientJwtCredentialTest {
     void equals() {
         assertThat(new ClientJwtCredential("subject", "issuer", "audience")).isEqualTo(new ClientJwtCredential("subject", "issuer", "audience"));
         assertThat(new ClientJwtCredential("subject", "issuer", "audience")).isNotEqualTo(new ClientJwtCredential("subject", "issuer", null));
+    }
+
+    @Nested
+    class SubjectPattern {
+
+        private static final String GITLAB_PATTERN = "project_path:myteam/deploy:ref_type:branch:ref:*";
+
+        @Test
+        void exactCredentialIsNotAPattern() {
+            ClientJwtCredential credential = new ClientJwtCredential("subject", "issuer", "audience");
+            assertThat(credential.isSubjectPattern()).isFalse();
+            assertThat(credential.getSubjectPattern()).isNull();
+            assertThat(credential.matchesSubject("subject")).isTrue();
+            assertThat(credential.matchesSubject("subjectX")).isFalse();
+            assertThat(credential.matchesSubject(null)).isFalse();
+        }
+
+        @Test
+        void patternIsMirroredIntoSubject() {
+            ClientJwtCredential credential = new ClientJwtCredential(null, "issuer", null, GITLAB_PATTERN);
+            assertThat(credential.isSubjectPattern()).isTrue();
+            assertThat(credential.getSubjectPattern()).isEqualTo(GITLAB_PATTERN);
+            // keeps subject non-null for credKey/equals/delete, and makes a node that does not
+            // know sub_pattern compare the pattern text literally and so fail closed
+            assertThat(credential.getSubject()).isEqualTo(GITLAB_PATTERN);
+        }
+
+        @ParameterizedTest
+        @CsvSource(delimiter = '|', value = {
+                "project_path:myteam/deploy:ref_type:branch:ref:* | project_path:myteam/deploy:ref_type:branch:ref:main",
+                "project_path:myteam/deploy:ref_type:branch:ref:** | project_path:myteam/deploy:ref_type:branch:ref:feature/nested",
+                "project_path:myteam/deploy:ref_type:branch:ref:** | project_path:myteam/deploy:ref_type:branch:ref:release/1.0",
+                "repo:octo-org/octo-repo:ref:refs/heads/*         | repo:octo-org/octo-repo:ref:refs/heads/demo-branch",
+                "repo:octo-org/octo-repo:environment:*            | repo:octo-org/octo-repo:environment:Production",
+        })
+        void matchesSubject(String pattern, String assertedSubject) {
+            assertThat(new ClientJwtCredential(null, "issuer", null, pattern).matchesSubject(assertedSubject)).isTrue();
+        }
+
+        @ParameterizedTest
+        @CsvSource(delimiter = '|', value = {
+                // a wildcard must not swallow further claim components
+                "project_path:myteam/deploy:ref_type:branch:ref:* | project_path:myteam/deploy:ref_type:branch:ref:main:evil",
+                // a wildcard must not authorise a different project
+                "project_path:myteam/*:ref_type:branch:ref:**     | project_path:otherteam/deploy:ref_type:branch:ref:main",
+                // anchored at both ends
+                "repo:org/repo:ref:*                              | PREFIXrepo:org/repo:ref:main",
+                // '.' is a literal
+                "project_path:team/a.b:ref:*                      | project_path:team/aXb:ref:main",
+                // a single wildcard must not span '/' and take in both org and repository
+                "repo:*:ref:refs/heads/main                       | repo:evilorg/evilrepo:ref:refs/heads/main",
+                // nor reach into a nested subgroup
+                "project_path:myteam/*:ref_type:branch:ref:**     | project_path:myteam/sub/evil:ref_type:branch:ref:main",
+                // a literal prefix must not admit a longer group it is a prefix of
+                "project_path:myteam*:ref:*                       | project_path:myteamEVIL/r:ref:main",
+        })
+        void doesNotMatchSubject(String pattern, String assertedSubject) {
+            assertThat(new ClientJwtCredential(null, "issuer", null, pattern).matchesSubject(assertedSubject)).isFalse();
+        }
+
+        @Test
+        void rejectsOverlongAssertedSubject() {
+            ClientJwtCredential credential = new ClientJwtCredential(null, "issuer", null, "repo:org/r:ref:*");
+            assertThat(credential.matchesSubject("repo:org/r:ref:" + "a".repeat(MAX_LENGTH))).isFalse();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "*",            // would trust any subject from the issuer
+                "*:*",          // no literal context
+                "**",
+                "no-wildcard-at-all",
+                "repo:org/r:*:*:*:*:*:*",
+                // no component is entirely literal, so the pattern pins no structure
+                "a*",
+                "*a*",
+                "*a",
+        })
+        void rejectsInvalidPattern(String pattern) {
+            assertThatThrownBy(() -> new ClientJwtCredential(null, "issuer", null, pattern))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessage("Invalid federated jwt credentials");
+        }
+
+        @Test
+        void rejectsOverlongPattern() {
+            String pattern = "repo:org/" + "a".repeat(MAX_LENGTH) + ":*";
+            assertThatThrownBy(() -> new ClientJwtCredential(null, "issuer", null, pattern))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessage("Invalid federated jwt credentials");
+        }
+
+        @Test
+        void blankPatternIsNormalisedToNone() {
+            // otherwise isSubjectPattern, credKey and equals disagree about this credential
+            List<ClientJwtCredential> parsed = ClientJwtCredential.parse(
+                    "[{\"iss\":\"issuer\",\"sub\":\"s\",\"sub_pattern\":\"   \"}]");
+            ClientJwtCredential credential = parsed.getFirst();
+            assertThat(credential.isSubjectPattern()).isFalse();
+            assertThat(credential.getSubjectPattern()).isNull();
+            assertThat(credential).isEqualTo(new ClientJwtCredential("s", "issuer", null));
+            assertThat(JsonUtils.writeValueAsString(credential)).doesNotContain("sub_pattern");
+        }
+
+        @Test
+        void doubleWildcardCrossesPathSeparatorButNotClaimSeparator() {
+            ClientJwtCredential credential = new ClientJwtCredential(null, "issuer", null,
+                    "project_path:myteam/deploy:ref_type:branch:ref:**");
+            assertThat(credential.matchesSubject("project_path:myteam/deploy:ref_type:branch:ref:feature/a/b")).isTrue();
+            assertThat(credential.matchesSubject("project_path:myteam/deploy:ref_type:branch:ref:main:evil")).isFalse();
+        }
+
+        @Test
+        void rejectsConflictingSubjectAndPattern() {
+            assertThatThrownBy(() -> new ClientJwtCredential("some-other-subject", "issuer", null, GITLAB_PATTERN))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessage("Invalid federated jwt credentials");
+        }
+
+        @Test
+        void subjectSetterRejectsValueThatConflictsWithPattern() {
+            ClientJwtCredential credential = new ClientJwtCredential(null, "issuer", null, GITLAB_PATTERN);
+
+            assertThatThrownBy(() -> credential.setSubject("some-other-subject"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Invalid federated jwt credentials");
+            assertThat(credential.getSubject()).isEqualTo(GITLAB_PATTERN);
+        }
+
+        @Test
+        void patternIsNotEqualToExactCredentialOfSameText() {
+            ClientJwtCredential pattern = new ClientJwtCredential(null, "issuer", null, GITLAB_PATTERN);
+            ClientJwtCredential exact = new ClientJwtCredential(GITLAB_PATTERN, "issuer", null);
+            assertThat(pattern).isNotEqualTo(exact);
+            assertThat(pattern).doesNotHaveSameHashCodeAs(exact);
+        }
+
+        @Test
+        void serializesExactCredentialUnchanged() {
+            // pins the on-disk shape of existing client_jwt_config rows
+            assertThat(JsonUtils.writeValueAsString(new ClientJwtCredential("subject", "issuer", "audience")))
+                    .isEqualTo("{\"sub\":\"subject\",\"iss\":\"issuer\",\"aud\":\"audience\"}");
+        }
+
+        @Test
+        void roundTripsPattern() {
+            List<ClientJwtCredential> parsed = ClientJwtCredential.parse(
+                    "[{\"iss\":\"https://gitlab.example.com\",\"sub_pattern\":\"" + GITLAB_PATTERN + "\"}]");
+            assertThat(parsed).hasSize(1);
+            assertThat(parsed.getFirst().isSubjectPattern()).isTrue();
+            assertThat(parsed.getFirst().matchesSubject("project_path:myteam/deploy:ref_type:branch:ref:main")).isTrue();
+            assertThat(JsonUtils.writeValueAsString(parsed.getFirst()))
+                    .contains("\"sub_pattern\":\"" + GITLAB_PATTERN + "\"");
+        }
+
+        @Test
+        void olderNodeReadsPatternAsExactAndDropsUnknownFieldWhenRewriting() {
+            ClientJwtCredential credential = new ClientJwtCredential(
+                    null, "issuer", null, GITLAB_PATTERN);
+            String persisted = JsonUtils.writeValueAsString(credential);
+
+            LegacyClientJwtCredential legacyCredential =
+                    JsonUtils.readValue(persisted, LegacyClientJwtCredential.class);
+
+            assertThat(legacyCredential.getSubject()).isEqualTo(GITLAB_PATTERN);
+            assertThat(JsonUtils.writeValueAsString(legacyCredential))
+                    .contains("\"sub\":\"" + GITLAB_PATTERN + "\"")
+                    .doesNotContain("sub_pattern");
+        }
+
+        private static final int MAX_LENGTH = 256;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static final class LegacyClientJwtCredential {
+
+        private final String subject;
+        private final String issuer;
+        private final String audience;
+
+        @JsonCreator
+        private LegacyClientJwtCredential(
+                @JsonProperty("sub") String subject,
+                @JsonProperty("iss") String issuer,
+                @JsonProperty("aud") String audience) {
+            this.subject = subject;
+            this.issuer = issuer;
+            this.audience = audience;
+        }
+
+        @JsonProperty("sub")
+        String getSubject() {
+            return subject;
+        }
+
+        @JsonProperty("iss")
+        String getIssuer() {
+            return issuer;
+        }
+
+        @JsonProperty("aud")
+        String getAudience() {
+            return audience;
+        }
     }
 }

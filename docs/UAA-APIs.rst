@@ -3239,6 +3239,38 @@ Example::
       "jwks_uri": "http://localhost:8080/uaa/token_keys"
     }
 
+A federated credential (RFC 7523) is registered with an issuer and either a subject or a
+subject pattern. In a pattern, ``*`` matches one component and crosses neither ``:`` nor
+``/``; ``**`` crosses ``/`` but never ``:``, for a component such as a git ref that may
+contain a path. Patterns are limited to 256 characters and five ``*`` characters, so ``**``
+counts as two::
+
+    PUT /oauth/clients/foo/clientjwt
+    {
+      "iss": "https://gitlab.example.com",
+      "sub_pattern": "project_path:myteam/deploy:ref_type:branch:ref:**",
+      "changeMode": "ADD"
+    }
+
+Deleting compares the subject verbatim, so a pattern removes the credential registered under
+that pattern and not the subjects it matches.
+
+For rolling-upgrade compatibility, a stored pattern is returned with the same value mirrored
+into ``sub``. Register a new pattern with ``sub_pattern`` only. If both fields are submitted,
+their values must be identical.
+
+Do not register or activate subject patterns until every UAA node supports ``sub_pattern``.
+During a mixed-version rollout, an older node ignores ``sub_pattern`` and compares the mirrored
+``sub`` literally, so pattern-based authentication routed to that node fails closed. An older
+node that rewrites the client JWT configuration can also drop the unknown ``sub_pattern`` field
+and leave an exact credential. Complete the rollout before updating clients to use subject
+patterns.
+
+Before production activation, verify from the deployed UAA network that the configured issuer's
+OIDC discovery document and JWKS are reachable, and test a signed assertion with a representative
+dynamic subject. This exercises deployment-specific TLS trust, DNS, egress and issuer key-rotation
+behavior that unit tests cannot reproduce.
+
 
 Register Multiple Clients: ``POST /oauth/clients/tx``
 -----------------------------------------------------
