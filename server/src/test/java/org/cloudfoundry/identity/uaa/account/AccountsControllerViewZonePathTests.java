@@ -115,6 +115,26 @@ class AccountsControllerViewZonePathTests extends TestClassNullifier {
 
     @ParameterizedTest
     @EnumSource(ZoneRequestPathMode.class)
+    void accountsEmailSentPageShowsTheAddressTheEmailWasSentTo(ZoneRequestPathMode mode) throws Exception {
+        setZoneWithSelfServiceEnabled(mode);
+        MvcResult result = mockMvc.perform(request(mode, "/accounts/email_sent").flashAttr("email", "user@example.com"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("user@example.com");
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneRequestPathMode.class)
+    void accountsEmailSentPageEscapesTheAddress(ZoneRequestPathMode mode) throws Exception {
+        setZoneWithSelfServiceEnabled(mode);
+        MvcResult result = mockMvc.perform(request(mode, "/accounts/email_sent").flashAttr("email", "<b>bold</b>@example.com"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("<b>bold</b>");
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneRequestPathMode.class)
     void createAccountPageContainsZoneAwareFormActionAndLoginLink(ZoneRequestPathMode mode) throws Exception {
         setZoneWithSelfServiceEnabled(mode);
         MvcResult result = mockMvc.perform(request(mode, "/create_account"))

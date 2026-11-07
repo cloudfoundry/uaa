@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerato
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,6 +41,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.util.DomainFilter.filter;
+import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
@@ -58,15 +60,18 @@ public class InvitationsEndpoint {
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final MultitenantClientServices multitenantClientServices;
     private final ExpiringCodeStore expiringCodeStore;
+    private final boolean allowReinvite;
 
     public InvitationsEndpoint(final ScimUserProvisioning scimUserProvisioning,
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
             final MultitenantClientServices multitenantClientServices,
-            final ExpiringCodeStore expiringCodeStore) {
+            final ExpiringCodeStore expiringCodeStore,
+            final @Value("${scim.invite.allow_reinvite:true}") boolean allowReinvite) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.multitenantClientServices = multitenantClientServices;
         this.expiringCodeStore = expiringCodeStore;
+        this.allowReinvite = allowReinvite;
     }
 
     @PostMapping(value = {"/invite_users", "/invite_users/"}, consumes = "application/json")
@@ -103,6 +108,10 @@ public class InvitationsEndpoint {
                     if (providers.size() == 1) {
                         FindResult findResult = findOrCreateUser(email, providers.getFirst().getOriginKey());
                         ScimUser user = findResult.user();
+                        if (!allowReinvite && user.isVerified() && !canReadUsers(authentication)) {
+                            invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "user.already-verified", "The user is already verified."));
+                            continue;
+                        }
                         String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", !IdentityZoneHolder.isUaa(), IdentityZoneHolder.get());
 
                         Map<String, String> data = new HashMap<>();
@@ -158,6 +167,11 @@ public class InvitationsEndpoint {
     }
 
     record FindResult(ScimUser user, boolean newUser) {}
+
+    // same rule that grants GET /Users
+    private static boolean canReadUsers(Authentication authentication) {
+        return anyOf().hasScope("scim.read").isZoneAdmin().authorize(() -> authentication, null).isGranted();
+    }
 
     private boolean validateEmail(String email) {
         boolean valid = true;

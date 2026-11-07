@@ -13,8 +13,15 @@ import org.springframework.web.servlet.View;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+
 @Controller
 public class CodeStoreEndpoints {
+
+    private static final String INTENT_REQUIRED_MESSAGE = "intent is required. Known intents: "
+            + String.join(", ", EMAIL.name(), INVITATION.name(), REGISTRATION.name()) + "; custom values are accepted.";
 
     private final ExpiringCodeStore expiringCodeStore;
     private final HttpMessageConverter<?>[] messageConverters;
@@ -32,9 +39,13 @@ public class CodeStoreEndpoints {
     @PostMapping({"/Codes", "/Codes/"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ExpiringCode generateCode(@RequestBody ExpiringCode expiringCode) {
+    public ExpiringCode generateCode(@RequestBody(required = false) ExpiringCode expiringCode) {
+        String intent = expiringCode == null ? null : expiringCode.getIntent();
+        if (intent == null || intent.isBlank()) {
+            throw new CodeStoreException(INTENT_REQUIRED_MESSAGE, HttpStatus.BAD_REQUEST);
+        }
         try {
-            return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), null, identityZoneManager.getCurrentIdentityZoneId());
+            return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), intent, identityZoneManager.getCurrentIdentityZoneId());
         } catch (NullPointerException _) {
             throw new CodeStoreException("data and expiresAt are required.", HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException _) {

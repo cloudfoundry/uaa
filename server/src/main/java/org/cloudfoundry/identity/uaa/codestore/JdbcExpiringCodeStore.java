@@ -154,6 +154,10 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             if (expiringCode != null && expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
                 expiringCode = null;
             }
+            if (expiringCode != null && expiringCode.getIntent() == null) {
+                // codes stored without an intent predate required intents; each is redeemed once, so this logs at most once per code
+                logger.debug("Redeemed an expiring code stored without an intent, zoneId={}", zoneId);
+            }
             return expiringCode;
         } catch (EmptyResultDataAccessException _) {
             return null;

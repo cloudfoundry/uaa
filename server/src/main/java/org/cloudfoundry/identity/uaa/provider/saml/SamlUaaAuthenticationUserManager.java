@@ -52,6 +52,8 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getInvitationOrigin;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getInvitedUserId;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
 /**
@@ -137,12 +139,19 @@ public class SamlUaaAuthenticationUserManager implements ApplicationEventPublish
         }
 
         context.setAddNew(false);
-        String invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
+        if (!Objects.equals(samlPrincipal.getOrigin(), getInvitationOrigin())) {
+            throw new BadCredentialsException("SAML identity provider does not match the invited identity provider.");
+        }
+        String invitedUserId = getInvitedUserId();
         UaaUser user = userDatabase.retrieveUserById(invitedUserId);
         if (context.hasEmailAttribute()) {
             if (!context.getEmailAttribute().equalsIgnoreCase(user.getEmail())) {
                 throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
             }
+        } else if (user.isVerified()) {
+            throw new BadCredentialsException("SAML User email missing. Authenticated email is required because the invited user is already verified.");
+        } else if (!user.getUsername().equals(user.getEmail())) {
+            throw new BadCredentialsException("SAML User email missing. Authenticated email is required because the invited user's username differs from the invited email.");
         } else {
             context.addEmailAttribute(user.getEmail());
         }

@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
+import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -77,7 +78,9 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 
 import java.io.File;
@@ -357,6 +360,98 @@ public class LoginMockMvcZonePathTests {
                 )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(expectedRedirect));
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void changeEmailVerificationGoesToProfileWhenClientHasNoRedirectUrisAndRequestedUriIsNotRegistered(ZoneResolutionMode mode) throws Exception {
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Zone creation returns 503 in limited mode.");
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
+        ScimUser zoneUser = createUser(scimUserProvisioning, generator, zone.getId());
+        SecurityContext userContext = getUaaSecurityContext(zoneUser.getUserName(), webApplicationContext, zone.getId());
+
+        String clientId = generator.generate();
+        UaaClientDetails client = new UaaClientDetails(clientId, "", "", "client_credentials", "uaa.none");
+        client.setClientSecret(clientId);
+        MockMvcUtils.createClient(webApplicationContext, client, zone);
+
+        FakeJavaMailSender sender = webApplicationContext.getBean(FakeJavaMailSender.class);
+        sender.clearMessage();
+
+        MockHttpSession session = (MockHttpSession) mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/change_email")
+                        .accept(TEXT_HTML)
+                        .with(securityContext(userContext)))
+                .andExpect(status().isOk())
+                .andReturn().getRequest().getSession();
+
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/change_email.do")
+                        .accept(TEXT_HTML)
+                        .session(session)
+                        .with(securityContext(userContext))
+                        .with(cookieCsrf())
+                        .param("newEmail", generator.generate() + "@testdomain.com")
+                        .param("client_id", clientId)
+                        .param("redirect_uri", "http://other.example.com/page"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("email_sent?code=email_change"));
+
+        Matcher matcher = Pattern.compile("verify_email\\?code=([A-Za-z0-9_-]+)").matcher(sender.getSentMessages().getFirst().getContentString());
+        assertThat(matcher.find()).isTrue();
+
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/verify_email")
+                        .accept(TEXT_HTML)
+                        .session(session)
+                        .with(securityContext(userContext))
+                        .param("code", matcher.group(1)))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void changeEmailVerificationKeepsRedirectUrlAsOneFormRedirectParameterWhenNotSignedIn(ZoneResolutionMode mode) throws Exception {
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Zone creation returns 503 in limited mode.");
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
+        ScimUser zoneUser = createUser(scimUserProvisioning, generator, zone.getId());
+        SecurityContext userContext = getUaaSecurityContext(zoneUser.getUserName(), webApplicationContext, zone.getId());
+
+        String clientId = generator.generate();
+        UaaClientDetails client = new UaaClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://app.example.com/**");
+        client.setClientSecret(clientId);
+        MockMvcUtils.createClient(webApplicationContext, client, zone);
+
+        FakeJavaMailSender sender = webApplicationContext.getBean(FakeJavaMailSender.class);
+        sender.clearMessage();
+
+        MockHttpSession session = (MockHttpSession) mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/change_email")
+                        .accept(TEXT_HTML)
+                        .with(securityContext(userContext)))
+                .andExpect(status().isOk())
+                .andReturn().getRequest().getSession();
+
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/change_email.do")
+                        .accept(TEXT_HTML)
+                        .session(session)
+                        .with(securityContext(userContext))
+                        .with(cookieCsrf())
+                        .param("newEmail", generator.generate() + "@testdomain.com")
+                        .param("client_id", clientId)
+                        .param("redirect_uri", "http://app.example.com/page?first=1&second=2#fragment"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("email_sent?code=email_change"));
+
+        Matcher matcher = Pattern.compile("verify_email\\?code=([A-Za-z0-9_-]+)").matcher(sender.getSentMessages().getFirst().getContentString());
+        assertThat(matcher.find()).isTrue();
+
+        MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/verify_email")
+                        .accept(TEXT_HTML)
+                        .param("code", matcher.group(1)))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        assertRedirectsToLoginWithSingleFormRedirectUri(result.getResponse().getRedirectedUrl(), "http://app.example.com/page?first=1&second=2#fragment");
     }
 
     @ParameterizedTest
@@ -3668,6 +3763,15 @@ public class LoginMockMvcZonePathTests {
                 return null;
             }
         };
+    }
+
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("change_email_success");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
     }
 
     private static ScimUser createUser(ScimUserProvisioning scimUserProvisioning, AlphanumericRandomValueStringGenerator generator, String zoneId) {

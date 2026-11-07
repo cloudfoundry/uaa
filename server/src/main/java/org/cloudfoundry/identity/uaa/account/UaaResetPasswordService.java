@@ -135,9 +135,14 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
                     ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
                     Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
                             clientDetails.getRegisteredRedirectUri();
-                    String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
-                    if (matchingRedirectUri != null) {
-                        redirectLocation = matchingRedirectUri;
+                    if (redirectUri.equals(clientDetails.getAdditionalInformation().get(EmailAccountCreationService.SIGNUP_REDIRECT_URL))) {
+                        // an administrator set it on the client, so it does not have to be a registered redirect URI
+                        redirectLocation = redirectUri;
+                    } else {
+                        String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
+                        if (matchingRedirectUri != null) {
+                            redirectLocation = matchingRedirectUri;
+                        }
                     }
                 } catch (NoSuchClientException _) {
                     // ignore

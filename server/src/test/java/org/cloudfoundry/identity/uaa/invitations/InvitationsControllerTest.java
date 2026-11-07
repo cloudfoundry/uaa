@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
+import java.nio.charset.StandardCharsets;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
@@ -39,6 +40,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -63,6 +65,9 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
@@ -204,6 +209,20 @@ class InvitationsControllerTest {
 
         assertThat(result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE")).isEqualTo(true);
         assertThat(result.getRequest().getSession().getAttribute("user_id")).isEqualTo("user-id-001");
+        assertThat(result.getRequest().getSession().getAttribute("invitation_origin")).isEqualTo("test-saml");
+
+        MockHttpSession session = (MockHttpSession) result.getRequest().getSession();
+        when(invitationsService.acceptInvitation("the_secret_code", ""))
+                .thenReturn(new AcceptedInvitation("https://client.example.com/callback", new ScimUser()));
+
+        mockMvc.perform(get("/invitations/accept")
+                        .session(session)
+                        .param("code", "the_secret_code"))
+                .andExpect(redirectedUrl("https://client.example.com/callback"));
+
+        assertThat(session.getAttribute("IS_INVITE_ACCEPTANCE")).isNull();
+        assertThat(session.getAttribute("user_id")).isNull();
+        assertThat(session.getAttribute("invitation_origin")).isNull();
     }
 
     @Test
@@ -230,6 +249,7 @@ class InvitationsControllerTest {
 
         assertThat(result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE")).isEqualTo(true);
         assertThat(result.getRequest().getSession().getAttribute("user_id")).isEqualTo("user-id-001");
+        assertThat(result.getRequest().getSession().getAttribute("invitation_origin")).isEqualTo("test-oidc");
     }
 
     @Test
@@ -288,6 +308,7 @@ class InvitationsControllerTest {
 
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
+        invitedUser.setOrigin(LDAP);
 
         when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
         when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
@@ -311,6 +332,99 @@ class InvitationsControllerTest {
     }
 
     @Test
+    void ldapInviteAcceptanceReissuesCodeWithItsIntent() throws Exception {
+        Map<String, String> codeData = getInvitationsCode(LDAP);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+        when(expiringCodeStore.generateCode(anyString(), any(), any(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+        DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
+        when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(any(), any())).thenReturn(ldapAuthenticationManager);
+
+        AuthenticationManager ldapActual = mock(AuthenticationManager.class);
+        when(ldapAuthenticationManager.getLdapManagerActual()).thenReturn(ldapActual);
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(ldapActual.authenticate(any())).thenReturn(auth);
+
+        ExtendedLdapUserDetails extendedLdapUserDetails = mock(ExtendedLdapUserDetails.class);
+
+        when(auth.getPrincipal()).thenReturn(extendedLdapUserDetails);
+        when(extendedLdapUserDetails.getEmailAddress()).thenReturn("user@example.com");
+        when(extendedLdapUserDetails.getUsername()).thenReturn("test-ldap-user");
+
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setPrimaryEmail("user@example.com");
+        invitedUser.setOrigin(LDAP);
+
+        when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
+        when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
+        when(expiringCodeStore.generateCode(anyString(), any(), any(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+
+        mockMvc.perform(post("/invitations/accept_enterprise.do")
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
+                .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=blah.test.com"))
+                .andReturn();
+
+
+        verify(expiringCodeStore, times(1)).generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId));
+    }
+
+    @Test
+    void ldapInviteWithWrongIntentIsRejectedBeforeAuthenticationOrMutation() throws Exception {
+        Map<String, String> codeData = getInvitationsCode(LDAP);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(expiringCodeStore.retrieveCode("the_secret_code", zoneId))
+                .thenReturn(new ExpiringCode(
+                        "code",
+                        new Timestamp(System.currentTimeMillis()),
+                        JsonUtils.writeValueAsString(codeData),
+                        "wrong-intent"));
+
+        mockMvc.perform(post("/invitations/accept_enterprise.do")
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"));
+
+        verify(zoneAwareAuthenticationManager, never()).getLdapAuthenticationManager(any(), any());
+        verify(scimUserProvisioning, never()).update(anyString(), any(), anyString());
+        verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
+    }
+
+    @Test
+    void ldapInviteForNonLdapUserIsRejectedBeforeAuthenticationOrMutation() throws Exception {
+        Map<String, String> codeData = getInvitationsCode(LDAP);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(expiringCodeStore.retrieveCode("the_secret_code", zoneId))
+                .thenReturn(new ExpiringCode(
+                        "code",
+                        new Timestamp(System.currentTimeMillis()),
+                        JsonUtils.writeValueAsString(codeData),
+                        INVITATION.name()));
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setOrigin(OriginKeys.UAA);
+        when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
+
+        mockMvc.perform(post("/invitations/accept_enterprise.do")
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"));
+
+        verify(zoneAwareAuthenticationManager, never()).getLdapAuthenticationManager(any(), any());
+        verify(scimUserProvisioning, never()).update(anyString(), any(), anyString());
+        verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
+    }
+
+    @Test
     void unverifiedLdapUser_acceptsInvite_byLoggingIn_bad_credentials() throws Exception {
         Map<String, String> codeData = getInvitationsCode("ldap");
         String zoneId = IdentityZoneHolder.get().getId();
@@ -325,6 +439,9 @@ class InvitationsControllerTest {
         Authentication auth = mock(Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
         when(ldapActual.authenticate(any())).thenThrow(new BadCredentialsException("bad creds"));
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setOrigin(LDAP);
+        when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                         .param("enterprise_username", "test-ldap-user")
@@ -356,6 +473,7 @@ class InvitationsControllerTest {
 
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
+        invitedUser.setOrigin(LDAP);
         when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
@@ -373,6 +491,43 @@ class InvitationsControllerTest {
                 .contains("Email: " + "user@example.com", "Sign in with enterprise credentials:", "username");
 
         verify(ldapActual).authenticate(any());
+    }
+
+    @Test
+    void ldapInviteEmailMismatchReissuesCodesWithTheirIntent() throws Exception {
+        Map<String, String> codeData = getInvitationsCode(LDAP);
+        String zoneId = IdentityZoneHolder.get().getId();
+        when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+        DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
+        when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(any(), any())).thenReturn(ldapAuthenticationManager);
+
+        AuthenticationManager ldapActual = mock(AuthenticationManager.class);
+        when(ldapAuthenticationManager.getLdapManagerActual()).thenReturn(ldapActual);
+        Authentication auth = mock(Authentication.class);
+        when(ldapActual.authenticate(any())).thenReturn(auth);
+
+        ExtendedLdapUserDetails extendedLdapUserDetails = mock(ExtendedLdapUserDetails.class);
+        when(auth.getPrincipal()).thenReturn(extendedLdapUserDetails);
+        when(extendedLdapUserDetails.getEmailAddress()).thenReturn("different-email@example.com");
+
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setPrimaryEmail("user@example.com");
+        invitedUser.setOrigin(LDAP);
+        when(scimUserProvisioning.retrieve("user-id-001", zoneId)).thenReturn(invitedUser);
+        when(expiringCodeStore.generateCode(anyString(), any(), any(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
+
+        mockMvc.perform(post("/invitations/accept_enterprise.do")
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("invitations/accept_invite"))
+                .andExpect(model().attribute("code", "code"))
+                .andExpect(model().attribute("error_message", "invite.email_mismatch"))
+                .andReturn();
+
+        verify(expiringCodeStore, times(2)).generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId));
     }
 
     @Test
@@ -458,6 +613,28 @@ class InvitationsControllerTest {
     }
 
     @Test
+    void acceptInviteWithWrongIntentIsRejectedBeforeCodeRegeneration() throws Exception {
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow("password", "password");
+        String zoneId = IdentityZoneHolder.get().getId();
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
+        when(expiringCodeStore.retrieveCode("thecode", zoneId))
+                .thenReturn(new ExpiringCode(
+                        "thecode",
+                        new Timestamp(System.currentTimeMillis()),
+                        JsonUtils.writeValueAsString(codeData),
+                        "wrong-intent"));
+
+        mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"))
+                .andExpect(view().name("invitations/accept_invite"));
+
+        verify(expiringCodeStore, never()).generateCode(anyString(), any(), any(), eq(zoneId));
+        verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
     void invalid_principal_id() throws Exception {
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a", "a");
 
@@ -534,6 +711,15 @@ class InvitationsControllerTest {
         verify(invitationsService).acceptInvitation(anyString(), eq("passw0rd"));
     }
 
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("/login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("invite_accepted");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
+    }
+
     private MockHttpServletRequestBuilder startAcceptInviteFlow(String password, String passwordConfirmation) {
         String zoneId = IdentityZoneHolder.get().getId();
         UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null, zoneId);
@@ -570,6 +756,34 @@ class InvitationsControllerTest {
         mockMvc.perform(post)
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=valid.redirect.com"));
+    }
+
+    @Test
+    void acceptInviteKeepsRedirectUrlWithQueryAsOneFormRedirectParameter() throws Exception {
+        String zoneId = IdentityZoneHolder.get().getId();
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null, zoneId);
+        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(), "fname", "lname");
+        user.setPrimaryEmail(user.getUserName());
+
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
+        SecurityContextHolder.getContext().setAuthentication(token);
+
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
+        String codeDataString = JsonUtils.writeValueAsString(codeData);
+        when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
+        when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(zoneId))).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()));
+        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new AcceptedInvitation("http://app.example.com/page?first=1&second=2#fragment", user));
+
+        MockHttpServletRequestBuilder post = post("/invitations/accept.do")
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("code", "thecode");
+
+        MvcResult result = mockMvc.perform(post)
+                .andExpect(status().isFound())
+                .andReturn();
+
+        assertRedirectsToLoginWithSingleFormRedirectUri(result.getResponse().getRedirectedUrl(), "http://app.example.com/page?first=1&second=2#fragment");
     }
 
     @Test

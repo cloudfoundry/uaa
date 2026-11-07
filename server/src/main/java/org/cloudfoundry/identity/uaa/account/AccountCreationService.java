@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
@@ -19,6 +20,8 @@ public interface AccountCreationService {
         private String email;
         @JsonProperty("redirect_location")
         private String redirectLocation;
+        @JsonIgnore
+        private String passwordResetCode;
 
         public AccountCreationResponse(String userId, String username, String email, String redirectLocation) {
             this.userId = userId;
@@ -49,6 +52,14 @@ public interface AccountCreationService {
 
         public String getEmail() {
             return email;
+        }
+
+        public String getPasswordResetCode() {
+            return passwordResetCode;
+        }
+
+        public void setPasswordResetCode(String passwordResetCode) {
+            this.passwordResetCode = passwordResetCode;
         }
     }
 }

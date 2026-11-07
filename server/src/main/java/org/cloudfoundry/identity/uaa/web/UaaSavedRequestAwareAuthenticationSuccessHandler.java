@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.web;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -33,15 +34,27 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
+
 @Slf4j
 public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
     public static final String URI_OVERRIDE_ATTRIBUTE = "override.redirect_uri";
     public static final String FORM_REDIRECT_PARAMETER = "form_redirect_uri";
+    private static final String TRUSTED_REDIRECT_SESSION_ATTRIBUTE =
+            UaaSavedRequestAwareAuthenticationSuccessHandler.class.getName() + ".TRUSTED_REDIRECT";
 
     private final HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
 
     public UaaSavedRequestAwareAuthenticationSuccessHandler() {
         requestCache.setMatchingRequestParameterName(null);
+    }
+
+    public static void saveTrustedRedirect(HttpSession session, String redirectUri) {
+        if (session == null || !UaaStringUtils.hasText(redirectUri)) {
+            return;
+        }
+        session.setAttribute(TRUSTED_REDIRECT_SESSION_ATTRIBUTE, redirectUri);
+        session.removeAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
     }
 
     @Override
@@ -75,15 +88,29 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
 
     @Override
     public String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
+        String trustedRedirect = consumeTrustedRedirect(request);
         Object redirectAttribute = request.getAttribute(URI_OVERRIDE_ATTRIBUTE);
         String redirectFormParam = request.getParameter(FORM_REDIRECT_PARAMETER);
         if (redirectAttribute != null) {
             log.debug("Returning redirectAttribute saved URI: {}", redirectAttribute);
             return (String) redirectAttribute;
+        } else if (UaaStringUtils.hasText(trustedRedirect)) {
+            log.debug("Returning server-validated saved URI: {}", trustedRedirect);
+            return trustedRedirect;
         } else if (UaaUrlUtils.uriHasMatchingHost(redirectFormParam, request.getServerName())) {
             return redirectFormParam;
         } else {
             return super.determineTargetUrl(request, response);
         }
+    }
+
+    private String consumeTrustedRedirect(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return null;
+        }
+        Object redirect = session.getAttribute(TRUSTED_REDIRECT_SESSION_ATTRIBUTE);
+        session.removeAttribute(TRUSTED_REDIRECT_SESSION_ATTRIBUTE);
+        return redirect instanceof String string ? string : null;
     }
 }

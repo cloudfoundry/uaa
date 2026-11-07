@@ -15,7 +15,9 @@ package org.cloudfoundry.identity.uaa.account;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,11 +37,14 @@ import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -50,6 +55,9 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 class ResetPasswordAuthenticationFilterTest {
 
@@ -112,10 +120,26 @@ class ResetPasswordAuthenticationFilterTest {
     }
 
     @Test
+    void happy_day_password_reset_with_query_in_redirect() throws Exception {
+        resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "http://app.example.com/page?first=1&second=2#fragment", null);
+        when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
+        happy_day_password_reset(resetPasswordResponse.getRedirectUri());
+    }
+
+    @Test
     void happy_day_password_reset_with_home_redirect() throws Exception {
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "home", null);
         when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
         happy_day_password_reset("");
+    }
+
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("/login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("password_reset");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
     }
 
     public void happy_day_password_reset(String redirectUri) throws Exception {
@@ -126,7 +150,9 @@ class ResetPasswordAuthenticationFilterTest {
         if (!StringUtils.hasText(redirectUri) || "home".equals(redirectUri)) {
             verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset");
         } else {
-            verify(response, times(1)).sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + redirectUri);
+            ArgumentCaptor<String> redirectCaptor = ArgumentCaptor.forClass(String.class);
+            verify(response, times(1)).sendRedirect(redirectCaptor.capture());
+            assertRedirectsToLoginWithSingleFormRedirectUri(redirectCaptor.getValue(), redirectUri);
         }
         verify(chain, times(0)).doFilter(any(), any());
     }
@@ -157,6 +183,72 @@ class ResetPasswordAuthenticationFilterTest {
         when(service.resetPassword(any(ExpiringCode.class), anyString())).thenThrow(failed);
         error_during_password_reset(failed.getClass());
         verify(service, times(1)).resetPassword(any(ExpiringCode.class), eq(password));
+    }
+
+    @Test
+    void rejected_password_does_not_extend_the_code_lifetime() throws Exception {
+        when(service.resetPassword(any(ExpiringCode.class), anyString())).thenThrow(new InvalidPasswordException("failed", HttpStatus.BAD_REQUEST));
+
+        assertThat(codeLifetimeAfterFailedSubmit(false)).isNotNull();
+    }
+
+    @Test
+    void mismatched_confirmation_does_not_extend_the_code_lifetime() throws Exception {
+        assertThat(codeLifetimeAfterFailedSubmit(true)).isNotNull();
+    }
+
+    private ExpiringCode codeLifetimeAfterFailedSubmit(boolean mismatchedConfirmation) throws Exception {
+        var store = new InMemoryExpiringCodeStore(new TimeServiceImpl());
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60_000);
+        var code = store.generateCode("{}", expiresAt, "forgot_password_for_id:id", IdentityZoneHolder.get().getId()).getCode();
+        var submit = MockMvcRequestBuilders.post("/reset_password.do")
+                .param("code", code)
+                .param("password", password)
+                .param("password_confirmation", mismatchedConfirmation ? "different" : password)
+                .param("email", email)
+                .buildRequest(new MockServletContext());
+
+        new ResetPasswordAuthenticationFilter(service, entryPoint, store).doFilterInternal(submit, response, chain);
+
+        ExpiringCode renewed = store.peekCode((String) submit.getAttribute("code"), IdentityZoneHolder.get().getId());
+        assertThat(renewed.getExpiresAt()).isBeforeOrEqualTo(expiresAt);
+        return renewed;
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void failed_submit_with_a_code_that_expires_meanwhile_reports_an_invalid_code(boolean mismatchedConfirmation) throws Exception {
+        AtomicLong now = new AtomicLong(System.currentTimeMillis());
+        TimeService clock = new TimeService() {
+            @Override
+            public long getCurrentTimeMillis() {
+                return now.get();
+            }
+        };
+        // The code is valid when it is redeemed and expires while the submitted password is checked.
+        var store = new InMemoryExpiringCodeStore(clock) {
+            @Override
+            public ExpiringCode retrieveCode(String code, String zoneId) {
+                ExpiringCode retrieved = super.retrieveCode(code, zoneId);
+                now.addAndGet(60_000);
+                return retrieved;
+            }
+        };
+        var code = store.generateCode("{}", new Timestamp(now.get() + 30_000), "forgot_password_for_id:id", IdentityZoneHolder.get().getId()).getCode();
+        when(service.resetPassword(any(ExpiringCode.class), anyString())).thenThrow(new InvalidPasswordException("failed", HttpStatus.BAD_REQUEST));
+        var submit = MockMvcRequestBuilders.post("/reset_password.do")
+                .param("code", code)
+                .param("password", password)
+                .param("password_confirmation", mismatchedConfirmation ? "different" : password)
+                .param("email", email)
+                .buildRequest(new MockServletContext());
+
+        new ResetPasswordAuthenticationFilter(service, entryPoint, store).doFilterInternal(submit, response, chain);
+
+        ArgumentCaptor<AuthenticationException> failure = ArgumentCaptor.forClass(AuthenticationException.class);
+        verify(entryPoint).commence(same(submit), same(response), failure.capture());
+        assertThat(failure.getValue()).hasCauseInstanceOf(InvalidCodeException.class);
+        assertThat(submit.getAttribute("code")).isNull();
     }
 
     @Test

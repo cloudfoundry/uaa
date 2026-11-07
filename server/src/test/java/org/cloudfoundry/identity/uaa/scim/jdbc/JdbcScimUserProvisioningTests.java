@@ -1140,6 +1140,41 @@ class JdbcScimUserProvisioningTests {
     }
 
     @Test
+    void verifyUserAndSetPasswordOnlyUpdatesAnUnverifiedUser() {
+        String userId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
+
+        ScimUser activatedUser =
+                jdbcScimUserProvisioning.verifyUserAndSetPassword(userId, "activation-password", true, currentIdentityZoneId);
+
+        assertThat(activatedUser.isVerified()).isTrue();
+        assertThat(jdbcScimUserProvisioning.checkPasswordMatches(userId, "activation-password", currentIdentityZoneId)).isTrue();
+        assertThat(jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(userId, currentIdentityZoneId)).isTrue();
+
+        jdbcScimUserProvisioning.changePassword(userId, null, "owner-password", currentIdentityZoneId);
+        jdbcScimUserProvisioning.updatePasswordChangeRequired(userId, false, currentIdentityZoneId);
+
+        assertThatThrownBy(() ->
+                jdbcScimUserProvisioning.verifyUserAndSetPassword(userId, "late-activation-password", true, currentIdentityZoneId))
+                .isInstanceOf(OptimisticLockingFailureException.class);
+        assertThat(jdbcScimUserProvisioning.checkPasswordMatches(userId, "owner-password", currentIdentityZoneId)).isTrue();
+        assertThat(jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(userId, currentIdentityZoneId)).isFalse();
+    }
+
+    @Test
+    void verifyUserAndSetPasswordCanLeavePasswordChangeNotRequired() {
+        String userId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
+
+        jdbcScimUserProvisioning.verifyUserAndSetPassword(
+                userId,
+                "invitation-password",
+                false,
+                currentIdentityZoneId);
+
+        assertThat(jdbcScimUserProvisioning.checkPasswordMatches(userId, "invitation-password", currentIdentityZoneId)).isTrue();
+        assertThat(jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(userId, currentIdentityZoneId)).isFalse();
+    }
+
+    @Test
     void createUserWithNoZoneDefaultsToUAAZone() {
         String id = UUID.randomUUID().toString();
         jdbcTemplate.execute(OLD_ADD_USER_SQL_FORMAT.formatted(id, "test-username", "password", "test@email.com", "givenName", "familyName", "1234567890"));

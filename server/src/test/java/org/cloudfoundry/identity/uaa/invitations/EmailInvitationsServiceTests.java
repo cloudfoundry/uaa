@@ -34,7 +34,7 @@ import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.REDIRECT_URI;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -78,8 +78,9 @@ class EmailInvitationsServiceTests {
     void acceptInvitationNoClientId() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
+        user.setVerified(false);
         when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
-        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUserAndSetPassword(anyString(), anyString(), eq(false), eq(zoneId))).thenReturn(user);
         doThrow(NoSuchClientException.class).when(mockClientDetailsService).loadClientByClientId(null, zoneId);
 
         Map<String, String> userData = new HashMap<>();
@@ -89,8 +90,7 @@ class EmailInvitationsServiceTests {
         when(mockExpiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
-        verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
-        verify(mockScimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
+        verify(mockScimUserProvisioning).verifyUserAndSetPassword(user.getId(), "password", false, zoneId);
         assertThat(redirectLocation).isEqualTo("/home");
     }
 
@@ -110,6 +110,7 @@ class EmailInvitationsServiceTests {
     void acceptInvitation_withoutPasswordUpdate() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
+        user.setVerified(false);
 
         UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, null, null, "http://example.com/*/");
         when(mockClientDetailsService.loadClientByClientId("acmeClientId", zoneId)).thenReturn(clientDetails);
@@ -153,7 +154,8 @@ class EmailInvitationsServiceTests {
     void acceptInvitationWithClientNotFound() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(OriginKeys.UAA);
-        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        user.setVerified(false);
+        when(mockScimUserProvisioning.verifyUserAndSetPassword(anyString(), anyString(), eq(false), eq(zoneId))).thenReturn(user);
         when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         doThrow(new NoSuchClientException("Client not found")).when(mockClientDetailsService).loadClientByClientId("client-not-found", zoneId);
 
@@ -165,8 +167,7 @@ class EmailInvitationsServiceTests {
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
-        verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
-        verify(mockScimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
+        verify(mockScimUserProvisioning).verifyUserAndSetPassword(user.getId(), "password", false, zoneId);
         assertThat(redirectLocation).isEqualTo("/home");
     }
 
@@ -174,9 +175,10 @@ class EmailInvitationsServiceTests {
     void acceptInvitationWithValidRedirectUri() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
+        user.setVerified(false);
         UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, null, null, "http://example.com/*/");
         when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
-        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUserAndSetPassword(anyString(), anyString(), eq(false), eq(zoneId))).thenReturn(user);
         when(mockClientDetailsService.loadClientByClientId("acmeClientId", zoneId)).thenReturn(clientDetails);
 
         Map<String, String> userData = new HashMap<>();
@@ -188,8 +190,7 @@ class EmailInvitationsServiceTests {
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
-        verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
-        verify(mockScimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
+        verify(mockScimUserProvisioning).verifyUserAndSetPassword(user.getId(), "password", false, zoneId);
         assertThat(redirectLocation).isEqualTo("http://example.com/redirect/");
     }
 
@@ -197,8 +198,9 @@ class EmailInvitationsServiceTests {
     void acceptInvitationWithInvalidRedirectUri() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
+        user.setVerified(false);
         UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
-        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUserAndSetPassword(anyString(), anyString(), eq(false), eq(zoneId))).thenReturn(user);
         when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(mockClientDetailsService.loadClientByClientId("acmeClientId", zoneId)).thenReturn(clientDetails);
         Map<String, String> userData = new HashMap<>();
@@ -210,8 +212,7 @@ class EmailInvitationsServiceTests {
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
-        verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
-        verify(mockScimUserProvisioning).changePassword(user.getId(), null, "password", zoneId);
+        verify(mockScimUserProvisioning).verifyUserAndSetPassword(user.getId(), "password", false, zoneId);
         assertThat(redirectLocation).isEqualTo("/home");
     }
 
@@ -219,8 +220,8 @@ class EmailInvitationsServiceTests {
     void acceptInvitation_existingUser_withPassword_doesNotChangePassword() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
+        user.setVerified(true);
         when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
-        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
         doThrow(NoSuchClientException.class).when(mockClientDetailsService).loadClientByClientId(null, zoneId);
 
         Map<String, String> userData = new HashMap<>();
@@ -234,16 +235,42 @@ class EmailInvitationsServiceTests {
 
         emailInvitationsService.acceptInvitation("code", "attackerChosenPassword");
 
+        verify(mockScimUserProvisioning, never()).verifyUser(anyString(), anyInt(), anyString());
+        verify(mockScimUserProvisioning, never()).verifyUserAndSetPassword(anyString(), anyString(), anyBoolean(), anyString());
+    }
+
+    @Test
+    void acceptInvitation_existingUnverifiedUser_doesNotChangePassword() {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        user.setOrigin(UAA);
+        user.setVerified(false);
+        when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        doThrow(NoSuchClientException.class).when(mockClientDetailsService).loadClientByClientId(null, zoneId);
+
+        Map<String, String> userData = new HashMap<>();
+        userData.put(USER_ID, "user-id-001");
+        userData.put(EMAIL, "user@example.com");
+        userData.put(CLIENT_ID, null);
+        userData.put(InvitationsEndpoint.CREATED_NEW_USER, "false");
+        when(mockExpiringCodeStore.retrieveCode(anyString(), eq(zoneId)))
+                .thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),
+                        JsonUtils.writeValueAsString(userData), INVITATION.name()));
+
+        emailInvitationsService.acceptInvitation("code", "submittedPassword");
+
         verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
-        verify(mockScimUserProvisioning, never()).changePassword(any(), any(), any(), any());
+        verify(mockScimUserProvisioning, never())
+                .verifyUserAndSetPassword(anyString(), anyString(), anyBoolean(), anyString());
     }
 
     @Test
     void acceptInvitation_newUser_withPassword_stillChangesPassword() {
         ScimUser user = new ScimUser("user-id-002", "newuser@example.com", "first", "last");
         user.setOrigin(UAA);
+        user.setVerified(false);
         when(mockScimUserProvisioning.retrieve(eq("user-id-002"), eq(zoneId))).thenReturn(user);
-        when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
+        when(mockScimUserProvisioning.verifyUserAndSetPassword(anyString(), anyString(), eq(false), eq(zoneId))).thenReturn(user);
         doThrow(NoSuchClientException.class).when(mockClientDetailsService).loadClientByClientId(null, zoneId);
 
         Map<String, String> userData = new HashMap<>();
@@ -257,7 +284,6 @@ class EmailInvitationsServiceTests {
 
         emailInvitationsService.acceptInvitation("code", "newUserPassword");
 
-        verify(mockScimUserProvisioning).verifyUser(user.getId(), user.getVersion(), zoneId);
-        verify(mockScimUserProvisioning).changePassword(user.getId(), null, "newUserPassword", zoneId);
+        verify(mockScimUserProvisioning).verifyUserAndSetPassword(user.getId(), "newUserPassword", false, zoneId);
     }
 }

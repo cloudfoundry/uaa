@@ -32,6 +32,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -54,6 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @DefaultTestContext
 public class ResetPasswordControllerMockMvcTests {
@@ -402,6 +404,42 @@ public class ResetPasswordControllerMockMvcTests {
         uaaProvider = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         uaaProvider.setConfig(currentDefinition);
         webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).update(uaaProvider, uaaProvider.getIdentityZoneId());
+    }
+
+    @Test
+    void openingTheResetLinkTwiceStillWorksAndDoesNotExtendTheCodeLifetime() throws Exception {
+        ScimUser user = getScimUser();
+        PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60_000);
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), expiresAt, FORGOT_PASSWORD_INTENT_PREFIX + user.getId(), IdentityZoneHolder.get().getId());
+
+        mockMvc.perform(get("/reset_password").param("code", code.getCode()))
+                .andExpect(status().isOk());
+        MvcResult second = mockMvc.perform(get("/reset_password").param("code", code.getCode()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("reset_password"))
+                .andReturn();
+
+        String formCode = (String) second.getModelAndView().getModel().get("code");
+        assertThat(codeStore.peekCode(formCode, IdentityZoneHolder.get().getId()).getExpiresAt()).isBeforeOrEqualTo(expiresAt);
+        mockMvc.perform(createChangePasswordRequest(user, formCode, true, "secret1", "secret1"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?success=password_reset"));
+    }
+
+    @Test
+    void aRejectedPasswordDoesNotExtendTheCodeLifetime() throws Exception {
+        ScimUser user = getScimUser();
+        PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60_000);
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), expiresAt, FORGOT_PASSWORD_INTENT_PREFIX + user.getId(), IdentityZoneHolder.get().getId());
+
+        MvcResult result = mockMvc.perform(createChangePasswordRequest(user, code, true, "secret1", "different"))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn();
+
+        String renewedCode = (String) result.getRequest().getAttribute("code");
+        assertThat(codeStore.peekCode(renewedCode, IdentityZoneHolder.get().getId()).getExpiresAt()).isBeforeOrEqualTo(expiresAt);
     }
 
     private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF) throws Exception {

@@ -331,6 +331,47 @@ class ForcePasswordChangeControllerZonePathMockMvcTest {
                 .andExpect(redirectedUrl(expectedRedirect));
     }
 
+    @ParameterizedTest
+    @MethodSource("zoneModesWithForcePasswordChangePaths")
+    void submit_password_change_when_no_change_is_pending(ZoneResolutionMode mode, String path) throws Exception {
+        setupZoneAndUser(mode);
+        String expectedRedirect = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/" : "/";
+
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/login.do")
+                        .param("username", user.getUserName())
+                        .param("password", "secret")
+                        .session(session)
+                        .with(cookieCsrf())
+                        .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedRedirect));
+        assertThat(SessionUtils.isPasswordChangeRequired(MockMvcUtils.getZoneSession(session, mode, subdomain))).isFalse();
+
+        MvcResult submitResult = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, path)
+                        .param("password", "test")
+                        .param("password_confirmation", "test")
+                        .session(session)
+                        .with(cookieCsrf()))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.POST, "/login.do")
+                        .param("username", user.getUserName())
+                        .param("password", "secret")
+                        .session(new MockHttpSession())
+                        .with(cookieCsrf())
+                        .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "csrf1"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl(expectedRedirect));
+        assertThat(submitResult.getResponse().getRedirectedUrl()).isEqualTo(expectedRedirect);
+    }
+
+    static Stream<Arguments> zoneModesWithForcePasswordChangePaths() {
+        return Stream.of(ZoneResolutionMode.values())
+                .flatMap(mode -> Stream.of("/force_password_change", "/force_password_change/").map(path -> Arguments.of(mode, path)));
+    }
+
     static Stream<Arguments> authenticationTestParamsWithZoneModes() {
         return ForcePasswordChangeControllerMockMvcTest.authenticationTestParams()
                 .flatMap(pp -> Stream.of(ZoneResolutionMode.values()).map(mode -> Arguments.of(pp, mode)));

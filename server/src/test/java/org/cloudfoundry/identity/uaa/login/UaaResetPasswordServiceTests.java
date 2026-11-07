@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.account.ConflictException;
+import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.account.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.account.NotFoundException;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService.ResetPasswordResponse;
@@ -25,6 +26,8 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.support.ResourcePropertySource;
@@ -35,6 +38,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -273,6 +278,37 @@ class UaaResetPasswordServiceTests {
         when(clientDetailsService.loadClientByClientId("example", currentZoneId)).thenReturn(client);
 
         ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
+        assertThat(response.getRedirectUri()).isEqualTo("home");
+    }
+
+    @ParameterizedTest
+    @MethodSource("registeredRedirectUrisWithoutTheSignupRedirect")
+    void resetPassword_keepsTheClientSignupRedirect(Set<String> registeredRedirectUris) {
+        ExpiringCode code = setupResetPassword("example", "http://login.example.com/after-signup");
+        UaaClientDetails client = new UaaClientDetails();
+        client.setRegisteredRedirectUri(registeredRedirectUris);
+        client.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://login.example.com/after-signup");
+        when(clientDetailsService.loadClientByClientId("example", currentZoneId)).thenReturn(client);
+
+        ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
+
+        assertThat(response.getRedirectUri()).isEqualTo("http://login.example.com/after-signup");
+    }
+
+    static Stream<Set<String>> registeredRedirectUrisWithoutTheSignupRedirect() {
+        return Stream.of(Set.of(), Set.of("http://app.example.com/*"));
+    }
+
+    @Test
+    void resetPassword_doesNotFollowAnUnregisteredRedirectThatIsNotTheSignupRedirect() {
+        ExpiringCode code = setupResetPassword("example", "http://elsewhere.example.com/");
+        UaaClientDetails client = new UaaClientDetails();
+        client.setRegisteredRedirectUri(Collections.singleton("http://app.example.com/*"));
+        client.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://login.example.com/after-signup");
+        when(clientDetailsService.loadClientByClientId("example", currentZoneId)).thenReturn(client);
+
+        ResetPasswordResponse response = uaaResetPasswordService.resetPassword(code, "new_secret");
+
         assertThat(response.getRedirectUri()).isEqualTo("home");
     }
 

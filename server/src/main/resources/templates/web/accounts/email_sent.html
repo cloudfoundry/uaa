@@ -11,8 +11,11 @@
     </div>
     <div class="island-content">
         <i class="fa fa-envelope-o"></i>
-        <p class="instructions-sent" th:text="#{'email_sent.activation'}">
+        <p class="instructions-sent" th:if="${email == null}" th:text="#{'email_sent.activation'}">
             Check email for an activation link
+        </p>
+        <p class="instructions-sent" th:if="${email != null}" th:text="#{email_sent.activation_address(${email})}">
+            Check user@example.com for an activation link
         </p>
         <input type="submit" value="Email successfully sent" class="island-button" disabled="disabled"/>
     </div>

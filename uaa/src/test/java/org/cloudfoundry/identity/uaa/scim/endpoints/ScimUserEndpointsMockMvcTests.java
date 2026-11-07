@@ -537,7 +537,32 @@ class ScimUserEndpointsMockMvcTests {
         assertThat(data.get(USER_ID)).isNotNull();
         assertThat(data)
                 .containsEntry(CLIENT_ID, clientDetails.getClientId())
-                .containsEntry(REDIRECT_URI, HTTP_REDIRECT_EXAMPLE_COM);
+                .containsEntry(REDIRECT_URI, HTTP_REDIRECT_EXAMPLE_COM)
+                .containsEntry("user_provisioned", "true");
+    }
+
+    @Test
+    void verification_link_opened_by_the_user_keeps_the_password_set_by_the_caller() throws Exception {
+        ScimUser joel = setUpScimUser();
+        MvcResult linkResult = mockMvc.perform(setUpVerificationLinkRequest(joel, scimCreateToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        VerificationResponse verificationResponse = JsonUtils.readValue(linkResult.getResponse().getContentAsString(), VerificationResponse.class);
+        String code = getQueryStringParam(verificationResponse.getVerifyLink().getQuery(), "code");
+
+        MvcResult verifyResult = mockMvc.perform(get("/verify_user").param("code", code))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        assertThat(verifyResult.getResponse().getRedirectedUrl()).startsWith("/login?success=verify_success");
+        ScimUser verified = usersRepository.retrieve(joel.getId(), IdentityZoneHolder.get().getId());
+        assertThat(verified.isVerified()).isTrue();
+        mockMvc.perform(post("/login.do")
+                        .with(cookieCsrf())
+                        .param("username", joel.getUserName())
+                        .param("password", USER_PASSWORD))
+                .andExpect(redirectedUrl("/"))
+                .andExpect(authenticated());
     }
 
     @Test

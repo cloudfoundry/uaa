@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.passcode.PasscodeInformation;
@@ -194,7 +195,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                     }
                 }
 
-                if (pi == null) {
+                if (pi == null || !(ExpiringCodeType.PASSCODE + " " + pi.getUserId()).equals(eCode.getIntent())) {
                     throw new InsufficientAuthenticationException("Invalid passcode");
                 }
                 logger.debug("Successful passcode authentication request for {}", pi.getUsername());

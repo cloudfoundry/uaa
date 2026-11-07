@@ -24,6 +24,12 @@ import static org.springframework.util.StringUtils.hasText;
 
 public final class ScimUtils {
 
+    /**
+     * Data entry of a verification code that was requested through the user API: the password of the
+     * account was set by the caller, so opening the link only has to verify the email address.
+     */
+    public static final String USER_PROVISIONED = "user_provisioned";
+
     private static final Logger logger = LoggerFactory.getLogger(ScimUtils.class);
 
     private ScimUtils() {
@@ -49,6 +55,21 @@ public final class ScimUtils {
             String redirectUri,
             ExpiringCodeType intent,
             String currentZoneId) {
+        return getExpiringCode(codeStore, userId, email, clientId, redirectUri, intent, currentZoneId, Map.of());
+    }
+
+    /**
+     * Same as above, with extra entries for the data stored in the code.
+     */
+    public static ExpiringCode getExpiringCode(
+            ExpiringCodeStore codeStore,
+            String userId,
+            String email,
+            String clientId,
+            String redirectUri,
+            ExpiringCodeType intent,
+            String currentZoneId,
+            Map<String, String> additionalData) {
         Assert.notNull(codeStore, "codeStore must not be null");
         Assert.notNull(userId, "userId must not be null");
         Assert.notNull(email, "email must not be null");
@@ -61,6 +82,7 @@ public final class ScimUtils {
         if (redirectUri != null) {
             codeData.put("redirect_uri", redirectUri);
         }
+        codeData.putAll(additionalData);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
 
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour

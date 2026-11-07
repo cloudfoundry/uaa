@@ -1,10 +1,13 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import jakarta.mail.Message;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
@@ -42,13 +45,19 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.Map;
+import org.springframework.web.util.UriUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -62,7 +71,6 @@ import static org.springframework.util.StringUtils.hasText;
 @DefaultTestContext
 class AccountsControllerMockMvcTests {
 
-    private static final String LOGIN_REDIRECT = "/login?success=verify_success";
     private static final String USER_PASSWORD = "secr3T";
     private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String userEmail;
@@ -133,6 +141,78 @@ class AccountsControllerMockMvcTests {
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).contains("Create your account");
+    }
+
+    @Test
+    void activationEmailSentPageWithoutAnAddressStillRenders() throws Exception {
+        mockMvc.perform(get("/accounts/email_sent"))
+                .andExpect(status().isOk())
+                .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"));
+    }
+
+    @Test
+    void creatingAnAccountShowsTheEmailOnTheConfirmationPage() throws Exception {
+        useRandomActivationCodes();
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .session(session)
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        MvcResult page = mockMvc.perform(get("/accounts/email_sent").session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(page.getResponse().getContentAsString()).contains(userEmail);
+    }
+
+    @Test
+    void creatingAnAccountForAnExistingVerifiedUserRedirectsLikeANewAddress() throws Exception {
+        useRandomActivationCodes();
+        createVerifiedUaaUser(userEmail);
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+    }
+
+    @Test
+    void creatingAnAccountForAnExistingVerifiedUserMailsTheOwnerWithoutAnActivationLink() throws Exception {
+        useRandomActivationCodes();
+        createVerifiedUaaUser(userEmail);
+
+        mockMvc.perform(post("/create_account.do")
+                .with(cookieCsrf())
+                .param("email", userEmail)
+                .param("password", "secr3T")
+                .param("password_confirmation", "secr3T"));
+
+        assertThat(fakeJavaMailSender.getSentMessages()).hasSize(1);
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().getFirst();
+        assertThat(message.getRecipients(Message.RecipientType.TO)).hasSize(1);
+        assertThat(message.getRecipients(Message.RecipientType.TO).getFirst()).hasToString(userEmail);
+        assertThat(message.getContentString()).doesNotContain("verify_user");
+    }
+
+    private void useRandomActivationCodes() {
+        webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new AlphanumericRandomValueStringGenerator(24));
+    }
+
+    private void createVerifiedUaaUser(String email) {
+        ScimUser existing = new ScimUser(null, email, "Given", "Family");
+        existing.setPrimaryEmail(email);
+        existing.setOrigin(OriginKeys.UAA);
+        existing.setVerified(true);
+        webApplicationContext.getBean(JdbcScimUserProvisioning.class)
+                .createUser(existing, USER_PASSWORD, IdentityZoneHolder.get().getId());
     }
 
     @Test
@@ -241,11 +321,7 @@ class AccountsControllerMockMvcTests {
         ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'", IdentityZoneHolder.get().getId()).getFirst();
         assertThat(scimUser.isVerified()).isFalse();
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
-                .andReturn();
+        confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -257,6 +333,194 @@ class AccountsControllerMockMvcTests {
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail()).isEqualTo(userEmail);
         assertThat(principal.getOrigin()).isEqualTo(OriginKeys.UAA);
+    }
+
+    @Test
+    void confirmingAccountDoesNotAuthorizeThePreRegisteredPassword() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        String registrationPassword = "firstPass1";
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", registrationPassword)
+                        .param("password_confirmation", registrationPassword))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        mockMvc.perform(get("/verify_user")
+                        .param("code", "test" + generator.counter.get()))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        // Clicking the confirmation link only proves ownership of the email address. The
+        // password supplied on the registration form must not become a usable credential once
+        // the account is confirmed; the owner must establish the password through the link.
+        mockMvc.perform(post("/login.do")
+                        .with(cookieCsrf())
+                        .param("username", userEmail)
+                        .param("password", registrationPassword))
+                .andExpect(unauthenticated());
+    }
+
+    @Test
+    void confirmingAccountDoesNotAuthorizePasswordFromEarlierRegistration() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        String firstRegistrationPassword = "firstPass1";
+        String laterRegistrationPassword = "laterPass2";
+
+        // First registration for the address.
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", firstRegistrationPassword)
+                        .param("password_confirmation", firstRegistrationPassword))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        // A later registration for the same still-unconfirmed address.
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", laterRegistrationPassword)
+                        .param("password_confirmation", laterRegistrationPassword))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        // The owner confirms the account using the most recent link.
+        mockMvc.perform(get("/verify_user")
+                        .param("code", "test" + generator.counter.get()))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        // Confirmation must not authorize the password chosen by the earlier registration.
+        mockMvc.perform(post("/login.do")
+                        .with(cookieCsrf())
+                        .param("username", userEmail)
+                        .param("password", firstRegistrationPassword))
+                .andExpect(unauthenticated());
+    }
+
+    @Test
+    void confirmingAccountSendsOwnerToForcedPasswordSetup() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        // Confirming the account sends the owner to the reset-password page to establish a password.
+        MvcResult verifyResult = mockMvc.perform(get("/verify_user")
+                        .param("code", "test" + generator.counter.get()))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        String location = verifyResult.getResponse().getRedirectedUrl();
+        assertThat(location)
+                .startsWith("/reset_password?code=")
+                .contains("force_change=true");
+        String resetCode = UriComponentsBuilder.fromUriString(location).build().getQueryParams().getFirst("code");
+
+        // The page explains that a password change is required due to changes in the system.
+        MvcResult pageResult = mockMvc.perform(get("/reset_password")
+                        .param("code", resetCode)
+                        .param("force_change", "true"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("reset_password"))
+                .andExpect(model().attribute("message_code", "force_change"))
+                .andReturn();
+        String formCode = (String) pageResult.getModelAndView().getModel().get("code");
+
+        mockMvc.perform(post("/reset_password.do")
+                        .with(cookieCsrf())
+                        .param("code", formCode)
+                        .param("email", userEmail)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD))
+                .andExpect(status().isFound());
+
+        // Once the owner has set their own password, the account can be used to log in.
+        mockMvc.perform(post("/login.do")
+                        .with(cookieCsrf())
+                        .param("username", userEmail)
+                        .param("password", USER_PASSWORD))
+                .andExpect(authenticated());
+    }
+
+    @Test
+    void openingAnotherActivationLinkAfterPasswordSetupKeepsThePassword() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        // Two registrations for the same unconfirmed address send two activation links.
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "firstPass1")
+                        .param("password_confirmation", "firstPass1"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+        String firstActivationCode = "test" + generator.counter.get();
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "laterPass2")
+                        .param("password_confirmation", "laterPass2"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+        String secondActivationCode = "test" + generator.counter.get();
+
+        // The owner confirms with the second link and sets a password.
+        confirmAccountAndSetPassword(secondActivationCode, "", userEmail);
+
+        // Opening the first link afterwards must not replace that password.
+        mockMvc.perform(get("/verify_user")
+                        .param("code", firstActivationCode))
+                .andExpect(status().isFound());
+
+        loginWithAccount("")
+                .andExpect(authenticated());
+    }
+
+    @Test
+    void openingAnOldActivationCodeOfAnExternalUserLeavesTheAccountWithTheSameUsernameAlone() throws Exception {
+        String zoneId = IdentityZoneHolder.get().getId();
+        JdbcScimUserProvisioning provisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
+        createVerifiedUaaUser(userEmail);
+
+        ScimUser external = new ScimUser(null, userEmail, "Given", "Family");
+        external.setPrimaryEmail(userEmail);
+        external.setOrigin("some-external-origin");
+        external.setVerified(false);
+        external = provisioning.createUser(external, "", zoneId);
+
+        // a code from the user API issued before codes carried a marker
+        String code = webApplicationContext.getBean(JdbcExpiringCodeStore.class).generateCode(
+                JsonUtils.writeValueAsString(Map.of("user_id", external.getId(), "email", userEmail)),
+                new Timestamp(System.currentTimeMillis() + 60_000), ExpiringCodeType.REGISTRATION.name(), zoneId).getCode();
+
+        // the external user is verified; no reset code is issued for the uaa account with the same username
+        mockMvc.perform(get("/verify_user").param("code", code))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?success=verify_success"));
+        assertThat(provisioning.retrieve(external.getId(), zoneId).isVerified()).isTrue();
+
+        loginWithAccount("")
+                .andExpect(authenticated());
     }
 
     @Test
@@ -274,11 +538,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
-                .andReturn();
+        confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -298,8 +558,37 @@ class AccountsControllerMockMvcTests {
     }
 
     @Test
+    void creatingAnAccountKeepsClientRedirectWithQueryAsOneFormRedirectParameter() throws Exception {
+        createAccount("http://redirect.uri/page?first=1&second=2#fragment", "http://redirect.uri/page?first=1&second=2#fragment");
+    }
+
+    @Test
     void creatingAnAccountWithFallbackClientRedirect() throws Exception {
         createAccount("http://redirect.uri/fallback", null);
+    }
+
+    @Test
+    void creatingAnAccountWithFallbackClientRedirectThatIsNotARegisteredRedirectUri() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+        // the client's redirect URIs are http://redirect.uri/*, so this fallback matches none of them
+        UaaClientDetails clientDetails = createTestClient("http://other.uri/after-signup");
+
+        mockMvc.perform(post("/create_account.do")
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD)
+                        .param("client_id", clientDetails.getClientId()))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        String afterReset = confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
+
+        // signup_redirect_url is set on the client by an administrator, so it applies after the
+        // password is set even when it is not one of the client's registered redirect URIs.
+        assertRedirectsToLoginWithSingleFormRedirectUri(afterReset, "http://other.uri/after-signup");
     }
 
     @Test
@@ -320,11 +609,7 @@ class AccountsControllerMockMvcTests {
         assertThat(message.getContentString()).contains("Cloud Foundry");
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
-                .andReturn();
+        confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -375,12 +660,7 @@ class AccountsControllerMockMvcTests {
         assertThat(hasLength(link)).isTrue();
         assertThat(link).contains(subdomain + ".localhost");
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get())
-                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
-                .andReturn();
+        confirmAccountAndSetPassword("test" + generator.counter.get(), subdomain, userEmail);
 
         MvcResult mvcResult = loginWithAccount(subdomain)
                 .andExpect(redirectedUrl("/"))
@@ -425,11 +705,8 @@ class AccountsControllerMockMvcTests {
         assertThat(hasLength(link)).isTrue();
         assertThat(link).contains(subdomain + ".localhost");
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get())
-                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-                .andExpect(redirectedUrl(LOGIN_REDIRECT + "&form_redirect_uri=http://myzoneclient.example.com"))
-                .andReturn();
+        String afterReset = confirmAccountAndSetPassword("test" + generator.counter.get(), subdomain, userEmail);
+        assertRedirectsToLoginWithSingleFormRedirectUri(afterReset, "http://myzoneclient.example.com");
 
         MvcResult mvcResult = loginWithAccount(subdomain)
                 .andExpect(authenticated())
@@ -468,14 +745,29 @@ class AccountsControllerMockMvcTests {
                         .param("password_confirmation", "test-password"))
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        mockMvc.perform(get("/verify_user")
+        MvcResult verifyResult = mockMvc.perform(get("/verify_user")
                         .session(session)
                         .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT))
                 .andReturn();
 
+        String location = verifyResult.getResponse().getRedirectedUrl();
+        assertThat(location)
+                .startsWith("/reset_password?code=")
+                .contains("force_change=true");
+
         assertThat(SessionUtils.getSavedRequestSession(MockMvcUtils.getZoneSession(session)).getRedirectUrl()).isNotNull();
+
+        // Consume the reset code so the predictable code sequence does not collide with later tests.
+        String resetCode = UriComponentsBuilder.fromUriString(location).build().getQueryParams().getFirst("code");
+        mockMvc.perform(post("/reset_password.do")
+                        .with(cookieCsrf())
+                        .session(session)
+                        .param("code", resetCode)
+                        .param("email", "testuser@test.org")
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD))
+                .andExpect(status().isFound());
     }
 
     @Test
@@ -566,13 +858,26 @@ class AccountsControllerMockMvcTests {
         assertThat(result.getResponse().getContentAsString()).contains("Please agree before continuing.");
     }
 
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("/login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("password_reset");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
+    }
+
     private UaaClientDetails createTestClient() throws Exception {
+        return createTestClient("http://redirect.uri/fallback");
+    }
+
+    private UaaClientDetails createTestClient(String signupRedirectUrl) throws Exception {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(200));
         clientDetails.setClientSecret("test-client-secret");
         clientDetails.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
         clientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.uri/*"));
-        clientDetails.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://redirect.uri/fallback");
+        clientDetails.addAdditionalInformation(EmailAccountCreationService.SIGNUP_REDIRECT_URL, signupRedirectUrl);
 
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(testAccounts.getAdminClientId(),
@@ -600,11 +905,8 @@ class AccountsControllerMockMvcTests {
         assertThat(message.getContentString()).contains("Cloud Foundry");
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 
-        mockMvc.perform(get("/verify_user")
-                        .param("code", "test" + generator.counter.get()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl(LOGIN_REDIRECT + "&form_redirect_uri=" + expectedRedirectUri))
-                .andReturn();
+        String afterReset = confirmAccountAndSetPassword("test" + generator.counter.get(), "", userEmail);
+        assertRedirectsToLoginWithSingleFormRedirectUri(afterReset, expectedRedirectUri);
 
         MvcResult mvcResult = loginWithAccount("")
                 .andExpect(authenticated())
@@ -616,6 +918,44 @@ class AccountsControllerMockMvcTests {
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail()).isEqualTo(userEmail);
         assertThat(principal.getOrigin()).isEqualTo(OriginKeys.UAA);
+    }
+
+    /**
+     * Account confirmation no longer leaves a usable password: clicking the activation link sends
+     * the owner to the reset-password page to establish their own password. This helper completes
+     * that flow, confirming the account via {@code /verify_user} and setting the password to
+     * {@link #USER_PASSWORD} so the account can then be used to log in.
+     */
+    private String confirmAccountAndSetPassword(String activationCode, String subdomain, String email) throws Exception {
+        MockHttpServletRequestBuilder verify = get("/verify_user").param("code", activationCode);
+        if (hasText(subdomain)) {
+            verify.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
+        }
+        MvcResult verifyResult = mockMvc.perform(verify)
+                .andExpect(status().isFound())
+                .andReturn();
+
+        String location = verifyResult.getResponse().getRedirectedUrl();
+        assertThat(location)
+                .startsWith("/reset_password?code=")
+                .contains("force_change=true");
+        String resetCode = UriComponentsBuilder.fromUriString(location).build().getQueryParams().getFirst("code");
+
+        MockHttpServletRequestBuilder reset = post("/reset_password.do")
+                .with(cookieCsrf())
+                .param("code", resetCode)
+                .param("email", email)
+                .param("password", USER_PASSWORD)
+                .param("password_confirmation", USER_PASSWORD);
+        if (hasText(subdomain)) {
+            reset.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
+        }
+        // Returns the post-reset redirect so callers can assert the carried signup redirect.
+        return mockMvc.perform(reset)
+                .andExpect(status().isFound())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
     }
 
     private ResultActions loginWithAccount(String subdomain) throws Exception {

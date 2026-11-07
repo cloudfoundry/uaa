@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import java.nio.charset.StandardCharsets;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 import tools.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -15,10 +19,12 @@ import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -30,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -164,41 +171,61 @@ class PasswordResetEndpointMockMvcTests {
 
     @Test
     void changePasswordDoWithClientidAndRedirecturi() throws Exception {
-        String code = getExpiringCode(mockMvc, "app", "http://localhost:8080/app/", loginToken, scimUser);
-        String email = scimUser.getUserName();
+        String clientId = "password-reset-" + generator.generate();
+        String redirectUri = "https://client.example.com/callback";
+        MultitenantJdbcClientDetailsService clientDetailsService =
+                webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class);
+        clientDetailsService.addClientDetails(
+                MockMvcUtils.getClientDetailsModification(
+                        clientId,
+                        "secret",
+                        Collections.singleton("oauth"),
+                        Collections.singleton("uaa.none"),
+                        Collections.singleton("authorization_code"),
+                        "uaa.none",
+                        Set.of(redirectUri)),
+                IdentityZoneHolder.get().getId());
+        try {
+            String code = getExpiringCode(mockMvc, clientId, redirectUri, loginToken, scimUser);
+            String email = scimUser.getUserName();
 
-        MockHttpServletRequestBuilder get = get("/reset_password")
-                .param("code", code)
-                .param("email", email);
+            MockHttpServletRequestBuilder get = get("/reset_password")
+                    .param("code", code)
+                    .param("email", email);
 
-        MvcResult result = mockMvc.perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString())
-                .contains("<input type=\"hidden\" name=\"email\" value=\"%s\"/>".formatted(email));
+            MvcResult result = mockMvc.perform(get)
+                    .andExpect(status().isOk())
+                    .andReturn();
+            assertThat(result.getResponse().getContentAsString())
+                    .contains("<input type=\"hidden\" name=\"email\" value=\"%s\"/>".formatted(email));
 
-        String resultingCodeString = getCodeFromPage(result);
+            String resultingCodeString = getCodeFromPage(result);
 
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-                .param("code", resultingCodeString)
-                .param("email", email)
-                .param("password", "newpass")
-                .param("password_confirmation", "newpass")
-                .with(cookieCsrf());
+            MockHttpServletRequestBuilder post = post("/reset_password.do")
+                    .param("code", resultingCodeString)
+                    .param("email", email)
+                    .param("password", "newpass")
+                    .param("password_confirmation", "newpass")
+                    .with(cookieCsrf());
 
-        mockMvc.perform(post)
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl(webApplicationContext.getServletContext().getContextPath() + "/login?success=password_reset&form_redirect_uri=http://localhost:8080/app/"));
+            MvcResult resetResult = mockMvc.perform(post)
+                    .andExpect(status().is3xxRedirection())
+                    .andReturn();
+            assertRedirectsToLoginWithSingleFormRedirectUri(resetResult.getResponse().getRedirectedUrl(), redirectUri);
 
-        post = post("/login.do")
-                .param("username", scimUser.getUserName())
-                .param("password", "newpass")
-                .param("form_redirect_uri", "http://localhost:8080/app/")
-                .with(cookieCsrf());
+            post = post("/login.do")
+                    .session((MockHttpSession) resetResult.getRequest().getSession())
+                    .param("username", scimUser.getUserName())
+                    .param("password", "newpass")
+                    .param("form_redirect_uri", redirectUri)
+                    .with(cookieCsrf());
 
-        mockMvc.perform(post)
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("http://localhost:8080/app/"));
+            mockMvc.perform(post)
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl(redirectUri));
+        } finally {
+            clientDetailsService.removeClientDetails(clientId, IdentityZoneHolder.get().getId());
+        }
     }
 
     @Test
@@ -283,6 +310,15 @@ class PasswordResetEndpointMockMvcTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.user_id").exists())
                 .andExpect(jsonPath("$.code").isNotEmpty());
+    }
+
+    private static void assertRedirectsToLoginWithSingleFormRedirectUri(String redirectedUrl, String expectedFormRedirectUri) {
+        UriComponents redirect = UriComponentsBuilder.fromUriString(redirectedUrl).build();
+        assertThat(redirect.getPath()).endsWith("/login");
+        assertThat(redirect.getFragment()).isNull();
+        assertThat(redirect.getQueryParams()).containsOnlyKeys("success", "form_redirect_uri");
+        assertThat(redirect.getQueryParams().getFirst("success")).isEqualTo("password_reset");
+        assertThat(UriUtils.decode(redirect.getQueryParams().getFirst("form_redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(expectedFormRedirectUri);
     }
 
     private static String getExpiringCode(MockMvc mockMvc, String clientId, String redirectUri, String loginToken, ScimUser scimUser) throws Exception {

@@ -455,7 +455,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             throw new UserAlreadyVerifiedException();
         }
 
-        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, user.getPrimaryEmail(), clientId, redirectUri, REGISTRATION, identityZoneManager.getCurrentIdentityZoneId());
+        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, user.getPrimaryEmail(), clientId, redirectUri, REGISTRATION, identityZoneManager.getCurrentIdentityZoneId(), Map.of(ScimUtils.USER_PROVISIONED, "true"));
         responseBody.setVerifyLink(ScimUtils.getVerificationURL(expiringCode, identityZoneManager.getCurrentIdentityZone()));
 
         return new ResponseEntity<>(responseBody, HttpStatus.OK);

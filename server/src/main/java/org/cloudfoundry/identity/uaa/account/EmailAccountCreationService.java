@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
@@ -22,7 +23,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -52,6 +53,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ScimUserProvisioning scimUserProvisioning;
     private final MultitenantClientServices clientDetailsService;
     private final PasswordValidator passwordValidator;
+    private final ResetPasswordService resetPasswordService;
     private final IdentityZoneManager identityZoneManager;
 
     public EmailAccountCreationService(
@@ -61,6 +63,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             ScimUserProvisioning scimUserProvisioning,
             MultitenantClientServices clientDetailsService,
             PasswordValidator passwordValidator,
+            ResetPasswordService resetPasswordService,
             IdentityZoneManager identityZoneManager) {
 
         this.templateEngine = templateEngine;
@@ -69,6 +72,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
+        this.resetPasswordService = resetPasswordService;
         this.identityZoneManager = identityZoneManager;
     }
 
@@ -84,7 +88,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (!users.isEmpty()) {
                 if (users.getFirst().isVerified()) {
-                    throw new UaaException("User already active.", HttpStatus.CONFLICT.value());
+                    messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, buildAccountExistsSubjectText(), getAccountExistsEmailHtml(email));
                 } else {
                     generateAndSendCode(email, clientId, subject, users.getFirst().getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
                 }
@@ -121,14 +125,57 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
-        ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), identityZoneManager.getCurrentIdentityZoneId());
-        user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
+        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
+        ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"), zoneId);
 
         String clientId = data.get("client_id");
         String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
+
+        if (user.isVerified()) {
+            // The account is already verified, for example through another activation link. Leave its password
+            // alone: the owner has set it, or can set it through forgot password.
+            return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), getRedirect(clientId, redirectUri));
+        }
+
+        if (Boolean.parseBoolean(data.get(ScimUtils.USER_PROVISIONED)) || !OriginKeys.UAA.equals(user.getOrigin())) {
+            // The code was requested through the user API, so a caller that may create users set the password.
+            // Opening the link only has to verify the email address. The same goes for a user of another origin,
+            // whose password is not managed here: the reset code below is looked up by username in the uaa origin,
+            // so it could belong to a different account.
+            user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion(), zoneId);
+            return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), getRedirect(clientId, redirectUri));
+        }
+
+        // Confirming the activation link proves ownership of the email address, but it does not
+        // prove that the person confirming is the one who chose the password on the registration
+        // form. Atomically discard that password, require a change, and verify the account. The
+        // conditional update also ensures that only one of several concurrent activation links can
+        // claim the account; a losing request must not overwrite a password the owner has since set.
+        try {
+            user = scimUserProvisioning.verifyUserAndSetPassword(
+                    user.getId(),
+                    new AlphanumericRandomValueStringGenerator(40).generate(),
+                    true,
+                    zoneId);
+        } catch (OptimisticLockingFailureException e) {
+            user = scimUserProvisioning.retrieve(data.get("user_id"), zoneId);
+            if (!user.isVerified()) {
+                throw e;
+            }
+            return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), getRedirect(clientId, redirectUri));
+        }
+
+        // Resolve the signup redirect (honouring the client's signup_redirect_url fallback) so it is
+        // preserved across the reset flow and applied once the owner has set their password.
         String redirectLocation = getRedirect(clientId, redirectUri);
 
-        return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
+        // Issue an ownership-bound, single-use code so the owner sets their password through the
+        // same reset flow used for password recovery (no previous password is required).
+        ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(user.getUserName(), clientId, redirectLocation);
+
+        AccountCreationResponse response = new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
+        response.setPasswordResetCode(forgotPasswordInfo.getResetPasswordCode().getCode());
+        return response;
     }
 
     private String getRedirect(String clientId, String redirectUri) {
@@ -186,6 +233,23 @@ public class EmailAccountCreationService implements AccountCreationService {
         } else {
             return "Activate your account";
         }
+    }
+
+    private String buildAccountExistsSubjectText() {
+        return "You already have an account";
+    }
+
+    private String getAccountExistsEmailHtml(String email) {
+        IdentityZone currentIdentityZone = identityZoneManager.getCurrentIdentityZone();
+        final Context ctx = new Context();
+        String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
+        if (currentIdentityZone.isUaa()) {
+            ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
+        } else {
+            ctx.setVariable("serviceName", currentIdentityZone.getName());
+        }
+        ctx.setVariable("email", email);
+        return templateEngine.process("account_exists", ctx);
     }
 
     private String getEmailHtml(String code, String email, IdentityZone currentIdentityZone) {

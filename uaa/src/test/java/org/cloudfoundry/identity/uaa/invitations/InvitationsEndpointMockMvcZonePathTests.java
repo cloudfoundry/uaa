@@ -249,6 +249,52 @@ class InvitationsEndpointMockMvcZonePathTests {
         assertResponseAndCodeCorrect(expiringCodeStore, new String[]{email}, redirectUrl, mode, zoneResult.getIdentityZone(), response, zonedClientDetails);
     }
 
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void inviteVerifiedUserWithinZoneWithScimInviteOnly_returnsUserIdAndLinkByDefault(ZoneResolutionMode mode) throws Exception {
+        InviteZone zone = createInviteZone(mockMvc, webApplicationContext);
+        ScimUser verifiedUser = createVerifiedUserInZone(mockMvc, zone, "verified-" + generator.generate().toLowerCase() + "@example.com");
+
+        InvitationsResponse response = inviteWithinZone(mockMvc, mode, zone, zone.scimInviteUserToken(), verifiedUser.getPrimaryEmail());
+
+        assertInvitedWithUserIdAndLink(response, verifiedUser);
+    }
+
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "scim.invite.allow_reinvite=false")
+    class WhenReinviteIsNotAllowed {
+
+        @Autowired // New mockMvc tied to the new web app context created by @TestPropertySource
+        protected MockMvc mockMvc;
+
+        @Autowired
+        protected WebApplicationContext webApplicationContext;
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void inviteVerifiedUserWithinZoneWithScimInviteOnly_isReportedAsAlreadyVerified(ZoneResolutionMode mode) throws Exception {
+            InviteZone zone = createInviteZone(mockMvc, webApplicationContext);
+            ScimUser verifiedUser = createVerifiedUserInZone(mockMvc, zone, "verified-" + generator.generate().toLowerCase() + "@example.com");
+
+            InvitationsResponse response = inviteWithinZone(mockMvc, mode, zone, zone.scimInviteUserToken(), verifiedUser.getPrimaryEmail());
+
+            assertReportedAsAlreadyVerified(response, verifiedUser.getPrimaryEmail());
+        }
+
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void inviteVerifiedUserWithinZoneWithScimRead_returnsUserIdAndLink(ZoneResolutionMode mode) throws Exception {
+            InviteZone zone = createInviteZone(mockMvc, webApplicationContext);
+            ScimUser verifiedUser = createVerifiedUserInZone(mockMvc, zone, "verified-" + generator.generate().toLowerCase() + "@example.com");
+            String scimReadAndInviteToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, zone.clientId(), zone.clientSecret(), "scim.read scim.invite", zone.subdomain());
+
+            InvitationsResponse response = inviteWithinZone(mockMvc, mode, zone, scimReadAndInviteToken, verifiedUser.getPrimaryEmail());
+
+            assertInvitedWithUserIdAndLink(response, verifiedUser);
+        }
+    }
+
     @Nested
     @DefaultTestContext
     @TestPropertySource(
@@ -768,6 +814,70 @@ class InvitationsEndpointMockMvcZonePathTests {
                                                                              String... emails) throws Exception {
         return MockMvcUtils.sendRequestWithTokenAndReturnResponse(webApplicationContext,
                 mockMvc, token, subdomain, clientId, redirectUri, emails);
+    }
+
+    private record InviteZone(String subdomain, IdentityZone identityZone, String clientId, String clientSecret, String scimInviteUserToken) {
+    }
+
+    private InviteZone createInviteZone(MockMvc mockMvc, WebApplicationContext webApplicationContext) throws Exception {
+        String subdomain = generator.generate().toLowerCase();
+        UaaClientDetails adminClient = new UaaClientDetails("admin", null, null, "client_credentials",
+                "clients.admin,scim.read,scim.write,idps.write,uaa.admin", "http://redirect.url");
+        adminClient.setClientSecret("admin-secret");
+        IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, adminClient, IdentityZoneHolder.getCurrentZoneId());
+
+        String zonedClientId = generator.generate().toLowerCase();
+        String zonedClientSecret = generator.generate().toLowerCase();
+        MockMvcUtils.createClient(mockMvc, zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret,
+                Collections.singleton("oauth"), Arrays.asList("scim.read", "scim.invite"), Arrays.asList("client_credentials", "password"),
+                "scim.read,scim.invite", Collections.singleton("http://redirect.url"), zoneResult.getIdentityZone());
+        String userToken = MockMvcUtils.getScimInviteUserToken(mockMvc, zonedClientId, zonedClientSecret, zoneResult.getIdentityZone(), "admin", "admin-secret");
+        return new InviteZone(subdomain, zoneResult.getIdentityZone(), zonedClientId, zonedClientSecret, userToken);
+    }
+
+    private static ScimUser createVerifiedUserInZone(MockMvc mockMvc, InviteZone zone, String email) throws Exception {
+        String zoneAdminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "admin-secret", "", zone.subdomain());
+        ScimUser user = new ScimUser(null, email, "givenName", "familyName");
+        user.setPrimaryEmail(email);
+        user.setPassword("password");
+        ScimUser created = MockMvcUtils.createUserInZone(mockMvc, zoneAdminToken, user, zone.subdomain());
+        assertThat(created.isVerified()).isTrue();
+        return created;
+    }
+
+    private static InvitationsResponse inviteWithinZone(MockMvc mockMvc, ZoneResolutionMode mode, InviteZone zone, String token, String... emails) throws Exception {
+        MockHttpServletRequestBuilder post = mode.createRequestBuilder(zone.subdomain(), HttpMethod.POST, "/invite_users")
+                .param(OAuth2Utils.CLIENT_ID, zone.clientId())
+                .param(OAuth2Utils.REDIRECT_URI, "example.com")
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content(writeValueAsString(new InvitationsRequest(emails)));
+        MvcResult mvcResult = mockMvc.perform(post)
+                .andExpect(status().isOk())
+                .andReturn();
+        return readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
+    }
+
+    private static void assertInvitedWithUserIdAndLink(InvitationsResponse response, ScimUser user) {
+        assertThat(response.getFailedInvites()).isEmpty();
+        assertThat(response.getNewInvites()).singleElement().satisfies(invitee -> {
+            assertThat(invitee.getEmail()).isEqualTo(user.getPrimaryEmail());
+            assertThat(invitee.getUserId()).isEqualTo(user.getId());
+            assertThat(invitee.isSuccess()).isTrue();
+            assertThat(invitee.getInviteLink()).isNotNull();
+        });
+    }
+
+    private static void assertReportedAsAlreadyVerified(InvitationsResponse response, String email) {
+        assertThat(response.getNewInvites()).isEmpty();
+        assertThat(response.getFailedInvites()).singleElement().satisfies(invitee -> {
+            assertThat(invitee.getEmail()).isEqualTo(email);
+            assertThat(invitee.isSuccess()).isFalse();
+            assertThat(invitee.getErrorCode()).isEqualTo("user.already-verified");
+            assertThat(invitee.getErrorMessage()).isEqualTo("The user is already verified.");
+            assertThat(invitee.getUserId()).isNull();
+            assertThat(invitee.getInviteLink()).isNull();
+        });
     }
 
     private static void assertResponseAndCodeCorrect(ExpiringCodeStore expiringCodeStore, String[] emails, String redirectUrl, IdentityZone zone, InvitationsResponse response, ClientDetails clientDetails) {

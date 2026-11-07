@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,13 +13,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.support.ResourcePropertySource;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,14 +39,16 @@ class ForcePasswordChangeControllerTest extends TestClassNullifier {
 
     private MockMvc mockMvc;
     private ResourcePropertySource mockResourcePropertySource;
+    private ResetPasswordService mockResetPasswordService;
     private UaaAuthentication mockUaaAuthentication;
 
     @BeforeEach
     void beforeEach() {
         mockResourcePropertySource = mock(ResourcePropertySource.class);
+        mockResetPasswordService = mock(ResetPasswordService.class);
         ForcePasswordChangeController controller = new ForcePasswordChangeController(
                 mockResourcePropertySource,
-                mock(ResetPasswordService.class),
+                mockResetPasswordService,
                 new IdentityZoneManagerImpl()
         );
         mockMvc = MockMvcBuilders
@@ -79,6 +85,7 @@ class ForcePasswordChangeControllerTest extends TestClassNullifier {
     void handleForcePasswordChange(String url) throws Exception {
         mockMvc.perform(
                         post(url)
+                                .session(sessionWithPasswordChangePending())
                                 .param("password", "pwd")
                                 .param("password_confirmation", "pwd")
                                 .contextPath("/uaa"))
@@ -92,6 +99,7 @@ class ForcePasswordChangeControllerTest extends TestClassNullifier {
     void handleForcePasswordChangeWithRedirect(String url) throws Exception {
         mockMvc.perform(
                         post(url)
+                                .session(sessionWithPasswordChangePending())
                                 .param("password", "pwd")
                                 .param("password_confirmation", "pwd"))
                 .andExpect(status().isFound())
@@ -100,12 +108,32 @@ class ForcePasswordChangeControllerTest extends TestClassNullifier {
 
     @ParameterizedTest
     @ValueSource(strings = {"/force_password_change", "/force_password_change/"})
+    void submitWhenNoPasswordChangeIsPending(String url) throws Exception {
+        mockMvc.perform(
+                        post(url)
+                                .param("password", "pwd")
+                                .param("password_confirmation", "pwd"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/"));
+        verify(mockResetPasswordService, never()).resetUserPassword(any(), any());
+        verify(mockUaaAuthentication, never()).setAuthenticatedTime(anyLong());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/force_password_change", "/force_password_change/"})
     void passwordAndConfirmAreDifferent(String url) throws Exception {
         when(mockResourcePropertySource.getProperty("force_password_change.form_error")).thenReturn("Passwords must match and not be empty.");
         mockMvc.perform(
                         post(url)
+                                .session(sessionWithPasswordChangePending())
                                 .param("password", "pwd")
                                 .param("password_confirmation", "nopwd"))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    private static MockHttpSession sessionWithPasswordChangePending() {
+        MockHttpSession session = new MockHttpSession();
+        SessionUtils.setPasswordChangeRequired(session, true);
+        return session;
     }
 }

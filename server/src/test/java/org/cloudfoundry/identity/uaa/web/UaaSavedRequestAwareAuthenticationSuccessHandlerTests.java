@@ -80,6 +80,19 @@ class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     }
 
     @Test
+    void serverValidatedRedirectAllowsOffHostTargetAndIsConsumed() {
+        String redirectUri = "https://client.example.com/callback";
+        HttpSession session = request.getSession();
+        session.setAttribute(SPRING_SECURITY_SAVED_REQUEST, mock(SavedRequest.class));
+
+        UaaSavedRequestAwareAuthenticationSuccessHandler.saveTrustedRedirect(session, redirectUri);
+
+        assertThat(session.getAttribute(SPRING_SECURITY_SAVED_REQUEST)).isNull();
+        assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo(redirectUri);
+        assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo("/");
+    }
+
+    @Test
     void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl_notWhitelisted() throws Exception {
         String redirectUri = "https://test.com/test2";
         request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);

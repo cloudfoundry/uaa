@@ -72,7 +72,11 @@ This is useful in deployments where wildcard DNS or wildcard TLS certificates ar
 
 The refactoring into `resolveZoneBySubdomain()`, `handleZoneNotFound()`, and `doFilterWithZone()` is a readability improvement that also makes each responsibility independently testable.
 
-**Default zone path (`/z/default/`):** `ZonePathContextRewritingFilter` does **not** set `ZONE_SUBDOMAIN_FROM_PATH` for `/z/default/` requests. This means `resolveEffectiveSubdomain()` sees `null` for the path attribute and falls through to hostname-based resolution, which naturally resolves to the default zone. No special-case "default" handling is needed in this filter.
+**Default zone path (`/z/default/`):** `ZonePathContextRewritingFilter` sets
+`ZONE_SUBDOMAIN_FROM_PATH` to the empty string for `/z/default/` requests. This
+explicitly selects the default zone. A tenant hostname combined with
+`/z/default/` is rejected as ambiguous instead of allowing the hostname to
+override the path.
 
 ### 2.2 `OpenIdConnectEndpoints.java`
 
@@ -131,7 +135,13 @@ The outermost filter in the chain (`Ordered.HIGHEST_PRECEDENCE + 1`). For reques
 - **Rewrites the request** by wrapping it in `ZonePathRewrittenRequest` (a private `HttpServletRequestWrapper`) that moves `/z/{subdomain}` from the servlet path into the context path. Downstream code sees `getContextPath()` = `/uaa/z/myzone` and `getServletPath()` = `/login`.
 - **Sets request attributes** `ZONE_SUBDOMAIN_FROM_PATH` (the subdomain string) and `ZONE_ORIGINAL_CONTEXT_PATH` (the pre-rewrite context path like `/uaa`), consumed by `IdentityZoneResolvingFilter` and `ZoneAwareStaticResourceLinkBuilder`.
 - **Wraps the response** in `CookiePathRewritingResponse` which intercepts `addCookie()`, `addHeader("Set-Cookie", ...)`, and `setHeader("Set-Cookie", ...)` to rewrite cookie paths from `/` back to the original context path (e.g., `/uaa`).
-- **Default zone path:** For the subdomain `"default"`, rewrites so the context path **includes** `/z/default` (e.g. `/uaa/z/default`), like any other zone path. Does **not** set `ZONE_SUBDOMAIN_FROM_PATH` so the default zone is resolved. `ZoneContextPathSessionRequestWrapper` maps this context path to the same session key as the root, so `/profile` and `/z/default/profile` share the same cookie/session. See "Default zone path" below.
+- **Default zone path:** For the subdomain `"default"`, rewrites so the context
+  path **includes** `/z/default` (e.g. `/uaa/z/default`), like any other zone
+  path. Sets `ZONE_SUBDOMAIN_FROM_PATH` to the empty string to explicitly select
+  the default zone. `ZoneContextPathSessionRequestWrapper` maps this context
+  path to the same session key as the root, so `/profile` and
+  `/z/default/profile` share the same cookie/session. See "Default zone path"
+  below.
 - **Passes through** non-zone requests unchanged (but still wraps the response for cookie path normalization when a context path is present).
 
 #### Default zone path

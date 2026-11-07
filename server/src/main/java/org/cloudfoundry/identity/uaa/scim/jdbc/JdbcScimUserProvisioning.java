@@ -97,6 +97,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String VERIFY_USER_SQL = "update users set verified=? where id=? and identity_zone_id=?";
 
+    public static final String VERIFY_USER_AND_SET_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=?, passwd_change_required=?, verified=? where id=? and identity_zone_id=? and verified=?";
+
     public static final String DELETE_USER_SQL = "delete from users where id=? and identity_zone_id=?";
 
     public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
@@ -485,6 +487,32 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (updated == 0) {
             throw new OptimisticLockingFailureException(ATTEMPT_UPDATE_ERROR_MESSAGE.formatted(user.getId(),
                     user.getVersion(), version));
+        }
+        if (updated > 1) {
+            throw new IncorrectResultSizeDataAccessException(1);
+        }
+        return user;
+    }
+
+    @Override
+    public ScimUser verifyUserAndSetPassword(String id, String newPassword, boolean passwordChangeRequired, String zoneId)
+            throws ScimResourceNotFoundException {
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        int updated = jdbcTemplate.update(VERIFY_USER_AND_SET_PASSWORD_SQL, ps -> {
+            Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+            ps.setTimestamp(1, timestamp);
+            ps.setString(2, encodedPassword);
+            ps.setTimestamp(3, getPasswordLastModifiedTimestamp(timestamp));
+            ps.setBoolean(4, passwordChangeRequired);
+            ps.setBoolean(5, true);
+            ps.setString(6, id);
+            ps.setString(7, zoneId);
+            ps.setBoolean(8, false);
+        });
+
+        ScimUser user = retrieve(id, zoneId);
+        if (updated == 0) {
+            throw new OptimisticLockingFailureException("Attempt to activate already verified user " + id);
         }
         if (updated > 1) {
             throw new IncorrectResultSizeDataAccessException(1);

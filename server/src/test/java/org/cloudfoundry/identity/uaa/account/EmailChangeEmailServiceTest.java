@@ -27,6 +27,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -43,6 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.account.EmailChangeEmailService.CHANGE_EMAIL_REDIRECT_URL;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
@@ -52,6 +55,7 @@ import static org.mockito.Mockito.contains;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -151,7 +155,10 @@ class EmailChangeEmailServiceTest {
                 eq(zoneId))
         ).thenReturn(Collections.singletonList(new ScimUser()));
 
-        assertThatThrownBy(() -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null)).asInstanceOf(InstanceOfAssertFactories.throwable(UaaException.class));
+        assertThatCode(() -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null)).doesNotThrowAnyException();
+
+        verify(mockEmailService).sendMessage(eq("new@example.com"), any(MessageType.class), anyString(), anyString());
+        verify(mockExpiringCodeStore, never()).generateCode(anyString(), any(Timestamp.class), anyString(), anyString());
     }
 
     @Test
@@ -303,14 +310,55 @@ class EmailChangeEmailServiceTest {
         assertThat(response).containsEntry("redirect_url", "http://fallback.url/redirect");
     }
 
+    @Test
+    void completeVerificationWithoutFallbackGivesNoRedirectWhenClientHasNoRegisteredUris() {
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, "authorization_grant", null, null);
+
+        Map<String, String> response = setUpCompleteActivation("user@example.com", "app", "http://other.example.com/page", clientDetails);
+
+        assertThat(response).containsEntry("redirect_url", null);
+    }
+
+    @Test
+    void completeVerificationWithoutFallbackGivesNoRedirectWhenRequestedUriMatchesNoRegisteredUri() {
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
+
+        Map<String, String> response = setUpCompleteActivation("user@example.com", "app", "http://other.example.com/page", clientDetails);
+
+        assertThat(response).containsEntry("redirect_url", null);
+    }
+
+    @ParameterizedTest
+    @NullSource
+    void completeVerificationWithoutFallbackGivesNoRedirectWhenNoUriIsRequested(String requestedRedirectUri) {
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
+
+        Map<String, String> response = setUpCompleteActivation("user@example.com", "app", requestedRedirectUri, clientDetails);
+
+        assertThat(response).containsEntry("redirect_url", null);
+    }
+
+    @Test
+    void completeVerificationWithoutFallbackKeepsRequestedUriThatMatchesRegisteredUri() {
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
+
+        Map<String, String> response = setUpCompleteActivation("user@example.com", "app", "http://app.com/redirect", clientDetails);
+
+        assertThat(response).containsEntry("redirect_url", "http://app.com/redirect");
+    }
+
     private Map<String, String> setUpCompleteActivation(String username, String clientId, String redirectUri) {
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
+        clientDetails.addAdditionalInformation(CHANGE_EMAIL_REDIRECT_URL, "http://fallback.url/redirect");
+        return setUpCompleteActivation(username, clientId, redirectUri, clientDetails);
+    }
+
+    private Map<String, String> setUpCompleteActivation(String username, String clientId, String redirectUri, UaaClientDetails clientDetails) {
         Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", "user-001");
         codeData.put("client_id", clientId);
         codeData.put("redirect_uri", redirectUri);
         codeData.put("email", "new@example.com");
-        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
-        clientDetails.addAdditionalInformation(CHANGE_EMAIL_REDIRECT_URL, "http://fallback.url/redirect");
 
         when(mockExpiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", username, "", "");

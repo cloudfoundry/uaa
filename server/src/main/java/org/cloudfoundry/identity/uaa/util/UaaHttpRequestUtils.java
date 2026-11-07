@@ -70,6 +70,9 @@ import static java.util.Arrays.stream;
 public abstract class UaaHttpRequestUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
+    private static final String INVITATION_ACCEPTANCE_ATTRIBUTE = "IS_INVITE_ACCEPTANCE";
+    private static final String INVITED_USER_ID_ATTRIBUTE = "user_id";
+    private static final String INVITATION_ORIGIN_ATTRIBUTE = "invitation_origin";
 
     record HttpClientConfig(
             int poolSize,
@@ -259,20 +262,42 @@ public abstract class UaaHttpRequestUtils {
     }
 
     public static boolean isAcceptedInvitationAuthentication() {
-        try {
-            RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
-            if (attr != null) {
-                Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
-                if (result != null) {
-                    return result;
-                }
-            }
-        } catch (IllegalStateException _) {
-            //nothing bound on thread.
-            logger.debug("Unable to retrieve request attributes looking for invitation.");
+        return Boolean.TRUE.equals(getInvitationSessionAttribute(INVITATION_ACCEPTANCE_ATTRIBUTE));
+    }
 
+    public static String getInvitedUserId() {
+        return (String) getInvitationSessionAttribute(INVITED_USER_ID_ATTRIBUTE);
+    }
+
+    public static String getInvitationOrigin() {
+        return (String) getInvitationSessionAttribute(INVITATION_ORIGIN_ATTRIBUTE);
+    }
+
+    public static void setInvitationSessionAttributes(String userId, String origin) {
+        RequestAttributes attributes = RequestContextHolder.currentRequestAttributes();
+        attributes.setAttribute(INVITATION_ACCEPTANCE_ATTRIBUTE, true, RequestAttributes.SCOPE_SESSION);
+        attributes.setAttribute(INVITED_USER_ID_ATTRIBUTE, userId, RequestAttributes.SCOPE_SESSION);
+        attributes.setAttribute(INVITATION_ORIGIN_ATTRIBUTE, origin, RequestAttributes.SCOPE_SESSION);
+    }
+
+    public static void clearInvitationSessionAttributes() {
+        try {
+            RequestAttributes attributes = RequestContextHolder.currentRequestAttributes();
+            attributes.removeAttribute(INVITATION_ACCEPTANCE_ATTRIBUTE, RequestAttributes.SCOPE_SESSION);
+            attributes.removeAttribute(INVITED_USER_ID_ATTRIBUTE, RequestAttributes.SCOPE_SESSION);
+            attributes.removeAttribute(INVITATION_ORIGIN_ATTRIBUTE, RequestAttributes.SCOPE_SESSION);
+        } catch (IllegalStateException _) {
+            logger.debug("Unable to retrieve request attributes while clearing invitation.");
         }
-        return false;
+    }
+
+    private static Object getInvitationSessionAttribute(String name) {
+        try {
+            return RequestContextHolder.currentRequestAttributes().getAttribute(name, RequestAttributes.SCOPE_SESSION);
+        } catch (IllegalStateException _) {
+            logger.debug("Unable to retrieve request attributes looking for invitation.");
+            return null;
+        }
     }
 
     private static class UaaConnectionKeepAliveStrategy implements ConnectionKeepAliveStrategy {

@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -25,6 +26,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Controller
@@ -56,6 +59,8 @@ public class ChangeEmailController {
             @RequestParam(required = false, value = "redirect_uri") String redirectUri,
             RedirectAttributes redirectAttributes, HttpServletResponse response) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
+        model.addAttribute("client_id", clientId);
+        model.addAttribute("redirect_uri", redirectUri);
 
         if (result.hasErrors()) {
             model.addAttribute("error_message_code", "invalid_email");
@@ -72,16 +77,7 @@ public class ChangeEmailController {
         String userId = ((UaaPrincipal) securityContext.getAuthentication().getPrincipal()).getId();
         String userEmail = ((UaaPrincipal) securityContext.getAuthentication().getPrincipal()).getName();
 
-        try {
-            changeEmailService.beginEmailChange(userId, userEmail, newEmail.getNewEmail(), clientId, redirectUri);
-        } catch (UaaException e) {
-            if (e.getHttpStatus() == 409) {
-                model.addAttribute("error_message_code", "username_exists");
-                model.addAttribute("email", ((UaaPrincipal) securityContext.getAuthentication().getPrincipal()).getEmail());
-                response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
-                return "change_email";
-            }
-        }
+        changeEmailService.beginEmailChange(userId, userEmail, newEmail.getNewEmail(), clientId, redirectUri);
 
         return "redirect:email_sent?code=email_change";
     }
@@ -125,7 +121,10 @@ public class ChangeEmailController {
             if (redirectLocation == null) {
                 return "redirect:login?success=change_email_success";
             } else {
-                return "redirect:login?success=change_email_success&form_redirect_uri=" + redirectLocation;
+                UaaSavedRequestAwareAuthenticationSuccessHandler.saveTrustedRedirect(
+                        request.getSession(),
+                        redirectLocation);
+                return "redirect:login?success=change_email_success&form_redirect_uri=" + URLEncoder.encode(redirectLocation, StandardCharsets.UTF_8);
             }
         }
     }

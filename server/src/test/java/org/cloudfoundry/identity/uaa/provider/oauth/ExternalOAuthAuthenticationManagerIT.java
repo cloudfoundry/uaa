@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -61,6 +62,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -1060,6 +1062,50 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
+    void invitedUser_isRejectedWhenIdentityProviderDoesNotMatchInvitation() {
+        try {
+            setUpInvitedUser();
+            UaaHttpRequestUtils.setInvitationSessionAttributes("user-id", "other-origin");
+            claims.remove("preferred_username");
+            claims.put("preferred_username", "marissa@bloggs.com");
+            mockToken();
+
+            assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
+                    .isInstanceOf(BadCredentialsException.class)
+                    .hasMessageContaining("identity provider does not match");
+
+            ArgumentCaptor<ApplicationEvent> eventCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+            verify(publisher, atLeast(0)).publishEvent(eventCaptor.capture());
+            assertThat(eventCaptor.getAllValues()).noneMatch(InvitedUserAuthenticatedEvent.class::isInstance);
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void invitedVerifiedUser_isRejectedWhenTokenHasNoEmail() {
+        try {
+            setUpInvitedUser(true);
+            assertThat(userDatabase.retrieveUserById("user-id").isVerified()).isTrue();
+            addTheUserOnAuth();
+
+            claims.remove("email");
+            claims.put("preferred_username", "someone-else");
+            mockToken();
+
+            assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
+                    .isInstanceOf(BadCredentialsException.class)
+                    .hasMessageContaining("Authenticated email doesn't match invited email");
+
+            ArgumentCaptor<ApplicationEvent> eventCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+            verify(publisher, atLeast(0)).publishEvent(eventCaptor.capture());
+            assertThat(eventCaptor.getAllValues()).noneMatch(InvitedUserAuthenticatedEvent.class::isInstance);
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
     void loginAndValidateSignatureUsingTokenKeyEndpoint() throws Exception {
         config.setTokenKeyUrl(URI.create("http://localhost/token_key").toURL());
         config.setTokenKey(null);
@@ -1418,10 +1464,15 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     private void setUpInvitedUser() {
+        setUpInvitedUser(false);
+    }
+
+    private void setUpInvitedUser(boolean verified) {
         UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
                 .withUsername("marissa@bloggs.com")
                 .withPassword("")
                 .withEmail("marissa@bloggs.com")
+                .withVerified(verified)
                 .withGivenName("Marissa_Old")
                 .withFamilyName("Bloggs_Old")
                 .withId("user-id")
@@ -1432,9 +1483,8 @@ class ExternalOAuthAuthenticationManagerIT {
         userDatabase.addUser(existingShadowUser);
 
         RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
-        attributes.setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
-        attributes.setAttribute("user_id", existingShadowUser.getId(), RequestAttributes.SCOPE_SESSION);
         RequestContextHolder.setRequestAttributes(attributes);
+        UaaHttpRequestUtils.setInvitationSessionAttributes(existingShadowUser.getId(), ORIGIN);
     }
 
     // Asserts that the outgoing request body contains all the given substrings.

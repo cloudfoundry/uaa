@@ -7,6 +7,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -151,6 +153,32 @@ class PasswordChangeUiRequiredFilterTest {
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, never()).doFilter(any(), any());
         verify(mockHttpServletResponse, times(1)).sendRedirect("/");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void tryingAccessForcePasswordPageWithTrailingSlash(String method) throws Exception {
+        mockHttpServletRequest.setRequestURI("/force_password_change/");
+        mockHttpServletRequest.setMethod(method);
+        SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
+        when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
+        setRequiresPasswordChange(mockHttpServletRequest, false);
+        passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
+        verify(mockFilterChain, never()).doFilter(any(), any());
+        verify(mockHttpServletResponse, times(1)).sendRedirect("/");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"GET", "POST"})
+    void changePasswordPageWithTrailingSlashWhenChangeIsRequired(String method) throws Exception {
+        mockHttpServletRequest.setRequestURI("/force_password_change/");
+        mockHttpServletRequest.setMethod(method);
+        SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
+        when(mockUaaAuthentication.isAuthenticated()).thenReturn(true);
+        setRequiresPasswordChange(mockHttpServletRequest, true);
+        passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
+        verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));
+        verify(mockHttpServletResponse, never()).sendRedirect(anyString());
     }
 
     @Test

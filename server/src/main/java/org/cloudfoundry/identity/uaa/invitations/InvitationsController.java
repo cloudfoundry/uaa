@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -29,6 +30,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -61,6 +63,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -134,14 +137,18 @@ public class InvitationsController {
             boolean isUaaUserAndVerified =
                     UAA.equals(provider.getType()) && user.isVerified();
             boolean isExternalUserAndAcceptedInvite =
-                    !UAA.equals(provider.getType()) && UaaHttpRequestUtils.isAcceptedInvitationAuthentication();
+                    !UAA.equals(provider.getType())
+                            && UaaHttpRequestUtils.isAcceptedInvitationAuthentication()
+                            && Objects.equals(codeData.get("user_id"), UaaHttpRequestUtils.getInvitedUserId())
+                            && Objects.equals(origin, UaaHttpRequestUtils.getInvitationOrigin());
             if (isUaaUserAndVerified || isExternalUserAndAcceptedInvite) {
                 AcceptedInvitation accepted = invitationsService.acceptInvitation(code, "");
+                UaaHttpRequestUtils.clearInvitationSessionAttributes();
                 String redirect = "redirect:" + accepted.getRedirectUri();
                 log.debug("Redirecting accepted invitation for email:%s, id:%s to URL:%s".formatted(codeData.get(EMAIL), codeData.get("user_id"), redirect));
                 return redirect;
             } else if (SAML.equals(provider.getType())) {
-                setRequestAttributes(request, code, user);
+                setRequestAttributes(request, code, user, origin);
 
                 SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
 
@@ -149,7 +156,7 @@ public class InvitationsController {
                 log.debug("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s".formatted(codeData.get(EMAIL), codeData.get("user_id"), redirect));
                 return redirect;
             } else if (OIDC10.equals(provider.getType()) || OAUTH20.equals(provider.getType())) {
-                setRequestAttributes(request, code, user);
+                setRequestAttributes(request, code, user, origin);
 
                 AbstractExternalOAuthIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), AbstractExternalOAuthIdentityProviderDefinition.class);
 
@@ -190,9 +197,8 @@ public class InvitationsController {
         }
     }
 
-    private void setRequestAttributes(HttpServletRequest request, String newCode, UaaUser user) {
-        RequestContextHolder.getRequestAttributes().setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
-        RequestContextHolder.getRequestAttributes().setAttribute("user_id", user.getId(), RequestAttributes.SCOPE_SESSION);
+    private void setRequestAttributes(HttpServletRequest request, String newCode, UaaUser user, String origin) {
+        UaaHttpRequestUtils.setInvitationSessionAttributes(user.getId(), origin);
         HttpServletRequestWrapper wrapper = getNewCodeWrapper(request, newCode);
 
         SavedRequest savedRequest = new DefaultSavedRequest(wrapper);
@@ -245,6 +251,7 @@ public class InvitationsController {
             @RequestParam(value = "does_user_consent", required = false) boolean doesUserConsent,
             Model model,
             RedirectAttributes redirectAttributes,
+            HttpServletRequest request,
             HttpServletResponse response) {
 
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
@@ -253,8 +260,10 @@ public class InvitationsController {
 
         final ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
 
-        if (expiringCode == null || expiringCode.getData() == null) {
-            log.debug("Failing invitation. Code not found.");
+        if (expiringCode == null
+                || expiringCode.getData() == null
+                || (expiringCode.getIntent() != null && !INVITATION.name().equals(expiringCode.getIntent()))) {
+            log.debug("Failing invitation. Code not found or intent is invalid.");
             SecurityContextHolder.clearContext();
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
@@ -285,9 +294,13 @@ public class InvitationsController {
         } catch (HttpClientErrorException _) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
+        UaaHttpRequestUtils.clearInvitationSessionAttributes();
         String res = "redirect:/login?success=invite_accepted";
         if (!invitation.getRedirectUri().equals("/home")) {
-            res += "&" + FORM_REDIRECT_PARAMETER + "=" + invitation.getRedirectUri();
+            UaaSavedRequestAwareAuthenticationSuccessHandler.saveTrustedRedirect(
+                    request.getSession(),
+                    invitation.getRedirectUri());
+            res += "&" + FORM_REDIRECT_PARAMETER + "=" + URLEncoder.encode(invitation.getRedirectUri(), StandardCharsets.UTF_8);
         }
         return res;
     }
@@ -314,14 +327,31 @@ public class InvitationsController {
             @RequestParam("enterprise_password") String password,
             @RequestParam("enterprise_email") String email,
             @RequestParam String code,
-            Model model, HttpServletResponse response) {
+            Model model, HttpServletRequest request, HttpServletResponse response) {
 
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
-        if (expiringCode == null) {
-            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_enterprise.do");
+        if (expiringCode == null
+                || (expiringCode.getIntent() != null && !INVITATION.name().equals(expiringCode.getIntent()))) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
 
-        String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000 * 60 * 10)), null, identityZoneManager.getCurrentIdentityZoneId()).getCode();
+        Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
+        });
+        if (!OriginKeys.LDAP.equals(data.get(ORIGIN))) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
+        }
+
+        ScimUser user;
+        try {
+            user = userProvisioning.retrieve(data.get("user_id"), identityZoneManager.getCurrentIdentityZoneId());
+        } catch (ScimResourceNotFoundException _) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
+        }
+        if (!OriginKeys.LDAP.equals(user.getOrigin())) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
+        }
+
+        String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000 * 60 * 10)), expiringCode.getIntent(), identityZoneManager.getCurrentIdentityZoneId()).getCode();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
         AuthenticationManager authenticationManager;
@@ -340,13 +370,10 @@ public class InvitationsController {
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(token);
-            Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
-            });
-            ScimUser user = userProvisioning.retrieve(data.get("user_id"), identityZoneManager.getCurrentIdentityZoneId());
             if (!user.getPrimaryEmail().equalsIgnoreCase(((ExtendedLdapUserDetails) authentication.getPrincipal()).getEmailAddress())) {
                 model.addAttribute(EMAIL, data.get(EMAIL));
                 model.addAttribute("provider", OriginKeys.LDAP);
-                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), null, identityZoneManager.getCurrentIdentityZoneId()).getCode());
+                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), identityZoneManager.getCurrentIdentityZoneId()).getCode());
                 return handleUnprocessableEntity(model, response, "error_message", "invite.email_mismatch", "invitations/accept_invite");
             }
 
@@ -356,6 +383,10 @@ public class InvitationsController {
                 userProvisioning.update(user.getId(), user, identityZoneManager.getCurrentIdentityZoneId());
                 zoneAwareAuthenticationManager.getLdapAuthenticationManager(identityZoneManager.getCurrentIdentityZone(), ldapProvider).authenticate(token);
                 AcceptedInvitation accept = invitationsService.acceptInvitation(newCode, "");
+                UaaHttpRequestUtils.clearInvitationSessionAttributes();
+                UaaSavedRequestAwareAuthenticationSuccessHandler.saveTrustedRedirect(
+                        request.getSession(),
+                        accept.getRedirectUri());
                 return "redirect:" + "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(accept.getRedirectUri(), StandardCharsets.UTF_8);
             } else {
                 return handleUnprocessableEntity(model, response, "error_message", "not authenticated", "invitations/accept_invite");
