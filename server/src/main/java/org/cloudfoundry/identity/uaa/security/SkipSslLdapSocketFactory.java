@@ -58,4 +58,11 @@ public class SkipSslLdapSocketFactory extends BaseLdapSocketFactory {
         }
     }
 
+    @Override
+    protected String getEndpointIdentificationAlgorithm() {
+        // Hostname verification is intentionally skipped in this mode (disableSslVerification=true),
+        // so no endpoint identification algorithm should be requested.
+        return null;
+    }
+
 }
