@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -33,6 +34,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationEvent;
@@ -511,6 +514,48 @@ class ClientAdminEndpointsTests {
             SearchResults<Map<String, Object>> result = (SearchResults<Map<String, Object>>) endpoints.listClientDetails(attribute, "client_id pr", "sortBy", "ascending", 1, 100);
             validateAttributeResults(result, Collections.singletonList(attribute));
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"[", "..client_id", "client_id,[?(@ =~ /.*/)]"})
+    void findClientDetails_withAttributeThatIsNotAPlainName_isBadRequest(String attributes) {
+        when(clientDetailsService.query(anyString(), anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()))).thenReturn(Arrays.asList(inputs));
+
+        assertThatThrownBy(() -> endpoints.listClientDetails(attributes, "client_id pr", "sortBy", "ascending", 1, 100))
+                .isInstanceOf(UaaException.class)
+                .hasMessage("Invalid attributes: [" + attributes + "]")
+                .extracting(e -> ((UaaException) e).getHttpStatus())
+                .isEqualTo(400);
+    }
+
+    @Test
+    void findClientDetails_withInvalidFilter_escapesFilterInMessage() {
+        when(clientDetailsService.query(anyString(), anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()))).thenThrow(new IllegalArgumentException());
+
+        assertThatThrownBy(() -> endpoints.listClientDetails("client_id", "<b>bold</b>", "sortBy", "ascending", 1, 100))
+                .isInstanceOf(UaaException.class)
+                .hasMessage("Invalid filter expression: [&lt;b&gt;bold&lt;/b&gt;] [sortBy]");
+    }
+
+    @Test
+    void findClientDetails_withInvalidAttributes_escapesAttributesInMessage() {
+        when(clientDetailsService.query(anyString(), anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()))).thenReturn(Arrays.asList(inputs));
+
+        assertThatThrownBy(() -> endpoints.listClientDetails("client_id,<b>", "client_id pr", "sortBy", "ascending", 1, 100))
+                .isInstanceOf(UaaException.class)
+                .hasMessage("Invalid attributes: [client_id,&lt;b&gt;]");
+    }
+
+    @Test
+    void handleUaaException_returnsStatusAndCountsError() {
+        UaaException exception = new UaaException("Invalid attributes: [x]", HttpStatus.BAD_REQUEST.value());
+
+        ResponseEntity<UaaException> response = endpoints.handleUaaException(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isSameAs(exception);
+        assertThat(endpoints.getErrorCounts()).hasSize(1)
+                .hasEntrySatisfying(UaaStringUtils.getErrorName(exception), count -> assertThat(count).hasValue(1));
     }
 
     private void validateAttributeResults(SearchResults<Map<String, Object>> result, List<String> attributes) {

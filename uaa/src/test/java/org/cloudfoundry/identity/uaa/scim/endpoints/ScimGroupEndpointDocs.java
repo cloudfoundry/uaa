@@ -210,6 +210,7 @@ class ScimGroupEndpointDocs extends EndpointDocs {
         scimGroup = JsonUtils.readValue(retrieveResult.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         Snippet queryParameters = queryParameters(
+                parameterWithName("attributes").optional(null).type(STRING).description("Comma separated list of plain attribute names to return. Omit or leave empty to return all attributes. Non-empty lists containing empty names, including trailing commas, are rejected with 400 Bad Request.").optional(),
                 parameterWithName("filter").optional("id pr").type(STRING).description("A SCIM filter over groups"),
                 parameterWithName("sortBy").optional("created").type(STRING).description("The field of the SCIM group to sort by"),
                 parameterWithName("sortOrder").optional("ascending").type(NUMBER).description("Sort in `ascending` or `descending` order"),
