@@ -13,6 +13,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.security;
 
+import org.bouncycastle.jsse.BCSSLSocket;
+
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLParameters;
@@ -27,6 +29,7 @@ import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.SocketChannel;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
 /**
@@ -94,8 +97,28 @@ class HostnameAwareSslSocket extends SSLSocket {
         }
     }
 
+    /**
+     * Returns the hostname the given address was created with, or its IP literal if it was created
+     * from an address only. Unlike {@link InetAddress#getHostName()}, this never performs a reverse
+     * DNS lookup, so an address-only target is not turned into an unsolicited PTR name for SNI and
+     * certificate identity checks. Relies on {@link InetAddress#toString()}, which is specified as
+     * {@code "hostname/literal"} with an empty hostname when unresolved, without any lookup.
+     */
+    static String targetHost(InetAddress address) {
+        String text = address.toString();
+        int slash = text.lastIndexOf('/');
+        String hostname = slash > 0 ? text.substring(0, slash) : "";
+        return hostname.isEmpty() ? address.getHostAddress() : hostname;
+    }
+
     private void applyHostname(String host) {
         hostnameApplied = true;
+        if (delegate instanceof BCSSLSocket bcSocket && host != null && !host.isEmpty()) {
+            // BCJSSE performs endpoint identification against the socket's peer host, not the SNI
+            // server names, and (unless org.bouncycastle.jsse.client.assumeOriginalHostName is set)
+            // does not derive that peer host from a later connect(SocketAddress) call.
+            bcSocket.setHost(host);
+        }
         SSLParameters params = delegate.getSSLParameters();
         params.setEndpointIdentificationAlgorithm(endpointIdentificationAlgorithm);
         if (endpointIdentificationAlgorithm != null && host != null && !host.isEmpty() && !IPV4_LITERAL.matcher(host).matches()) {
@@ -215,6 +238,26 @@ class HostnameAwareSslSocket extends SSLSocket {
     @Override
     public void setSSLParameters(SSLParameters params) {
         delegate.setSSLParameters(params);
+    }
+
+    @Override
+    public String getApplicationProtocol() {
+        return delegate.getApplicationProtocol();
+    }
+
+    @Override
+    public String getHandshakeApplicationProtocol() {
+        return delegate.getHandshakeApplicationProtocol();
+    }
+
+    @Override
+    public void setHandshakeApplicationProtocolSelector(BiFunction<SSLSocket, List<String>, String> selector) {
+        delegate.setHandshakeApplicationProtocolSelector(selector);
+    }
+
+    @Override
+    public BiFunction<SSLSocket, List<String>, String> getHandshakeApplicationProtocolSelector() {
+        return delegate.getHandshakeApplicationProtocolSelector();
     }
 
     // --- Socket methods: delegate ---

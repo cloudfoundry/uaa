@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.security;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.cloudfoundry.identity.uaa.security.TlsTestServer.TestCert;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -8,29 +9,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.net.SocketFactory;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.KeyStore;
 import java.security.Security;
-import java.security.cert.X509Certificate;
-import java.util.Base64;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.cloudfoundry.identity.uaa.util.SocketUtils.getSelfCertificate;
 
 class CaCertAwareLdapSocketFactoryTest {
 
@@ -53,19 +41,11 @@ class CaCertAwareLdapSocketFactoryTest {
 
     @Test
     void createSocket_resolvesPerZoneTrust_twoZonesSameHostDifferentCertsDoNotInterfere() throws Exception {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);
-        KeyPair serverKeyPair = keyPairGenerator.generateKeyPair();
-        X509Certificate serverCert = getSelfCertificate(serverKeyPair, "UAA Test", "UAA Test Unit", "localhost",
-                new Date(), 60L * 60, "SHA256withRSA");
-        String serverCertPem = pemEncode(serverCert);
+        TestCert serverCert = TlsTestServer.newTestCert("localhost");
+        String serverCertPem = serverCert.pem();
+        String unrelatedCertPem = TlsTestServer.newTestCert("unrelated-cert").pem();
 
-        KeyPair otherKeyPair = keyPairGenerator.generateKeyPair();
-        X509Certificate unrelatedCert = getSelfCertificate(otherKeyPair, "UAA Test", "UAA Test Unit", "unrelated-cert",
-                new Date(), 60L * 60, "SHA256withRSA");
-        String unrelatedCertPem = pemEncode(unrelatedCert);
-
-        try (ServerHandle server = startTlsServer(serverKeyPair, serverCert)) {
+        try (TlsTestServer server = TlsTestServer.start(serverCert)) {
             SocketFactory factory = CaCertAwareLdapSocketFactory.getDefault();
 
             // Zone A trusts the server's actual cert -- connection succeeds.
@@ -108,10 +88,10 @@ class CaCertAwareLdapSocketFactoryTest {
 
     @Test
     void createSocket_noArg_returnsHostnameAwareSocketThatHandshakesAfterConnect() throws Exception {
-        TestCert cert = newTestCert();
-        try (ServerHandle server = startTlsServer(cert.keyPair(), cert.certificate())) {
+        TestCert cert = TlsTestServer.newTestCert("localhost");
+        try (TlsTestServer server = TlsTestServer.start(cert)) {
             IdentityZoneHolder.set(zone("zone-noarg"));
-            CaCertAwareLdapSocketFactory.registerZoneTrust("zone-noarg", List.of(pemEncode(cert.certificate())), false);
+            CaCertAwareLdapSocketFactory.registerZoneTrust("zone-noarg", List.of(cert.pem()), false);
 
             try (Socket socket = CaCertAwareLdapSocketFactory.getDefault().createSocket()) {
                 assertThat(socket).isInstanceOf(HostnameAwareSslSocket.class);
@@ -126,10 +106,10 @@ class CaCertAwareLdapSocketFactoryTest {
 
     @Test
     void createSocket_noArg_hostnameMismatchFailsHandshake() throws Exception {
-        TestCert cert = newTestCert();
-        try (ServerHandle server = startTlsServer(cert.keyPair(), cert.certificate())) {
+        TestCert cert = TlsTestServer.newTestCert("localhost");
+        try (TlsTestServer server = TlsTestServer.start(cert)) {
             IdentityZoneHolder.set(zone("zone-mismatch"));
-            CaCertAwareLdapSocketFactory.registerZoneTrust("zone-mismatch", List.of(pemEncode(cert.certificate())), false);
+            CaCertAwareLdapSocketFactory.registerZoneTrust("zone-mismatch", List.of(cert.pem()), false);
 
             assertThatThrownBy(() -> {
                 try (Socket socket = CaCertAwareLdapSocketFactory.getDefault().createSocket()) {
@@ -142,8 +122,8 @@ class CaCertAwareLdapSocketFactoryTest {
 
     @Test
     void createSocket_noRegisteredTrust_doesNotDoubleWrap() throws Exception {
-        TestCert cert = newTestCert();
-        try (ServerHandle server = startTlsServer(cert.keyPair(), cert.certificate())) {
+        TestCert cert = TlsTestServer.newTestCert("localhost");
+        try (TlsTestServer server = TlsTestServer.start(cert)) {
             IdentityZoneHolder.set(zone("zone-unregistered-wrap"));
             try (Socket socket = CaCertAwareLdapSocketFactory.getDefault().createSocket("localhost", server.port())) {
                 assertThat(socket).isInstanceOf(HostnameAwareSslSocket.class);
@@ -152,65 +132,9 @@ class CaCertAwareLdapSocketFactoryTest {
         }
     }
 
-    private record TestCert(KeyPair keyPair, X509Certificate certificate) {
-    }
-
-    private static TestCert newTestCert() throws Exception {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
-        KeyPair keyPair = generator.generateKeyPair();
-        return new TestCert(keyPair, getSelfCertificate(keyPair, "UAA Test", "UAA Test Unit", "localhost",
-                new Date(), 60L * 60, "SHA256withRSA"));
-    }
-
     private static IdentityZone zone(String id) {
         IdentityZone zone = new IdentityZone();
         zone.setId(id);
         return zone;
-    }
-
-    private static String pemEncode(X509Certificate certificate) throws Exception {
-        String base64 = Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(certificate.getEncoded());
-        return "-----BEGIN CERTIFICATE-----\n" + base64 + "\n-----END CERTIFICATE-----\n";
-    }
-
-    private static ServerHandle startTlsServer(KeyPair keyPair, X509Certificate certificate) throws Exception {
-        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        keyStore.load(null, null);
-        keyStore.setKeyEntry("server", keyPair.getPrivate(), new char[0], new X509Certificate[]{certificate});
-
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        kmf.init(keyStore, new char[0]);
-
-        SSLContext serverContext = SSLContext.getInstance("TLS");
-        serverContext.init(kmf.getKeyManagers(), null, null);
-
-        SSLServerSocketFactory serverSocketFactory = serverContext.getServerSocketFactory();
-        SSLServerSocket serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(0);
-
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
-            while (!serverSocket.isClosed()) {
-                try (SSLSocket socket = (SSLSocket) serverSocket.accept()) {
-                    socket.startHandshake();
-                } catch (IOException _) {
-                    // expected once the server socket is closed, or on a client-side handshake failure
-                }
-            }
-        });
-
-        return new ServerHandle(serverSocket, executor);
-    }
-
-    private record ServerHandle(SSLServerSocket serverSocket, ExecutorService executor) implements AutoCloseable {
-        int port() {
-            return serverSocket.getLocalPort();
-        }
-
-        @Override
-        public void close() throws IOException {
-            serverSocket.close();
-            executor.shutdownNow();
-        }
     }
 }

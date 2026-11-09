@@ -119,12 +119,12 @@ public class CaCertAwareLdapSocketFactory extends SSLSocketFactory {
 
     @Override
     public Socket createSocket(InetAddress address, int port) throws IOException {
-        return wrap(resolveDelegate().createSocket(address, port), address.getHostName());
+        return wrap(resolveDelegate().createSocket(address, port), HostnameAwareSslSocket.targetHost(address));
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-        return wrap(resolveDelegate().createSocket(address, port, localAddress, localPort), address.getHostName());
+        return wrap(resolveDelegate().createSocket(address, port, localAddress, localPort), HostnameAwareSslSocket.targetHost(address));
     }
 
     private record ZoneLdapTrust(List<String> caCertificates, boolean skipSslValidation) {

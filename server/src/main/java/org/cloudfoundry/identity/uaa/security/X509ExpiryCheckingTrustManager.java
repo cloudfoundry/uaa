@@ -14,16 +14,26 @@
 
 package org.cloudfoundry.identity.uaa.security;
 
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.net.Socket;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
-public class X509ExpiryCheckingTrustManager implements X509TrustManager {
+/**
+ * Trust manager that delegates to the JDK default trust manager and additionally rejects expired
+ * certificates. Extends {@link X509ExtendedTrustManager} and forwards the {@link Socket}/
+ * {@link SSLEngine}-aware checks to an extended delegate, so the JSSE provider's endpoint
+ * identification (hostname verification, e.g. the {@code "LDAPS"} algorithm set by
+ * {@link BaseLdapSocketFactory}) is performed by the delegate rather than being skipped.
+ */
+public class X509ExpiryCheckingTrustManager extends X509ExtendedTrustManager {
 
     private X509TrustManager delegate;
 
@@ -51,20 +61,65 @@ public class X509ExpiryCheckingTrustManager implements X509TrustManager {
 
     @Override
     public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-        if (delegate == null) {
-            throw new CertificateException();
+        requireDelegate().checkClientTrusted(x509Certificates, s);
+    }
+
+    @Override
+    public void checkClientTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+        X509TrustManager tm = requireDelegate();
+        if (tm instanceof X509ExtendedTrustManager extended) {
+            extended.checkClientTrusted(x509Certificates, s, socket);
         } else {
-            delegate.checkClientTrusted(x509Certificates, s);
+            tm.checkClientTrusted(x509Certificates, s);
+        }
+    }
+
+    @Override
+    public void checkClientTrusted(X509Certificate[] x509Certificates, String s, SSLEngine engine) throws CertificateException {
+        X509TrustManager tm = requireDelegate();
+        if (tm instanceof X509ExtendedTrustManager extended) {
+            extended.checkClientTrusted(x509Certificates, s, engine);
+        } else {
+            tm.checkClientTrusted(x509Certificates, s);
         }
     }
 
     @Override
     public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+        requireDelegate().checkServerTrusted(x509Certificates, s);
+        checkValidity(x509Certificates);
+    }
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] x509Certificates, String s, Socket socket) throws CertificateException {
+        X509TrustManager tm = requireDelegate();
+        if (tm instanceof X509ExtendedTrustManager extended) {
+            extended.checkServerTrusted(x509Certificates, s, socket);
+        } else {
+            tm.checkServerTrusted(x509Certificates, s);
+        }
+        checkValidity(x509Certificates);
+    }
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] x509Certificates, String s, SSLEngine engine) throws CertificateException {
+        X509TrustManager tm = requireDelegate();
+        if (tm instanceof X509ExtendedTrustManager extended) {
+            extended.checkServerTrusted(x509Certificates, s, engine);
+        } else {
+            tm.checkServerTrusted(x509Certificates, s);
+        }
+        checkValidity(x509Certificates);
+    }
+
+    private X509TrustManager requireDelegate() throws CertificateException {
         if (delegate == null) {
             throw new CertificateException();
-        } else {
-            delegate.checkServerTrusted(x509Certificates, s);
         }
+        return delegate;
+    }
+
+    private static void checkValidity(X509Certificate[] x509Certificates) throws CertificateException {
         for (X509Certificate certificate : x509Certificates) {
             certificate.checkValidity();
         }

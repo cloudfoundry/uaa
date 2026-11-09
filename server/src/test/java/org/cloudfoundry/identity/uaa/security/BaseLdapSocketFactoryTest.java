@@ -104,7 +104,7 @@ class BaseLdapSocketFactoryTest {
     }
 
     @Test
-    void createSocketWithInetAddressUsesAddressHostName() throws IOException {
+    void createSocketWithInetAddressUsesSuppliedHostName() throws IOException {
         InetAddress address = InetAddress.getByAddress("ldap.example.com", new byte[]{10, 1, 2, 3});
         when(delegateFactory.createSocket(address, 636)).thenReturn(sslSocket);
 
@@ -115,7 +115,7 @@ class BaseLdapSocketFactoryTest {
     }
 
     @Test
-    void createSocketWithInetAddressAndLocalAddressUsesAddressHostName() throws IOException {
+    void createSocketWithInetAddressAndLocalAddressUsesSuppliedHostName() throws IOException {
         InetAddress address = InetAddress.getByAddress("ldap.example.com", new byte[]{10, 1, 2, 3});
         InetAddress local = InetAddress.getLoopbackAddress();
         when(delegateFactory.createSocket(address, 636, local, 0)).thenReturn(sslSocket);
@@ -124,6 +124,19 @@ class BaseLdapSocketFactoryTest {
 
         assertThat(socket).isInstanceOf(HostnameAwareSslSocket.class);
         assertThat(params.getServerNames()).containsExactly(new SNIHostName("ldap.example.com"));
+    }
+
+    @Test
+    void createSocketWithAddressOnlyInetAddressDoesNotSendSni() throws IOException {
+        InetAddress address = InetAddress.getByAddress(new byte[]{10, 1, 2, 3});
+        InetAddress local = InetAddress.getLoopbackAddress();
+        when(delegateFactory.createSocket(address, 636, local, 0)).thenReturn(sslSocket);
+
+        Socket socket = factory("LDAPS").createSocket(address, 636, local, 0);
+
+        assertThat(socket).isInstanceOf(HostnameAwareSslSocket.class);
+        assertThat(params.getEndpointIdentificationAlgorithm()).isEqualTo("LDAPS");
+        assertThat(params.getServerNames()).isNull();
     }
 
     @Test

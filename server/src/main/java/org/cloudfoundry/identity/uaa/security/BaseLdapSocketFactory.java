@@ -78,11 +78,11 @@ public abstract class BaseLdapSocketFactory extends SSLSocketFactory {
 
     @Override
     public Socket createSocket(InetAddress inetAddress, int i) throws IOException {
-        return wrap(delegate.createSocket(inetAddress, i), inetAddress.getHostName());
+        return wrap(delegate.createSocket(inetAddress, i), HostnameAwareSslSocket.targetHost(inetAddress));
     }
 
     @Override
     public Socket createSocket(InetAddress inetAddress, int i, InetAddress inetAddress1, int i1) throws IOException {
-        return wrap(delegate.createSocket(inetAddress, i, inetAddress1, i1), inetAddress.getHostName());
+        return wrap(delegate.createSocket(inetAddress, i, inetAddress1, i1), HostnameAwareSslSocket.targetHost(inetAddress));
     }
 }
