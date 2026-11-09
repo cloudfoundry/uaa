@@ -43,6 +43,31 @@ jobs:
             echo "== chrome"; (google-chrome --version || chromium --version) 2>&1 || true
           } 2>&1 | tee /root/uaa/build/debug/before.txt
 
+      - name: Chrome on the test IdP pages, without Selenium
+        continue-on-error: true
+        run: |
+          mkdir -p /root/uaa/build/debug
+          cd /root/uaa/build/debug
+          {
+            echo "== browser binaries"; which google-chrome chromium chromedriver 2>&1 || true
+            chromedriver --version 2>&1 || true
+            ls -la ~/.cache/selenium 2>&1 | head -5 || true
+            for page in module.php/core/logout/example-userpass module.php/core/welcome; do
+              name=$(echo "$page" | tr '/.' '__')
+              echo "== chrome headless, same flags as the tests: http://simplesamlphp.uaa-acceptance.cf-app.com/$page"
+              start=$(date +%s)
+              timeout 90 google-chrome --headless=new --guest --no-sandbox --disable-gpu --disable-dev-shm-usage \
+                --disable-web-security --ignore-certificate-errors --allow-running-insecure-content \
+                --log-net-log="/root/uaa/build/debug/netlog-$name.json" \
+                --screenshot="/root/uaa/build/debug/shot-$name.png" --window-size=1280,900 \
+                --dump-dom "http://simplesamlphp.uaa-acceptance.cf-app.com/$page" \
+                > "dom-$name.html" 2> "chrome-$name.stderr"
+              echo "exit $? after $(( $(date +%s) - start ))s, dom bytes: $(wc -c < dom-$name.html)"
+              grep -o '<title>[^<]*</title>' "dom-$name.html" | head -2 || true
+              grep -iE "ERR_|net::|error" "chrome-$name.stderr" | head -5 || true
+            done
+          } 2>&1 | tee /root/uaa/build/debug/chrome-direct.txt
+
       - name: Integration tests with UAA debug logging
         id: testrun
         continue-on-error: true
