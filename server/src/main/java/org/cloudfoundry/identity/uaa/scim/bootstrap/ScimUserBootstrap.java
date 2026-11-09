@@ -128,9 +128,10 @@ public class ScimUserBootstrap implements
 
     @VisibleForTesting
     ScimUser getScimUser(UaaUser user) {
-        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
-                " and origin eq \"" +
-                (user.getOrigin() == null ? OriginKeys.UAA : user.getOrigin()) + "\"", identityZoneManager.getCurrentIdentityZoneId());
+        List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                user.getUsername(),
+                user.getOrigin() == null ? OriginKeys.UAA : user.getOrigin(),
+                identityZoneManager.getCurrentIdentityZoneId());
 
         if (users.isEmpty() && StringUtils.hasText(user.getId())) {
             try {
