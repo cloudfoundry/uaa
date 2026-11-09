@@ -35,6 +35,11 @@ jobs:
             echo "== idp root"; curl -s -m 20 -D - -o /dev/null http://simplesamlphp.uaa-acceptance.cf-app.com/ || true
             echo "== idp welcome"; curl -s -m 20 -D - -o /dev/null http://simplesamlphp.uaa-acceptance.cf-app.com/module.php/core/welcome || true
             echo "== idp metadata"; curl -s -m 20 http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php | head -c 600 || true; echo
+            echo "== idp logout page, three times, with timings (the tests end on this page)"
+            for i in 1 2 3; do
+              curl -s -m 60 -o /dev/null -L -w "try $i: http %{http_code} redirects %{num_redirects} connect %{time_connect}s total %{time_total}s final %{url_effective}\n" \
+                http://simplesamlphp.uaa-acceptance.cf-app.com/module.php/core/logout/example-userpass || echo "try $i: curl failed ($?)"
+            done
             echo "== chrome"; (google-chrome --version || chromium --version) 2>&1 || true
           } 2>&1 | tee /root/uaa/build/debug/before.txt
 
@@ -46,7 +51,7 @@ jobs:
           LOGGING_LEVEL_ORG_CLOUDFOUNDRY_IDENTITY: DEBUG
           LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
           LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT: DEBUG
-          UAA_GRADLE_INT_TEST_COMMAND: ':cloudfoundry-identity-uaa:integrationTest --tests *OIDCLoginIT --tests *InvitationsIT --tests *SamlLoginIT'
+          UAA_GRADLE_INT_TEST_COMMAND: ':cloudfoundry-identity-uaa:integrationTest --fail-fast --tests *OIDCLoginIT --tests *InvitationsIT --tests *SamlLoginIT'
         run: /root/uaa/scripts/integration_tests.sh postgresql,default boot
 
       - name: Test IdP after the tests
