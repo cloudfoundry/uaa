@@ -1,0 +1,86 @@
+name: Debug PR runner (temporary)
+# Temporary diagnostics for the OIDC, SAML and invitation integration tests. Never merge.
+# Runs the same container as "Integration tests on database" with debug logging on, and always
+# uploads the UAA log, the Gradle test results and what the runner sees of the test IdP.
+on:
+  push:
+    branches: [ debug/github-pr-runner ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug-integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: cfidentity/uaa-postgresql-15
+      volumes:
+        - ${{ github.workspace }}:/root/uaa
+      options: --privileged --tty --interactive --shm-size=1G
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+
+      - name: Runner and test IdP before the tests
+        continue-on-error: true
+        run: |
+          mkdir -p /root/uaa/build/debug
+          {
+            echo "== date"; date -u
+            echo "== runner"; uname -a; cat /etc/os-release | head -2
+            echo "== outbound address"; curl -s -m 15 https://api.ipify.org || true; echo
+            echo "== dns"; getent hosts simplesamlphp.uaa-acceptance.cf-app.com || true
+            echo "== idp root"; curl -s -m 20 -D - -o /dev/null http://simplesamlphp.uaa-acceptance.cf-app.com/ || true
+            echo "== idp welcome"; curl -s -m 20 -D - -o /dev/null http://simplesamlphp.uaa-acceptance.cf-app.com/module.php/core/welcome || true
+            echo "== idp metadata"; curl -s -m 20 http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php | head -c 600 || true; echo
+            echo "== chrome"; (google-chrome --version || chromium --version) 2>&1 || true
+          } 2>&1 | tee /root/uaa/build/debug/before.txt
+
+      - name: Integration tests with UAA debug logging
+        id: testrun
+        continue-on-error: true
+        env:
+          # read by the UAA process that the integrationTest task starts
+          LOGGING_LEVEL_ORG_CLOUDFOUNDRY_IDENTITY: DEBUG
+          LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
+          LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_CLIENT: DEBUG
+          UAA_GRADLE_INT_TEST_COMMAND: ':cloudfoundry-identity-uaa:integrationTest --tests *OIDCLoginIT --tests *InvitationsIT --tests *SamlLoginIT'
+        run: /root/uaa/scripts/integration_tests.sh postgresql,default boot
+
+      - name: Test IdP after the tests
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p /root/uaa/build/debug
+          {
+            echo "== date"; date -u
+            echo "== idp root"; curl -s -m 20 -D - -o /dev/null http://simplesamlphp.uaa-acceptance.cf-app.com/ || true
+          } 2>&1 | tee /root/uaa/build/debug/after.txt
+
+      - name: What the UAA log says about the test IdP
+        if: always()
+        continue-on-error: true
+        run: |
+          f=/root/uaa/build/boot.log
+          ls -la "$f" || exit 0
+          echo "== lines: $(wc -l < "$f")  debug lines: $(grep -c ' DEBUG ' "$f" || true)"
+          echo "== errors and warnings (first 80)"; grep -E ' (ERROR|WARN) ' "$f" | head -80 || true
+          echo "== mentions of the test IdP (first 80)"; grep -n 'simplesamlphp' "$f" | head -80 || true
+
+      - name: Upload UAA log, test results and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: debug-pr-runner
+          if-no-files-found: warn
+          path: |
+            /root/uaa/build/boot.log
+            /root/uaa/build/debug/
+            /root/uaa/uaa/build/test-results/integrationTest/
+            /root/uaa/uaa/build/reports/tests/integrationTest/
+
+      - name: Fail when the tests failed
+        if: steps.testrun.outcome == 'failure'
+        run: exit 1
