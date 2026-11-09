@@ -63,6 +63,11 @@ jobs:
             echo "== date"; date -u
             echo "== idp root"; curl -s -m 20 -D - -o /dev/null http://simplesamlphp.uaa-acceptance.cf-app.com/ || true
           } 2>&1 | tee /root/uaa/build/debug/after.txt
+          # the tests write the verbose chromedriver log here (DefaultIntegrationTestConfig)
+          ls -la /tmp/chromedriver.log || true
+          cp /tmp/chromedriver.log /root/uaa/build/debug/chromedriver.log || true
+          echo "== browser-side errors and timeouts (first 60)"
+          grep -E "net::ERR|timeout|Timed out|unexpected alert|chrome not reachable|disconnected" /tmp/chromedriver.log | head -60 || true
 
       - name: What the UAA log says about the test IdP
         if: always()
