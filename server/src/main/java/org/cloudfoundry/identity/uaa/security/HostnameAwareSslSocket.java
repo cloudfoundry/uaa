@@ -1,16 +1,3 @@
-/*
- *********************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.security;
 
 import org.bouncycastle.jsse.BCSSLSocket;
@@ -33,26 +20,11 @@ import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
 /**
- * Delegating {@link SSLSocket} that guarantees a target hostname is attached
- * to the socket (via SNI / endpoint identification algorithm) before a TLS
- * handshake begins.
- * <p>
- * This matters specifically for sockets created via the no-arg
- * {@link javax.net.SocketFactory#createSocket()} method, which JNDI's LDAP
- * provider uses instead of {@code createSocket(host, port)} whenever
- * {@code com.sun.jndi.ldap.connect.timeout} is configured (see
- * {@code com.sun.jndi.ldap.Connection}): it creates an unconnected socket and
- * later calls {@code connect(SocketAddress, int)} directly, so the hostname
- * is only available at {@code connect} time, not at {@code createSocket}
- * time.
- * <p>
- * Some JSSE providers (observed with Bouncy Castle FIPS, {@code bctls-fips})
- * do not infer the peer hostname from a later plain
- * {@code connect(SocketAddress)} call the way the default Sun JSSE provider
- * does, and fail the handshake with
- * {@code CertificateException: No hostname specified for HTTPS endpoint ID check}.
- * Capturing the hostname at {@code connect} time and explicitly attaching it
- * via {@link SSLParameters} closes that gap for every JSSE provider.
+ * Delegating {@link SSLSocket} that attaches the target hostname (peer host, SNI and endpoint
+ * identification algorithm) before the TLS handshake. Needed because JNDI's LDAP provider, when
+ * {@code com.sun.jndi.ldap.connect.timeout} is set, uses the no-arg {@code createSocket()} and only
+ * supplies the host later via {@code connect(SocketAddress, int)}; Bouncy Castle FIPS JSSE does not
+ * infer the host from that call and fails with "No hostname specified for HTTPS endpoint ID check".
  */
 class HostnameAwareSslSocket extends SSLSocket {
 
@@ -63,13 +35,8 @@ class HostnameAwareSslSocket extends SSLSocket {
     private boolean hostnameApplied;
 
     /**
-     * @param delegate                        the real SSL socket to delegate all behavior to
-     * @param endpointIdentificationAlgorithm the algorithm to request (e.g. {@code "LDAPS"}),
-     *                                         or {@code null} to explicitly disable endpoint identification
-     * @param knownHost                        the target hostname if already known at construction time
-     *                                         (e.g. for the {@code createSocket(String, int)} overloads), or
-     *                                         {@code null} if it will only be known once {@code connect(...)}
-     *                                         is called (the no-arg {@code createSocket()} case)
+     * @param endpointIdentificationAlgorithm e.g. {@code "LDAPS"}, or {@code null} to disable endpoint identification
+     * @param knownHost                       the target host if known now, or {@code null} to take it from {@code connect(...)}
      */
     HostnameAwareSslSocket(SSLSocket delegate, String endpointIdentificationAlgorithm, String knownHost) {
         this.delegate = delegate;
@@ -98,11 +65,8 @@ class HostnameAwareSslSocket extends SSLSocket {
     }
 
     /**
-     * Returns the hostname the given address was created with, or its IP literal if it was created
-     * from an address only. Unlike {@link InetAddress#getHostName()}, this never performs a reverse
-     * DNS lookup, so an address-only target is not turned into an unsolicited PTR name for SNI and
-     * certificate identity checks. Relies on {@link InetAddress#toString()}, which is specified as
-     * {@code "hostname/literal"} with an empty hostname when unresolved, without any lookup.
+     * The hostname the address was created with, else its IP literal. Unlike
+     * {@link InetAddress#getHostName()}, never does a reverse DNS lookup.
      */
     static String targetHost(InetAddress address) {
         String text = address.toString();
@@ -114,9 +78,7 @@ class HostnameAwareSslSocket extends SSLSocket {
     private void applyHostname(String host) {
         hostnameApplied = true;
         if (delegate instanceof BCSSLSocket bcSocket && host != null && !host.isEmpty()) {
-            // BCJSSE performs endpoint identification against the socket's peer host, not the SNI
-            // server names, and (unless org.bouncycastle.jsse.client.assumeOriginalHostName is set)
-            // does not derive that peer host from a later connect(SocketAddress) call.
+            // BCJSSE checks the endpoint against the peer host (not SNI) and doesn't take it from connect()
             bcSocket.setHost(host);
         }
         SSLParameters params = delegate.getSSLParameters();
@@ -125,15 +87,11 @@ class HostnameAwareSslSocket extends SSLSocket {
             try {
                 params.setServerNames(List.of(new SNIHostName(host)));
             } catch (IllegalArgumentException _) {
-                // host is an IP literal (or otherwise not a valid SNI hostname) -- SNI does not
-                // apply; the endpoint identification algorithm above still performs certificate
-                // hostname/IP matching using the connected socket's address.
+                // not a valid SNI hostname (e.g. IPv6 literal); endpoint identification still applies
             }
         }
         delegate.setSSLParameters(params);
     }
-
-    // --- SSLSocket-specific methods: delegate ---
 
     @Override
     public String[] getSupportedCipherSuites() {
@@ -259,8 +217,6 @@ class HostnameAwareSslSocket extends SSLSocket {
     public BiFunction<SSLSocket, List<String>, String> getHandshakeApplicationProtocolSelector() {
         return delegate.getHandshakeApplicationProtocolSelector();
     }
-
-    // --- Socket methods: delegate ---
 
     @Override
     public void bind(SocketAddress bindpoint) throws IOException {

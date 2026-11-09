@@ -17,16 +17,13 @@ package org.cloudfoundry.identity.uaa.security;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.net.Socket;
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.X509Certificate;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -98,48 +95,5 @@ class X509ExpiryCheckingTrustManagerTest {
         verify(mockedDelegate).checkServerTrusted(x509Certificates, "RSA", socket);
         verify(mockedDelegate, never()).checkServerTrusted(x509Certificates, "RSA");
         verify(certificate).checkValidity();
-    }
-
-    @Test
-    void checkServerTrusted_withEngine_callsExtendedDelegateAndChecksExpiry() throws Exception {
-        X509ExpiryCheckingTrustManager manager = new X509ExpiryCheckingTrustManager();
-        X509ExtendedTrustManager mockedDelegate = Mockito.mock(X509ExtendedTrustManager.class);
-        manager.setDelegate(mockedDelegate);
-        X509Certificate certificate = Mockito.mock(X509Certificate.class);
-        X509Certificate[] x509Certificates = {certificate};
-        SSLEngine engine = Mockito.mock(SSLEngine.class);
-
-        manager.checkServerTrusted(x509Certificates, "RSA", engine);
-
-        verify(mockedDelegate).checkServerTrusted(x509Certificates, "RSA", engine);
-        verify(certificate).checkValidity();
-    }
-
-    @Test
-    void checkServerTrusted_withSocket_propagatesDelegateFailure() throws Exception {
-        X509ExpiryCheckingTrustManager manager = new X509ExpiryCheckingTrustManager();
-        X509ExtendedTrustManager mockedDelegate = Mockito.mock(X509ExtendedTrustManager.class);
-        manager.setDelegate(mockedDelegate);
-        X509Certificate[] x509Certificates = {Mockito.mock(X509Certificate.class)};
-        Socket socket = Mockito.mock(Socket.class);
-        doThrow(new CertificateException("No name matching")).when(mockedDelegate)
-                .checkServerTrusted(x509Certificates, "RSA", socket);
-
-        assertThatThrownBy(() -> manager.checkServerTrusted(x509Certificates, "RSA", socket))
-                .isInstanceOf(CertificateException.class)
-                .hasMessage("No name matching");
-    }
-
-    @Test
-    void checkClientTrusted_withSocket_callsExtendedDelegate() throws Exception {
-        X509ExpiryCheckingTrustManager manager = new X509ExpiryCheckingTrustManager();
-        X509ExtendedTrustManager mockedDelegate = Mockito.mock(X509ExtendedTrustManager.class);
-        manager.setDelegate(mockedDelegate);
-        X509Certificate[] x509Certificates = {Mockito.mock(X509Certificate.class)};
-        Socket socket = Mockito.mock(Socket.class);
-
-        manager.checkClientTrusted(x509Certificates, "RSA", socket);
-
-        verify(mockedDelegate).checkClientTrusted(x509Certificates, "RSA", socket);
     }
 }

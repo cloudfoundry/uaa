@@ -20,12 +20,8 @@ public abstract class BaseLdapSocketFactory extends SSLSocketFactory {
     }
 
     /**
-     * The TLS endpoint identification algorithm to request for sockets created by this
-     * factory, or {@code null} to explicitly disable endpoint identification (hostname
-     * verification). Defaults to {@code "LDAPS"}, the algorithm the JDK itself uses for
-     * direct {@code ldaps://} connections. Subclasses that intentionally skip certificate/
-     * hostname verification (e.g. {@link SkipSslLdapSocketFactory}) should override this to
-     * return {@code null}.
+     * TLS endpoint identification algorithm for sockets from this factory, or {@code null} to
+     * disable hostname verification (as {@link SkipSslLdapSocketFactory} does).
      */
     protected String getEndpointIdentificationAlgorithm() {
         return "LDAPS";
@@ -42,15 +38,7 @@ public abstract class BaseLdapSocketFactory extends SSLSocketFactory {
     }
 
     /**
-     * Wraps a freshly created socket so that a target hostname is always attached before a
-     * TLS handshake starts. This matters most for the no-arg {@link #createSocket()}
-     * overload, used by JNDI's LDAP provider instead of {@code createSocket(host, port)}
-     * whenever {@code com.sun.jndi.ldap.connect.timeout} is configured (see
-     * {@link LdapSocketFactory}/{@code LdapIntegrationConfig}): JNDI creates an unconnected
-     * socket and only supplies the hostname later via {@code connect(SocketAddress, int)}.
-     * Some JSSE providers (observed with Bouncy Castle FIPS) do not infer the hostname from
-     * that later {@code connect} call, causing handshake failures such as
-     * "No hostname specified for HTTPS endpoint ID check".
+     * Ensures the target hostname is attached before the handshake; see {@link HostnameAwareSslSocket}.
      */
     private Socket wrap(Socket socket, String knownHost) {
         return new HostnameAwareSslSocket((SSLSocket) socket, getEndpointIdentificationAlgorithm(), knownHost);

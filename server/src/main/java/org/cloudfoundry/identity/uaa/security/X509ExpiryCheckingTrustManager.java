@@ -27,11 +27,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
- * Trust manager that delegates to the JDK default trust manager and additionally rejects expired
- * certificates. Extends {@link X509ExtendedTrustManager} and forwards the {@link Socket}/
- * {@link SSLEngine}-aware checks to an extended delegate, so the JSSE provider's endpoint
- * identification (hostname verification, e.g. the {@code "LDAPS"} algorithm set by
- * {@link BaseLdapSocketFactory}) is performed by the delegate rather than being skipped.
+ * Default-trust manager that also rejects expired certificates. Extends
+ * {@link X509ExtendedTrustManager} so the delegate still performs endpoint identification.
  */
 public class X509ExpiryCheckingTrustManager extends X509ExtendedTrustManager {
 
