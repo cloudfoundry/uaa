@@ -3,14 +3,17 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.cloudfoundry.identity.uaa.authentication.SamlLogoutRequestValidator;
 import org.cloudfoundry.identity.uaa.authentication.SamlLogoutResponseValidator;
 import org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler;
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.RedirectResolver;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.opensaml.saml.saml2.core.LogoutRequest;
 import org.opensaml.saml.saml2.core.NameID;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -133,8 +136,12 @@ public class SamlAuthenticationFilterConfig {
      * Handler deciding where to redirect user after unsuccessful login
      */
     @Bean
-    public SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler() {
-        SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
+    public SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler(
+            RedirectResolver redirectResolver,
+            @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientServices,
+            IdentityZoneManager identityZoneManager) {
+        SamlLoginAuthenticationFailureHandler handler =
+                new SamlLoginAuthenticationFailureHandler(redirectResolver, clientServices, identityZoneManager);
         handler.setDefaultFailureUrl("/saml_error");
         return handler;
     }
