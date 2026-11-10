@@ -107,7 +107,7 @@ GEM
     parslet (2.0.0)
     public_suffix (7.0.5)
     racc (1.8.1)
-    rack (3.2.6)
+    rack (3.2.8)
     rackup (2.3.1)
       rack (>= 3)
     rb-fsevent (0.11.2)
