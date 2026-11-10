@@ -695,6 +695,52 @@ class ScimUserBootstrapTests {
     }
 
     @Test
+    void aQuoteInTheUsernameOfAnExternalUserDoesNotSelectAnotherUser() {
+        String origin = "testOrigin";
+        addIdentityProvider(jdbcTemplate, origin);
+        UaaUser alice = getUaaUser(new String[0], origin, "alice@test.org", "Alice", "Existing", "password", null, "alice-id", "alice");
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager, Collections.singletonList(alice), true, Collections.emptyList(), false);
+        bootstrap.afterPropertiesSet();
+        UaaUser quoted = getUaaUser(new String[0], origin, "other@test.org", "Other", "Person", "", null, "not-used-id", "x\" or userName eq \"alice");
+
+        // the name is looked up as it is, so it matches no user
+        assertThat(bootstrap.getScimUser(quoted)).isNull();
+    }
+
+    @Test
+    void aFirstLoginWithAQuoteInTheUsernameLeavesTheExistingUserAlone() {
+        String origin = "testOrigin";
+        addIdentityProvider(jdbcTemplate, origin);
+        UaaUser alice = getUaaUser(new String[0], origin, "alice@test.org", "Alice", "Existing", "password", null, "alice-id", "alice");
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager, Collections.singletonList(alice), true, Collections.emptyList(), false);
+        bootstrap.afterPropertiesSet();
+        UaaUser quoted = getUaaUser(new String[0], origin, "other@test.org", "Other", "Person", "", null, "not-used-id", "x\" or userName eq \"alice");
+
+        bootstrap.onApplicationEvent(new NewUserAuthenticatedEvent(quoted));
+
+        List<ScimUser> existing = jdbcScimUserProvisioning.retrieveAll(IdentityZone.getUaaZoneId()).stream()
+                .filter(u -> "alice".equals(u.getUserName()))
+                .toList();
+        assertThat(existing).hasSize(1);
+        assertThat(existing.getFirst().getPrimaryEmail()).isEqualTo("alice@test.org");
+        assertThat(existing.getFirst().getGivenName()).isEqualTo("Alice");
+    }
+
+    @Test
+    void anExternalUserIsFoundByUsernameIgnoringCase() {
+        String origin = "testOrigin";
+        addIdentityProvider(jdbcTemplate, origin);
+        UaaUser alice = getUaaUser(new String[0], origin, "alice@test.org", "Alice", "Existing", "password", null, "alice-id", "alice");
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, identityZoneManager, Collections.singletonList(alice), true, Collections.emptyList(), false);
+        bootstrap.afterPropertiesSet();
+
+        UaaUser sameNameOtherCase = getUaaUser(new String[0], origin, "alice@test.org", "Alice", "Existing", "", null, "not-used-id", "ALICE");
+
+        assertThat(bootstrap.getScimUser(sameNameOtherCase)).isNotNull();
+        assertThat(bootstrap.getScimUser(sameNameOtherCase).getUserName()).isEqualTo("alice");
+    }
+
+    @Test
     void canAddNonExistentGroupThroughEvent() {
         nonExistentGroupThroughEvent(true, jdbcTemplate, jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, scimUserService);
     }

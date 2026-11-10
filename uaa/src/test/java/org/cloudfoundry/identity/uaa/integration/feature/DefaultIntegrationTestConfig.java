@@ -92,11 +92,13 @@ public class DefaultIntegrationTestConfig {
                 "--disable-backgrounding-occluded-windows",
                 "--disable-renderer-backgrounding",
                 "--disable-blink-features=AutomationControlled",
-                "--disable-features=TranslateUI",
                 // Hang detection and renderer stability flags
                 "--disable-hang-monitor", // Prevents Chrome from killing "hung" renderer processes (useful for slow backend responses)
                 "--disable-background-networking", // Reduces background network activity that could interfere with test requests
-                "--disable-features=RendererScheduling", // Disables aggressive renderer scheduling that might cause timeouts
+                // Chrome honors only the last --disable-features flag, so all features are listed in one.
+                // RendererScheduling: disables aggressive renderer scheduling that might cause timeouts.
+                // HttpsUpgrades: the test identity provider is reached over plain http; do not try https first.
+                "--disable-features=TranslateUI,RendererScheduling,HttpsUpgrades,HttpsFirstBalancedModeAutoEnable",
                 "--run-all-compositor-stages-before-draw", // Ensures all rendering stages complete before drawing (prevents partial renders)
                 "--disable-prompt-on-repost",
                 "--disable-sync",
