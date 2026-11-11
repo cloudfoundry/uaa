@@ -7,7 +7,7 @@ gem 'middleman', '~> 4.5'
 gem 'middleman-syntax', '~> 3.6'
 gem 'middleman-autoprefixer', '~> 3.0'
 # Explicitly require safe ActiveSupport version
-gem 'activesupport', '~> 7.2.3', '>= 7.2.3.1'
+gem 'activesupport', '~> 8.0.5'
 gem 'rouge', '~> 3.21'
 gem 'redcarpet', '~> 3.6.0'
 gem 'nokogiri', '~> 1.19.5'
