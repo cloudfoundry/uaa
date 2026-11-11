@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -276,7 +276,7 @@ class SamlMetadataEndpointMockMvcZonePathTests {
         UaaClientDetails adminClient = new UaaClientDetails("admin", "", "", "client_credentials", "uaa.admin");
         adminClient.setClientSecret("adminsecret");
 
-        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
         String zoneSubdomain = "testzone-" + generator.generate();
         String entityId = hasEntityId ? zoneSubdomain + "-entity-id" : null;
         return createZone(zoneSubdomain, adminClient, false, false, entityId);

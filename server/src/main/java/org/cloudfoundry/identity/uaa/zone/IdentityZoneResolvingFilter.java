@@ -28,6 +28,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 
@@ -139,7 +140,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     }
 
     private String getSubdomainFromHost(String hostname) {
-        String lowerHostName = hostname.toLowerCase();
+        String lowerHostName = hostname.toLowerCase(Locale.ROOT);
         if (defaultZoneHostnames.contains(lowerHostName)) {
             return "";
         }
@@ -163,7 +164,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         if (hostnames != null) {
             hostnames
                     .forEach(
-                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase(Locale.ROOT))
                     );
         }
     }
@@ -172,7 +173,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         if (hostnames != null) {
             hostnames
                     .forEach(
-                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase(Locale.ROOT))
                     );
         }
     }
@@ -182,7 +183,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         if (hostnames != null) {
             hostnames
                     .forEach(
-                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase(Locale.ROOT))
                     );
         }
     }

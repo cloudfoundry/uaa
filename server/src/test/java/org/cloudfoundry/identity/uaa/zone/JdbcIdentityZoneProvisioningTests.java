@@ -6,11 +6,16 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -84,6 +89,53 @@ class JdbcIdentityZoneProvisioningTests {
     @Test
     void null_subdomain() {
         assertThatThrownBy(() -> jdbcIdentityZoneProvisioning.retrieveBySubdomain(null)).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"tr-TR", "az-AZ"})
+    @ResourceLock(Resources.LOCALE)
+    void createUpdateAndRetrieveSubdomain_withNonEnglishLocale_usesAsciiLowercase(String languageTag) {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag(languageTag));
+            IdentityZone zone = MultitenancyFixture.identityZone("locale-zone", "i-zone");
+            zone.setSubdomain("I-ZONE");
+
+            IdentityZone created = jdbcIdentityZoneProvisioning.create(zone);
+            assertThat(created.getSubdomain()).isEqualTo("i-zone");
+            assertThat(jdbcIdentityZoneProvisioning.retrieveBySubdomain("I-ZONE").getId())
+                    .isEqualTo(zone.getId());
+            assertThat(jdbcIdentityZoneProvisioning.retrieveBySubdomain("i-zone").getId())
+                    .isEqualTo(zone.getId());
+
+            created.setSubdomain("UPDATED-I-ZONE");
+            IdentityZone updated = jdbcIdentityZoneProvisioning.update(created);
+            assertThat(updated.getSubdomain()).isEqualTo("updated-i-zone");
+            assertThat(jdbcIdentityZoneProvisioning.retrieveBySubdomain("UPDATED-I-ZONE").getId())
+                    .isEqualTo(zone.getId());
+            assertThat(jdbcIdentityZoneProvisioning.retrieveBySubdomain("updated-i-zone").getId())
+                    .isEqualTo(zone.getId());
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @Test
+    @ResourceLock(Resources.LOCALE)
+    void retrieveLegacySubdomain_withTurkishLocale_findsExplicitNonAsciiName() {
+        IdentityZone zone = MultitenancyFixture.identityZone("legacy-locale-zone", "legacy");
+        jdbcIdentityZoneProvisioning.create(zone);
+        // Simulate a subdomain persisted by the pre-validation code under a Turkish locale.
+        jdbcTemplate.update("update identity_zone set subdomain = ? where id = ?", "ı-zone", zone.getId());
+
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+            assertThat(jdbcIdentityZoneProvisioning.retrieveBySubdomain("ı-zone").getId()).isEqualTo(zone.getId());
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test

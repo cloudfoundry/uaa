@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -136,7 +137,7 @@ class ClientAdminEndpointsMockMvcTests {
     private ApplicationEventPublisher originalApplicationEventPublisher;
     private ArgumentCaptor<AbstractUaaEvent> abstractUaaEventCaptor;
     private ScimUser testUser;
-    private final RandomValueStringGenerator generator = new RandomValueStringGenerator(7);
+    private final RandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(7);
     private static final String SECRET_TOO_LONG = Strings.repeat("a", 300);
     private List<ClientDetails> clientDetails;
     private String adminToken;

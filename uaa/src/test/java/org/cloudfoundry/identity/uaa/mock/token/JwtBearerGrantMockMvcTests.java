@@ -20,12 +20,12 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -55,7 +55,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
-    private static final RandomValueStringGenerator generator = new RandomValueStringGenerator(12);
+    private static final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(12);
 
     MockMvcUtils.IdentityZoneCreationResult originZone;
     UaaClientDetails originClient;

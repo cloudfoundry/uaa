@@ -208,7 +208,7 @@ public class LoginMockMvcTests {
         identityZoneConfiguration = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
 
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
         MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
@@ -376,7 +376,7 @@ public class LoginMockMvcTests {
     }
 
     IdentityZone createZoneLinksZone() throws Exception {
-        String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         zone.getConfig().getLinks().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
         return MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
@@ -1333,7 +1333,7 @@ public class LoginMockMvcTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String metadata = MockMvcUtils.IDP_META_DATA.formatted(new AlphanumericRandomValueStringGenerator().generate());
@@ -1440,7 +1440,7 @@ public class LoginMockMvcTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String metadata = MockMvcUtils.IDP_META_DATA.formatted(new AlphanumericRandomValueStringGenerator().generate());
@@ -1475,7 +1475,7 @@ public class LoginMockMvcTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
@@ -1512,7 +1512,7 @@ public class LoginMockMvcTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, oidcMetaEndpoint);
@@ -1553,7 +1553,7 @@ public class LoginMockMvcTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
@@ -1587,7 +1587,7 @@ public class LoginMockMvcTests {
     void oauthCallback_withForgedState_redirectsToLogin() throws Exception {
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
         IdentityZoneHolder.set(identityZone);
@@ -1618,7 +1618,7 @@ public class LoginMockMvcTests {
     void oauthCallback_withSupersededState_redirectsToConcurrentLoginError() throws Exception {
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
         IdentityZoneHolder.set(identityZone);
@@ -1662,7 +1662,7 @@ public class LoginMockMvcTests {
     void oauthErrorPage_withConcurrentLoginReason_showsFriendlyMessageAndRestartLink() throws Exception {
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         mockMvc.perform(get("/oauth_error")
@@ -1682,7 +1682,7 @@ public class LoginMockMvcTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
@@ -2701,7 +2701,7 @@ public class LoginMockMvcTests {
 
     @Test
     void idpDiscoveryRedirectsToSamlExternalProvider_withClientContext() throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -2720,7 +2720,7 @@ public class LoginMockMvcTests {
 
     @Test
     void idpDiscoveryRedirectsToOIDCProvider() throws Exception {
-        String subdomain = "oidc-discovery-" + generator.generate().toLowerCase();
+        String subdomain = "oidc-discovery-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -2747,7 +2747,7 @@ public class LoginMockMvcTests {
 
     @Test
     void multiple_oidc_providers_use_response_type_in_url() throws Exception {
-        String subdomain = "oidc-idp-discovery-multi-" + generator.generate().toLowerCase();
+        String subdomain = "oidc-idp-discovery-multi-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -2766,7 +2766,7 @@ public class LoginMockMvcTests {
 
     @Test
     void idpDiscoveryWithNoEmailDomainMatch_withClientContext() throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -2791,7 +2791,7 @@ public class LoginMockMvcTests {
 
     @Test
     void idpDiscoveryWithMultipleEmailDomainMatches_withClientContext() throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -2816,7 +2816,7 @@ public class LoginMockMvcTests {
 
     @Test
     void idpDiscoveryWithUaaFallBack_withClientContext() throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -2844,7 +2844,7 @@ public class LoginMockMvcTests {
 
     @Test
     void idpDiscoveryWithLdap_withClientContext() throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -2930,7 +2930,7 @@ public class LoginMockMvcTests {
 
     @Test
     void authorizeForClientWithIdpNotAllowed() throws Exception {
-        String subdomain = "idp-not-allowed-" + generator.generate().toLowerCase();
+        String subdomain = "idp-not-allowed-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone = createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         zone.getConfig().getLinks().getLogout().setDisableRedirectParameter(false);
@@ -3098,7 +3098,7 @@ public class LoginMockMvcTests {
             IdentityZoneProvisioning identityZoneProvisioning,
             AlphanumericRandomValueStringGenerator generator,
             IdentityZoneConfiguration config) throws Exception {
-        String zoneId = generator.generate().toLowerCase();
+        String zoneId = generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = createOtherIdentityZone(zoneId, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         zone.setConfig(config);
         identityZoneProvisioning.update(zone);

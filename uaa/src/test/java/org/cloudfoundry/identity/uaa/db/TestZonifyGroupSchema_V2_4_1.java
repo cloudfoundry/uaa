@@ -1,12 +1,12 @@
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints;
@@ -39,7 +39,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
     @BeforeEach
     void populateDataUsingEndpoints() {
 
-        RandomValueStringGenerator generator = new RandomValueStringGenerator(16);
+        AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(16);
 
         Map<IdentityZone, List<ScimGroup>> zones = new HashMap<>();
 

@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Locale;
 
 public class ModelTestUtils {
 
@@ -20,7 +21,7 @@ public class ModelTestUtils {
     public static IdentityZone identityZone(String id, String subdomain) {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
-        identityZone.setSubdomain(subdomain.toLowerCase());
+        identityZone.setSubdomain(subdomain.toLowerCase(Locale.ROOT));
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;
