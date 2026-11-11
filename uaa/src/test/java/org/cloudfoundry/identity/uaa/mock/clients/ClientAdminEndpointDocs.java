@@ -52,7 +52,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
     private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client.");
     private static final FieldDescriptor secondaryClientSecretField = fieldWithPath("secondary_client_secret").optional(null).type(STRING).description("An optional, secondary secret string used for authenticating as this client to support secret rotation.");
     private static final FieldDescriptor actionField = fieldWithPath("action").constrained("Always required.").description("Set to `secret` to change client secret, `delete` to delete the client or `add` to add the client");
-    private static final HeaderDescriptor authorizationHeader = headerWithName("Authorization").description("Bearer token containing `clients.write`, `clients.admin` or `zones.{zone.id}.admin`");
+    private static final HeaderDescriptor authorizationHeader = headerWithName("Authorization").description("Bearer token containing `clients.write`, `clients.admin` or `zones.{zone.id}.admin`. Explicit bearer headers do not require a CSRF token; mutations using only an `access_token` parameter require a matching CSRF cookie and token, otherwise they return HTTP 403.");
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id.");
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
 
@@ -142,6 +142,18 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
                 "admin",
                 "adminsecret",
                 "uaa.admin clients.admin clients.secret");
+    }
+
+    @Test
+    void createClientWithoutBearerHeaderRequiresCsrf() throws Exception {
+        ClientDetails client = createBaseClient(null, SECRET, Collections.singleton("client_credentials"), null, null);
+        mockMvc.perform(post("/oauth/clients")
+                        .param("access_token", clientAdminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(writeValueAsString(client)))
+                .andExpect(status().isForbidden())
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessResponse(prettyPrint())));
     }
 
     @Test
