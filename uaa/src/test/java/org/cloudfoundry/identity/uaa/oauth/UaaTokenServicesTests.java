@@ -483,7 +483,7 @@ class UaaTokenServicesTests {
                         Sets.newHashSet(""), "jku_test", false, new Date(), null,
                         Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE, "refresh_only_marker", "private"));
                 var user = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-                refreshToken = refreshTokenCreator.createRefreshToken(user, data, null);
+                refreshToken = refreshTokenCreator.createRefreshToken(user, data, null, System.currentTimeMillis());
                 assertThat(UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class))
                         .containsEntry("refresh_only_marker", "private");
                 OAuth2Authentication authentication = mock(OAuth2Authentication.class);
@@ -517,7 +517,7 @@ class UaaTokenServicesTests {
                     Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE)
             );
             UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null, System.currentTimeMillis());
             assertThat(refreshToken).isNotNull();
             OAuth2Authentication authentication = mock(OAuth2Authentication.class);
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -596,7 +596,7 @@ class UaaTokenServicesTests {
             );
             UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
             CompositeExpiringOAuth2RefreshToken issued =
-                    refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+                    refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null, System.currentTimeMillis());
             OAuth2Authentication authentication = mock(OAuth2Authentication.class);
             SecurityContextHolder.getContext().setAuthentication(authentication);
             OAuth2Request auth2Request = mock(OAuth2Request.class);
@@ -640,7 +640,7 @@ class UaaTokenServicesTests {
                         Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE)
                 );
                 UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-                refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+                refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null, System.currentTimeMillis());
                 assertThat(refreshToken).isNotNull();
                 OAuth2Authentication authentication = mock(OAuth2Authentication.class);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -695,7 +695,7 @@ class UaaTokenServicesTests {
                     null
             );
             UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null, System.currentTimeMillis());
             assertThat(refreshToken).isNotNull();
             String refreshTokenJwt = refreshToken.getValue();
 
@@ -738,7 +738,7 @@ class UaaTokenServicesTests {
                     null
             );
             UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null, System.currentTimeMillis());
             assertThat(refreshToken).isNotNull();
             OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
 
@@ -765,7 +765,7 @@ class UaaTokenServicesTests {
                         null
                 );
                 UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-                refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+                refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null, System.currentTimeMillis());
                 assertThat(refreshToken).isNotNull();
             }
 
@@ -891,7 +891,7 @@ class UaaTokenServicesTests {
                         null
                 );
                 UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-                refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+                refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null, System.currentTimeMillis());
                 assertThat(refreshToken).isNotNull();
             }
 
@@ -962,7 +962,7 @@ class UaaTokenServicesTests {
                     validitySeconds);
             CompositeExpiringOAuth2RefreshToken refreshToken =
                     refreshTokenCreator.createRefreshToken(uaaUser,
-                            refreshTokenRequestData, null);
+                            refreshTokenRequestData, null, timeService.getCurrentTimeMillis());
             assertThat(refreshToken).isNotNull();
 
             OAuth2AccessToken accessToken = tokenServices.refreshAccessToken(
@@ -977,7 +977,7 @@ class UaaTokenServicesTests {
                     validitySeconds);
             CompositeExpiringOAuth2RefreshToken refreshToken =
                     refreshTokenCreator.createRefreshToken(uaaUser,
-                            refreshTokenRequestData, null);
+                            refreshTokenRequestData, null, timeService.getCurrentTimeMillis());
             assertThat(refreshToken).isNotNull();
 
             // Verifying with generic Exception instead of specific type because

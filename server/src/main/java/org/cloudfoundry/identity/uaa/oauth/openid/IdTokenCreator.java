@@ -79,10 +79,11 @@ public class IdTokenCreator {
             ClientDetails clientDetails,
             UaaUser uaaUser,
             UserAuthenticationData userAuthenticationData,
-            TokenActor tokenActor
+            TokenActor tokenActor,
+            long issuedAtMillis
     ) throws IdTokenCreationException {
-        Date expiryDate = tokenValidityResolver.resolve(clientDetails.getClientId());
-        Date issuedAt = timeService.getCurrentDate();
+        Date expiryDate = tokenValidityResolver.resolve(clientDetails.getClientId(), issuedAtMillis);
+        Date issuedAt = new Date(issuedAtMillis);
 
         String givenName = getIfScopeContainsProfile(uaaUser.getGivenName(), userAuthenticationData.scopes);
         String familyName = getIfScopeContainsProfile(uaaUser.getFamilyName(), userAuthenticationData.scopes);

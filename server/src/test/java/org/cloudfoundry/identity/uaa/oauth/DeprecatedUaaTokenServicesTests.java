@@ -66,6 +66,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
+import java.time.Instant;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -107,6 +108,7 @@ import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -334,7 +336,7 @@ class DeprecatedUaaTokenServicesTests {
     void refreshAccessToken_buildsIdToken_withRolesAndAttributesAndACR(TestTokenEnhancer enhancer) throws Exception {
         initDeprecatedUaaTokenServicesTests(enhancer);
         IdTokenCreator idTokenCreator = mock(IdTokenCreator.class);
-        when(idTokenCreator.create(any(), any(), any(), any())).thenReturn(mock(IdToken.class));
+        when(idTokenCreator.create(any(), any(), any(), any(), anyLong())).thenReturn(mock(IdToken.class));
 
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setScope(Sets.newHashSet("openid"));
@@ -344,7 +346,7 @@ class DeprecatedUaaTokenServicesTests {
                 .thenReturn(clientDetails);
 
         TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
-        when(tokenValidityResolver.resolve(TokenTestSupport.CLIENT_ID)).thenReturn(new Date());
+        when(tokenValidityResolver.resolve(anyString(), anyLong())).thenReturn(new Date());
 
         JwtTokenSignedByThisUAA jwtToken = mock(JwtTokenSignedByThisUAA.class);
         TokenValidationService tokenValidationService = mock(TokenValidationService.class);
@@ -411,7 +413,7 @@ class DeprecatedUaaTokenServicesTests {
         String refreshToken = getOAuth2AccessToken().getRefreshToken().getValue();
         uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest());
 
-        verify(idTokenCreator).create(eq(clientDetails), any(), userAuthenticationDataArgumentCaptor.capture(), any());
+        verify(idTokenCreator).create(eq(clientDetails), any(), userAuthenticationDataArgumentCaptor.capture(), any(), anyLong());
         UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
         Set<String> expectedRoles = Sets.newHashSet("custom_role");
         assertThat(userData.roles).hasSameElementsAs(expectedRoles);
@@ -529,6 +531,27 @@ class DeprecatedUaaTokenServicesTests {
         validateExternalAttributes(accessToken);
 
         assertCommonEventProperties(accessToken, CLIENT_ID, tokenSupport.expectedJson);
+    }
+
+    @MethodSource("data")
+    @ParameterizedTest(name = "{index}: {0}")
+    void createAccessToken_expMinusIatEqualsValidity_evenWhenTwoClockReadsCrossASecondBoundary(TestTokenEnhancer enhancer) {
+        initDeprecatedUaaTokenServicesTests(enhancer);
+        long firstRead  = Instant.parse("2037-01-01T00:00:00Z").toEpochMilli() + 999;
+        long secondRead = firstRead + 2;
+        when(tokenSupport.timeService.getCurrentTimeMillis())
+                .thenReturn(firstRead)
+                .thenReturn(secondRead);
+
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.clientScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null));
+
+        assertThat(TokenClaims.validFor(accessToken)).isEqualTo(tokenSupport.accessTokenValidity);
     }
 
     @MethodSource("data")
@@ -1381,7 +1404,7 @@ class DeprecatedUaaTokenServicesTests {
         this.assertCommonUserAccessTokenProperties(accessToken, CLIENT_ID);
         assertThat(TokenClaims.issuerUri(accessToken)).isEqualTo(ISSUER_URI);
         assertThat(TokenClaims.scope(accessToken)).isEqualTo(scopesThatDontExist);
-        assertThat(TokenClaims.validFor(accessToken)).isGreaterThan(60 * 60 * 12);
+        assertThat(TokenClaims.validFor(accessToken)).isEqualTo(60 * 60 * 12);
         assertThat(accessToken.getRefreshToken()).isNull();
 
         this.assertCommonEventProperties(accessToken, tokenSupport.userId, buildJsonString(scopesThatDontExist));
@@ -2065,11 +2088,19 @@ class DeprecatedUaaTokenServicesTests {
         Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        when(tokenSupport.timeService.getCurrentTimeMillis()).thenCallRealMethod().thenReturn(2001L);
+        // Nimbus DefaultJWTClaimsVerifier checks exp against the REAL system clock during signature
+        // processing; the mocked TimeService only drives the explicit expiry gate in loadAuthentication.
+        // Issue far in the future so the token clears Nimbus, then advance the mock past the 1s validity
+        // to trigger the real expiry check. A near-epoch issuance would be rejected by Nimbus as expired,
+        // masking the gate under test with a generic "could not verify token signature" error.
+        long issuedAtMillis = Instant.parse("2037-01-01T00:00:00Z").toEpochMilli();
+        when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(issuedAtMillis);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         String accessTokenValue = accessToken.getValue();
+        when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(issuedAtMillis + 2000L);
         assertThatThrownBy(() -> tokenServices.loadAuthentication(accessTokenValue))
                 .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("Invalid access token: expired at")
                 .hasMessageNotContaining(accessTokenValue);
     }
 

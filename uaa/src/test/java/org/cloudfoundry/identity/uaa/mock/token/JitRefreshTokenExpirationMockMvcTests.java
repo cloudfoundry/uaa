@@ -118,8 +118,8 @@ public class JitRefreshTokenExpirationMockMvcTests extends JwtBearerGrantMockMvc
         ) {
             return new TokenValidityResolver(clientRefreshTokenValidity, globalTokenValiditySeconds, timeService) {
                 @Override
-                public Date resolve(String clientId, RefreshTokenRequestData requestData) {
-                    Date defaultExpiration = resolve(clientId);
+                public Date resolve(String clientId, RefreshTokenRequestData requestData, long nowMillis) {
+                    Date defaultExpiration = resolve(clientId, nowMillis);
                     if (requestData == null || requestData.externalAttributes == null) {
                         return defaultExpiration;
                     }
