@@ -19,7 +19,6 @@ public class FilterChainOrder {
     public static final int AUTHENTICATE_CATCH_ALL = 101;
     public static final int LOGIN_AUTHORIZE = 102;
     public static final int LOGIN_TOKEN = 103;
-    public static final int LOGIN_AUTHORIZE_OLD = 104;
     public static final int LOGIN_PASSWORD = 105;
     public static final int EMAIL = 106;
 

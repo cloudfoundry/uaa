@@ -250,31 +250,6 @@ class LoginSecurityConfiguration {
     }
 
     @Bean
-    @Order(FilterChainOrder.LOGIN_AUTHORIZE_OLD)
-    UaaFilterChain loginAuthorizeOld(HttpSecurity http) throws Exception {
-        var requestMatcher = new UaaRequestMatcher("/oauth/authorize");
-        requestMatcher.setAccept(List.of(MediaType.APPLICATION_JSON_VALUE));
-        requestMatcher.setParameters(Map.of("login", "{"));
-
-        var originalFilterChain = http
-                .securityMatcher(requestMatcher)
-                .authorizeHttpRequests(auth -> auth.anyRequest().fullyAuthenticated())
-                .authenticationManager(loginAuthenticationManager)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
-                .addFilterBefore(loginAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(oauth2ResourceFilter("oauth"), AbstractPreAuthenticatedProcessingFilter.class)
-                .csrf(CsrfConfigurer::disable)
-                .anonymous(AnonymousConfigurer::disable)
-                .exceptionHandling(exception -> {
-                    exception.authenticationEntryPoint(oauthAuthenticationEntryPoint);
-                    exception.accessDeniedHandler(oauthAccessDeniedHandler);
-                })
-                .securityContext(sc -> sc.requireExplicitSave(false))
-                .build();
-        return new UaaFilterChain(originalFilterChain, "loginAuthorizeOld");
-    }
-
-    @Bean
     @Order(FilterChainOrder.LOGIN_PASSWORD)
     UaaFilterChain password(HttpSecurity http) throws Exception {
         // TODO: remove
