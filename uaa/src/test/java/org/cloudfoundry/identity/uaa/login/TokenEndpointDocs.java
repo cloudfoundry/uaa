@@ -161,6 +161,11 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The [secret passphrase configured](#change-secret) for the OAuth client. Optional if it is passed as part of the Basic Authorization header or if client_assertion is sent as part of private_key_jwt authentication.");
     private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional("jwt").type(STRING).description("Can be set to `" + OPAQUE.getStringValue() + "` to retrieve an opaque token or to `" + JWT.getStringValue() + "` to retrieve a JWT token. Please refer to the Revoke Tokens endpoint doc for information about the revocability of opaque vs. jwt tokens.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
+    private static final String PASSWORD_GRANT_IDENTITY_PROVIDER_ERRORS = "For a user that is authenticated by an OIDC identity provider with the password grant enabled: "
+            + "when the identity provider rejects the request with a `4xx` response, UAA answers `401` with `error` `invalid_client` and the generic `error_description` `Bad credentials`. "
+            + "The text of the identity provider's response is not passed on to the client, it is only written to the UAA debug log. "
+            + "When the identity provider fails with a `5xx` response, UAA answers `500` with `error` `server_error`, and the text of the identity provider's response is passed on as the `error_description`.";
+
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 75.5.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
     private final ParameterDescriptor codeVerifier = parameterWithName(PkceValidationService.CODE_VERIFIER).description("<small><mark>UAA 75.5.0</mark></small> [PKCE](https://tools.ietf.org/html/rfc7636) Code Verifier. A `code_verifier` parameter must be provided if a `code_challenge` parameter was present in the previous call to `/oauth/authorize`. The `code_verifier` must match the used `code_challenge` (according to the selected `code_challenge_method`)").attributes(key("constraints").value("Optional"), key("type").value(STRING));
 
@@ -687,7 +692,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet formParameters = formParameters(
                 clientIdParameter,
-                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`"),
+                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`. " + PASSWORD_GRANT_IDENTITY_PROVIDER_ERRORS),
                 clientSecretParameter,
                 parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
                 parameterWithName("password").required().type(STRING).description("the password for the user trying to get a token"),
@@ -725,7 +730,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         Snippet formParameters = formParameters(
                 clientIdParameter,
-                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`"),
+                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`. " + PASSWORD_GRANT_IDENTITY_PROVIDER_ERRORS),
                 clientAssertion,
                 clientAssertionType,
                 parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
@@ -1209,7 +1214,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
 
         Snippet formParameters = formParameters(
-                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`"),
+                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`. " + PASSWORD_GRANT_IDENTITY_PROVIDER_ERRORS),
                 parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
                 parameterWithName("password").required().type(STRING).description("the password for the user trying to get a token"),
                 opaqueFormatParameter

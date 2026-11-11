@@ -1,5 +1,11 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
@@ -27,7 +33,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,9 +43,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -204,6 +215,88 @@ class PasswordGrantAuthenticationManagerTest {
 
         assertThat(eventArgumentCaptor.getAllValues()).hasSize(1);
         assertThat(eventArgumentCaptor.getValue()).isInstanceOf(IdentityProviderAuthenticationFailureEvent.class);
+    }
+
+    @Test
+    void oidcPasswordGrantDoesNotRelayTheBodyOfARejectionByTheProvider() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("marissa");
+        when(authentication.getCredentials()).thenReturn("koala1");
+        String providerBody = "{\"error\":\"invalid_grant\",\"detail\":\"directory ldap://directory.internal.example.com unreachable\"}";
+        HttpClientErrorException rejection = HttpClientErrorException.create(HttpStatus.BAD_REQUEST, "Bad Request",
+                new HttpHeaders(), providerBody.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        when(externalOAuthAuthenticationManager.oauthTokenRequest(any(), eq(idp), eq(GRANT_TYPE_PASSWORD), any(MultiValueMap.class))).thenThrow(rejection);
+
+        // the same answer as for wrong client credentials; the provider's body is not part of it
+        assertThatThrownBy(() -> instance.oidcPasswordGrant(authentication, idp))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Bad credentials");
+    }
+
+    @Test
+    void oidcPasswordGrantWritesTheBodyOfARejectionByTheProviderToTheDebugLog() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("marissa");
+        when(authentication.getCredentials()).thenReturn("koala1");
+        String providerBody = "{\"error\":\"invalid_grant\",\"detail\":\"directory ldap://directory.internal.example.com unreachable\"}";
+        HttpClientErrorException rejection = HttpClientErrorException.create(HttpStatus.BAD_REQUEST, "Bad Request",
+                new HttpHeaders(), providerBody.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        when(externalOAuthAuthenticationManager.oauthTokenRequest(any(), eq(idp), eq(GRANT_TYPE_PASSWORD), any(MultiValueMap.class))).thenThrow(rejection);
+
+        List<String> debugMessages = new ArrayList<>();
+        AbstractAppender appender = new AbstractAppender("", null, null, true, null) {
+            @Override
+            public void append(LogEvent event) {
+                if (PasswordGrantAuthenticationManager.class.getName().equals(event.getLoggerName()) && Level.DEBUG.equals(event.getLevel())) {
+                    debugMessages.add(event.getMessage().getFormattedMessage());
+                }
+            }
+        };
+        appender.start();
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        Level originalLevel = context.getRootLogger().getLevel();
+        Configurator.setRootLevel(Level.DEBUG);
+        context.getRootLogger().addAppender(appender);
+        try {
+            assertThatThrownBy(() -> instance.oidcPasswordGrant(authentication, idp)).isInstanceOf(BadCredentialsException.class);
+        } finally {
+            context.getRootLogger().removeAppender(appender);
+            Configurator.setRootLevel(originalLevel);
+        }
+
+        assertThat(debugMessages).anySatisfy(message -> assertThat(message).contains("directory.internal.example.com unreachable"));
+    }
+
+    @Test
+    void oidcPasswordGrantPassesOnTheErrorTextOfAProviderThatFails() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("marissa");
+        when(authentication.getCredentials()).thenReturn("koala1");
+        HttpServerErrorException outage = HttpServerErrorException.create(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable",
+                new HttpHeaders(), "maintenance until 14:00".getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+        when(externalOAuthAuthenticationManager.oauthTokenRequest(any(), eq(idp), eq(GRANT_TYPE_PASSWORD), any(MultiValueMap.class))).thenThrow(outage);
+
+        assertThatThrownBy(() -> instance.oidcPasswordGrant(authentication, idp))
+                .isInstanceOfSatisfying(PasswordGrantAuthenticationManager.IdentityProviderServerErrorException.class, e -> {
+                    assertThat(e.getMessage()).isEqualTo("maintenance until 14:00");
+                    assertThat(e.getOAuth2ErrorCode()).isEqualTo("server_error");
+                    assertThat(e.getHttpErrorCode()).isEqualTo(500);
+                    assertThat(e.getCause()).isSameAs(outage);
+                });
+    }
+
+    @Test
+    void oidcPasswordGrantAnswersAProviderFailureWithoutTextWithTheStatusText() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("marissa");
+        when(authentication.getCredentials()).thenReturn("koala1");
+        HttpServerErrorException outage = HttpServerErrorException.create(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable",
+                new HttpHeaders(), new byte[0], StandardCharsets.UTF_8);
+        when(externalOAuthAuthenticationManager.oauthTokenRequest(any(), eq(idp), eq(GRANT_TYPE_PASSWORD), any(MultiValueMap.class))).thenThrow(outage);
+
+        assertThatThrownBy(() -> instance.oidcPasswordGrant(authentication, idp))
+                .isInstanceOf(PasswordGrantAuthenticationManager.IdentityProviderServerErrorException.class)
+                .hasMessage("Service Unavailable");
     }
 
     @Test
