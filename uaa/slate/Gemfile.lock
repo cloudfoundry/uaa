@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (7.2.3.1)
+    activesupport (8.0.5.2)
       base64
       benchmark (>= 0.3)
       bigdecimal
@@ -10,21 +10,22 @@ GEM
       drb
       i18n (>= 1.6, < 2)
       logger (>= 1.4.2)
-      minitest (>= 5.1, < 6)
+      minitest (>= 5.1)
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
+      uri (>= 0.13.1)
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
     autoprefixer-rails (10.4.21.0)
       execjs (~> 2)
     base64 (0.3.0)
     benchmark (0.5.0)
-    bigdecimal (4.1.2)
+    bigdecimal (4.1.3)
     coffee-script (2.4.1)
       coffee-script-source
       execjs
     coffee-script-source (1.12.2)
-    concurrent-ruby (1.3.7)
+    concurrent-ruby (1.3.8)
     connection_pool (3.0.2)
     contracts (0.17.3)
     dotenv (3.2.0)
@@ -92,7 +93,9 @@ GEM
     middleman-syntax (3.6.1)
       middleman-core (>= 3.2)
       rouge (~> 3.2)
-    minitest (5.27.0)
+    minitest (6.1.0)
+      drb (~> 2.0)
+      prism (>= 1.5, < 3)
     nokogiri (1.19.5-arm64-darwin)
       racc (~> 1.4)
     nokogiri (1.19.5-x86_64-linux-gnu)
@@ -105,6 +108,8 @@ GEM
     padrino-support (0.16.1)
     parallel (2.0.1)
     parslet (2.0.0)
+    prism (2.1.0-arm64-darwin)
+    prism (2.1.0-x86_64-linux-gnu)
     public_suffix (7.0.5)
     racc (1.8.1)
     rack (3.2.8)
@@ -133,6 +138,7 @@ GEM
       concurrent-ruby (~> 1.0)
     uglifier (4.2.1)
       execjs (>= 0.3.0, < 3)
+    uri (1.1.2)
     webrick (1.9.2)
 
 PLATFORMS
@@ -140,7 +146,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  activesupport (~> 7.2.3, >= 7.2.3.1)
+  activesupport (~> 8.0.5)
   bundler (~> 2.2)
   middleman (~> 4.5)
   middleman-autoprefixer (~> 3.0)
