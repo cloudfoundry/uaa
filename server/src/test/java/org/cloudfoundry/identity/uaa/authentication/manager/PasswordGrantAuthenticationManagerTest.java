@@ -300,6 +300,23 @@ class PasswordGrantAuthenticationManagerTest {
     }
 
     @Test
+    void oidcPasswordGrantHandsNoOriginToTheExternalManagerSoTheAudienceOfTheIdTokenIsNotEnforced() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("marissa");
+        when(authentication.getCredentials()).thenReturn("koala");
+        when(externalOAuthAuthenticationManager.oauthTokenRequest(any(), eq(idp), eq(GRANT_TYPE_PASSWORD), any(MultiValueMap.class))).thenReturn("mytoken");
+
+        instance.oidcPasswordGrant(authentication, idp);
+
+        ArgumentCaptor<ExternalOAuthCodeToken> token = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
+        verify(externalOAuthAuthenticationManager).authenticate(token.capture());
+        // intended: the id_token was fetched by UAA itself from the provider, so it is not bound to a relying party
+        // audience again, and the provider is resolved from the issuer of the token
+        assertThat(token.getValue().getOrigin()).isNull();
+        assertThat(token.getValue().getIdToken()).isEqualTo("mytoken");
+    }
+
+    @Test
     void oidcPasswordGrantProviderNotFound() {
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
         when(loginHint.getOrigin()).thenReturn("oidcprovider2");
