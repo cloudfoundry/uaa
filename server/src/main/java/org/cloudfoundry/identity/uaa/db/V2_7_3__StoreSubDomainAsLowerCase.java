@@ -14,6 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
@@ -28,7 +30,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -37,6 +38,10 @@ import java.util.*;
 
 public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
 
+    private static final int MAX_SUBDOMAIN_LENGTH = 255;
+    private static final int SUFFIX_LENGTH = 3;
+    private static final int MAX_RANDOM_SUFFIX_ATTEMPTS = 10;
+
     static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
     static final String IDENTITY_ZONES_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone ";
 
@@ -44,7 +49,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
 
     @Override
     public synchronized void migrate(Context context) {
-        RandomValueStringGenerator generator = new RandomValueStringGenerator(3);
+        AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(SUFFIX_LENGTH);
         Map<String, List<IdentityZone>> zones = new HashMap<>();
         Set<String> duplicates = new HashSet<>();
         JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(
@@ -59,13 +64,11 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
             List<IdentityZone> dupZones = zones.get(s);
             for (int i = 1; i < dupZones.size(); i++) {
                 IdentityZone dupZone = dupZones.get(i);
-                String newsubdomain = null;
-                while (newsubdomain == null) {
-                    String potentialsubdomain = (dupZone.getSubdomain() + "-" + generator.generate()).toLowerCase();
-                    if (zones.get(potentialsubdomain) == null) {
-                        newsubdomain = potentialsubdomain;
-                    }
+                String baseSubdomain = dupZone.getSubdomain().toLowerCase(Locale.ROOT);
+                if (!UaaUrlUtils.isValidSubdomain(baseSubdomain)) {
+                    baseSubdomain = "zone";
                 }
+                String newsubdomain = uniqueSubdomain(baseSubdomain, zones.keySet(), generator);
                 logger.debug("Updating zone id:{}; old subdomain: {}; new subdomain: {}", dupZone.getId(), dupZone.getSubdomain(), newsubdomain);
                 dupZone.setSubdomain(newsubdomain);
                 dupZone = updateIdentityZone(dupZone, jdbcTemplate);
@@ -74,12 +77,45 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
         }
         for (IdentityZone zone : identityZones) {
             String subdomain = zone.getSubdomain();
-            if (StringUtils.hasText(subdomain) && !subdomain.toLowerCase().equals(subdomain)) {
-                logger.debug("Lowercasing zone subdomain for id:{}; old subdomain: {}; new subdomain: {};", zone.getId(), zone.getSubdomain(), zone.getSubdomain().toLowerCase());
-                zone.setSubdomain(subdomain.toLowerCase());
+            if (!StringUtils.hasText(subdomain)) {
+                continue;
+            }
+            String normalized = subdomain.toLowerCase(Locale.ROOT);
+            if (normalized.length() > MAX_SUBDOMAIN_LENGTH) {
+                // Unicode lowercasing can expand legacy values. Preserve them for manual correction.
+                logger.warn("Keeping legacy subdomain for zone id:{} because lowercasing exceeds {} characters.",
+                        zone.getId(), MAX_SUBDOMAIN_LENGTH);
+                continue;
+            }
+            if (!normalized.equals(subdomain)) {
+                logger.debug("Lowercasing zone subdomain for id:{}; old subdomain: {}; new subdomain: {};", zone.getId(), subdomain, normalized);
+                zone.setSubdomain(normalized);
                 updateIdentityZone(zone, jdbcTemplate);
             }
         }
+    }
+
+    private String uniqueSubdomain(String base, Set<String> usedSubdomains,
+                                   AlphanumericRandomValueStringGenerator generator) {
+        for (int attempt = 0; attempt < MAX_RANDOM_SUFFIX_ATTEMPTS; attempt++) {
+            String candidate = subdomainWithSuffix(base, generator.generate().toLowerCase(Locale.ROOT));
+            if (!usedSubdomains.contains(candidate)) {
+                return candidate;
+            }
+        }
+        // N+1 distinct candidates guarantee a free name among N reserved names, even if randomness stalls.
+        for (long counter = 0; counter <= usedSubdomains.size(); counter++) {
+            String candidate = subdomainWithSuffix(base, Long.toString(counter, 36));
+            if (!usedSubdomains.contains(candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("Unable to allocate a unique identity-zone subdomain.");
+    }
+
+    private String subdomainWithSuffix(String base, String suffix) {
+        int baseLength = Math.min(base.length(), MAX_SUBDOMAIN_LENGTH - suffix.length() - 1);
+        return base.substring(0, baseLength) + "-" + suffix;
     }
 
     private IdentityZone updateIdentityZone(IdentityZone identityZone, JdbcTemplate jdbcTemplate) {
@@ -92,7 +128,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
                     ps.setInt(1, identityZone.getVersion() + 1);
                     ps.setTimestamp(2, new Timestamp(new Date().getTime()));
                     ps.setString(3, identityZone.getName());
-                    ps.setString(4, identityZone.getSubdomain().toLowerCase());
+                    ps.setString(4, identityZone.getSubdomain().toLowerCase(Locale.ROOT));
                     ps.setString(5, identityZone.getDescription());
                     ps.setString(6, identityZone.getId().trim());
                 }
@@ -121,7 +157,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
         if (zone == null || zone.getSubdomain() == null) {
             return;
         }
-        String subdomain = zone.getSubdomain().toLowerCase();
+        String subdomain = zone.getSubdomain().toLowerCase(Locale.ROOT);
         if (zones.get(subdomain) == null) {
             List<IdentityZone> list = new LinkedList<>();
             list.add(zone);

@@ -57,6 +57,8 @@ import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -78,6 +80,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -500,6 +503,170 @@ class IdentityZoneEndpointsMockMvcTests {
                 .andExpect(jsonPath("$.error_description").value("The subdomain must be provided."));
 
         assertThat(zoneModifiedEventListener.getEventCount()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "my zone", "my.zone", "my_zone", "-zone", "zone-", "zone/path",
+            "zone\\path", "zone?query", "zone#fragment", "zone%2fpath", "..", "zone;param", "zöne", "zone\r\n"})
+    void createZone_invalidSubdomain_isUnprocessableEntity(String subdomain) throws Exception {
+        IdentityZone zone = createSimpleIdentityZone(generator.generate());
+        zone.setSubdomain(subdomain);
+
+        mockMvc.perform(post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("invalid_identity_zone"))
+                .andExpect(jsonPath("$.error_description").value("The identity zone details are invalid. " +
+                        "The subdomain must contain only ASCII letters, digits, or hyphens, " +
+                        "and must start and end with a letter or digit."));
+
+        assertThat(provisioning.retrieveAll()).extracting(IdentityZone::getId).doesNotContain(zone.getId());
+        assertThat(zoneModifiedEventListener.getEventCount()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "my zone", "my.zone", "my_zone", "-zone", "zone-", "zone/path",
+            "zone\\path", "zone?query", "zone#fragment", "zone%2fpath", "..", "zone;param", "zöne", "zone\r\n"})
+    void updateZone_invalidSubdomain_isUnprocessableEntity(String subdomain) throws Exception {
+        IdentityZone zone = createZoneReturn();
+        String originalSubdomain = zone.getSubdomain();
+        int eventCount = zoneModifiedEventListener.getEventCount();
+        zone.setSubdomain(subdomain);
+
+        mockMvc.perform(put("/identity-zones/{id}", zone.getId())
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("invalid_identity_zone"))
+                .andExpect(jsonPath("$.error_description").value("The identity zone details are invalid. " +
+                        "The subdomain must contain only ASCII letters, digits, or hyphens, " +
+                        "and must start and end with a letter or digit."));
+
+        assertThat(provisioning.retrieve(zone.getId()).getSubdomain()).isEqualTo(originalSubdomain);
+        assertThat(zoneModifiedEventListener.getEventCount()).isEqualTo(eventCount);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"en-US", "tr-TR"})
+    @ResourceLock(Resources.LOCALE)
+    void createAndUpdateZone_validSubdomain_isStoredInLowercase(String languageTag) throws Exception {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag(languageTag));
+            IdentityZone zone = createSimpleIdentityZone(generator.generate());
+            zone.setSubdomain("My-I-Zone-" + generator.generate());
+
+            MvcResult result = mockMvc.perform(post("/identity-zones")
+                            .header("Authorization", "Bearer " + identityClientToken)
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsString(zone)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.subdomain").value(zone.getSubdomain().toLowerCase(Locale.ROOT)))
+                    .andReturn();
+
+            IdentityZone created = JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
+            created.setSubdomain("Updated-I-Zone-" + generator.generate());
+            mockMvc.perform(put("/identity-zones/{id}", created.getId())
+                            .header("Authorization", "Bearer " + identityClientToken)
+                            .contentType(APPLICATION_JSON)
+                            .content(JsonUtils.writeValueAsString(created)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.subdomain").value(created.getSubdomain().toLowerCase(Locale.ROOT)));
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @Test
+    void createAndUpdateZone_uuidSubdomain_succeeds() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = createSimpleIdentityZone(id);
+
+        MvcResult result = mockMvc.perform(post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.subdomain").value(id))
+                .andReturn();
+
+        IdentityZone created = JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
+        created.setDescription("Updated UUID zone");
+        mockMvc.perform(put("/identity-zones/{id}", id)
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(created)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.subdomain").value(id));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {256, 1024})
+    void createZone_overlongSubdomain_isUnprocessableEntity(int length) throws Exception {
+        IdentityZone zone = createSimpleIdentityZone(generator.generate());
+        zone.setSubdomain("a".repeat(length));
+
+        mockMvc.perform(post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("invalid_identity_zone"))
+                .andExpect(jsonPath("$.error_description").value("The identity zone details are invalid. " +
+                        "The subdomain must not exceed 255 characters."));
+
+        assertThat(provisioning.retrieveAll()).extracting(IdentityZone::getId).doesNotContain(zone.getId());
+        assertThat(zoneModifiedEventListener.getEventCount()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {256, 1024})
+    void updateZone_overlongSubdomain_isUnprocessableEntity(int length) throws Exception {
+        IdentityZone zone = createZoneReturn();
+        String originalSubdomain = zone.getSubdomain();
+        int eventCount = zoneModifiedEventListener.getEventCount();
+        zone.setSubdomain("a".repeat(length));
+
+        mockMvc.perform(put("/identity-zones/{id}", zone.getId())
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("invalid_identity_zone"))
+                .andExpect(jsonPath("$.error_description").value("The identity zone details are invalid. " +
+                        "The subdomain must not exceed 255 characters."));
+
+        assertThat(provisioning.retrieve(zone.getId()).getSubdomain()).isEqualTo(originalSubdomain);
+        assertThat(zoneModifiedEventListener.getEventCount()).isEqualTo(eventCount);
+    }
+
+    @Test
+    void createAndUpdateZone_maximumLengthSubdomain_succeeds() throws Exception {
+        IdentityZone zone = createSimpleIdentityZone(generator.generate());
+        String subdomain = "a".repeat(255 - zone.getId().length()) + zone.getId();
+        zone.setSubdomain(subdomain);
+
+        MvcResult result = mockMvc.perform(post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.subdomain").value(subdomain.toLowerCase(Locale.ROOT)))
+                .andReturn();
+
+        IdentityZone created = JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
+        String updatedSubdomain = "b".repeat(255 - zone.getId().length()) + zone.getId();
+        created.setSubdomain(updatedSubdomain);
+        mockMvc.perform(put("/identity-zones/{id}", created.getId())
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(created)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.subdomain").value(updatedSubdomain.toLowerCase(Locale.ROOT)));
     }
 
     @Test

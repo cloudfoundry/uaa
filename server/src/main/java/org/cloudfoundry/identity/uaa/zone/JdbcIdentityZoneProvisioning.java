@@ -16,6 +16,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 @Component("identityZoneProvisioning")
 public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, SystemDeletable {
@@ -82,7 +83,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         if (subdomain == null) {
             throw new EmptyResultDataAccessException("Subdomain cannot be null", 1);
         }
-        return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain.toLowerCase(), true);
+        return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain.toLowerCase(Locale.ROOT), true);
     }
 
     @Override
@@ -95,7 +96,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 ps.setTimestamp(3, new Timestamp(new Date().getTime()));
                 ps.setTimestamp(4, new Timestamp(new Date().getTime()));
                 ps.setString(5, identityZone.getName());
-                ps.setString(6, identityZone.getSubdomain().toLowerCase());
+                ps.setString(6, identityZone.getSubdomain().toLowerCase(Locale.ROOT));
                 ps.setString(7, identityZone.getDescription());
                 ps.setString(8, identityZone.getConfig() != null ? JsonUtils.writeValueAsString(identityZone.getConfig()) : null);
                 ps.setBoolean(9, identityZone.isActive());
@@ -115,7 +116,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 ps.setInt(1, identityZone.getVersion() + 1);
                 ps.setTimestamp(2, new Timestamp(new Date().getTime()));
                 ps.setString(3, identityZone.getName());
-                ps.setString(4, identityZone.getSubdomain().toLowerCase());
+                ps.setString(4, identityZone.getSubdomain().toLowerCase(Locale.ROOT));
                 ps.setString(5, identityZone.getDescription());
                 ps.setString(6, identityZone.getConfig() != null ? JsonUtils.writeValueAsString(identityZone.getConfig()) : null);
                 ps.setBoolean(7, identityZone.isActive());

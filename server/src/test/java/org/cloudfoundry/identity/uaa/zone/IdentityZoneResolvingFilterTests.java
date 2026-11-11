@@ -5,6 +5,10 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,6 +25,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -68,6 +74,37 @@ class IdentityZoneResolvingFilterTests {
     @Test
     void holderIsSetWithCaseInsensitiveIdentityZone() throws Exception {
         assertFindsCorrectSubdomain("", "login.mycf.com", "uaa.mycf.com", "Login.MyCF.COM");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"I-ZONE.LOGIN.MyCF.COM", "i-zone.login.mycf.com"})
+    @ResourceLock(Resources.LOCALE)
+    void resolvesSubdomain_withTurkishLocale_usesAsciiLowercase(String hostname) throws Exception {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertFindsCorrectSubdomain("i-zone", hostname, "LOGIN.MyCF.COM");
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @Test
+    @ResourceLock(Resources.LOCALE)
+    void configuresHostnames_withTurkishLocale_usesAsciiLowercase() {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter(dao, identityZoneManager);
+            filter.setDefaultInternalHostnames(Set.of("LOGIN.MyCF.COM"));
+            filter.setAdditionalInternalHostnames(Set.of("INTERNAL.MyCF.COM"));
+            assertThat(filter.getDefaultZoneHostnames()).containsExactlyInAnyOrder("login.mycf.com", "internal.mycf.com");
+
+            filter.restoreDefaultHostnames(Set.of("IDENTITY.MyCF.COM"));
+            assertThat(filter.getDefaultZoneHostnames()).containsExactly("identity.mycf.com");
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test
