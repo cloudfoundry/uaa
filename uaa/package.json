@@ -15,5 +15,10 @@
   "dependencies": {
     "jasmine": "^7.0.0",
     "jasmine-core": "7.0.2"
+  },
+  "overrides": {
+    "jasmine": {
+      "glob": "14.0.4"
+    }
   }
 }
