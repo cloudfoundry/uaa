@@ -8,6 +8,9 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.JdbcUnsuccessfulLoginCountingAuditService;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -39,6 +42,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -109,6 +113,9 @@ class ScimUserEndpointsMockMvcTests {
 
     @Autowired
     private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
+
+    @Autowired
+    private JdbcUnsuccessfulLoginCountingAuditService auditService;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -928,6 +935,62 @@ class ScimUserEndpointsMockMvcTests {
 
         attemptLogin(userToLockout)
                 .andExpect(redirectedUrl("/"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ldap", "saml-provider", "oidc-provider", "custom-provider"})
+    void unlockExternalAccount(String origin) throws Exception {
+        ScimUser user = createExternalUserWithFailedLogins(origin);
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setLocked(false);
+
+        updateAccountStatusWithoutAcceptHeader(user, alteredAccountStatus)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
+
+        assertThat(auditService.find(user.getId(), 0, user.getZoneId())).isEmpty();
+        assertThat(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), user.getZoneId())).isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ldap", "saml-provider", "oidc-provider", "custom-provider"})
+    void emptyStatusDoesNotUnlockExternalAccount(String origin) throws Exception {
+        ScimUser user = createExternalUserWithFailedLogins(origin);
+
+        updateAccountStatus(user, new UserAccountStatus())
+                .andExpect(status().isOk())
+                .andExpect(content().string("{}"));
+
+        assertThat(auditService.find(user.getId(), 0, user.getZoneId())).hasSize(5);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"ldap,true", "ldap,false", "saml-provider,true", "saml-provider,false",
+            "oidc-provider,true", "oidc-provider,false", "custom-provider,true", "custom-provider,false"})
+    void passwordChangeForExternalAccountDoesNotUnlock(String origin, boolean passwordChangeRequired) throws Exception {
+        ScimUser user = createExternalUserWithFailedLogins(origin);
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setLocked(false);
+        alteredAccountStatus.setPasswordChangeRequired(passwordChangeRequired);
+
+        updateAccountStatus(user, alteredAccountStatus)
+                .andExpect(status().isBadRequest());
+
+        assertThat(auditService.find(user.getId(), 0, user.getZoneId())).hasSize(5);
+        assertThat(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), user.getZoneId())).isFalse();
+    }
+
+    private ScimUser createExternalUserWithFailedLogins(String origin) throws Exception {
+        ScimUser userToCreate = getScimUser();
+        userToCreate.setOrigin(origin);
+        ScimUser user = createUser(userToCreate, uaaAdminToken, null);
+        for (int i = 0; i < 5; i++) {
+            auditService.log(new AuditEvent(AuditEventType.UserAuthenticationFailure, user.getId(), "127.0.0.1",
+                    user.getUserName(), System.currentTimeMillis(), user.getZoneId(), null, null), user.getZoneId());
+        }
+        assertThat(auditService.find(user.getId(), 0, user.getZoneId())).hasSize(5);
+        return user;
     }
 
     @Test

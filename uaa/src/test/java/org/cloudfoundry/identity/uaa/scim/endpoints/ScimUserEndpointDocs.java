@@ -510,7 +510,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                         IDENTITY_ZONE_ID_HEADER,
                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                                 ),
-                                requestFields(fieldWithPath("locked").optional(null).description("Set to `false` in order to unlock the user when they have been locked out according to the password lock-out policy. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
+                                requestFields(fieldWithPath("locked").optional(null).description("Set to `false` to clear the user's failed login attempts in UAA, regardless of origin (including SAML, OpenID Connect, and LDAP providers). This does not unlock the account at the external identity provider. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
                                 responseFields(fieldWithPath("locked").description("The `locked` value given in the request.").type(BOOLEAN))
                         )
                 );
