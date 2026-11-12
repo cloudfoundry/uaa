@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.apache.hc.core5.http.HttpStatus;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.beans.RedirectResolverFactoryBean;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.RedirectResolver;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchException;
@@ -9,6 +11,8 @@ import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -203,6 +207,44 @@ class SamlLoginAuthenticationFailureHandlerTest {
         String actual = response.getRedirectedUrl();
         assertThat(actual).isNull();
         assertThat(response.getStatus()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "false, /callback",
+            "false, //example.com/callback",
+            "false, https:/callback",
+            "false, https://[invalid",
+            "true, /callback",
+            "true, //example.com/callback",
+            "true, https:/callback",
+            "true, https://[invalid"
+    })
+    void malformedRedirectUriFallsBackToSamlError(boolean allowUnsafeMatching, String redirectUri) throws Exception {
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn("uaa");
+        UaaClientDetails client = new UaaClientDetails("client", "", "openid", "authorization_code", "",
+                "https://example.com/callback");
+        when(clientServices.loadClientByClientId("client", "uaa")).thenReturn(client);
+        RedirectResolver resolver = new RedirectResolverFactoryBean(allowUnsafeMatching).getObject();
+        SamlLoginAuthenticationFailureHandler handler =
+                new SamlLoginAuthenticationFailureHandler(resolver, clientServices, identityZoneManager);
+        handler.setDefaultFailureUrl("/saml_error");
+
+        DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
+        when(savedRequest.getParameterMap()).thenReturn(Map.of(
+                "redirect_uri", new String[]{redirectUri},
+                "client_id", new String[]{"client"}));
+
+        MockHttpSession session = new MockHttpSession();
+        SessionUtils.setSavedRequestSession(session, savedRequest);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setSession(session);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.onAuthenticationFailure(request, response, new SamlLoginException("Denied!"));
+
+        assertThat(response.getRedirectedUrl()).isEqualTo("/saml_error");
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.SC_MOVED_TEMPORARILY);
     }
 
     @Test

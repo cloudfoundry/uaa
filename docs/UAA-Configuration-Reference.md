@@ -2390,6 +2390,11 @@ Bootstrap SAML Identity Provider definitions. Each entry is keyed by a provider 
 | `authnContext` | `List<String>` | Requested authentication context class references |
 | `override` | `boolean` | Overwrite an existing provider with the same alias on startup. Default `true` |
 
+When SAML sign-in fails during a saved authorization request (for example, when `addShadowUserOnLogin` is `false`
+and no shadow user exists), UAA sends `error=access_denied` and `error_description` only to a `redirect_uri`
+that resolves against the client's registered redirect URIs in the current identity zone. If the saved URI is
+malformed or unregistered, or the `client_id` is missing or unknown, UAA falls back to `/saml_error`.
+
 #### `idpMetadata` and entity ID resolution
 
 The value of `idpMetadata` determines how UAA parses the IDP's entity ID:

@@ -111,7 +111,7 @@ public class SamlLoginAuthenticationFailureHandler extends SimpleUrlAuthenticati
         try {
             ClientDetails client = clientServices.loadClientByClientId(clientId[0], identityZoneManager.getCurrentIdentityZoneId());
             return redirectResolver.resolveRedirect(requestedRedirect, client);
-        } catch (ClientRegistrationException | OAuth2Exception e) {
+        } catch (ClientRegistrationException | OAuth2Exception | IllegalArgumentException e) {
             log.debug("SAML sign-in failed, the redirect_uri is not registered for the client of the request: {}", e.getMessage());
             return null;
         }
