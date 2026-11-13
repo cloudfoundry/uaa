@@ -59,6 +59,12 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String DESCRIPTION_DESC = "Description of the zone";
     private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";
     private static final String ACTIVE_DESC = "Indicates whether the identity zone is active. Defaults to true.";
+    private static final String MTLS_RESOURCE_POLICIES_DESC = "Zone-scoped map of named mTLS allowed-resource "
+            + "policies. Each policy contains a non-empty allowedResources list of absolute URIs without fragments. "
+            + "Names use the same syntax as trust-bundle names. Clients reference a policy with "
+            + "tls-client-auth-allowed-resources-ref. Updates apply to subsequent token requests without changing "
+            + "clients; removed references fail closed. The default zone is configured through "
+            + "uaa.mtls.resource_policies.";
     private static final String TOKEN_POLICY_DESC = "Various fields pertaining to the JWT access and refresh tokens.";
     private static final String ACTIVE_KEY_ID_DESC = "The ID for the key that is being used to sign tokens";
     private static final String KEYS_UPDATE_DESC = "Keys which will be used to sign the token. If null value is specified for keys, then existing value will be retained.";
@@ -227,6 +233,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
 
                 fieldWithPath("config.mtls.enabled").optional().type(BOOLEAN).description("Zone mTLS switch, false when omitted. Both this flag and deployment-wide uaa.mtls.enabled must be enabled. Changes apply without restarting; a zone cannot override the deployment off-switch. Disabling does not revoke issued tokens.").attributes(key("constraints").value("Optional")),
                 subsectionWithPath("config.mtls.trustBundles").optional().type(OBJECT).description("Zone-scoped map of named PEM CA bundles for mTLS clients. Names contain 1 to 128 letters, digits, dots, underscores or hyphens and start with a letter or digit. Clients reference these using tls-client-auth-ca-ref or tls-client-auth-trusted-proxy-ca-ref. Updating a bundle rotates trust without client changes; removed references fail authentication at token time. The default zone is configured through uaa.mtls.trust_bundles.").attributes(key("constraints").value("Optional")),
+                subsectionWithPath("config.mtls.resourcePolicies").optional().type(OBJECT).description(MTLS_RESOURCE_POLICIES_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
@@ -398,6 +405,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
 
                 fieldWithPath("[].config.mtls.enabled").optional().type(BOOLEAN).description("Zone mTLS switch, false when omitted. Both this flag and deployment-wide uaa.mtls.enabled must be enabled. Changes apply without restarting; a zone cannot override the deployment off-switch. Disabling does not revoke issued tokens.").attributes(key("constraints").value("Optional")),
                 subsectionWithPath("[].config.mtls.trustBundles").optional().type(OBJECT).description("Zone-scoped map of named PEM CA bundles for mTLS clients. Names contain 1 to 128 letters, digits, dots, underscores or hyphens and start with a letter or digit. Clients reference these using tls-client-auth-ca-ref or tls-client-auth-trusted-proxy-ca-ref. Updating a bundle rotates trust without client changes; removed references fail authentication at token time. The default zone is configured through uaa.mtls.trust_bundles.").attributes(key("constraints").value("Optional")),
+                subsectionWithPath("[].config.mtls.resourcePolicies").optional().type(OBJECT).description(MTLS_RESOURCE_POLICIES_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("[].config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("[].config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
@@ -549,6 +557,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
 
                 fieldWithPath("config.mtls.enabled").optional().type(BOOLEAN).description("Zone mTLS switch, false when omitted. Both this flag and deployment-wide uaa.mtls.enabled must be enabled. Changes apply without restarting; a zone cannot override the deployment off-switch. Disabling does not revoke issued tokens.").attributes(key("constraints").value("Optional")),
                 subsectionWithPath("config.mtls.trustBundles").optional().type(OBJECT).description("Zone-scoped map of named PEM CA bundles for mTLS clients. Names contain 1 to 128 letters, digits, dots, underscores or hyphens and start with a letter or digit. Clients reference these using tls-client-auth-ca-ref or tls-client-auth-trusted-proxy-ca-ref. Updating a bundle rotates trust without client changes; removed references fail authentication at token time. The default zone is configured through uaa.mtls.trust_bundles.").attributes(key("constraints").value("Optional")),
+                subsectionWithPath("config.mtls.resourcePolicies").optional().type(OBJECT).description(MTLS_RESOURCE_POLICIES_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
@@ -736,6 +745,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
 
                 fieldWithPath("config.mtls.enabled").optional().type(BOOLEAN).description("Zone mTLS switch, false when omitted. Both this flag and deployment-wide uaa.mtls.enabled must be enabled. Changes apply without restarting; a zone cannot override the deployment off-switch. Disabling does not revoke issued tokens.").attributes(key("constraints").value("Optional")),
                 subsectionWithPath("config.mtls.trustBundles").optional().type(OBJECT).description("Zone-scoped map of named PEM CA bundles for mTLS clients. Names contain 1 to 128 letters, digits, dots, underscores or hyphens and start with a letter or digit. Clients reference these using tls-client-auth-ca-ref or tls-client-auth-trusted-proxy-ca-ref. Updating a bundle rotates trust without client changes; removed references fail authentication at token time. The default zone is configured through uaa.mtls.trust_bundles.").attributes(key("constraints").value("Optional")),
+                subsectionWithPath("config.mtls.resourcePolicies").optional().type(OBJECT).description(MTLS_RESOURCE_POLICIES_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.clientSecretPolicy.minLength").type(NUMBER).description(SECRET_POLICY_MIN_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("config.clientSecretPolicy.maxLength").type(NUMBER).description(SECRET_POLICY_MAX_LENGTH).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),

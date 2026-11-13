@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.ZoneContextPathSessionFilter;
 import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.junit.jupiter.api.BeforeAll;
@@ -1934,6 +1935,123 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
         }
     }
 
+    @Nested
+    @DisplayName("N. named allowed-resource policies")
+    class NamedAllowedResourcePolicies {
+        private IdentityZoneConfiguration previous;
+        private final List<String> createdIds = new java.util.ArrayList<>();
+
+        @BeforeEach
+        void configurePolicies() {
+            previous = JsonUtils.convertValue(JsonUtils.convertValue(
+                    identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig(), Map.class),
+                    IdentityZoneConfiguration.class);
+            setPolicies(Map.of("federation", resourcePolicy("https://billing.apps.internal")));
+        }
+
+        @AfterEach
+        void restorePolicies() {
+            for (String id : createdIds) {
+                try {
+                    clientDetailsService.removeClientDetails(id, IdentityZone.getUaaZoneId());
+                } catch (org.cloudfoundry.identity.uaa.provider.NoSuchClientException ignored) {
+                    // A rejected registration did not persist the client.
+                }
+            }
+            IdentityZone zone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
+            zone.setConfig(previous);
+            identityZoneProvisioning.update(zone);
+            IdentityZoneHolder.clear();
+        }
+
+        @Test
+        void policyChangesApplyWithoutUpdatingTheClientAndRemovalFailsClosed() throws Exception {
+            String clientId = "policy" + generator.generate();
+            createdIds.add(clientId);
+            MvcResult created = createClientViaAdminApi(clientId, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=policy-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, "federation"));
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(201);
+            assertThat(clientDetailsService.loadClientByClientId(clientId).getAdditionalInformation())
+                    .containsEntry(
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF,
+                            "federation")
+                    .doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+            X509Certificate certificate = leafSignedByCa("CN=policy-app");
+
+            MvcResult allowed = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, certificate)
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://billing.apps.internal"));
+            assertThat(allowed.getResponse().getStatus()).as("Actual: %s", outcome(allowed)).isEqualTo(200);
+            assertThat(claimsOf(allowed)).containsEntry("aud", "https://billing.apps.internal");
+
+            setPolicies(Map.of("federation", resourcePolicy("https://reporting.apps.internal")));
+            MvcResult removed = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, certificate)
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://billing.apps.internal"));
+            assertThat(denial(removed).error()).isEqualTo("invalid_target");
+            MvcResult added = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, certificate)
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://reporting.apps.internal"));
+            assertThat(added.getResponse().getStatus()).as("Actual: %s", outcome(added)).isEqualTo(200);
+
+            setPolicies(Map.of());
+            MvcResult missing = perform(mtlsPost(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, certificate)
+                    .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://reporting.apps.internal"));
+            assertThat(denial(missing).error()).isEqualTo("invalid_target");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", " ", "missing"})
+        void blankOrUnknownPolicyReferenceIsRejectedAtRegistration(String reference) throws Exception {
+            String clientId = "badpolicy" + generator.generate();
+            createdIds.add(clientId);
+            MvcResult created = createClientViaAdminApi(clientId, Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=policy-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, reference));
+
+            assertThat(created.getResponse().getStatus()).as("Actual: %s", outcome(created)).isEqualTo(400);
+            assertThat(denial(created).description())
+                    .contains(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF);
+        }
+
+        @Test
+        void policyReferenceIsMutuallyExclusiveWithInlineResourcesAndAudienceTemplates() throws Exception {
+            Map<String, Object> config = new HashMap<>(Map.of(
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, toPem(caCert),
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=policy-app",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, "federation",
+                    TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                    List.of("https://billing.apps.internal")));
+            MvcResult inlineConflict = createClientViaAdminApi(
+                    "policyconflict" + generator.generate(), config);
+            assertThat(inlineConflict.getResponse().getStatus())
+                    .as("Actual: %s", outcome(inlineConflict)).isEqualTo(400);
+
+            config.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+            config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                    List.of(new TlsClientAuthConfiguration.ClaimMapping(
+                            "subject_cn", null, "app_id")));
+            config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES,
+                    List.of("{app_id}.apps.internal"));
+            MvcResult templateConflict = createClientViaAdminApi(
+                    "policytemplate" + generator.generate(), config);
+            assertThat(templateConflict.getResponse().getStatus())
+                    .as("Actual: %s", outcome(templateConflict)).isEqualTo(400);
+        }
+
+        private void setPolicies(Map<String, MtlsResourcePolicy> policies) {
+            IdentityZone zone = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
+            zone.getConfig().getMtls().setResourcePolicies(policies);
+            IdentityZoneHolder.set(identityZoneProvisioning.update(zone));
+        }
+
+        private MtlsResourcePolicy resourcePolicy(String... resources) {
+            MtlsResourcePolicy policy = new MtlsResourcePolicy();
+            policy.setAllowedResources(List.of(resources));
+            return policy;
+        }
+    }
+
     /**
      * Clients written directly to the store, bypassing registration validation, must fail the same way a request
      * with a bad credential does: 401 invalid_client, never a secret fallback and never a 500.
@@ -1970,7 +2088,10 @@ class MtlsTokenEndpointHardeningMockMvcTests extends AbstractTokenMockMvcTests {
                                     TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS, Map.of("app_id", "x"))),
                     org.junit.jupiter.params.provider.Arguments.of("allowed_resources",
                             Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
-                                    List.of("https://billing.example.com"))));
+                                    List.of("https://billing.example.com"))),
+                    org.junit.jupiter.params.provider.Arguments.of("allowed_resources_ref",
+                            Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF,
+                                    "federation")));
         }
 
         @Test

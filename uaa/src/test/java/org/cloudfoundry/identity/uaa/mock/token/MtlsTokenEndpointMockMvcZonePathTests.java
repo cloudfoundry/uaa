@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.oauth.tls.RawPeerCertificateCaptureFilter;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.ZoneContextPathSessionFilter;
 import org.cloudfoundry.identity.uaa.zone.ZonePathContextRewritingFilter;
 import org.junit.jupiter.api.BeforeAll;
@@ -646,11 +647,64 @@ class MtlsTokenEndpointMockMvcZonePathTests extends AbstractTokenMockMvcTests {
         assertThat(perform(mtlsPost(mode, zoneB, id, certA)).getResponse().getStatus()).isEqualTo(401);
     }
 
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void namedAllowedResourcePoliciesAreIsolatedBetweenIdentityZones(ZoneResolutionMode mode)
+            throws Exception {
+        IdentityZone zoneA = newZone();
+        IdentityZone zoneB = newZone();
+        configureResourcePolicy(zoneA, "https://zone-a.example.com");
+        configureResourcePolicy(zoneB, "https://zone-b.example.com");
+        String id = "same-policy-client" + generator.generate();
+        registerResourcePolicyClient(zoneA, id, zoneACaCert, "CN=policy-app");
+        registerResourcePolicyClient(zoneB, id, zoneBCaCert, "CN=policy-app");
+        X509Certificate certA = leafSignedBy(zoneACaSubject, zoneACaKeyPair, "CN=policy-app");
+        X509Certificate certB = leafSignedBy(zoneBCaSubject, zoneBCaKeyPair, "CN=policy-app");
+
+        MvcResult ownA = perform(mtlsPost(mode, zoneA, id, certA)
+                .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://zone-a.example.com"));
+        assertThat(ownA.getResponse().getStatus()).as("Actual: %s", outcome(ownA)).isEqualTo(200);
+        assertThat(claimsOf(ownA)).containsEntry("aud", "https://zone-a.example.com");
+        MvcResult ownB = perform(mtlsPost(mode, zoneB, id, certB)
+                .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://zone-b.example.com"));
+        assertThat(ownB.getResponse().getStatus()).as("Actual: %s", outcome(ownB)).isEqualTo(200);
+        assertThat(claimsOf(ownB)).containsEntry("aud", "https://zone-b.example.com");
+
+        MvcResult crossA = perform(mtlsPost(mode, zoneA, id, certA)
+                .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://zone-b.example.com"));
+        assertThat(crossA.getResponse().getStatus()).as("Actual: %s", outcome(crossA)).isEqualTo(400);
+        assertThat(crossA.getResponse().getContentAsString()).contains("\"error\":\"invalid_target\"");
+        MvcResult crossB = perform(mtlsPost(mode, zoneB, id, certB)
+                .param(TlsClientAuthConfiguration.RESOURCE_PARAMETER, "https://zone-a.example.com"));
+        assertThat(crossB.getResponse().getStatus()).as("Actual: %s", outcome(crossB)).isEqualTo(400);
+        assertThat(crossB.getResponse().getContentAsString()).contains("\"error\":\"invalid_target\"");
+    }
+
     private void configureTrustBundle(IdentityZone zone, String caPem) {
         Map<String, Object> config = new java.util.HashMap<>(JsonUtils.convertValue(zone.getConfig(), Map.class));
         config.put("mtls", Map.of("enabled", true, "trustBundles", Map.of("shared-name", caPem)));
         zone.setConfig(JsonUtils.convertValue(config, org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration.class));
         identityZoneProvisioning.update(zone);
+    }
+
+    private void configureResourcePolicy(IdentityZone zone, String resource) {
+        IdentityZone current = identityZoneProvisioning.retrieve(zone.getId());
+        MtlsResourcePolicy policy = new MtlsResourcePolicy();
+        policy.setAllowedResources(List.of(resource));
+        current.getConfig().getMtls().setResourcePolicies(Map.of("shared-policy", policy));
+        identityZoneProvisioning.update(current);
+    }
+
+    private void registerResourcePolicyClient(
+            IdentityZone zone,
+            String clientId,
+            X509Certificate ca,
+            String subjectDn) throws Exception {
+        Map<String, Object> config = new java.util.HashMap<>(tlsConfig(ca, subjectDn));
+        config.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, "shared-policy");
+        setUpClients(clientId, "uaa.resource", "uaa.none", GRANT_TYPE_CLIENT_CREDENTIALS,
+                false, null, null, -1, zone, config);
+        clientDetailsService.updateClientSecret(clientId, null, zone.getId());
     }
 
     // ------------------------------------------------------------------------------------
