@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -29,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class CaCertAwareLdapSocketFactory extends SSLSocketFactory {
 
+    private static final String ENDPOINT_ID_ALGORITHM = "LDAPS";
     private static final SocketFactory instance = new CaCertAwareLdapSocketFactory();
 
     private static final IdpOutboundTrustCache TRUST_CACHE = new IdpOutboundTrustCache();
@@ -62,6 +64,17 @@ public class CaCertAwareLdapSocketFactory extends SSLSocketFactory {
         return sslContext != null ? sslContext.getSocketFactory() : (SSLSocketFactory) LdapSocketFactory.getDefault();
     }
 
+    /**
+     * Same hostname wrapping as {@link BaseLdapSocketFactory}; default-trust fallback sockets are
+     * already wrapped, so they are not wrapped twice.
+     */
+    private static Socket wrap(Socket socket, String knownHost) {
+        if (socket instanceof HostnameAwareSslSocket) {
+            return socket;
+        }
+        return new HostnameAwareSslSocket((SSLSocket) socket, ENDPOINT_ID_ALGORITHM, knownHost);
+    }
+
     @Override
     public String[] getDefaultCipherSuites() {
         return resolveDelegate().getDefaultCipherSuites();
@@ -74,32 +87,32 @@ public class CaCertAwareLdapSocketFactory extends SSLSocketFactory {
 
     @Override
     public Socket createSocket() throws IOException {
-        return resolveDelegate().createSocket();
+        return wrap(resolveDelegate().createSocket(), null);
     }
 
     @Override
     public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
-        return resolveDelegate().createSocket(socket, host, port, autoClose);
+        return wrap(resolveDelegate().createSocket(socket, host, port, autoClose), host);
     }
 
     @Override
     public Socket createSocket(String host, int port) throws IOException {
-        return resolveDelegate().createSocket(host, port);
+        return wrap(resolveDelegate().createSocket(host, port), host);
     }
 
     @Override
     public Socket createSocket(String host, int port, InetAddress localAddress, int localPort) throws IOException {
-        return resolveDelegate().createSocket(host, port, localAddress, localPort);
+        return wrap(resolveDelegate().createSocket(host, port, localAddress, localPort), host);
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port) throws IOException {
-        return resolveDelegate().createSocket(address, port);
+        return wrap(resolveDelegate().createSocket(address, port), HostnameAwareSslSocket.targetHost(address));
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-        return resolveDelegate().createSocket(address, port, localAddress, localPort);
+        return wrap(resolveDelegate().createSocket(address, port, localAddress, localPort), HostnameAwareSslSocket.targetHost(address));
     }
 
     private record ZoneLdapTrust(List<String> caCertificates, boolean skipSslValidation) {
