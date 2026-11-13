@@ -356,6 +356,59 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
+    void getExternalAuthenticationDetails_whenUaaTokenHasAnotherIssuer_throws() {
+        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
+        Map<String, Object> header = map(
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
+                entry(HeaderParameterNames.KEY_ID, "uaa-key")
+        );
+        JWSSigner signer = new KeyInfo("uaa-key", UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY, DEFAULT_UAA_URL).getSigner();
+        // signed with this zone's key and bound to this IdP's relying party, but issued by another zone
+        Map<String, Object> claims = map(
+                entry(EMAIL, "someuser@google.com"),
+                entry(ISS, "http://another-zone.uaa.example.com/oauth/token"),
+                entry(AUD, "uaa-relying-party"),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis() / 1000L)) + 60),
+                entry(SUB, "abc-def-asdf")
+        );
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        assertThatThrownBy(() -> authManager.getExternalAuthenticationDetails(oidcAuthentication))
+                .isInstanceOf(InvalidTokenException.class)
+                .hasMessageContaining("Invalid issuer");
+    }
+
+    @Test
+    void verifySubjectToken_whenUaaTokenHasTheProviderIssuerAndAnotherAudience_stillVerifies() {
+        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
+        final ExternalOAuthAuthenticationManager manager = new ExternalOAuthAuthenticationManager(
+                identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(),
+                tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher, false) {
+            @Override
+            public IdentityProvider resolveOriginProvider(String idToken) {
+                return provider;
+            }
+        };
+        Map<String, Object> header = map(
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
+                entry(HeaderParameterNames.KEY_ID, "uaa-key")
+        );
+        JWSSigner signer = new KeyInfo("uaa-key", UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY, DEFAULT_UAA_URL).getSigner();
+        Map<String, Object> claims = map(
+                entry(ISS, oidcConfig.getIssuer()),
+                entry(AUD, "some-other-client-not-this-relying-party"),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis() / 1000L)) + 60),
+                entry(SUB, "abc-def-asdf")
+        );
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY));
+        String subjectToken = UaaTokenUtils.constructToken(header, claims, signer);
+
+        assertThat(manager.verifySubjectToken(subjectToken).getSubject()).isEqualTo("abc-def-asdf");
+    }
+
+    @Test
     void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsExplicitToScopeWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
