@@ -26,9 +26,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.security.SecureRandom;
@@ -37,12 +40,17 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_FIELDS;
 import static org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager.MEMBERSHIP_TABLE;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -54,6 +62,78 @@ import static org.springframework.util.StringUtils.hasText;
 
 @WithDatabaseContext
 class JdbcScimGroupProvisioningTests {
+
+    @Test
+    void oneGroupPageMapsOneRowInsteadOfDefaultDatabasePage() throws SQLException {
+        IntStream.range(0, 247).forEach(i -> addGroup("page-" + i, "page-" + i, zoneId));
+        AtomicInteger mappedRows = new AtomicInteger();
+        JdbcPagingListFactory factory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter) {
+            @Override
+            public <T> List<T> createJdbcPagingList(String sql, Map<String, ?> args, RowMapper<T> mapper, int pageSize) {
+                return super.createJdbcPagingList(sql, args, (rs, rowNum) -> {
+                    mappedRows.incrementAndGet();
+                    return mapper.mapRow(rs, rowNum);
+                }, pageSize);
+            }
+        };
+        JdbcScimGroupProvisioning pagedDao = new JdbcScimGroupProvisioning(namedJdbcTemplate, factory, new DbUtils());
+        List<ScimGroup> defaultPage = pagedDao.query("id pr", "id", true, zoneId);
+        String firstId = defaultPage.getFirst().getId();
+        assertThat(mappedRows).hasValue(200);
+
+        mappedRows.set(0);
+        List<ScimGroup> requestedPage = pagedDao.query("id pr", "id", true, zoneId, 1);
+
+        assertThat(requestedPage).hasSize(250);
+        assertThat(mappedRows).hasValue(0);
+        assertThat(requestedPage.getFirst().getId()).isEqualTo(firstId);
+        assertThat(mappedRows).hasValue(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1, 200})
+    void requestPageSizeBoundsSqlFetchWithoutChangingSharedConfiguration(int configuredPageSize) throws SQLException {
+        LimitSqlAdapter adapter = spy(limitSqlAdapter);
+        JdbcScimGroupProvisioning pagedDao = new JdbcScimGroupProvisioning(namedJdbcTemplate,
+                new JdbcPagingListFactory(namedJdbcTemplate, adapter), new DbUtils());
+        pagedDao.setPageSize(configuredPageSize);
+
+        List<ScimGroup> result = pagedDao.query("id pr", "id", true, zoneId, 1);
+
+        assertThat(result).hasSize(3);
+        verify(adapter, never()).getLimitSql(anyString(), anyInt(), anyInt());
+        assertThat(result.subList(1, 2)).extracting(ScimGroup::getId).containsExactly(g2Id);
+        verify(adapter).getLimitSql(anyString(), eq(1), eq(1));
+        assertThat(pagedDao.getPageSize()).isEqualTo(configuredPageSize);
+    }
+
+    @Test
+    void requestPageSizePreservesFilterSortAndZoneIsolation() {
+        List<ScimGroup> result = dao.query("id eq \"g1\" or id eq \"g3\"", "id", false, zoneId, 1);
+
+        assertThat(result).hasSize(2).extracting(ScimGroup::getId).containsExactly(g3Id, g1Id);
+        assertThat(dao.query("id pr", "id", true, "other-zone", 1))
+                .isEmpty();
+    }
+
+    @Test
+    void requestPageSizeRetainsSmallerConfiguredFetchSize() throws SQLException {
+        LimitSqlAdapter adapter = spy(limitSqlAdapter);
+        JdbcScimGroupProvisioning pagedDao = new JdbcScimGroupProvisioning(namedJdbcTemplate,
+                new JdbcPagingListFactory(namedJdbcTemplate, adapter), new DbUtils());
+        pagedDao.setPageSize(1);
+
+        assertThat(pagedDao.query("id pr", "id", true, zoneId, 2).getFirst().getId()).isEqualTo(g1Id);
+        verify(adapter).getLimitSql(anyString(), eq(0), eq(1));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1})
+    void requestPageSizeMustBePositive(int requestedPageSize) {
+        assertThatThrownBy(() -> dao.query("id pr", "id", true, zoneId, requestedPageSize))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Maximum page size must be positive");
+    }
 
     private static final String SQL_INJECTION_FIELDS = "displayName,version,created,lastModified";
 
