@@ -539,7 +539,7 @@ class AccountsControllerMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void creatingAnAccountInAnotherZoneWithNoClientRedirect(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "mysubdomain2-" + mode.name().toLowerCase();
+        String subdomain = "mysubdomain2-" + mode.name().toLowerCase().replace('_', '-');
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
@@ -595,7 +595,7 @@ class AccountsControllerMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void creatingAnAccountInAnotherZoneWithClientRedirect(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "mysubdomain1-" + mode.name().toLowerCase();
+        String subdomain = "mysubdomain1-" + mode.name().toLowerCase().replace('_', '-');
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);

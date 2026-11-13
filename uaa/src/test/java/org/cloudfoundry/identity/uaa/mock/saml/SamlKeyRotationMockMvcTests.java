@@ -16,8 +16,8 @@ package org.cloudfoundry.identity.uaa.mock.saml;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +63,7 @@ class SamlKeyRotationMockMvcTests {
 
     @BeforeEach
     void createZone() throws Exception {
-        String id = new RandomValueStringGenerator().generate().toLowerCase();
+        String id = new AlphanumericRandomValueStringGenerator().generate().toLowerCase();
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
         identityZone.setSubdomain(id);

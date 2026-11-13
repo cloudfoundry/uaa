@@ -6,11 +6,14 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -84,6 +87,30 @@ class JdbcIdentityZoneProvisioningTests {
     @Test
     void null_subdomain() {
         assertThatThrownBy(() -> jdbcIdentityZoneProvisioning.retrieveBySubdomain(null)).asInstanceOf(InstanceOfAssertFactories.throwable(EmptyResultDataAccessException.class));
+    }
+
+    @Test
+    @ResourceLock(Resources.LOCALE)
+    void createUpdateAndRetrieveSubdomain_withTurkishLocale_usesAsciiLowercase() {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            IdentityZone zone = MultitenancyFixture.identityZone("locale-zone", "i-zone");
+            zone.setSubdomain("I-ZONE");
+
+            IdentityZone created = jdbcIdentityZoneProvisioning.create(zone);
+            assertThat(created.getSubdomain()).isEqualTo("i-zone");
+            assertThat(jdbcIdentityZoneProvisioning.retrieveBySubdomain("I-ZONE").getId())
+                    .isEqualTo(zone.getId());
+
+            created.setSubdomain("UPDATED-I-ZONE");
+            IdentityZone updated = jdbcIdentityZoneProvisioning.update(created);
+            assertThat(updated.getSubdomain()).isEqualTo("updated-i-zone");
+            assertThat(jdbcIdentityZoneProvisioning.retrieveBySubdomain("UPDATED-I-ZONE").getId())
+                    .isEqualTo(zone.getId());
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test

@@ -54,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String ID_DESC = "Unique ID of the identity zone";
-    private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. May only contain legal characters for a subdomain name.";
+    private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. Must be non-empty, at most 255 characters long, contain only ASCII letters, digits, or hyphens, and start and end with a letter or digit. Stored and looked up in lowercase independently of the JVM's default locale. Only the default UAA zone may use an empty subdomain. The name `default` is reserved (case-insensitive). Invalid values on create or update, including values longer than 255 characters, return HTTP 422 with error `invalid_identity_zone`.";
     private static final String NAME_DESC = "Human-readable zone name";
     private static final String DESCRIPTION_DESC = "Description of the zone";
     private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";

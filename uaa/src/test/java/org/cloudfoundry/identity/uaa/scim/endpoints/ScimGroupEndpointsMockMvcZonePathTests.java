@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -283,7 +284,7 @@ class ScimGroupEndpointsMockMvcZonePathTests {
     @ParameterizedTest
     @ValueSource(strings = {"/Groups", "/Groups/"})
     void groupOperationsAsZoneAdmin(String url) throws Exception {
-        String subdomain = generator.generate();
+        String subdomain = new AlphanumericRandomValueStringGenerator().generate();
         MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zoneAdminToken = result.getZoneAdminToken();
         IdentityZone zone = result.getIdentityZone();
@@ -409,7 +410,7 @@ class ScimGroupEndpointsMockMvcZonePathTests {
 
         @Test
         void getGroupsInOtherZone_withZoneAdminToken_returnsOkWithResults() throws Exception {
-            String subdomain = new RandomValueStringGenerator(8).generate();
+            String subdomain = new AlphanumericRandomValueStringGenerator(8).generate();
             UaaClientDetails bootstrapClient = null;
             MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                     subdomain, mockMvc, webApplicationContext, bootstrapClient, IdentityZoneHolder.getCurrentZoneId()
@@ -465,7 +466,7 @@ class ScimGroupEndpointsMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void getGroupsInOtherZone_withZoneUserToken_returnsOkWithResults(ZoneResolutionMode mode) throws Exception {
-            String subdomain = new RandomValueStringGenerator(8).generate();
+            String subdomain = new AlphanumericRandomValueStringGenerator(8).generate();
             UaaClientDetails bootstrapClient = null;
             MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                     subdomain, mockMvc, webApplicationContext, bootstrapClient, IdentityZoneHolder.getCurrentZoneId()

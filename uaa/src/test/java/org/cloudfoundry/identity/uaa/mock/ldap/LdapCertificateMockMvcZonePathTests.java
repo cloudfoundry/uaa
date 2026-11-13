@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.web.context.WebApplicationContext;
@@ -42,7 +43,7 @@ class LdapCertificateMockMvcZonePathTests {
     private MockMvcUtils.IdentityZoneCreationResult trustedCertZone;
     private MockMvcUtils.IdentityZoneCreationResult trustedButExpiredCertZone;
 
-    private RandomValueStringGenerator gen = new RandomValueStringGenerator(8);
+    private RandomValueStringGenerator gen = new AlphanumericRandomValueStringGenerator(8);
 
     private MockMvc mockMvc;
 
