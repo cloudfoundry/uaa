@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
@@ -563,15 +564,16 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             throw new InvalidClientDetailsException(e.getMessage());
         }
 
+        ClientJwtCredential federation = getValidatedFederation(change);
         ActionResult result;
         switch (change.getChangeMode()) {
             case ADD :
-                if (change.getChangeValue() != null && !change.isFederated()) {
+                if (change.getChangeValue() != null && federation == null) {
                     clientRegistrationService.addClientJwtConfig(client_id, change.getChangeValue(), identityZoneManager.getCurrentIdentityZoneId(), false);
                     result = new ActionResult("ok", "Client jwt configuration is added");
                 } else {
-                    if (change.isFederated()) {
-                        clientRegistrationService.addClientJwtCredential(client_id, change.getFederation(),
+                    if (federation != null) {
+                        clientRegistrationService.addClientJwtCredential(client_id, federation,
                                 identityZoneManager.getCurrentIdentityZoneId(), false);
                         result = new ActionResult("ok", "Federated client jwt configuration is added");
                     } else {
@@ -581,12 +583,12 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 break;
 
             case DELETE :
-                if (ClientJwtConfiguration.readValue(uaaUaaClientDetails) != null && change.getChangeValue() != null && !change.isFederated()) {
+                if (ClientJwtConfiguration.readValue(uaaUaaClientDetails) != null && change.getChangeValue() != null && federation == null) {
                     clientRegistrationService.deleteClientJwtConfig(client_id, change.getChangeValue(), identityZoneManager.getCurrentIdentityZoneId());
                     result = new ActionResult("ok", "Client jwt configuration is deleted");
                 } else {
-                    if (change.isFederated()) {
-                        clientRegistrationService.deleteClientJwtCredential(client_id, change.getFederation(),
+                    if (federation != null) {
+                        clientRegistrationService.deleteClientJwtCredential(client_id, federation,
                                 identityZoneManager.getCurrentIdentityZoneId());
                         result = new ActionResult("ok", "Federated client jwt configuration is deleted");
                     } else {
@@ -602,6 +604,17 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         clientJwtChanges.incrementAndGet();
 
         return result;
+    }
+
+    private ClientJwtCredential getValidatedFederation(ClientJwtChangeRequest change) {
+        if (!change.isFederated()) {
+            return null;
+        }
+        try {
+            return change.getFederation();
+        } catch (IllegalArgumentException e) {
+            throw new InvalidClientDetailsException(e.getMessage(), e);
+        }
     }
 
     private boolean validateCurrentClientSecretAdd(String clientSecret) {
@@ -744,6 +757,11 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
 
         if (existing instanceof UaaClientDetails existingUaa && input instanceof UaaClientDetails inputUaa && details instanceof UaaClientDetails detailsUaa) {
+            // Reject malformed input before it is parsed below, where the batch update would
+            // otherwise answer with a server error before validation runs.
+            if (StringUtils.hasText(inputUaa.getClientJwtConfig())) {
+                ClientJwtConfiguration.readSuppliedValue(inputUaa.getClientJwtConfig());
+            }
             UaaClient existingAsClient = new UaaClient(
                     existingUaa.getClientId(),
                     existingUaa.getClientSecret(),

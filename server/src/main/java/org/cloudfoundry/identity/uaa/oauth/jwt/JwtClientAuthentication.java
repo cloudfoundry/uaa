@@ -49,6 +49,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -182,10 +183,18 @@ public class JwtClientAuthentication {
         if (clientJwtConfiguration.getClientJwtCredentials() == null) {
             return null;
         }
-        return clientJwtConfiguration.getClientJwtCredentials().stream().filter(e ->
-                e.getSubject().equals(clientClaims.getSubject()) &&
-                e.getIssuer().equals(clientClaims.getIssuer()) &&
-                isAudienceSupported(e.getAudience(), clientClaims.getAudience())).findFirst().orElse(null);
+        // The issuer is never pattern matched: it selects the key set the assertion is verified
+        // against, so it is checked first and always verbatim.
+        // Several credentials may match, in no stable order. One that names the asserted audience
+        // must decide before one without, which expects the token endpoint instead; within either
+        // group every candidate verifies identically, so the order no longer affects the outcome.
+        return clientJwtConfiguration.getClientJwtCredentials().stream()
+                .filter(e -> e.getIssuer().equals(clientClaims.getIssuer()))
+                .filter(e -> e.matchesSubject(clientClaims.getSubject()))
+                .filter(e -> isAudienceSupported(e.getAudience(), clientClaims.getAudience()))
+                .min(Comparator.comparing((ClientJwtCredential e) -> e.getAudience() == null)
+                        .thenComparing(ClientJwtCredential::isSubjectPattern))
+                .orElse(null);
     }
 
     private static boolean isAudienceSupported(String audience, List<String> audList) {
@@ -223,7 +232,12 @@ public class JwtClientAuthentication {
         try {
             JWKSet jwkSet = retrieveJwkSet(clientClaims);
             String expectedAud = Optional.ofNullable(jwtFederation.getAudience()).orElse(keyInfoService.getTokenEndpointUrl());
-            return validateClientJWToken(jwtAssertion, jwkSet, JWT_RFC7523_CLAIMS, jwtFederation.getSubject(), jwtFederation.getIssuer(), expectedAud) != null;
+            // For a pattern credential the authorisation decision was already taken in
+            // getClientJwtFederation, so bind the verifier to the subject actually asserted.
+            // The assertion is still only accepted once its signature verifies against the key
+            // set of the configured issuer, and 'sub' remains a required claim.
+            String expectedSub = jwtFederation.isSubjectPattern() ? clientClaims.getSubject() : jwtFederation.getSubject();
+            return validateClientJWToken(jwtAssertion, jwkSet, JWT_RFC7523_CLAIMS, expectedSub, jwtFederation.getIssuer(), expectedAud) != null;
         } catch (MalformedURLException | IllegalArgumentException | URISyntaxException _) {
             return false;
         }
