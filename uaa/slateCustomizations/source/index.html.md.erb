@@ -2584,6 +2584,13 @@ _Response Fields_
 
 <%= render('ClientAdminEndpointDocs/createClient/response-fields.md') %>
 
+State-changing client-administration requests require CSRF protection unless they supply a nonempty
+`Authorization: Bearer <token>` header. Callers using only the legacy `access_token` parameter must also
+send the `X-Uaa-Csrf` cookie (`__Host-X-Uaa-Csrf` over HTTPS) and its matching value in the
+`X-CSRF-TOKEN` header or `X-Uaa-Csrf` parameter. Missing or mismatched CSRF tokens return HTTP 403:
+
+<%= render('ClientAdminEndpointDocs/createClientWithoutBearerHeaderRequiresCsrf/http-response.md') %>
+
 ## Retrieve
 
 <%= render('ClientAdminEndpointDocs/retrieveClient/curl-request.md') %>

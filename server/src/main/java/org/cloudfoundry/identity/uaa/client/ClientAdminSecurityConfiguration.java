@@ -4,10 +4,12 @@ import org.springframework.security.authorization.AuthenticatedAuthorizationMana
 import org.springframework.security.authorization.AuthorizationManagers;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundleEndpoints;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,14 +17,18 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.util.StringUtils;
+
+import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf;
 
@@ -36,7 +42,8 @@ class ClientAdminSecurityConfiguration {
             HttpSecurity http,
             @Qualifier("oauthAuthenticationEntryPoint") OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint,
             @Qualifier("oauthAccessDeniedHandler") OAuth2AccessDeniedHandler oauthAccessDeniedHandler,
-            @Qualifier("clientAdminOAuth2ResourceFilter") FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> resourceFilter
+            @Qualifier("clientAdminOAuth2ResourceFilter") FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> resourceFilter,
+            CookieBasedCsrfTokenRepository csrfTokenRepository
     ) throws Exception {
         var originalChain = http
                 .securityMatcher("/oauth/clients/**", MtlsTrustBundleEndpoints.PATH)
@@ -66,7 +73,17 @@ class ClientAdminSecurityConfiguration {
                 })
                 .addFilterAt(resourceFilter.getFilter(), AbstractPreAuthenticatedProcessingFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(CsrfConfigurer::disable)
+                .csrf(csrf -> {
+                    csrf.csrfTokenRepository(csrfTokenRepository);
+                    csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
+                    // Browsers do not automatically attach bearer headers. The stateless resource
+                    // filter still validates the token and never falls back to session authentication.
+                    // Match BearerTokenExtractor's legacy support for multiple headers and no separating space.
+                    csrf.ignoringRequestMatchers(request -> Collections.list(request.getHeaders(HttpHeaders.AUTHORIZATION))
+                            .stream().anyMatch(authorization ->
+                                    StringUtils.startsWithIgnoreCase(authorization, OAuth2AccessToken.BEARER_TYPE)
+                                            && StringUtils.hasText(authorization.substring(OAuth2AccessToken.BEARER_TYPE.length()))));
+                })
                 .exceptionHandling(exception -> {
                     exception.authenticationEntryPoint(oauthAuthenticationEntryPoint);
                     exception.accessDeniedHandler(oauthAccessDeniedHandler);
