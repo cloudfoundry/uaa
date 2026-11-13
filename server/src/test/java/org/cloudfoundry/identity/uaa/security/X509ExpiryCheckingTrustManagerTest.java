@@ -15,15 +15,27 @@
 package org.cloudfoundry.identity.uaa.security;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.nio.file.Path;
+import java.security.KeyStore;
+import java.util.concurrent.CompletableFuture;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.X509Certificate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -95,5 +107,71 @@ class X509ExpiryCheckingTrustManagerTest {
         verify(mockedDelegate).checkServerTrusted(x509Certificates, "RSA", socket);
         verify(mockedDelegate, never()).checkServerTrusted(x509Certificates, "RSA");
         verify(certificate).checkValidity();
+    }
+
+    @Test
+    void handshake_withNonExtendedDelegate_failsWhenHostnameDoesNotMatch(@TempDir Path tempDir) throws Exception {
+        assertThatThrownBy(() -> handshake(tempDir, "HTTPS", "CN=other.example.com", "san=dns:other.example.com"))
+                .hasRootCauseInstanceOf(java.security.cert.CertificateException.class)
+                .hasStackTraceContaining("No subject alternative names matching host");
+    }
+
+    @Test
+    void handshake_withNonExtendedDelegate_succeedsWhenHostnameVerificationNotRequested(@TempDir Path tempDir) throws Exception {
+        handshake(tempDir, null, "CN=other.example.com", "san=dns:other.example.com");
+    }
+
+    @Test
+    void handshake_withNonExtendedDelegate_succeedsWhenHostnameMatches(@TempDir Path tempDir) throws Exception {
+        handshake(tempDir, "HTTPS", "CN=localhost", "san=ip:127.0.0.1");
+    }
+
+    // Client connects to 127.0.0.1; the non-extended delegate trusts any chain, so only hostname checks can reject
+    private static void handshake(Path tempDir, String endpointIdAlgorithm, String dn, String san) throws Exception {
+        Path keystore = tempDir.resolve("server.p12");
+        Process keytool = new ProcessBuilder(
+                Path.of(System.getProperty("java.home"), "bin", "keytool").toString(),
+                "-genkeypair", "-alias", "server", "-keyalg", "RSA", "-keysize", "2048",
+                "-dname", dn, "-ext", san, "-validity", "2",
+                "-storetype", "PKCS12", "-keystore", keystore.toString(), "-storepass", "changeit")
+                .redirectErrorStream(true).start();
+        try (InputStream out = keytool.getInputStream()) {
+            out.readAllBytes();
+        }
+        assertThat(keytool.waitFor()).isZero();
+
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        try (InputStream in = java.nio.file.Files.newInputStream(keystore)) {
+            ks.load(in, "changeit".toCharArray());
+        }
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(ks, "changeit".toCharArray());
+        SSLContext serverContext = SSLContext.getInstance("TLS");
+        serverContext.init(kmf.getKeyManagers(), null, null);
+
+        X509ExpiryCheckingTrustManager manager = new X509ExpiryCheckingTrustManager();
+        manager.setDelegate(Mockito.mock(X509TrustManager.class));
+        SSLContext clientContext = SSLContext.getInstance("TLS");
+        clientContext.init(null, new javax.net.ssl.TrustManager[]{manager}, null);
+
+        try (SSLServerSocket server = (SSLServerSocket) serverContext.getServerSocketFactory()
+                .createServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            CompletableFuture<Void> serverSide = CompletableFuture.runAsync(() -> {
+                try (SSLSocket s = (SSLSocket) server.accept()) {
+                    s.startHandshake();
+                } catch (Exception ignored) {
+                    // client-side failure is asserted
+                }
+            });
+            try (SSLSocket client = (SSLSocket) clientContext.getSocketFactory()
+                    .createSocket(InetAddress.getLoopbackAddress(), server.getLocalPort())) {
+                SSLParameters params = client.getSSLParameters();
+                params.setEndpointIdentificationAlgorithm(endpointIdAlgorithm);
+                client.setSSLParameters(params);
+                client.startHandshake();
+            } finally {
+                serverSide.cancel(true);
+            }
+        }
     }
 }
