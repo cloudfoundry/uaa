@@ -3337,6 +3337,8 @@ Enables or disables metrics collection.
 
 When `true`, collects metrics for each individual request (higher overhead).
 When `false`, only aggregate metrics are collected.
+Per-request database query timings use the Tomcat JDBC pool's measured elapsed time in milliseconds,
+including failed queries, so elapsed durations are unaffected by wall-clock adjustments.
 
 [Back to table](#metrics)
 
