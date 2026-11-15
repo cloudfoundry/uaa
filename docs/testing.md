@@ -28,7 +28,7 @@ can't work with your IDE.
 However, since the scripts run a container with all dependencies, you do not need infrastructure to run against a
 specified DB:
 
-    run-unit-tests.sh <dbtype>
+    $ run-unit-tests.sh <dbtype>
 
 ## Test databases
 
@@ -37,16 +37,16 @@ UAA can also be run standalone to test tweaks in a live instance.
 
 To run these databases locally, use the docker-compose script:
 
-    docker compose --file scripts/docker-compose.yml up
+    $ docker compose --file scripts/docker-compose.yml up
 
 If you wish to launch only one of the DBs, select the appropriate service name:
 
-    docker compose --file scripts/docker-compose.yml up postgresql
+    $ docker compose --file scripts/docker-compose.yml up postgresql
 
 To run tests against either Postgres or MySQL, use the `postgresql` or `mysql` profile, to select the DB. Be sure
 to add the `default` profile which will trigger seeding the database with some admin users, clients, etc. For example:
 
-    ./gradlew '-Dspring.profiles.active=mysql test
+    $ ./gradlew '-Dspring.profiles.active=mysql test
 
 To run tests from your IDE against a given database, you can (temporarily) annotate the test class:
 
@@ -91,7 +91,7 @@ class SomeTests {
 
 There might be test-pollution when tests are run in parallel or even between projects. For example, when you run
 
-    ./gradlew test
+    $ ./gradlew test
 
 It will run tests in both `cloudfoundry-identity-server` and `cloudfoundry-identity-uaa` projects. Both need a database,
 and both do sometimes clean up the database.
@@ -109,7 +109,7 @@ However, if the Gradle daemon is kept running in the background and is re-used f
 
 You will get new workers with IDs > 24. It is recommended you run your Gradle in no-daemon mode when running tests:
 
-    ./gradlew test --no-daemon
+    $ ./gradlew test --no-daemon
 
 It will be slightly slower to start up (a few seconds), but the tests take multiple minutes, and so the gain of using
 a daemon is not worth the trouble.
@@ -139,7 +139,7 @@ the `$TZ` env var.
 
 If you have timing-based issues in your test, ensure that you set `$TZ` before starting docker compose, e.g.:
 
-    TZ="Europe/Paris" docker compose up
+    $ TZ="Europe/Paris" docker compose up
 
 It is not required, and MySQL will default to using UTC.
 
