@@ -20,8 +20,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
@@ -90,6 +88,9 @@ public class DomainFilter {
 
 
     protected static boolean doesEmailDomainMatchProvider(IdentityProvider provider, String domain, boolean explicit) {
+        if (domain.length() > 255) {
+            return false;
+        }
         List<String> domainList = getEmailDomain(provider);
         List<String> wildcardList;
         wildcardList = domainList;
@@ -102,9 +103,36 @@ public class DomainFilter {
         if (wildcardList == null) {
             return false;
         } else {
-            Set<Pattern> patterns = UaaStringUtils.constructWildcards(wildcardList);
-            return UaaStringUtils.matches(patterns, domain);
+            return wildcardList.stream().anyMatch(pattern -> matchesEmailDomain(pattern, domain));
         }
+    }
+
+    // Each star matches one or more code points other than a dot or backslash. Use dynamic
+    // programming to preserve the wildcard language without regex backtracking.
+    private static boolean matchesEmailDomain(String pattern, String domain) {
+        // Every literal and wildcard must consume at least one code point.
+        if (pattern.codePointCount(0, pattern.length()) > domain.codePointCount(0, domain.length())) {
+            return false;
+        }
+        int[] tokens = pattern.codePoints().toArray();
+        boolean[] matches = new boolean[tokens.length + 1];
+        matches[0] = true;
+        for (int offset = 0; offset < domain.length();) {
+            int character = domain.codePointAt(offset);
+            offset += Character.charCount(character);
+            boolean diagonal = matches[0];
+            matches[0] = false;
+            for (int i = 1; i <= tokens.length; i++) {
+                boolean previous = matches[i];
+                if (tokens[i - 1] == '*') {
+                    matches[i] = character != '.' && character != '\\' && (diagonal || previous);
+                } else {
+                    matches[i] = diagonal && tokens[i - 1] == character;
+                }
+                diagonal = previous;
+            }
+        }
+        return matches[tokens.length];
     }
 
 }
