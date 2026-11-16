@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -295,4 +296,49 @@ class DomainFilterTest {
         List<IdentityProvider> idpsForEmailDomain = DomainFilter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
         assertThat(idpsForEmailDomain).isEmpty();
     }
+    @Test
+    void emailDomainMatchingPreservesWildcardRegexSemantics() {
+        List<String> patterns = Arrays.asList("", "*", "**", "a*b", "*.org", "a**b", "a.b", "a\\b", "😀*", "[x]*");
+        List<String> domains = Arrays.asList("", "a", "ab", "axb", "axxb", "a.b", "a\\b", "x.org", ".org", "😀x", "[x]y");
+        for (String pattern : patterns) {
+            samlDef1.setEmailDomain(Collections.singletonList(pattern));
+            for (String domain : domains) {
+                boolean expected = UaaStringUtils.constructWildcards(Collections.singletonList(pattern)).iterator().next().matcher(domain).matches();
+                assertThat(DomainFilter.doesEmailDomainMatchProvider(samlProvider1, domain, true))
+                        .as("pattern %s, domain %s", pattern, domain)
+                        .isEqualTo(expected);
+            }
+        }
+    }
+
+    @Test
+    @Timeout(value = 2, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void pathologicalEmailDomainWildcardDoesNotBacktrack() {
+        samlDef1.setEmailDomain(Collections.singletonList("*a*a*a*a*a"));
+        assertThat(DomainFilter.filter(List.of(samlProvider1), null, "user@" + "xa".repeat(5), false))
+                .containsExactly(samlProvider1);
+        assertThat(DomainFilter.filter(List.of(samlProvider1), null, "user@" + "a".repeat(200) + "b", false)).isEmpty();
+    }
+
+    @Test
+    void rejectsEmailDomainsLongerThan255Characters() {
+        samlDef1.setEmailDomain(Collections.singletonList("*"));
+        assertThat(DomainFilter.doesEmailDomainMatchProvider(samlProvider1, "a".repeat(255), true)).isTrue();
+        assertThat(DomainFilter.doesEmailDomainMatchProvider(samlProvider1, "a".repeat(256), true)).isFalse();
+    }
+
+    @Test
+    void overlongDomainsDoNotMatchAnyProvider() {
+        samlDef1.setEmailDomain(Collections.singletonList("*"));
+        samlDef2.setEmailDomain(Collections.singletonList("*a*a*a*a*a"));
+        assertThat(DomainFilter.filter(List.of(samlProvider1, samlProvider2), null,
+                "user@" + "a".repeat(256), false)).isEmpty();
+    }
+
+    @Test
+    void patternLongerThanDomainCannotMatch() {
+        samlDef1.setEmailDomain(Collections.singletonList("*".repeat(10000)));
+        assertThat(DomainFilter.doesEmailDomainMatchProvider(samlProvider1, "example.com", true)).isFalse();
+    }
+
 }
