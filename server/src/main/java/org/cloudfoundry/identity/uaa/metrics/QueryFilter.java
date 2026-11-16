@@ -17,14 +17,10 @@ package org.cloudfoundry.identity.uaa.metrics;
 
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport;
-import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 
 import java.util.Map;
 
 public class QueryFilter extends SlowQueryReport {
-
-    private TimeService timeService = new TimeServiceImpl();
 
     protected void report(String query, long start, long delta) {
         RequestMetric metric = MetricsAccessor.getCurrent();
@@ -42,9 +38,8 @@ public class QueryFilter extends SlowQueryReport {
 
     @Override
     protected String reportFailedQuery(String query, Object[] args,
-            String name, long start, Throwable t) {
-        String sql = super.reportFailedQuery(query, args, name, start, t);
-        long delta = timeService.getCurrentTimeMillis() - start;
+            String name, long start, long delta, Throwable t) {
+        String sql = super.reportFailedQuery(query, args, name, start, delta, t);
         report(sql, start, delta);
         return sql;
     }
@@ -63,7 +58,4 @@ public class QueryFilter extends SlowQueryReport {
         return reportQuery(query, args, name, start, delta);
     }
 
-    public void setTimeService(TimeService timeService) {
-        this.timeService = timeService;
-    }
 }
