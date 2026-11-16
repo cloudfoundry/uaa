@@ -10,6 +10,14 @@ There are two types of tests:
 - Integration tests, which launch the UAA application and run web-based tests the running app. Those can be run with
   `./gradlew integrationTest`
 
+### Isolated regex regression tests
+
+`TlsClientAuthenticationTest.zeroWidthRepetitionCannotKeepATokenWorkerBusy` runs claim extraction in a separate JVM
+so a non-interruptible regex hang can be forcibly terminated. The certificate is generated in the test JVM, outside
+the probe's time limits. The probe has up to 30 seconds to load the certificate and initialize the production service;
+after it signals readiness, claim extraction must finish within eight seconds. This keeps slow JVM or cryptographic
+setup from being mistaken for a regex hang while preserving the bounded check and verifying that benign claims survive.
+
 ## Helper scripts
 
 There are helper scripts, `run-unit-tests.sh` and `run-integration-tests.sh`, which run the tests inside a docker
@@ -159,8 +167,8 @@ Technically, parallelism is controlled by two parameters:
 
 - `org.gradle.workers.max` in `gradle.properties`, set to 6. This means that there are no more than six Gradle processes
   running at any given time. It does not have anything to do with tests directly. This might mean you have three compile
-  processes for three different projects, as well as three test processes for different projects. Within a given project, by
-  default, tests are running sequentially and never in parallel. Unless you configure parallelism for tests, see below:
+  processes for three different projects, as well as three test processes for different projects. Within a given project,
+  by default, tests are running sequentially and never in parallel. Unless you configure parallelism for tests, see below:
 - `maxParallelForks` in the test task in the project's `build.gradle`, set to 4. This controls how many tests can run in
   parallel within a given project. It is bounded by the max workers set above — so if there are five compile tasks running,
   and one test task, the test task will run tests sequentially as there is a single worker available left.

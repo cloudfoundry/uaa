@@ -18,19 +18,24 @@ import org.cloudfoundry.identity.uaa.client.TlsClientAuthConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Arrays;
@@ -38,36 +43,50 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.cloudfoundry.identity.uaa.extensions.MtlsEnabledZoneExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MtlsEnabledZoneExtension.class)
 class TlsClientAuthenticationTest {
 
+    private static final String REGEX_PROBE_READY = "Extracting claims using production code";
+
     @Test
-    void zeroWidthRepetitionCannotKeepATokenWorkerBusy(@org.junit.jupiter.api.io.TempDir java.nio.file.Path directory)
+    void zeroWidthRepetitionCannotKeepATokenWorkerBusy(@TempDir Path directory)
             throws Exception {
         String classpath = System.getProperty("uaa.test.classpath");
         assertThat(classpath).as("the probe must use the actual test and production classpath").isNotBlank();
-        java.nio.file.Path output = directory.resolve("regex-probe.log");
-        Process probe = new ProcessBuilder(java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString(),
-                "-Xmx128m", "-cp", classpath, ZeroWidthRegexProbe.class.getName())
+        // FIPS provider startup and RSA key generation are not part of the regex regression.
+        KeyPair key = generateKeyPair();
+        X500Name subject = new X500Name("CN=workload,OU=a");
+        X509Certificate cert = signCert(subject, subject, key.getPublic(), key.getPrivate(), false, BigInteger.ONE);
+        Path certificate = directory.resolve("regex-probe.der");
+        Files.write(certificate, cert.getEncoded());
+        Path output = directory.resolve("regex-probe.log");
+        Process probe = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-Xmx128m", "-cp", classpath, ZeroWidthRegexProbe.class.getName(), certificate.toString())
                 .redirectErrorStream(true).redirectOutput(output.toFile()).start();
         boolean completed;
         try {
-            completed = probe.waitFor(8, java.util.concurrent.TimeUnit.SECONDS);
+            // Give the child JVM its own startup budget before timing claim extraction.
+            await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
+                    assertThat(Files.readString(output)).as("the probe must finish startup before timing claim extraction")
+                            .contains(REGEX_PROBE_READY));
+            completed = probe.waitFor(8, TimeUnit.SECONDS);
         } finally {
             if (probe.isAlive()) {
                 probe.destroyForcibly();
-                assertThat(probe.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                assertThat(probe.waitFor(5, TimeUnit.SECONDS)).isTrue();
             }
         }
-        String log = java.nio.file.Files.readString(output);
+        String log = Files.readString(output);
         assertThat(completed).as("claim extraction must finish even when repetitions read no characters; output: %s", log)
                 .isTrue();
         assertThat(probe.exitValue()).as("the benign CN mapping must survive while the unsafe OU pattern yields no claim: %s", log)
@@ -77,15 +96,16 @@ class TlsClientAuthenticationTest {
     /** A separate JVM lets the regression test terminate Java's non-interruptible regex engine safely. */
     public static class ZeroWidthRegexProbe {
         public static void main(String[] args) throws Exception {
-            Security.addProvider(new BouncyCastleFipsProvider());
-            KeyPair key = generateKeyPair();
-            X500Name subject = new X500Name("CN=workload,OU=a");
-            X509Certificate cert = signCert(subject, subject, key.getPublic(), key.getPrivate(), false, BigInteger.ONE);
+            X509Certificate cert;
+            try (InputStream input = Files.newInputStream(Path.of(args[0]))) {
+                cert = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(input);
+            }
             TlsClientAuthConfiguration config = new TlsClientAuthConfiguration("unused", List.of(
                     new TlsClientAuthConfiguration.ClaimMapping("subject_ou", "((){2147483647}){2147483647}(.+)", "unsafe"),
                     new TlsClientAuthConfiguration.ClaimMapping("subject_cn", null, "workload")));
-            System.out.println("Extracting claims using production code");
-            Map<String, String> claims = new TlsClientAuthentication().extractClaimMappingValues(cert, config);
+            TlsClientAuthentication service = new TlsClientAuthentication();
+            System.out.println(REGEX_PROBE_READY);
+            Map<String, String> claims = service.extractClaimMappingValues(cert, config);
             if (!claims.equals(Map.of("workload", "workload"))) {
                 throw new AssertionError("Unexpected claims: " + claims);
             }
