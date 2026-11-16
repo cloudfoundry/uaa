@@ -1312,6 +1312,10 @@ Response body     *example* ::
                     403 - Forbidden - insufficient scope
                     422 - Unprocessable Entity
 
+Email domain matching for all identity provider types, including the UAA fallback,
+returns no match when the submitted domain exceeds 255 UTF-16 code units. This
+applies to discovery and invitations; it does not validate stored patterns.
+
 Fields            *Available Fields* ::
 
                     Identity Provider Fields

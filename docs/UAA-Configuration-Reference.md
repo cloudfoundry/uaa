@@ -2384,7 +2384,7 @@ Bootstrap SAML Identity Provider definitions. Each entry is keyed by a provider 
 | `linkText` | `String` | Label for the login link |
 | `iconUrl` | `String` | Icon URL for the login link |
 | `addShadowUserOnLogin` | `boolean` | Create a local shadow user on first SAML login. Default `true` |
-| `emailDomain` | `List<String>` | Email domains used for IDP discovery |
+| `emailDomain` | `List<String>` | Email domains used for IDP discovery. Domains longer than 255 UTF-16 code units do not match. |
 | `externalGroupsWhitelist` | `List<String>` | External group names to map |
 | `attributeMappings` | `Map<String, Object>` | Attribute mapping configuration |
 | `skipSslValidation` | `boolean` | Skip TLS validation when fetching metadata URL. Disables both certificate chain validation and hostname verification, offering no protection against man-in-the-middle attacks; intended for development and diagnostics. Use `caCertificates` to trust a private CA in production. Default `false` |
