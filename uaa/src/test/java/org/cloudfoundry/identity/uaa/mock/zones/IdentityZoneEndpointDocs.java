@@ -54,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String ID_DESC = "Unique ID of the identity zone";
-    private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. May only contain legal characters for a subdomain name.";
+    private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. Must be non-empty, at most 255 characters long, contain only ASCII letters, digits, underscores, or hyphens, and not start or end with a hyphen. Underscores remain accepted for compatibility with existing zones. Stored and looked up in lowercase using Locale.ROOT, independently of the JVM's default locale; for example, `I-ZONE` becomes ASCII `i-zone` under all system locales. Hostname resolution uses the same normalization. Audit locale-specific legacy mappings before upgrading, because uppercase requests may resolve to a different zone than before. Only the default UAA zone may use an empty subdomain. The name `default` is reserved (case-insensitive). Invalid values on create or update, including values longer than 255 characters, return HTTP 422 with error `invalid_identity_zone`.";
     private static final String NAME_DESC = "Human-readable zone name";
     private static final String DESCRIPTION_DESC = "Description of the zone";
     private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";

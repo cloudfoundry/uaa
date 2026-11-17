@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
@@ -40,7 +41,7 @@ class LdapSkipCertificateMockMvcZonePathTests {
     private MockMvcUtils.IdentityZoneCreationResult trustedCertZone;
     private MockMvcUtils.IdentityZoneCreationResult trustedButExpiredCertZone;
 
-    private RandomValueStringGenerator gen = new RandomValueStringGenerator(8);
+    private RandomValueStringGenerator gen = new AlphanumericRandomValueStringGenerator(8);
 
     private MockMvc mockMvc;
 

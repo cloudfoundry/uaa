@@ -771,8 +771,21 @@ A zone contains a unique identifier as well as a unique subdomain::
                         "last_modified":1426258488910
                     }
 
-The subdomain field will be converted into lowercase upon creation or update of an identity zone.
+The subdomain field will be converted into lowercase upon creation or update of an identity zone,
+using ``Locale.ROOT``, independently of the JVM's default locale. Subdomain lookups and hostname resolution
+use the same locale-independent conversion.
 This way the UAA has an easy way to query the database for a zone based on a hostname.
+On create and update, subdomains must be non-empty, at most 255 characters long, and contain only ASCII letters,
+digits, underscores, or hyphens, without a leading or trailing hyphen (for example, ``test-zone1`` or ``test_zone1``).
+Underscores remain accepted for compatibility, including when updating existing zones without changing their subdomain.
+Dots, whitespace, URL delimiters, percent-encoded characters, and non-ASCII characters are rejected.
+Uppercase ASCII values remain ASCII after normalization: ``I-ZONE`` is stored and looked up as ``i-zone``
+even under Turkish or Azerbaijani system locales. Audit locale-specific legacy mappings before upgrading:
+uppercase requests that previously resolved to ``ı-zone`` now resolve to ``i-zone`` instead.
+Already-lowercase non-ASCII legacy names are not automatically renamed; correct them before API updates.
+The name ``default`` is reserved, regardless of case. Only the default UAA zone may use an empty subdomain.
+Invalid subdomains, including values longer than 255 characters, return HTTP 422 with error ``invalid_identity_zone``;
+failed updates leave the stored zone unchanged.
 The UAA by default creates a ``default zone``. This zone will always be present, the ID will always be
 'uaa', and the subdomain is blank::
 

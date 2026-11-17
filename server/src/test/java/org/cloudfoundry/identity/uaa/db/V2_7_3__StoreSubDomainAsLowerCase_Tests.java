@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -10,21 +11,39 @@ import org.flywaydb.core.api.migration.Context;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.MockedConstruction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 @WithDatabaseContext
 class V2_7_3__StoreSubDomainAsLowerCase_Tests {
@@ -40,16 +59,19 @@ class V2_7_3__StoreSubDomainAsLowerCase_Tests {
     private Connection connection;
 
     @AfterEach
-    void closeConnection() {
+    void closeConnection() throws SQLException {
         try {
-            connection.close();
-        } catch (Exception _) {
-            // ignore
+            jdbcTemplate.execute("delete from identity_zone where id != 'uaa'");
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
     @BeforeEach
     void setUpDuplicateZones() throws SQLException {
+        jdbcTemplate.execute("delete from identity_zone where id != 'uaa'");
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         migration = new V2_7_3__StoreSubDomainAsLowerCase();
         generator = new RandomValueStringGenerator(6);
@@ -125,19 +147,371 @@ class V2_7_3__StoreSubDomainAsLowerCase_Tests {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"tr-TR", "az-AZ"})
+    @ResourceLock(Resources.LOCALE)
+    void migratesSubdomain_withNonEnglishLocale_usesAsciiLowercase(String languageTag) {
+        String id = "locale-zone-" + generator.generate();
+        String subdomain = "I-ZONE-" + languageTag;
+        String lowercaseSubdomain = subdomain.toLowerCase(Locale.ROOT);
+        IdentityZone zone = MultitenancyFixture.identityZone(id, lowercaseSubdomain);
+        zone.setSubdomain(subdomain);
+        createIdentityZoneThroughSQL(zone);
+
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag(languageTag));
+            migration.migrate(context);
+
+            assertThat(provisioning.retrieve(id).getSubdomain()).isEqualTo(lowercaseSubdomain);
+            assertThat(provisioning.retrieveBySubdomain(subdomain).getId()).isEqualTo(id);
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"tr-TR", "az-AZ"})
+    @ResourceLock(Resources.LOCALE)
+    void migratesSubdomains_withNonEnglishLocale_resolvesAsciiCaseCollisions(String languageTag) {
+        checkDbIsCaseSensitive();
+        String uppercaseId = "uppercase-zone-" + generator.generate();
+        String lowercaseId = "lowercase-zone-" + generator.generate();
+        String subdomain = "I-DUPLICATE-" + languageTag;
+        String lowercaseSubdomain = subdomain.toLowerCase(Locale.ROOT);
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone(uppercaseId, lowercaseSubdomain);
+        uppercaseZone.setSubdomain(subdomain);
+        createIdentityZoneThroughSQL(uppercaseZone);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone(lowercaseId, lowercaseSubdomain));
+
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag(languageTag));
+            migration.migrate(context);
+
+            assertThat(List.of(provisioning.retrieve(uppercaseId).getSubdomain(),
+                    provisioning.retrieve(lowercaseId).getSubdomain()))
+                    .contains(lowercaseSubdomain)
+                    .doesNotHaveDuplicates()
+                    .allSatisfy(value -> assertThat(value).matches(lowercaseSubdomain + "(?:-[a-z0-9]{3})?"));
+            assertThat(provisioning.retrieveBySubdomain(subdomain).getId())
+                    .isEqualTo(provisioning.retrieveBySubdomain(lowercaseSubdomain).getId());
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"en-US", "tr-TR", "az-AZ"})
+    @ResourceLock(Resources.LOCALE)
+    void migratesSubdomains_withLocaleSpecificLegacyName_preservesStoredNames(String languageTag) {
+        checkDbIsCaseSensitive();
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("ascii-zone", "i-zone"));
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("legacy-zone", "ı-zone"));
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag(languageTag));
+            migration.migrate(context);
+
+            assertThat(provisioning.retrieve("ascii-zone").getSubdomain()).isEqualTo("i-zone");
+            assertThat(provisioning.retrieve("legacy-zone").getSubdomain()).isEqualTo("ı-zone");
+            assertThat(provisioning.retrieveBySubdomain("I-ZONE").getId()).isEqualTo("ascii-zone");
+            assertThat(provisioning.retrieveBySubdomain("ı-zone").getId()).isEqualTo("legacy-zone");
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {62, 63})
+    void migratesDuplicateSubdomains_withUnsafeRandomBytes_usesAlphanumericSuffix(int randomByte) {
+        checkDbIsCaseSensitive();
+        migration.migrate(context);
+        String subdomain = "suffix-zone-" + randomByte;
+        String uppercaseId = "suffix-uppercase-" + generator.generate();
+        String lowercaseId = "suffix-lowercase-" + generator.generate();
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone(uppercaseId, subdomain);
+        uppercaseZone.setSubdomain(subdomain.toUpperCase(Locale.ROOT));
+        createIdentityZoneThroughSQL(uppercaseZone);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone(lowercaseId, subdomain));
+
+        // These bytes produce '-' or '_' with the unrestricted generator's alphabet.
+        try (MockedConstruction<SecureRandom> ignored = mockConstruction(SecureRandom.class,
+                (random, constructionContext) -> doAnswer(invocation -> {
+                    Arrays.fill(invocation.getArgument(0, byte[].class), (byte) randomByte);
+                    return null;
+                }).when(random).nextBytes(any(byte[].class)))) {
+            migration.migrate(context);
+        }
+
+        assertThat(List.of(provisioning.retrieve(uppercaseId).getSubdomain(),
+                provisioning.retrieve(lowercaseId).getSubdomain()))
+                .contains(subdomain)
+                .doesNotHaveDuplicates()
+                .allSatisfy(value -> assertThat(value).matches(subdomain + "(?:-[a-z0-9]{3})?"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {251, 252, 255})
+    void migratesDuplicateSubdomains_nearMaximumLength_boundsRenamedSubdomain(int length) {
+        checkDbIsCaseSensitive();
+        String prefix = "length-" + length + "-";
+        String subdomain = prefix + "a".repeat(length - prefix.length());
+        String uppercaseId = "length-uppercase-" + generator.generate();
+        String lowercaseId = "length-lowercase-" + generator.generate();
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone(uppercaseId, subdomain);
+        uppercaseZone.setSubdomain(subdomain.toUpperCase(Locale.ROOT));
+        createIdentityZoneThroughSQL(uppercaseZone);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone(lowercaseId, subdomain));
+
+        migration.migrate(context);
+
+        List<String> migratedSubdomains = List.of(provisioning.retrieve(uppercaseId).getSubdomain(),
+                provisioning.retrieve(lowercaseId).getSubdomain());
+        assertThat(migratedSubdomains).contains(subdomain).doesNotHaveDuplicates();
+        assertThat(migratedSubdomains).filteredOn(value -> !value.equals(subdomain))
+                .singleElement(STRING)
+                .hasSize(Math.min(length + 4, 255))
+                .matches(subdomain.substring(0, Math.min(length, 251)) + "-[a-z0-9]{3}");
+    }
+
+    @Test
+    void migratesDuplicateSubdomains_truncatedCandidateAlreadyExists_retriesSuffix() {
+        checkDbIsCaseSensitive();
+        // Normalize probe rows before controlling suffix generation for the target collision.
+        migration.migrate(context);
+        String subdomain = "collision" + "a".repeat(246);
+        String truncatedSubdomain = subdomain.substring(0, 251);
+        String uppercaseId = "collision-uppercase-" + generator.generate();
+        String lowercaseId = "collision-lowercase-" + generator.generate();
+        String existingId = "collision-existing-" + generator.generate();
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone(uppercaseId, subdomain);
+        uppercaseZone.setSubdomain(subdomain.toUpperCase(Locale.ROOT));
+        createIdentityZoneThroughSQL(uppercaseZone);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone(lowercaseId, subdomain));
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone(existingId, truncatedSubdomain + "-111"));
+
+        try (MockedConstruction<SecureRandom> ignored = mockConstruction(SecureRandom.class,
+                (random, constructionContext) -> doAnswer(invocation -> {
+                    Arrays.fill(invocation.getArgument(0, byte[].class), (byte) 0);
+                    return null;
+                }).doAnswer(invocation -> {
+                    Arrays.fill(invocation.getArgument(0, byte[].class), (byte) 1);
+                    return null;
+                }).when(random).nextBytes(any(byte[].class)))) {
+            migration.migrate(context);
+        }
+
+        assertThat(List.of(provisioning.retrieve(uppercaseId).getSubdomain(),
+                provisioning.retrieve(lowercaseId).getSubdomain()))
+                .containsExactlyInAnyOrder(subdomain, truncatedSubdomain + "-222");
+        assertThat(provisioning.retrieve(existingId).getSubdomain()).isEqualTo(truncatedSubdomain + "-111");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-legacy", "legacy-", "zone/path", "zone.legacy",
+            "zone?query", " legacy", "zöne", "-ö-"})
+    void migratesDuplicateSubdomains_invalidLegacyBase_usesValidFallback(String subdomain) {
+        checkDbIsCaseSensitive();
+        String uppercaseId = "unsafe-uppercase-" + generator.generate();
+        String lowercaseId = "unsafe-lowercase-" + generator.generate();
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone(uppercaseId, subdomain);
+        uppercaseZone.setSubdomain(subdomain.toUpperCase(Locale.ROOT));
+        createIdentityZoneThroughSQL(uppercaseZone);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone(lowercaseId, subdomain));
+
+        migration.migrate(context);
+
+        List<String> migratedSubdomains = List.of(provisioning.retrieve(uppercaseId).getSubdomain(),
+                provisioning.retrieve(lowercaseId).getSubdomain());
+        assertThat(migratedSubdomains).contains(subdomain).doesNotHaveDuplicates();
+        assertThat(migratedSubdomains).filteredOn(value -> !value.equals(subdomain))
+                .singleElement(STRING)
+                .matches("zone-[a-z0-9]{3}")
+                .satisfies(value -> assertThat(UaaUrlUtils.isValidSubdomain(value)).isTrue());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"zone_legacy", "_legacy", "legacy_"})
+    void migratesDuplicateSubdomains_underscoreBase_preservesLegacyBase(String subdomain) {
+        checkDbIsCaseSensitive();
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone("underscore-uppercase", subdomain);
+        uppercaseZone.setSubdomain(subdomain.toUpperCase(Locale.ROOT));
+        createIdentityZoneThroughSQL(uppercaseZone);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("underscore-lowercase", subdomain));
+
+        migration.migrate(context);
+
+        assertThat(List.of(provisioning.retrieve("underscore-uppercase").getSubdomain(),
+                provisioning.retrieve("underscore-lowercase").getSubdomain()))
+                .contains(subdomain)
+                .doesNotHaveDuplicates()
+                .allSatisfy(value -> assertThat(value).matches(subdomain + "(?:-[a-z0-9]{3})?"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {64, 128, 255})
+    void migratesLegacySubdomain_unicodeLowercaseExpansion_doesNotExceedColumnLimit(int length) {
+        String subdomain = "İ".repeat(length);
+        IdentityZone zone = MultitenancyFixture.identityZone("unicode-zone-" + length, "legacy");
+        zone.setSubdomain(subdomain);
+        createIdentityZoneThroughSQL(zone);
+
+        assertThatCode(() -> migration.migrate(context)).doesNotThrowAnyException();
+
+        String normalized = subdomain.toLowerCase(Locale.ROOT);
+        assertThat(provisioning.retrieve(zone.getId()).getSubdomain())
+                .isEqualTo(normalized.length() > 255 ? subdomain : normalized)
+                .hasSizeLessThanOrEqualTo(255);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {18, 255})
+    void migratesDuplicateSubdomains_randomSuffixRepeatedlyCollides_usesDeterministicFallback(int length) {
+        checkDbIsCaseSensitive();
+        migration.migrate(context);
+        String subdomain = "r".repeat(length);
+        String randomCandidate = subdomain.substring(0, Math.min(length, 251)) + "-111";
+        String fallbackBase = subdomain.substring(0, Math.min(length, 253));
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone("repeated-uppercase", subdomain);
+        uppercaseZone.setSubdomain(subdomain.toUpperCase(Locale.ROOT));
+        createIdentityZoneThroughSQL(uppercaseZone);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("repeated-lowercase", subdomain));
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("repeated-existing", randomCandidate));
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("fallback-existing", fallbackBase + "-0"));
+
+        AtomicInteger attempts = new AtomicInteger();
+        try (MockedConstruction<SecureRandom> ignored = mockConstruction(SecureRandom.class,
+                (random, constructionContext) -> doAnswer(invocation -> {
+                    if (attempts.incrementAndGet() > 20) {
+                        throw new IllegalStateException("Random suffix generation did not make progress.");
+                    }
+                    Arrays.fill(invocation.getArgument(0, byte[].class), (byte) 0);
+                    return null;
+                }).when(random).nextBytes(any(byte[].class)))) {
+            assertThatCode(() -> migration.migrate(context)).doesNotThrowAnyException();
+        }
+
+        assertThat(List.of(provisioning.retrieve("repeated-uppercase").getSubdomain(),
+                provisioning.retrieve("repeated-lowercase").getSubdomain()))
+                .containsExactlyInAnyOrder(subdomain, fallbackBase + "-1");
+        assertThat(provisioning.retrieve("repeated-existing").getSubdomain()).isEqualTo(randomCandidate);
+        assertThat(provisioning.retrieve("fallback-existing").getSubdomain()).isEqualTo(fallbackBase + "-0");
+    }
+
+    @Test
+    void migratesInvalidDuplicateGroups_sharedFallbackBase_reservesNewNames() {
+        checkDbIsCaseSensitive();
+        IdentityZone firstUppercase = MultitenancyFixture.identityZone("first-uppercase", "-first");
+        firstUppercase.setSubdomain("-FIRST");
+        IdentityZone secondUppercase = MultitenancyFixture.identityZone("second-uppercase", "second/path");
+        secondUppercase.setSubdomain("SECOND/PATH");
+        createIdentityZoneThroughSQL(firstUppercase);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("first-lowercase", "-first"));
+        createIdentityZoneThroughSQL(secondUppercase);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("second-lowercase", "second/path"));
+
+        AtomicInteger attempts = new AtomicInteger();
+        try (MockedConstruction<SecureRandom> ignored = mockConstruction(SecureRandom.class,
+                (random, constructionContext) -> doAnswer(invocation -> {
+                    if (attempts.incrementAndGet() > 20) {
+                        throw new IllegalStateException("Random suffix generation did not make progress.");
+                    }
+                    Arrays.fill(invocation.getArgument(0, byte[].class), (byte) 0);
+                    return null;
+                }).when(random).nextBytes(any(byte[].class)))) {
+            migration.migrate(context);
+        }
+
+        assertThat(List.of(provisioning.retrieve("first-uppercase").getSubdomain(),
+                provisioning.retrieve("first-lowercase").getSubdomain(),
+                provisioning.retrieve("second-uppercase").getSubdomain(),
+                provisioning.retrieve("second-lowercase").getSubdomain()))
+                .containsExactlyInAnyOrder("-first", "second/path", "zone-111", "zone-0");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"idempotent-zone", "-idempotent"})
+    void migratesDuplicateSubdomains_runTwice_leavesZonesAndDefaultZoneUnchanged(String subdomain) {
+        checkDbIsCaseSensitive();
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone("idempotent-uppercase", subdomain);
+        uppercaseZone.setSubdomain(subdomain.toUpperCase(Locale.ROOT));
+        createIdentityZoneThroughSQL(uppercaseZone);
+        createIdentityZoneThroughSQL(MultitenancyFixture.identityZone("idempotent-lowercase", subdomain));
+        IdentityZone defaultZone = provisioning.retrieve("uaa");
+
+        migration.migrate(context);
+        IdentityZone firstUppercase = provisioning.retrieve("idempotent-uppercase");
+        IdentityZone firstLowercase = provisioning.retrieve("idempotent-lowercase");
+        migration.migrate(context);
+
+        assertThat(provisioning.retrieve("idempotent-uppercase")).usingRecursiveComparison().isEqualTo(firstUppercase);
+        assertThat(provisioning.retrieve("idempotent-lowercase")).usingRecursiveComparison().isEqualTo(firstLowercase);
+        assertThat(provisioning.retrieve("uaa")).usingRecursiveComparison().isEqualTo(defaultZone);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void migratesCaseCollisions_preservesExistingLowercaseOwnerRegardlessOfQueryOrder(boolean uppercaseFirst) {
+        checkDbIsCaseSensitive();
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone("uppercase-zone", "i-zone");
+        uppercaseZone.setSubdomain("I-ZONE");
+        createIdentityZoneThroughSQL(uppercaseZone);
+        IdentityZone lowercaseZone = provisioning.create(MultitenancyFixture.identityZone("lowercase-zone", "i-zone"));
+        List<IdentityZone> rows = uppercaseFirst ? List.of(uppercaseZone, lowercaseZone) : List.of(lowercaseZone, uppercaseZone);
+
+        try (MockedConstruction<JdbcTemplate> ignored = mockConstruction(JdbcTemplate.class,
+                withSettings().defaultAnswer(delegatesTo(jdbcTemplate)),
+                (template, constructionContext) -> doReturn(rows).when(template)
+                        .query(eq(V2_7_3__StoreSubDomainAsLowerCase.IDENTITY_ZONES_QUERY), any(RowMapper.class)))) {
+            migration.migrate(context);
+        }
+
+        assertThat(provisioning.retrieveBySubdomain("I-ZONE").getId()).isEqualTo(lowercaseZone.getId());
+        assertThat(provisioning.retrieve(lowercaseZone.getId())).usingRecursiveComparison().isEqualTo(lowercaseZone);
+        assertThat(provisioning.retrieve(uppercaseZone.getId()).getSubdomain()).matches("i-zone-[a-z0-9]{3}");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void migratesDuplicateEmptySubdomains_preservesDefaultZoneRegardlessOfQueryOrder(boolean legacyFirst) {
+        IdentityZone defaultZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
+        IdentityZone legacyZone = provisioning.create(MultitenancyFixture.identityZone("legacy-empty", "legacy"));
+        legacyZone.setSubdomain("");
+        List<IdentityZone> rows = legacyFirst ? List.of(legacyZone, defaultZone) : List.of(defaultZone, legacyZone);
+
+        // Simulate rows from a legacy schema that allowed duplicates, without dropping the current unique constraint.
+        // All writes and subsequent reads still use the real database.
+        try (MockedConstruction<JdbcTemplate> ignored = mockConstruction(JdbcTemplate.class,
+                withSettings().defaultAnswer(delegatesTo(jdbcTemplate)),
+                (template, constructionContext) -> doReturn(rows).when(template)
+                        .query(eq(V2_7_3__StoreSubDomainAsLowerCase.IDENTITY_ZONES_QUERY), any(RowMapper.class)))) {
+            migration.migrate(context);
+            IdentityZone repairedZone = provisioning.retrieve(legacyZone.getId());
+            assertThat(repairedZone.getSubdomain()).matches("zone-[a-z0-9]{3}");
+            assertThat(provisioning.retrieve(IdentityZone.getUaaZoneId()))
+                    .usingRecursiveComparison().isEqualTo(defaultZone);
+
+            migration.migrate(context);
+            assertThat(provisioning.retrieve(legacyZone.getId())).usingRecursiveComparison().isEqualTo(repairedZone);
+        }
+    }
+
     public void checkDbIsCaseSensitive() {
         String usubdomain = "TEST_UPPER_" + generator.generate();
         String lsubdomain = usubdomain.toLowerCase();
 
-        //check if the DB is case sensitive
-        for (String subdomain : Arrays.asList(usubdomain, lsubdomain)) {
-            try {
-                IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain + generator.generate(), subdomain);
-                identityZone.setSubdomain(subdomain);
-                createIdentityZoneThroughSQL(identityZone);
-            } catch (DuplicateKeyException _) {
-                assumeTrue(false, "DB is not case sensitive. No need for this test");
-            }
+        IdentityZone uppercaseZone = MultitenancyFixture.identityZone("case-probe-uppercase", lsubdomain);
+        uppercaseZone.setSubdomain(usubdomain);
+        IdentityZone lowercaseZone = MultitenancyFixture.identityZone("case-probe-lowercase", lsubdomain);
+        try {
+            createIdentityZoneThroughSQL(uppercaseZone);
+            createIdentityZoneThroughSQL(lowercaseZone);
+        } catch (DuplicateKeyException _) {
+            assumeTrue(false, "DB is not case sensitive. No need for this test");
+        } finally {
+            jdbcTemplate.update("delete from identity_zone where id in (?, ?)",
+                    uppercaseZone.getId(), lowercaseZone.getId());
         }
     }
 

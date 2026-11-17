@@ -395,7 +395,7 @@ public final class MockMvcUtils {
     public static ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String userId, String redirectUri, String zoneId) throws Exception {
         AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
         String superAdmin = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
-        IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null, zoneId);
+        IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(Locale.ROOT), mockMvc, context, null, zoneId);
 
         List<String> redirectUris = Arrays.asList(redirectUri, "http://" + zone.getIdentityZone().getSubdomain() + ".localhost");
         UaaClientDetails appClient = new UaaClientDetails("app", "", "scim.invite", "client_credentials,password,authorization_code", "uaa.admin,clients.admin,scim.write,scim.read,scim.invite", String.join(",", redirectUris));
@@ -443,7 +443,7 @@ public final class MockMvcUtils {
     }
 
     public static IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {
-        final String zoneId = new AlphanumericRandomValueStringGenerator(12).generate().toLowerCase();
+        final String zoneId = new AlphanumericRandomValueStringGenerator(12).generate().toLowerCase(Locale.ROOT);
         IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, zoneId);
 
         MvcResult result = mockMvc.perform(post("/identity-zones")

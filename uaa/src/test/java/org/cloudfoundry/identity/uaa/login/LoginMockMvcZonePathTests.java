@@ -208,7 +208,7 @@ public class LoginMockMvcZonePathTests {
         MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
         IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
 
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         identityZoneConfiguration = identityZone.getConfig() != null ? identityZone.getConfig() : new IdentityZoneConfiguration();
 
@@ -345,7 +345,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void access_login_page_while_logged_in(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser zoneUser = new ScimUser(null, "marissa", "Test", "User");
         zoneUser.setPrimaryEmail("marissa@test.org");
@@ -366,7 +366,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailVerificationGoesToProfileWhenClientHasNoRedirectUrisAndRequestedUriIsNotRegistered(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Zone creation returns 503 in limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser zoneUser = createUser(scimUserProvisioning, generator, zone.getId());
         SecurityContext userContext = getUaaSecurityContext(zoneUser.getUserName(), webApplicationContext, zone.getId());
@@ -412,7 +412,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailVerificationKeepsRedirectUrlAsOneFormRedirectParameterWhenNotSignedIn(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Zone creation returns 503 in limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser zoneUser = createUser(scimUserProvisioning, generator, zone.getId());
         SecurityContext userContext = getUaaSecurityContext(zoneUser.getUserName(), webApplicationContext, zone.getId());
@@ -457,7 +457,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void invalid_accept_media_type(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc.perform(
                         mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login")
@@ -470,7 +470,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void login(ZoneResolutionMode mode) throws Exception {
         ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", new Links().setSelfService(new Links.SelfService()));
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
                 .andExpect(status().isOk())
@@ -498,7 +498,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void login_page_has_zone_aware_form_action_and_links(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
         MvcResult result = mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login")
@@ -529,7 +529,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void loginPageWithContextPath_returnsFormActionAndLinksWithContextPath(ZoneResolutionMode mode) throws Exception {
         ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", new Links().setSelfService(new Links.SelfService()));
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         zone.getConfig().getLinks().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
         MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
@@ -548,7 +548,7 @@ public class LoginMockMvcZonePathTests {
     }
 
     IdentityZone createZoneLinksZone() throws Exception {
-        String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         zone.getConfig().getLinks().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
         return MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
@@ -673,7 +673,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginCsrfMaxAge(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc
                 .perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
@@ -684,7 +684,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginCsrfResetOnRefresh(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         MvcResult mvcResult = mockMvc
                 .perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
@@ -702,7 +702,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginPageReloadOnCsrfExpiry(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         cookieBasedCsrfTokenRepository.setCookieMaxAge(3);
 
@@ -716,7 +716,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void cookie_csrf(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser zoneUser = new ScimUser(null, "marissa", "Test", "User");
         zoneUser.setPrimaryEmail("marissa@test.org");
@@ -768,7 +768,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void case_insensitive_login(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         String username = "mixed-CASE-USER-" + generator.generate() + "@testdomain.com";
@@ -800,7 +800,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void when_login_token_present_response_contains_origin_key(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, null);
         String zoneId = zone.getId();
         String username = generator.generate() + "@testdomain.com";
@@ -832,7 +832,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void post_authenticate_within_zone(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Zone creation returns 503 in limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator().generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator().generate().toLowerCase(Locale.ROOT);
         UaaClientDetails adminClient = new UaaClientDetails("admin", null, null, "client_credentials",
                 "clients.admin,scim.read,scim.write,idps.write,uaa.admin", "http://redirect.url");
         adminClient.setClientSecret("admin-secret");
@@ -858,7 +858,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void previous_login_time_upon_authentication(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser zonedUser = new ScimUser(null, "marissa", "Test", "User");
         zonedUser.setPrimaryEmail("marissa@test.org");
@@ -888,7 +888,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginPostWhenDisableInternalUserManagementIsTrue(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         ScimUser user = createUser(scimUserProvisioning, generator, zoneId);
@@ -914,7 +914,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginWhenDisableInternalUserManagementIsTrue(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         JdbcIdentityProviderProvisioning idpProvisioning = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> idp = idpProvisioning.retrieveByOrigin(UAA, zone.getId());
@@ -940,7 +940,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void customLogo(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZoneConfiguration config = zone.getConfig() != null ? zone.getConfig() : new IdentityZoneConfiguration();
         setZoneFavIconAndProductLogo(webApplicationContext, config, null, "/bASe/64+");
@@ -955,7 +955,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void customFavIcon(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZoneConfiguration config = zone.getConfig() != null ? zone.getConfig() : new IdentityZoneConfiguration();
         setZoneFavIconAndProductLogo(webApplicationContext, config, "/sM4lL==", null);
@@ -970,7 +970,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void productLogoOver100kChars(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         String bigLogo = new String(new char[150000]).replace('\0', 'x');
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZoneConfiguration config = zone.getConfig() != null ? zone.getConfig() : new IdentityZoneConfiguration();
@@ -986,7 +986,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void customFavIconWithLineBreaks(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZoneConfiguration config = zone.getConfig() != null ? zone.getConfig() : new IdentityZoneConfiguration();
         setZoneFavIconAndProductLogo(webApplicationContext, config, "/sM4\n\nlL==", "/sM4\n\nlL==");
@@ -1003,7 +1003,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void defaultFooter(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
                 .andExpect(result -> assertThat(result.getResponse().getContentAsString())
@@ -1014,7 +1014,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void customizedFooter(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String customFooterText = "This text should be in the footer.";
         BrandingInformation branding = new BrandingInformation();
@@ -1033,7 +1033,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void customCompanyName(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String companyName = "Big Company";
         BrandingInformation branding = new BrandingInformation();
@@ -1069,7 +1069,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void footerLinks(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         Map<String, String> footerLinks = new HashMap<>();
         footerLinks.put("Terms of Use", "/terms.html");
@@ -1089,7 +1089,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void buildInfoInFooter(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         var footerTitleLocator = "//div[@class=\"copyright\"]/@title";
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login"))
@@ -1105,7 +1105,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void forgotPasswordSubmitDoesNotValidateCsrf(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc.perform(
                         mode.createRequestBuilder(subdomain, HttpMethod.POST, "/forgot_password.do")
@@ -1119,7 +1119,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void changePasswordPageDoesHaveCsrf(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -1141,7 +1141,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changePasswordSubmitDoesValidateCsrf(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -1172,7 +1172,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOut(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         MockHttpServletRequestBuilder getLogout = mode.createRequestBuilder(subdomain, HttpMethod.GET, "/logout.do");
         String expectedRedirect = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/login" : "/login";
@@ -1185,7 +1185,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutIgnoreRedirectParameter(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         MockHttpServletRequestBuilder getLogout = mode.createRequestBuilder(subdomain, HttpMethod.GET, "/logout.do")
                 .param("redirect", "https://www.google.com");
@@ -1199,7 +1199,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutAllowInternalRedirect(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, zoneId);
@@ -1227,7 +1227,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutWhitelistedRedirectParameter(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, zoneId);
@@ -1250,7 +1250,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutNotWhitelistedRedirectParameter(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, zoneId);
@@ -1274,7 +1274,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutNullWhitelistedRedirectParameter(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, zoneId);
@@ -1297,7 +1297,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutEmptyWhitelistedRedirectParameter(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, zoneId);
@@ -1330,7 +1330,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutChangeUrlValue(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, zoneId);
@@ -1352,7 +1352,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutWithClientRedirect(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String zoneId = zone.getId();
         Links.Logout original = MockMvcUtils.getLogout(webApplicationContext, zoneId);
@@ -1471,7 +1471,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void defaultBranding(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         // Static resources (/resources/, /vendor/) are not zone-prefixed; they use the same path in both modes
         String faviconPath = "/resources/oss/images/square-logo.png";
@@ -1504,7 +1504,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void externalizedBranding(ZoneResolutionMode mode) throws Exception {
-            String subdomain = new org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+            String subdomain = new org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
             org.cloudfoundry.identity.uaa.zone.IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login"))
                     .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/square-logo.png"))
@@ -1515,7 +1515,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void buildInfoInFooter(ZoneResolutionMode mode) throws Exception {
-            String subdomain = new org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+            String subdomain = new org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
             org.cloudfoundry.identity.uaa.zone.IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login"))
                     .andExpect(result -> {
@@ -1529,7 +1529,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void accessConfirmationPage(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -1561,7 +1561,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void signupsAndResetPasswordEnabled(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, zone.getId(), true);
 
@@ -1573,7 +1573,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void signupsAndResetPasswordDisabledWithNoLinksConfigured(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, zone.getId(), false);
 
@@ -1585,7 +1585,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void signupsAndResetPasswordDisabledWithSomeLinksConfigured(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZoneConfiguration config = zone.getConfig() != null ? zone.getConfig() : new IdentityZoneConfiguration();
         config.getLinks().getSelfService().setSignup("http://example.com/signup");
@@ -1600,7 +1600,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void signupsAndResetPasswordEnabledWithCustomLinks(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZoneConfiguration config = zone.getConfig() != null ? zone.getConfig() : new IdentityZoneConfiguration();
         config.getLinks().getSelfService().setSignup("http://example.com/signup");
@@ -1615,7 +1615,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginWithExplicitPrompts(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         List<Prompt> original = MockMvcUtils.getPrompts(webApplicationContext, zone.getId());
         try {
@@ -1642,7 +1642,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginWithExplicitJsonPrompts(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         List<Prompt> original = MockMvcUtils.getPrompts(webApplicationContext, zone.getId());
         try {
@@ -1669,7 +1669,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginWithRemoteUaaPrompts(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
@@ -1687,7 +1687,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void loginWithRemoteUaaJsonPrompts(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -1704,7 +1704,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void infoWithRemoteUaaJsonPrompts(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/info").accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -1721,7 +1721,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void defaultAndCustomSignupLink(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZoneConfiguration config = zone.getConfig() != null ? zone.getConfig() : new IdentityZoneConfiguration();
         String expectedDefault = mode == ZoneResolutionMode.ZONE_PATH ? "/z/" + subdomain + "/create_account" : "/create_account";
@@ -1760,7 +1760,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void customSignupLinkWithLocalSignupDisabled(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, zone.getId(), false);
         mockMvc.perform(mode.createRequestBuilder(subdomain, HttpMethod.GET, "/login").accept(TEXT_HTML))
@@ -1777,7 +1777,7 @@ public class LoginMockMvcZonePathTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String metadata = MockMvcUtils.IDP_META_DATA.formatted(new AlphanumericRandomValueStringGenerator().generate());
@@ -1885,7 +1885,7 @@ public class LoginMockMvcZonePathTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String metadata = MockMvcUtils.IDP_META_DATA.formatted(new AlphanumericRandomValueStringGenerator().generate());
@@ -1923,7 +1923,7 @@ public class LoginMockMvcZonePathTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
@@ -1966,7 +1966,7 @@ public class LoginMockMvcZonePathTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, oidcMetaEndpoint);
@@ -2013,7 +2013,7 @@ public class LoginMockMvcZonePathTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
@@ -2052,7 +2052,7 @@ public class LoginMockMvcZonePathTests {
     void oauthCallback_withForgedState_redirectsToLogin(ZoneResolutionMode mode) throws Exception {
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
         IdentityZoneHolder.set(identityZone);
@@ -2084,7 +2084,7 @@ public class LoginMockMvcZonePathTests {
     void oauthCallback_withSupersededState_redirectsToConcurrentLoginError(ZoneResolutionMode mode) throws Exception {
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, null);
         IdentityZoneHolder.set(identityZone);
@@ -2126,7 +2126,7 @@ public class LoginMockMvcZonePathTests {
     void oauthErrorPage_withConcurrentLoginReason_showsFriendlyMessageAndRestartLink(ZoneResolutionMode mode) throws Exception {
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String subdomain = identityZone.getSubdomain();
 
@@ -2147,7 +2147,7 @@ public class LoginMockMvcZonePathTests {
         UaaClientDetails zoneAdminClient = new UaaClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
@@ -2396,7 +2396,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailWithoutAuthenticationReturnsRedirect(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         String expectedRedirect = mode == ZoneResolutionMode.ZONE_PATH
                 ? "/z/" + subdomain + "/login"
@@ -2409,7 +2409,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailPageHasCsrf(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2429,7 +2429,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailSubmitWithMissingCsrf(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2461,7 +2461,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailSubmitWithInvalidCsrf(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2493,7 +2493,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailSubmitWithSpringSecurityForcedCsrf(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2518,7 +2518,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailSubmitWithCorrectCsrf(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2554,7 +2554,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailDoNotLoggedIn(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2585,7 +2585,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void changeEmailNoCsrfReturns403AndInvalidRequest(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2617,7 +2617,7 @@ public class LoginMockMvcZonePathTests {
     @EnumSource(ZoneResolutionMode.class)
     void csrfForInvitationAcceptPost(ZoneResolutionMode mode) throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2697,7 +2697,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutCorsPreflight(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^.*\\.localhost$"));
         List<String> allowedUris = mode == ZoneResolutionMode.ZONE_PATH ? asList("^/logout\\.do$", "^/z/[^/]+/logout\\.do$") : singletonList("^/logout\\.do$");
@@ -2737,7 +2737,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutCorsPreflightWithStandardHeader(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         corsFilter.getFilter().setCorsXhrAllowedOrigins(singletonList("^localhost$"));
         List<String> allowedUris = mode == ZoneResolutionMode.ZONE_PATH ? asList("^/logout\\.do$", "^/z/[^/]+/logout\\.do$") : singletonList("^/logout\\.do$");
@@ -2760,7 +2760,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutCorsPreflightWithUnallowedEndpoint(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         corsFilter.getFilter().setCorsXhrAllowedOrigins(singletonList("^localhost$"));
         List<String> allowedUris = mode == ZoneResolutionMode.ZONE_PATH ? asList("^/logout\\.do$", "^/z/[^/]+/logout\\.do$") : singletonList("^/logout\\.do$");
@@ -2783,7 +2783,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutCorsPreflightWithUnallowedMethod(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         corsFilter.getFilter().setCorsXhrAllowedOrigins(singletonList("^localhost$"));
         List<String> allowedUris = mode == ZoneResolutionMode.ZONE_PATH ? asList("^/logout\\.do$", "^/z/[^/]+/logout\\.do$") : singletonList("^/logout\\.do$");
@@ -2806,7 +2806,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void logOutCorsPreflightWithUnallowedOrigin(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         corsFilter.getFilter().setCorsXhrAllowedOrigins(singletonList("^localhost$"));
         List<String> allowedUris = mode == ZoneResolutionMode.ZONE_PATH ? asList("^/logout\\.do$", "^/z/[^/]+/logout\\.do$") : singletonList("^/logout\\.do$");
@@ -2882,7 +2882,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void login_LockoutPolicySucceeds_WhenLockedOut(ZoneResolutionMode mode) throws Exception {
-        String subdomain = generator.generate().toLowerCase();
+        String subdomain = generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         changeLockoutPolicyForIdpInZone(jdbcIdentityProviderProvisioning, zone);
         ScimUser userToLockout = createUser(scimUserProvisioning, generator, zone.getId());
@@ -2923,7 +2923,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void autologin_with_validCode_RedirectsToSavedRequest_ifPresent(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2953,7 +2953,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void autologin_with_validCode_RedirectsToHome(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -2980,7 +2980,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void autologin_with_validCode_and_formencoded_RedirectsToHome(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         ScimUser marissa = new ScimUser(null, "marissa", "Test", "User");
         marissa.setPrimaryEmail("marissa@test.org");
@@ -3210,7 +3210,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void idpDiscoveryRedirectsToSamlExternalProvider_withClientContext(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -3230,7 +3230,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void idpDiscoveryRedirectsToOIDCProvider(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "oidc-discovery-" + generator.generate().toLowerCase();
+        String subdomain = "oidc-discovery-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -3262,7 +3262,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void multiple_oidc_providers_use_response_type_in_url(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "oidc-idp-discovery-multi-" + generator.generate().toLowerCase();
+        String subdomain = "oidc-idp-discovery-multi-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -3281,7 +3281,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void idpDiscoveryWithNoEmailDomainMatch_withClientContext(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -3306,7 +3306,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void idpDiscoveryWithMultipleEmailDomainMatches_withClientContext(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -3331,7 +3331,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void idpDiscoveryWithUaaFallBack_withClientContext(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -3358,7 +3358,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void idpDiscoveryWithLdap_withClientContext(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "test-zone-" + generator.generate().toLowerCase();
+        String subdomain = "test-zone-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
@@ -3407,7 +3407,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void passwordPageIdpDiscoveryEnabled_SelfServiceLinksDisabled(ZoneResolutionMode mode) throws Exception {
-        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
@@ -3452,7 +3452,7 @@ public class LoginMockMvcZonePathTests {
     @ParameterizedTest
     @EnumSource(ZoneResolutionMode.class)
     void authorizeForClientWithIdpNotAllowed(ZoneResolutionMode mode) throws Exception {
-        String subdomain = "idp-not-allowed-" + generator.generate().toLowerCase();
+        String subdomain = "idp-not-allowed-" + generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone = createOtherIdentityZone(zone.getSubdomain(), mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         zone.getConfig().getLinks().getLogout().setDisableRedirectParameter(false);
@@ -3562,7 +3562,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void hasValidError(ZoneResolutionMode mode) throws Exception {
-            String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+            String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
             IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").param("error", "login_failure"))
                     .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Provided credentials are invalid. Please try again."));
@@ -3571,7 +3571,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void hasInvalidError(ZoneResolutionMode mode) throws Exception {
-            String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+            String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
             IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").param("error", "foobar").param("error", "login_failure"))
                     .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Error!"));
@@ -3580,7 +3580,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void hasValidSuccess(ZoneResolutionMode mode) throws Exception {
-            String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+            String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
             IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").param("success", "verify_success"))
                     .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Verification successful. Login to access your account."));
@@ -3589,7 +3589,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void hasInvalidSuccess(ZoneResolutionMode mode) throws Exception {
-            String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
+            String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase(Locale.ROOT);
             IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             mockMvc.perform(mode.createRequestBuilder(zone.getSubdomain(), HttpMethod.GET, "/login").param("success", "foobar").param("success", "verify_success"))
                     .andExpect(result -> assertThat(result.getResponse().getContentAsString()).contains("Success!"));
@@ -3607,7 +3607,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void login_do_success_redirects_to_default_target_with_zone_path(ZoneResolutionMode mode) throws Exception {
-            String subdomain = generator.generate().toLowerCase();
+            String subdomain = generator.generate().toLowerCase(Locale.ROOT);
             IdentityZone zone = createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             ScimUser user = createUser(scimUserProvisioning, generator, zone.getId());
 
@@ -3628,7 +3628,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void login_do_failure_redirects_to_login_with_zone_path(ZoneResolutionMode mode) throws Exception {
-            String subdomain = generator.generate().toLowerCase();
+            String subdomain = generator.generate().toLowerCase(Locale.ROOT);
             createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
             MockHttpServletRequestBuilder post = mode.createRequestBuilder(subdomain, HttpMethod.POST, "/login.do")
@@ -3647,7 +3647,7 @@ public class LoginMockMvcZonePathTests {
         @ParameterizedTest
         @EnumSource(ZoneResolutionMode.class)
         void login_do_success_redirects_to_saved_request(ZoneResolutionMode mode) throws Exception {
-            String subdomain = generator.generate().toLowerCase();
+            String subdomain = generator.generate().toLowerCase(Locale.ROOT);
             IdentityZone zone = createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
             ScimUser user = createUser(scimUserProvisioning, generator, zone.getId());
 
@@ -3711,7 +3711,7 @@ public class LoginMockMvcZonePathTests {
             IdentityZoneProvisioning identityZoneProvisioning,
             AlphanumericRandomValueStringGenerator generator,
             IdentityZoneConfiguration config) throws Exception {
-        String zoneId = generator.generate().toLowerCase();
+        String zoneId = generator.generate().toLowerCase(Locale.ROOT);
         IdentityZone zone = createOtherIdentityZone(zoneId, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
         zone.setConfig(config);
         identityZoneProvisioning.update(zone);

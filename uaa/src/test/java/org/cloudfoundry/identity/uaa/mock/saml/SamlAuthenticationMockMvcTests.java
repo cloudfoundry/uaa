@@ -12,12 +12,12 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.EnabledIfZonePathsEnabled;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.ZoneResolutionMode;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -72,7 +72,7 @@ class SamlAuthenticationMockMvcTests {
     private static final String SIG_ALG = "SigAlg";
     private static final String SIGNATURE = "Signature";
 
-    private RandomValueStringGenerator generator;
+    private AlphanumericRandomValueStringGenerator generator;
     private IdentityZone spZone;
     private IdentityZone idpZone;
     private String spZoneEntityId;
@@ -114,7 +114,7 @@ class SamlAuthenticationMockMvcTests {
             @Autowired JdbcScimUserProvisioning jdbcScimUserProvisioning
     ) throws Exception {
         this.jdbcIdentityProviderProvisioning = jdbcIdentityProviderProvisioning;
-        generator = new RandomValueStringGenerator();
+        generator = new AlphanumericRandomValueStringGenerator();
         UaaClientDetails adminClient = new UaaClientDetails("admin", "", "", "client_credentials", "uaa.admin");
         adminClient.setClientSecret("adminsecret");
 
