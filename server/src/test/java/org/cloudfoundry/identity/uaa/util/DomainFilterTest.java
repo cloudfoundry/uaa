@@ -24,10 +24,14 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -296,19 +300,18 @@ class DomainFilterTest {
         List<IdentityProvider> idpsForEmailDomain = DomainFilter.getIdpsForEmailDomain(activeProviders, "abc@test.org");
         assertThat(idpsForEmailDomain).isEmpty();
     }
-    @Test
-    void emailDomainMatchingPreservesWildcardRegexSemantics() {
+    @ParameterizedTest(name = "pattern [{0}], domain [{1}]")
+    @MethodSource("emailDomainWildcardCases")
+    void emailDomainMatchingPreservesWildcardRegexSemantics(String pattern, String domain) {
+        samlDef1.setEmailDomain(Collections.singletonList(pattern));
+        boolean expected = UaaStringUtils.constructWildcards(Collections.singletonList(pattern)).iterator().next().matcher(domain).matches();
+        assertThat(DomainFilter.doesEmailDomainMatchProvider(samlProvider1, domain, true)).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> emailDomainWildcardCases() {
         List<String> patterns = Arrays.asList("", "*", "**", "a*b", "*.org", "a**b", "a.b", "a\\b", "😀*", "[x]*");
         List<String> domains = Arrays.asList("", "a", "ab", "axb", "axxb", "a.b", "a\\b", "x.org", ".org", "😀x", "[x]y");
-        for (String pattern : patterns) {
-            samlDef1.setEmailDomain(Collections.singletonList(pattern));
-            for (String domain : domains) {
-                boolean expected = UaaStringUtils.constructWildcards(Collections.singletonList(pattern)).iterator().next().matcher(domain).matches();
-                assertThat(DomainFilter.doesEmailDomainMatchProvider(samlProvider1, domain, true))
-                        .as("pattern %s, domain %s", pattern, domain)
-                        .isEqualTo(expected);
-            }
-        }
+        return patterns.stream().flatMap(pattern -> domains.stream().map(domain -> Arguments.of(pattern, domain)));
     }
 
     @Test
