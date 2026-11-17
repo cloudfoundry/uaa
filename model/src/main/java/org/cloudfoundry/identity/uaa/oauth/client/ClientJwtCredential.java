@@ -1,21 +1,38 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import tools.jackson.core.type.TypeReference;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Setter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.util.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
+// Suppress Lombok's setters so the legacy setters below can preserve the sub/sub_pattern invariant.
+@Setter(AccessLevel.NONE)
 public class ClientJwtCredential {
+
+    /**
+     * Upper bound on a subject pattern, well above any real world 'sub' claim. Bounds both the
+     * cost of a match and the size of a cache entry.
+     */
+    @JsonIgnore
+    static final int MAX_SUBJECT_PATTERN_LENGTH = 256;
+
+    @JsonIgnore
+    private static final int MAX_WILDCARDS = 5;
 
     @JsonProperty("sub")
     private String subject;
@@ -23,19 +40,101 @@ public class ClientJwtCredential {
     private String issuer;
     @JsonProperty("aud")
     private String audience;
+    @JsonProperty("sub_pattern")
+    private String subjectPattern;
 
     @JsonCreator
-    public ClientJwtCredential(@JsonProperty("sub") String subject, @JsonProperty("iss") String issuer, @JsonProperty("aud") String audience) {
-        this.subject = subject;
+    public ClientJwtCredential(@JsonProperty("sub") String subject, @JsonProperty("iss") String issuer,
+            @JsonProperty("aud") String audience, @JsonProperty("sub_pattern") String subjectPattern) {
         this.issuer = issuer;
         this.audience = audience;
+        // Normalise a blank pattern away, so that isSubjectPattern, credKey and equals cannot
+        // disagree about whether this credential carries one.
+        String pattern = StringUtils.hasText(subjectPattern) ? subjectPattern : null;
+        this.subjectPattern = pattern;
+        // sub and sub_pattern are logically mutually exclusive. The one exception is the
+        // identical subject value emitted below for rolling-upgrade compatibility; accepting it
+        // lets persisted credentials round-trip.
+        if (pattern != null && StringUtils.hasText(subject) && !pattern.equals(subject)) {
+            throw new IllegalArgumentException("Invalid federated jwt credentials");
+        }
+        // A pattern is mirrored into the subject so that subject is never null, which credKey,
+        // equals and delete all rely on, and so that a node which does not yet know the
+        // sub_pattern field compares the pattern text literally and therefore fails closed.
+        this.subject = pattern != null ? pattern : subject;
         if (!isValid()) {
             throw new IllegalArgumentException("Invalid federated jwt credentials");
         }
     }
 
+    public ClientJwtCredential(String subject, String issuer, String audience) {
+        this(subject, issuer, audience, null);
+    }
+
+    public void setSubject(String subject) {
+        if (!StringUtils.hasText(subject)
+                || (isSubjectPattern() && !subjectPattern.equals(subject))) {
+            throw new IllegalArgumentException("Invalid federated jwt credentials");
+        }
+        this.subject = subject;
+    }
+
+    public void setIssuer(String issuer) {
+        if (!StringUtils.hasText(issuer)) {
+            throw new IllegalArgumentException("Invalid federated jwt credentials");
+        }
+        this.issuer = issuer;
+    }
+
+    public void setAudience(String audience) {
+        this.audience = audience;
+    }
+
     private boolean isValid() {
-        return StringUtils.hasText(subject) && StringUtils.hasText(issuer);
+        if (!StringUtils.hasText(subject) || !StringUtils.hasText(issuer)) {
+            return false;
+        }
+        return !StringUtils.hasText(subjectPattern) || isValidSubjectPattern(subjectPattern);
+    }
+
+    private static boolean isValidSubjectPattern(String pattern) {
+        if (pattern.length() > MAX_SUBJECT_PATTERN_LENGTH
+                || pattern.indexOf('*') < 0
+                || pattern.chars().filter(c -> c == '*').count() > MAX_WILDCARDS) {
+            return false;
+        }
+        // A wildcard may stand in for a whole component, but the pattern as a whole has to pin
+        // the structure around it. Requiring a component that is entirely literal rejects
+        // patterns such as "*", "a*" or "*:*" that would authorise most of what the issuer can
+        // assert, while still allowing the usual "prefix:*" and "prefix*" forms.
+        if (Arrays.stream(pattern.split("[:/]", -1))
+                .noneMatch(component -> component.indexOf('*') < 0
+                        && component.chars().anyMatch(Character::isLetterOrDigit))) {
+            return false;
+        }
+        return true;
+    }
+
+    @JsonIgnore
+    public boolean isSubjectPattern() {
+        return StringUtils.hasText(subjectPattern);
+    }
+
+    /**
+     * Whether the asserted subject is authorised by this credential. An exact credential must
+     * match verbatim; a pattern credential matches when the whole subject matches the pattern,
+     * where '*' stands for one component of the subject and '**' for a run of components
+     * separated by '/'. Neither crosses the ':' claim separator.
+     */
+    public boolean matchesSubject(String assertedSubject) {
+        if (assertedSubject == null) {
+            return false;
+        }
+        if (!isSubjectPattern()) {
+            return subject.equals(assertedSubject);
+        }
+        return assertedSubject.length() <= MAX_SUBJECT_PATTERN_LENGTH
+                && UaaStringUtils.matchesComponentWildcard(subjectPattern, assertedSubject);
     }
 
     public static List<ClientJwtCredential> parse(String clientJwtCredentials) {
@@ -53,7 +152,8 @@ public class ClientJwtCredential {
         ClientJwtCredential that = (ClientJwtCredential) object;
         return subject.equals(that.subject) &&
                issuer.equals(that.issuer) &&
-               Objects.equals(audience, that.audience);
+               Objects.equals(audience, that.audience) &&
+               Objects.equals(subjectPattern, that.subjectPattern);
     }
 
     @Override
@@ -61,6 +161,7 @@ public class ClientJwtCredential {
         int result = subject.hashCode();
         result = 31 * result + issuer.hashCode();
         result = 31 * result + (audience != null ? audience.hashCode() : 0);
+        result = 31 * result + (subjectPattern != null ? subjectPattern.hashCode() : 0);
         return result;
     }
 }

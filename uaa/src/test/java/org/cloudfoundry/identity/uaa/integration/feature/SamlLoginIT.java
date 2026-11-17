@@ -585,6 +585,53 @@ public class SamlLoginIT {
     }
 
     @Test
+    void singleLogoutWithLogoutUrlOnIDPWithLogoutRedirect() {
+        // testzone2 is the zone whose SingleLogoutService is registered with simplesamlphp
+        // (scripts/saml/saml20-sp-remote.php), so the IdP sends its LogoutResponse back to UAA
+        final String zoneId = "testzone2";
+        final String zoneUrl = baseUrl.replace("localhost", "%s.localhost".formatted(zoneId));
+
+        final RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        final IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getLinks().getLogout().setDisableRedirectParameter(false);
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+
+        // in contrast to singleLogoutWithNoLogoutUrlOnIDPWithLogoutRedirect, the IdP metadata advertises a SingleLogoutService
+        final SamlIdentityProviderDefinition idpConfig = IntegrationTestUtils.createSimplePHPSamlIDP(
+                SAML_ORIGIN, zoneId, samlServerConfig.getSamlServerUrl());
+        final IdentityProvider<SamlIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setIdentityZoneId(zoneId);
+        idp.setType(OriginKeys.SAML);
+        idp.setActive(true);
+        idp.setConfig(idpConfig);
+        idp.setOriginKey(idpConfig.getIdpEntityAlias());
+        idp.setName("simplesamlphp for uaa");
+        final String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, zoneId);
+        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, idp);
+
+        final String clientId = "test-slo-logout-redirect";
+        final String redirectUrl = "%s/login?test=test".formatted(zoneUrl);
+        final UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, null, GRANT_TYPE_AUTHORIZATION_CODE, null);
+        clientDetails.setRegisteredRedirectUri(Collections.singleton(redirectUrl));
+        clientDetails.setClientSecret("secret");
+        IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, clientDetails);
+
+        LoginPage.go(webDriver, zoneUrl)
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
+
+        // logout.do -> IdP SingleLogoutService -> saml/SingleLogout/alias/... -> redirect of the client
+        final LoginPage loginPage = LogoutDoEndpoint.logout_goesToLoginPage(webDriver, zoneUrl, redirectUrl, clientId);
+        loginPage.assertThatUrlEventuallySatisfies(url -> url.isEqualTo(redirectUrl));
+
+        // the IdP session was terminated as well, so the IdP prompts for credentials again
+        loginPage.assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN);
+    }
+
+    @Test
     void singleLogoutWithNoLogoutUrlOnIDP() {
         SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured();
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();

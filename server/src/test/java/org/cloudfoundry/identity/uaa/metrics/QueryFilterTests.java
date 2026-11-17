@@ -18,6 +18,8 @@ package org.cloudfoundry.identity.uaa.metrics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,14 +40,20 @@ class QueryFilterTests {
         MetricsAccessor.clear();
     }
 
-    @Test
-    void reportUnsuccessfulQuery() {
-        long start = System.currentTimeMillis();
-        filter.reportFailedQuery("query", null, "name", start, null);
+    @ParameterizedTest
+    @ValueSource(longs = {0, 1, 1000, 1001})
+    void reportUnsuccessfulQueryUsesSuppliedDuration(long delta) {
+        long start = 100;
+        filter.setThreshold(1000);
+
+        String sql = filter.reportFailedQuery("query", null, "name", start, delta, null);
+
+        assertThat(sql).isEqualTo("query");
         assertThat(metric.getQueries()).hasSize(1);
         assertThat(metric.getQueries().getFirst().getQuery()).isEqualTo("query");
         assertThat(metric.getQueries().getFirst().getRequestStartTime()).isEqualTo(start);
-        assertThat(metric.getQueries().getFirst().isIntolerable()).isFalse();
+        assertThat(metric.getQueries().getFirst().getRequestCompleteTime()).isEqualTo(start + delta);
+        assertThat(metric.getQueries().getFirst().isIntolerable()).isEqualTo(delta > filter.getThreshold());
     }
 
     @Test

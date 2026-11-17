@@ -303,7 +303,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     );
 
     private final String scimFilterDescription = "SCIM filter for searching";
-    private final String scimAttributeDescription = "Comma separated list of attribute names to be returned.";
+    private final String scimAttributeDescription = "Comma separated list of attribute names to be returned. Names may contain letters, digits, underscores and hyphens, with dots separating sub-attributes (for example `emails.value`).";
     private final String sortByDescription = "Sorting field name, like email or id";
     private final String sortOrderDescription = "Sort order, ascending/descending";
     private final String countDescription = "Max number of results to be returned";
@@ -510,7 +510,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                         IDENTITY_ZONE_ID_HEADER,
                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                                 ),
-                                requestFields(fieldWithPath("locked").optional(null).description("Set to `false` in order to unlock the user when they have been locked out according to the password lock-out policy. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
+                                requestFields(fieldWithPath("locked").optional(null).description("Set to `false` to clear the user's failed login attempts in UAA, regardless of origin (including SAML, OpenID Connect, and LDAP providers). This does not unlock the account at the external identity provider. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
                                 responseFields(fieldWithPath("locked").description("The `locked` value given in the request.").type(BOOLEAN))
                         )
                 );

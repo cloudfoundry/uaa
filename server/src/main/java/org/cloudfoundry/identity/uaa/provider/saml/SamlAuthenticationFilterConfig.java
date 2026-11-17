@@ -27,6 +27,7 @@ import org.springframework.security.saml2.provider.service.web.authentication.Sa
 import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml5LogoutRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml5LogoutResponseResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestRepository;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseResolver;
@@ -163,8 +164,19 @@ public class SamlAuthenticationFilterConfig {
      * and forwards a Saml2LogoutRequest to IDP/asserting party if configured.
      */
     @Bean
-    Saml2RelyingPartyInitiatedLogoutSuccessHandler saml2RelyingPartyInitiatedLogoutSuccessHandler(Saml2LogoutRequestResolver logoutRequestResolver) {
-        return new Saml2RelyingPartyInitiatedLogoutSuccessHandler(logoutRequestResolver);
+    Saml2RelyingPartyInitiatedLogoutSuccessHandler saml2RelyingPartyInitiatedLogoutSuccessHandler(
+            Saml2LogoutRequestResolver logoutRequestResolver,
+            Saml2LogoutRequestRepository logoutRequestRepository
+    ) {
+        Saml2RelyingPartyInitiatedLogoutSuccessHandler handler =
+                new Saml2RelyingPartyInitiatedLogoutSuccessHandler(logoutRequestResolver);
+        handler.setLogoutRequestRepository(logoutRequestRepository);
+        return handler;
+    }
+
+    @Bean
+    Saml2LogoutRequestRepository saml2LogoutRequestRepository(IdentityZoneManager identityZoneManager) {
+        return new UaaSaml2LogoutRequestRepository(identityZoneManager);
     }
 
     /**
@@ -172,13 +184,15 @@ public class SamlAuthenticationFilterConfig {
      */
     @Bean
     FilterRegistrationBean<Saml2LogoutResponseFilter> saml2LogoutResponseFilter(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
-            UaaDelegatingLogoutSuccessHandler successHandler) {
+            UaaDelegatingLogoutSuccessHandler successHandler,
+            Saml2LogoutRequestRepository logoutRequestRepository) {
 
         // This validator ignores missing signatures in the SAML2 Logout Response
         Saml2LogoutResponseValidator openSamlLogoutResponseValidator = new SamlLogoutResponseValidator();
 
         Saml2LogoutResponseFilter filter = new Saml2LogoutResponseFilter(relyingPartyRegistrationResolver, openSamlLogoutResponseValidator, successHandler);
         filter.setLogoutRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/saml/SingleLogout/alias/{registrationId}"));
+        filter.setLogoutRequestRepository(logoutRequestRepository);
 
         FilterRegistrationBean<Saml2LogoutResponseFilter> bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);

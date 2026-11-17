@@ -562,7 +562,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
         ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
 
-        if (!user.getOrigin().equals(OriginKeys.UAA)) {
+        if (status.getPasswordChangeRequired() != null && !OriginKeys.UAA.equals(user.getOrigin())) {
             throw new IllegalArgumentException("Can only manage users from the internal user store.");
         }
         if (status.getLocked() != null && status.getLocked()) {

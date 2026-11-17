@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import com.jayway.jsonpath.JsonPathException;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -22,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
@@ -45,8 +47,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.expression.spel.SpelEvaluationException;
-import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jmx.export.annotation.ManagedMetric;
@@ -76,6 +76,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.util.HtmlUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -474,9 +475,9 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 count = clients.size();
             }
         } catch (IllegalArgumentException _) {
-            String msg = "Invalid filter expression: [" + filter + "]";
+            String msg = "Invalid filter expression: [" + HtmlUtils.htmlEscape(filter) + "]";
             if (StringUtils.hasText(sortBy)) {
-                msg += " [" + sortBy + "]";
+                msg += " [" + HtmlUtils.htmlEscape(sortBy) + "]";
             }
             throw new UaaException(msg, HttpStatus.BAD_REQUEST.value());
         }
@@ -489,12 +490,12 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                     clients.size());
         }
 
-        String[] attributes = attributesCommaSeparated.split(",");
+        String[] attributes = attributesCommaSeparated.split(",", -1);
         try {
             return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes,
                     attributeNameMapper, Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI));
-        } catch (SpelEvaluationException | SpelParseException _) {
-            throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]",
+        } catch (JsonPathException _) {
+            throw new UaaException("Invalid attributes: [" + HtmlUtils.htmlEscape(attributesCommaSeparated) + "]",
                     HttpStatus.BAD_REQUEST.value());
         }
     }
@@ -563,15 +564,16 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             throw new InvalidClientDetailsException(e.getMessage());
         }
 
+        ClientJwtCredential federation = getValidatedFederation(change);
         ActionResult result;
         switch (change.getChangeMode()) {
             case ADD :
-                if (change.getChangeValue() != null && !change.isFederated()) {
+                if (change.getChangeValue() != null && federation == null) {
                     clientRegistrationService.addClientJwtConfig(client_id, change.getChangeValue(), identityZoneManager.getCurrentIdentityZoneId(), false);
                     result = new ActionResult("ok", "Client jwt configuration is added");
                 } else {
-                    if (change.isFederated()) {
-                        clientRegistrationService.addClientJwtCredential(client_id, change.getFederation(),
+                    if (federation != null) {
+                        clientRegistrationService.addClientJwtCredential(client_id, federation,
                                 identityZoneManager.getCurrentIdentityZoneId(), false);
                         result = new ActionResult("ok", "Federated client jwt configuration is added");
                     } else {
@@ -581,12 +583,12 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 break;
 
             case DELETE :
-                if (ClientJwtConfiguration.readValue(uaaUaaClientDetails) != null && change.getChangeValue() != null && !change.isFederated()) {
+                if (ClientJwtConfiguration.readValue(uaaUaaClientDetails) != null && change.getChangeValue() != null && federation == null) {
                     clientRegistrationService.deleteClientJwtConfig(client_id, change.getChangeValue(), identityZoneManager.getCurrentIdentityZoneId());
                     result = new ActionResult("ok", "Client jwt configuration is deleted");
                 } else {
-                    if (change.isFederated()) {
-                        clientRegistrationService.deleteClientJwtCredential(client_id, change.getFederation(),
+                    if (federation != null) {
+                        clientRegistrationService.deleteClientJwtCredential(client_id, federation,
                                 identityZoneManager.getCurrentIdentityZoneId());
                         result = new ActionResult("ok", "Federated client jwt configuration is deleted");
                     } else {
@@ -602,6 +604,17 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         clientJwtChanges.incrementAndGet();
 
         return result;
+    }
+
+    private ClientJwtCredential getValidatedFederation(ClientJwtChangeRequest change) {
+        if (!change.isFederated()) {
+            return null;
+        }
+        try {
+            return change.getFederation();
+        } catch (IllegalArgumentException e) {
+            throw new InvalidClientDetailsException(e.getMessage(), e);
+        }
     }
 
     private boolean validateCurrentClientSecretAdd(String clientSecret) {
@@ -635,6 +648,12 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         incrementErrorCounts(e);
         return new ResponseEntity<>(new InvalidClientDetailsException(e.getMessage()),
                 HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(UaaException.class)
+    public ResponseEntity<UaaException> handleUaaException(UaaException e) {
+        incrementErrorCounts(e);
+        return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
     }
 
     private void incrementErrorCounts(Exception e) {
@@ -744,6 +763,11 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
 
         if (existing instanceof UaaClientDetails existingUaa && input instanceof UaaClientDetails inputUaa && details instanceof UaaClientDetails detailsUaa) {
+            // Reject malformed input before it is parsed below, where the batch update would
+            // otherwise answer with a server error before validation runs.
+            if (StringUtils.hasText(inputUaa.getClientJwtConfig())) {
+                ClientJwtConfiguration.readSuppliedValue(inputUaa.getClientJwtConfig());
+            }
             UaaClient existingAsClient = new UaaClient(
                     existingUaa.getClientId(),
                     existingUaa.getClientSecret(),

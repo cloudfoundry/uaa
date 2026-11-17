@@ -10,6 +10,14 @@ There are two types of tests:
 - Integration tests, which launch the UAA application and run web-based tests the running app. Those can be run with
   `./gradlew integrationTest`
 
+### Isolated regex regression tests
+
+`TlsClientAuthenticationTest.zeroWidthRepetitionCannotKeepATokenWorkerBusy` runs claim extraction in a separate JVM
+so a non-interruptible regex hang can be forcibly terminated. The certificate is generated in the test JVM, outside
+the probe's time limits. The probe has up to 30 seconds to load the certificate and initialize the production service;
+after it signals readiness, claim extraction must finish within eight seconds. This keeps slow JVM or cryptographic
+setup from being mistaken for a regex hang while preserving the bounded check and verifying that benign claims survive.
+
 ## Helper scripts
 
 There are helper scripts, `run-unit-tests.sh` and `run-integration-tests.sh`, which run the tests inside a docker

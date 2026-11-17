@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -206,7 +207,8 @@ class ScimGroupEndpointsTests {
                 identityZoneManager,
                 20,
                 exceptionToStatusMap,
-                jdbcScimGroupExternalMembershipManager);
+                jdbcScimGroupExternalMembershipManager,
+                mock(ScimEventPublisher.class), null);
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
         verify(memberManager, times(0)).getMembers(anyString(), any(Boolean.class), anyString());
     }
@@ -221,21 +223,22 @@ class ScimGroupEndpointsTests {
                 identityZoneManager,
                 20,
                 exceptionToStatusMap,
-                jdbcScimGroupExternalMembershipManager);
+                jdbcScimGroupExternalMembershipManager,
+                mock(ScimEventPublisher.class), null);
         validateSearchResults(scimGroupEndpoints.listGroups("id,displayName,members", "id pr", "created", "ascending", 1, 100), 11);
         verify(memberManager, atLeastOnce()).getMembers(anyString(), any(Boolean.class), anyString());
     }
 
     @Test
     void whenSettingAnInvalidGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
-        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, 0, null, null))
+        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, 0, null, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid \"groupMaxCount\" value (got 0). Should be positive number.");
     }
 
     @Test
     void whenSettingANegativeValueGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
-        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, -1, null, null))
+        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, -1, null, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid \"groupMaxCount\" value (got -1). Should be positive number.");
     }
@@ -542,6 +545,7 @@ class ScimGroupEndpointsTests {
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
+        String originalMemberId = g1.getMembers().getFirst().getMemberId();
         g1.setMembers(Collections.singletonList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER)));
         g1.setDisplayName("clients.write");
 
@@ -551,7 +555,8 @@ class ScimGroupEndpointsTests {
         } catch (ScimException _) {
             // ensure that displayName was not updated
             g1 = scimGroupEndpoints.getGroup(g1.getId(), new MockHttpServletResponse());
-            validateGroup(g1, "clients.read", 0);
+            validateGroup(g1, "clients.read", 1);
+            assertThat(g1.getMembers()).extracting(ScimGroupMember::getMemberId).containsExactly(originalMemberId);
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
         }
         deleteGroup("clients.read");
@@ -699,7 +704,8 @@ class ScimGroupEndpointsTests {
                 identityZoneManager,
                 20,
                 exceptionToStatusMap,
-                jdbcScimGroupExternalMembershipManager);
+                jdbcScimGroupExternalMembershipManager,
+                mock(ScimEventPublisher.class), null);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         validateView(scimGroupEndpoints.handleException(new ScimResourceNotFoundException(""), request), HttpStatus.NOT_FOUND);
