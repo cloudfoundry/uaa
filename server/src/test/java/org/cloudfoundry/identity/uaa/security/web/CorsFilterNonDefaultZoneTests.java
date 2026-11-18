@@ -4,12 +4,18 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import jakarta.servlet.FilterChain;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,6 +23,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.DELETE;
@@ -418,6 +425,123 @@ class CorsFilterNonDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertThat(response.getStatus()).isEqualTo(OK.value());
+    }
+
+    @Test
+    void pathologicalZoneOriginPatternRejectsWithinTimeLimit() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration()
+                .setAllowedOrigins(List.of("^(https?://)?(([a-z0-9]+)+\\.)+$"));
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "https://" + "a".repeat(28) + "!");
+
+        org.junit.jupiter.api.Assertions.assertTimeout(java.time.Duration.ofSeconds(1),
+                () -> corsFilter.doFilter(request, response, filterChain));
+        org.assertj.core.api.Assertions.assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void pathologicalZoneOriginPatternRejectsWithoutOverflowingTheRequestThread() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration()
+                .setAllowedOrigins(List.of("^https://(a|aa)+$"));
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "https://" + "a".repeat(7000) + "!");
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void pathologicalZoneUriPatternRejectsWithoutOverflowingTheRequestThread() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration()
+                .setAllowedUris(List.of("^/(a|aa)+$"));
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/" + "a".repeat(7000) + "!");
+        request.addHeader("Origin", "example.com");
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void repeatedRequestsDoNotAccumulateCompiledPatternsInTheZone() throws Exception {
+        for (int i = 0; i < 3; i++) {
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+            request.addHeader("Origin", "example.com");
+            MockHttpServletResponse result = new MockHttpServletResponse();
+            corsFilter.doFilter(request, result, filterChain);
+            assertThat(result.getStatus()).isEqualTo(OK.value());
+        }
+        var configuration = identityZone.getConfig().getCorsPolicy().getDefaultConfiguration();
+        assertThat(configuration.getAllowedOriginPatterns()).isEmpty();
+        assertThat(configuration.getAllowedUriPatterns()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"origin", "uri"})
+    void zeroWidthRepetitionRejectsWithinDeadline(String target, @TempDir Path directory) throws Exception {
+        String classpath = System.getProperty("uaa.test.classpath");
+        assertThat(classpath).as("isolated probe runtime classpath").isNotBlank();
+        Path output = directory.resolve("cors-probe.log");
+        Process probe = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-Xmx128m", "-cp", classpath, ZeroWidthCorsProbe.class.getName(), target)
+                .redirectErrorStream(true).redirectOutput(output.toFile()).start();
+        boolean completed;
+        try {
+            // JVM and Mockito startup have a separate deadline from CORS evaluation.
+            await().atMost(Duration.ofSeconds(30)).until(() ->
+                    !probe.isAlive() || Files.readString(output).contains("CORS_PROBE_READY"));
+            assertThat(Files.readString(output)).as("probe finished startup").contains("CORS_PROBE_READY");
+            probe.getOutputStream().write(1);
+            probe.getOutputStream().flush();
+            completed = probe.waitFor(8, TimeUnit.SECONDS);
+        } finally {
+            if (probe.isAlive()) {
+                probe.destroyForcibly();
+                assertThat(probe.waitFor(5, TimeUnit.SECONDS)).as("probe process terminated").isTrue();
+            }
+        }
+        String log = Files.readString(output);
+        assertThat(completed).as("%s CORS evaluation must terminate within 8 seconds: %s", target, log).isTrue();
+        assertThat(probe.exitValue()).as("costly %s pattern must reject the request: %s", target, log).isZero();
+    }
+
+    /** The parent can forcibly terminate this JVM even if Java regex ignores thread interruption. */
+    public static class ZeroWidthCorsProbe {
+        public static void main(String[] args) throws Exception {
+            CorsFilterNonDefaultZoneTests fixture = new CorsFilterNonDefaultZoneTests();
+            fixture.setUp();
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+            request.addHeader("Origin", "example.com");
+            fixture.corsFilter.doFilter(request, fixture.response, fixture.filterChain);
+            if (fixture.response.getStatus() != OK.value()) {
+                throw new AssertionError("Baseline request must be allowed");
+            }
+            fixture.response = new MockHttpServletResponse();
+            // OncePerRequestFilter skips a request it has already filtered, so the costly call needs a new one.
+            request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+            request.addHeader("Origin", "example.com");
+            var config = fixture.identityZone.getConfig().getCorsPolicy().getDefaultConfiguration();
+            // The baseline call may have left compiled patterns in the zone; drop them so only the costly one is evaluated.
+            config.getAllowedOriginPatterns().clear();
+            config.getAllowedUriPatterns().clear();
+            // Nested finite repetitions make the failure decisive without relying on machine speed.
+            String pattern = "^(?:(?=){2147483647}){2147483647}.*$";
+            if ("origin".equals(args[0])) {
+                config.setAllowedOrigins(List.of(pattern));
+            } else {
+                config.setAllowedUris(List.of(pattern));
+            }
+            System.out.println("CORS_PROBE_READY");
+            System.out.flush();
+            if (System.in.read() != 1) {
+                throw new AssertionError("Parent did not start CORS evaluation");
+            }
+            fixture.corsFilter.doFilter(request, fixture.response, fixture.filterChain);
+            if (fixture.response.getStatus() != FORBIDDEN.value()) {
+                throw new AssertionError("Costly pattern must reject the request: " + fixture.response.getStatus());
+            }
+        }
     }
 
     private void setupBaselineCorsPolicyXhrConfiguration() {
