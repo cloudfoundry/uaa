@@ -72,6 +72,42 @@ class ClientJwtConfigurationTest {
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("{\"keys\": \"x\"}")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
     }
 
+    // A JWK set with two different keys that have the same kid is rejected by the existing duplicate kid
+    // rule ("duplicate kid in JWKSet not allowed").
+    @Test
+    void parseWithDuplicateKidIsRejected() {
+        String keySetWithDuplicateKid = "{\"keys\":[" + jsonWebKey + "," + jsonWebKeyDifferentValue + "]}";
+
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse(keySetWithDuplicateKid))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("duplicate kid");
+    }
+
+    // The same rule for the single-key form inside a set that repeats the same key (same kid and value).
+    @Test
+    void parseWithTheSameKeyTwiceIsRejected() {
+        String keySetWithRepeatedKey = "{\"keys\":[" + jsonWebKey + "," + jsonWebKey + "]}";
+
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse(keySetWithRepeatedKey))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("duplicate kid");
+    }
+
+    // Guard: a key set whose keys have different kids is accepted and
+    // keeps both keys; and the rotation merge still lets a later key with the same kid replace the earlier one (the
+    // last-wins rule in JsonWebKeySet is deliberate and stays).
+    @Test
+    void parseWithDistinctKidsKeepsBothKeysAndMergeStillReplacesBySameKid() {
+        ClientJwtConfiguration twoKeys = ClientJwtConfiguration.parse("{\"keys\":[" + jsonWebKey + "," + jsonWebKey2 + "]}");
+        assertThat(twoKeys.getJwkSet().getKeys()).hasSize(2);
+
+        ClientJwtConfiguration replaced = ClientJwtConfiguration.merge(
+                ClientJwtConfiguration.parse(jsonWebKey),
+                ClientJwtConfiguration.parse(jsonWebKeyDifferentValue),
+                false);
+        assertThat(replaced.getJwkSet().getKeys()).hasSize(1);
+    }
+
     @Test
     void jwkSetInvalidSize() {
         assertThatThrownBy(() -> new ClientJwtConfiguration(null, new JsonWebKeySet<>(Collections.emptyList()))).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));

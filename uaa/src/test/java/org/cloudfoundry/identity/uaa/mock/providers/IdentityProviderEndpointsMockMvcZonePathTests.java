@@ -56,6 +56,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpMethod;
@@ -892,6 +894,132 @@ class IdentityProviderEndpointsMockMvcZonePathTests {
                         .accept(MediaType.APPLICATION_JSON))
                     .andDo(print())
                     .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DefaultTestContext
+    class JwtClientAuthenticationZonePathSupport {
+        private static final String PRIVATE_KEY_MARKER = "-----BEGIN PRIVATE KEY-----marker-0123456789-----END PRIVATE KEY-----";
+
+        private String subdomain;
+        private IdentityZoneCreationResult zone;
+        private String token;
+
+        private void setUpZone(ZoneResolutionMode mode) throws Exception {
+            subdomain = RandomStringUtils.randomAlphabetic(8).toLowerCase();
+            zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
+            token = getZoneUaaAdminToken(mode, zone);
+        }
+
+        private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider(Map<String, String> jwtClientAuthentication, boolean withSecret) throws MalformedURLException {
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> base = getOAuthProviderConfig();
+            OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition) base.getConfig();
+            if (!withSecret) {
+                config.setRelyingPartySecret(null);
+                config.setJwtClientAuthentication(jwtClientAuthentication);
+            }
+            base.setOriginKey("oidc-" + RandomStringUtils.randomAlphabetic(8).toLowerCase());
+            base.setIdentityZoneId(zone.getIdentityZone().getId());
+            return (IdentityProvider) base;
+        }
+
+        private Map<String, String> inlineKey(String key) {
+            Map<String, String> jwtClientAuthentication = new HashMap<>();
+            jwtClientAuthentication.put("kid", "client-key-1");
+            jwtClientAuthentication.put("alg", "RS256");
+            jwtClientAuthentication.put("cert", "-----BEGIN CERTIFICATE-----public-----END CERTIFICATE-----");
+            if (key != null) {
+                jwtClientAuthentication.put("key", key);
+            }
+            return jwtClientAuthentication;
+        }
+
+        private MvcResult send(ZoneResolutionMode mode, HttpMethod method, String path, IdentityProvider<?> provider, ResultMatcher expected) throws Exception {
+            MockHttpServletRequestBuilder request = mode.createRequestBuilder(subdomain, method, path)
+                    .header("Authorization", "Bearer " + token)
+                    .accept(APPLICATION_JSON);
+            if (provider != null) {
+                request.contentType(APPLICATION_JSON).content(JsonUtils.writeValueAsString(provider));
+            }
+            return mockMvc.perform(request).andExpect(expected).andReturn();
+        }
+
+        private IdentityProvider<OIDCIdentityProviderDefinition> createWithInlineKey(ZoneResolutionMode mode) throws Exception {
+            MvcResult created = send(mode, HttpMethod.POST, "/identity-providers", oidcProvider(inlineKey(PRIVATE_KEY_MARKER), false), status().isCreated());
+            return JsonUtils.readValue(created.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+        }
+
+        private IdentityProvider<OIDCIdentityProviderDefinition> updateOf(IdentityProvider<OIDCIdentityProviderDefinition> created, Map<String, String> jwtClientAuthentication) throws Exception {
+            IdentityProvider<OIDCIdentityProviderDefinition> update = oidcProvider(jwtClientAuthentication, false);
+            update.setId(created.getId());
+            update.setOriginKey(created.getOriginKey());
+            return update;
+        }
+
+        private String storedPrivateKey(IdentityProvider<?> provider) {
+            IdentityProvider<?> stored = identityProviderProvisioning.retrieve(provider.getId(), zone.getIdentityZone().getId());
+            return (String) ((Map<?, ?>) ((OIDCIdentityProviderDefinition) stored.getConfig()).getJwtClientAuthentication()).get("key");
+        }
+
+        // A failed update in a zone, resolved by subdomain or by path, must not return the stored secret.
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void update_that_fails_validation_does_not_return_the_stored_secret(ZoneResolutionMode mode) throws Exception {
+            setUpZone(mode);
+            MvcResult created = send(mode, HttpMethod.POST, "/identity-providers", oidcProvider(null, true), status().isCreated());
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> withoutSecret = JsonUtils.readValue(created.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+            withoutSecret.getConfig().setTokenUrl(null);
+
+            MvcResult failed = send(mode, HttpMethod.PUT, "/identity-providers/" + withoutSecret.getId(), withoutSecret, status().isUnprocessableEntity());
+
+            assertThat(failed.getResponse().getContentAsString()).doesNotContain("identitysecret");
+        }
+
+        // Create, retrieve by id, list and update in a zone must not return the inline private key of
+        // jwtClientAuthentication.
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void responses_redact_the_private_key_of_jwt_client_authentication(ZoneResolutionMode mode) throws Exception {
+            setUpZone(mode);
+            MvcResult created = send(mode, HttpMethod.POST, "/identity-providers", oidcProvider(inlineKey(PRIVATE_KEY_MARKER), false), status().isCreated());
+            IdentityProvider<OIDCIdentityProviderDefinition> provider = JsonUtils.readValue(created.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+            MvcResult retrieved = send(mode, HttpMethod.GET, "/identity-providers/" + provider.getId(), null, status().isOk());
+            MvcResult listed = send(mode, HttpMethod.GET, "/identity-providers", null, status().isOk());
+            MvcResult updated = send(mode, HttpMethod.PUT, "/identity-providers/" + provider.getId(), updateOf(provider, inlineKey(PRIVATE_KEY_MARKER)), status().isOk());
+
+            assertThat(created.getResponse().getContentAsString()).as("create").doesNotContain(PRIVATE_KEY_MARKER);
+            assertThat(retrieved.getResponse().getContentAsString()).as("retrieve by id").doesNotContain(PRIVATE_KEY_MARKER);
+            assertThat(listed.getResponse().getContentAsString()).as("list").doesNotContain(PRIVATE_KEY_MARKER);
+            assertThat(updated.getResponse().getContentAsString()).as("update").doesNotContain(PRIVATE_KEY_MARKER);
+        }
+
+        // An update in a zone without a private key keeps the stored one.
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void update_without_the_private_key_keeps_the_stored_private_key(ZoneResolutionMode mode) throws Exception {
+            setUpZone(mode);
+            IdentityProvider<OIDCIdentityProviderDefinition> created = createWithInlineKey(mode);
+
+            send(mode, HttpMethod.PUT, "/identity-providers/" + created.getId(), updateOf(created, inlineKey(null)), status().isOk());
+
+            assertThat(storedPrivateKey(created)).isEqualTo(PRIVATE_KEY_MARKER);
+        }
+
+        // Guard: an update in a zone with a new private key stores it.
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void update_with_a_new_private_key_stores_the_new_private_key(ZoneResolutionMode mode) throws Exception {
+            setUpZone(mode);
+            IdentityProvider<OIDCIdentityProviderDefinition> created = createWithInlineKey(mode);
+            String newKey = "-----BEGIN PRIVATE KEY-----new-key-----END PRIVATE KEY-----";
+
+            send(mode, HttpMethod.PUT, "/identity-providers/" + created.getId(), updateOf(created, inlineKey(newKey)), status().isOk());
+
+            assertThat(storedPrivateKey(created)).isEqualTo(newKey);
         }
     }
 
