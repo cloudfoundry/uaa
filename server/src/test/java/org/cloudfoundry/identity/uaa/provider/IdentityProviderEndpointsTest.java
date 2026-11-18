@@ -34,7 +34,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -1212,5 +1214,215 @@ class IdentityProviderEndpointsTest {
                 assertThat(provider.getConfig().getAuthMethod()).isEqualTo(ClientAuthentication.PRIVATE_KEY_JWT);
             }
         }
+    }
+
+    private enum UpdateFailure {
+        CONFIG_VALIDATION(UNPROCESSABLE_ENTITY),
+        ALIAS_PROPERTIES_INVALID(UNPROCESSABLE_ENTITY),
+        IDP_ALREADY_EXISTS(HttpStatus.CONFLICT),
+        ALIAS_CREATION_FAILED(HttpStatus.BAD_REQUEST),
+        UNEXPECTED_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
+
+        private final HttpStatus expectedStatus;
+
+        UpdateFailure(HttpStatus expectedStatus) {
+            this.expectedStatus = expectedStatus;
+        }
+    }
+
+    private static Stream<Arguments> updateFailuresForTypesWithAStoredSecret() {
+        return Stream.of(LDAP, OIDC10)
+                .flatMap(type -> Stream.of(UpdateFailure.values()).map(failure -> Arguments.of(type, failure)));
+    }
+
+    // An update that leaves out the stored secret gets the stored secret copied into the request body
+    // (bind password of an LDAP provider, relying party secret of an OIDC provider) before the validation runs. When
+    // the update then fails (validation error, alias error, existing origin, other error), the response still has the
+    // request body, and it must not contain the stored secret.
+    @ParameterizedTest
+    @MethodSource("updateFailuresForTypesWithAStoredSecret")
+    void update_that_fails_does_not_return_the_stored_secret(String type, UpdateFailure failure) {
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider existing = LDAP.equals(type) ? getLdapDefinition() : getExternalOAuthProvider();
+        existing.setType(type);
+        existing.setId("id");
+        existing.setIdentityZoneId(zoneId);
+        IdentityProvider body = LDAP.equals(type) ? getLdapDefinition() : getExternalOAuthProvider();
+        body.setType(type);
+        body.setId("id");
+        if (LDAP.equals(type)) {
+            ((LdapIdentityProviderDefinition) body.getConfig()).setBindPassword(null);
+        } else {
+            ((AbstractExternalOAuthIdentityProviderDefinition) body.getConfig()).setRelyingPartySecret(null);
+        }
+        when(mockIdentityProviderProvisioning.retrieve("id", zoneId)).thenReturn(existing);
+        arrangeUpdateFailure(failure, zoneId);
+
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider("id", body, true);
+
+        assertThat(response.getStatusCode()).isEqualTo(failure.expectedStatus);
+        assertThat(response.getBody()).isNotNull();
+        if (LDAP.equals(type)) {
+            assertThat(((LdapIdentityProviderDefinition) response.getBody().getConfig()).getBindPassword()).isNull();
+        } else {
+            assertThat(((AbstractExternalOAuthIdentityProviderDefinition) response.getBody().getConfig()).getRelyingPartySecret()).isNull();
+        }
+    }
+
+    private void arrangeUpdateFailure(UpdateFailure failure, String zoneId) {
+        switch (failure) {
+            case CONFIG_VALIDATION -> doThrow(new IllegalArgumentException("invalid"))
+                    .when(mockIdentityProviderConfigValidationDelegator).validate(any());
+            case ALIAS_PROPERTIES_INVALID -> when(mockIdpAliasHandler.aliasPropertiesAreValid(any(), any())).thenReturn(false);
+            case IDP_ALREADY_EXISTS -> when(mockIdentityProviderProvisioning.update(any(), eq(zoneId)))
+                    .thenThrow(new IdpAlreadyExistsException("IdP with this origin key already exists."));
+            case ALIAS_CREATION_FAILED -> {
+                when(mockIdentityProviderProvisioning.update(any(), eq(zoneId))).thenAnswer(invocation -> invocation.getArgument(0));
+                when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(any(), any()))
+                        .thenThrow(new EntityAliasFailedException("Error", HttpStatus.BAD_REQUEST.value(), null));
+            }
+            case UNEXPECTED_ERROR -> when(mockIdentityProviderProvisioning.update(any(), eq(zoneId)))
+                    .thenThrow(new IllegalStateException());
+        }
+    }
+
+    private static final String INLINE_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----inline-test-key-----END PRIVATE KEY-----";
+
+    private IdentityProvider<OIDCIdentityProviderDefinition> getOidcProviderWithJwtClientAuthentication(Object jwtClientAuthentication) {
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
+        provider.setType(OIDC10);
+        provider.setId("id");
+        OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition) provider.getConfig();
+        config.setRelyingPartySecret(null);
+        config.setJwtClientAuthentication(jwtClientAuthentication);
+        return (IdentityProvider) provider;
+    }
+
+    private static Map<String, String> jwtClientAuthenticationWithInlineKey() {
+        Map<String, String> jwtClientAuthentication = new HashMap<>();
+        jwtClientAuthentication.put("kid", "client-key-1");
+        jwtClientAuthentication.put("alg", "RS256");
+        jwtClientAuthentication.put("cert", "-----BEGIN CERTIFICATE-----public-----END CERTIFICATE-----");
+        jwtClientAuthentication.put("key", INLINE_PRIVATE_KEY);
+        return jwtClientAuthentication;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> jwtClientAuthenticationOf(IdentityProvider<?> provider) {
+        return (Map<String, Object>) ((OIDCIdentityProviderDefinition) provider.getConfig()).getJwtClientAuthentication();
+    }
+
+    // An OIDC provider can keep the private key for private_key_jwt inline in jwtClientAuthentication.
+    // Like the relying party secret, that key must not be returned by a read; the public entries (kid, alg, cert)
+    // stay.
+    @Test
+    void retrieve_oidc_provider_by_id_redacts_the_private_key_of_jwt_client_authentication() {
+        when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString()))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()));
+
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.retrieveIdentityProvider("id", true);
+
+        assertThat(jwtClientAuthenticationOf(response.getBody()).get("key")).isNull();
+        assertThat(jwtClientAuthenticationOf(response.getBody()))
+                .containsEntry("kid", "client-key-1")
+                .containsEntry("alg", "RS256")
+                .containsKey("cert");
+    }
+
+    // Same as above for the list read (rawConfig on and off).
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void retrieve_all_providers_redacts_the_private_key_of_jwt_client_authentication(boolean rawConfig) {
+        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString()))
+                .thenReturn(List.of(getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey())));
+
+        ResponseEntity<List<IdentityProvider>> response = identityProviderEndpoints.retrieveIdentityProviders("false", rawConfig, "");
+
+        assertThat(jwtClientAuthenticationOf(response.getBody().getFirst()).get("key")).isNull();
+    }
+
+    // The response of a create must not return the inline private key either.
+    @Test
+    void create_oidc_provider_response_redacts_the_private_key_of_jwt_client_authentication() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider<OIDCIdentityProviderDefinition> stored = getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey());
+        when(mockIdentityProviderProvisioning.create(any(), eq(zoneId))).thenReturn(stored);
+
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(
+                getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()), true);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(jwtClientAuthenticationOf(response.getBody()).get("key")).isNull();
+    }
+
+    // The response of an update must not return the inline private key either.
+    @Test
+    void update_oidc_provider_response_redacts_the_private_key_of_jwt_client_authentication() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        when(mockIdentityProviderProvisioning.retrieve("id", zoneId))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()));
+        when(mockIdentityProviderProvisioning.update(any(), eq(zoneId)))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()));
+
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(
+                "id", getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()), true);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(jwtClientAuthenticationOf(response.getBody()).get("key")).isNull();
+    }
+
+    // Once a read no longer returns the private key, a client that reads the provider and writes it back
+    // sends jwtClientAuthentication without the key. Like the relying party secret, the stored key is then kept, so
+    // the update does not remove it.
+    @Test
+    void update_oidc_provider_without_the_private_key_keeps_the_stored_private_key() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        when(mockIdentityProviderProvisioning.retrieve("id", zoneId))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()));
+        when(mockIdentityProviderProvisioning.update(any(), eq(zoneId)))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()));
+        Map<String, String> sentBack = jwtClientAuthenticationWithInlineKey();
+        sentBack.remove("key");
+
+        identityProviderEndpoints.updateIdentityProvider("id", getOidcProviderWithJwtClientAuthentication(sentBack), true);
+
+        ArgumentCaptor<IdentityProvider> captor = ArgumentCaptor.forClass(IdentityProvider.class);
+        verify(mockIdentityProviderProvisioning).update(captor.capture(), eq(zoneId));
+        assertThat(jwtClientAuthenticationOf(captor.getValue())).containsEntry("key", INLINE_PRIVATE_KEY);
+    }
+
+    // Guard: an update that sends a new private key stores that one.
+    @Test
+    void update_oidc_provider_with_a_new_private_key_stores_the_new_private_key() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        when(mockIdentityProviderProvisioning.retrieve("id", zoneId))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()));
+        when(mockIdentityProviderProvisioning.update(any(), eq(zoneId)))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey()));
+        Map<String, String> withNewKey = jwtClientAuthenticationWithInlineKey();
+        withNewKey.put("key", "-----BEGIN PRIVATE KEY-----new-----END PRIVATE KEY-----");
+
+        identityProviderEndpoints.updateIdentityProvider("id", getOidcProviderWithJwtClientAuthentication(withNewKey), true);
+
+        ArgumentCaptor<IdentityProvider> captor = ArgumentCaptor.forClass(IdentityProvider.class);
+        verify(mockIdentityProviderProvisioning).update(captor.capture(), eq(zoneId));
+        assertThat(jwtClientAuthenticationOf(captor.getValue())).containsEntry("key", "-----BEGIN PRIVATE KEY-----new-----END PRIVATE KEY-----");
+    }
+
+    // Guard: only key material is removed. A key that is a ${...}
+    // reference to uaa.yml is configuration, not a secret, and stays visible; a plain true (default key) stays true.
+    @Test
+    void retrieve_oidc_provider_by_id_keeps_a_key_reference_and_a_plain_true_in_jwt_client_authentication() {
+        Map<String, String> withReference = new HashMap<>();
+        withReference.put("key", "${jwt.client.key}");
+        when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString()))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(withReference));
+        ResponseEntity<IdentityProvider> referenceResponse = identityProviderEndpoints.retrieveIdentityProvider("id", true);
+        assertThat(jwtClientAuthenticationOf(referenceResponse.getBody())).containsEntry("key", "${jwt.client.key}");
+
+        when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString()))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(true));
+        ResponseEntity<IdentityProvider> trueResponse = identityProviderEndpoints.retrieveIdentityProvider("id", true);
+        assertThat(((OIDCIdentityProviderDefinition) trueResponse.getBody().getConfig()).getJwtClientAuthentication()).isEqualTo(true);
     }
 }

@@ -30,11 +30,13 @@ import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -1263,6 +1265,115 @@ class ClientAdminEndpointsTests {
         assertThat(ClientJwtConfiguration.parse(jsonJwk2)).isEqualTo(ClientJwtConfiguration.readValue(created));
         assertThat(ClientJwtConfiguration.parse(jsonJwkSet)).isEqualTo(ClientJwtConfiguration.readValue(created));
         assertThat(ClientJwtConfiguration.parse(jsonJwk3)).isNotEqualTo(ClientJwtConfiguration.readValue(created));
+    }
+
+    private static final String CLIENT_JWT_CONFIG_WITH_ONE_KEY = "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"new-key\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}]}}";
+
+    private enum JwtConfigRoute {
+        CLIENT_JWT_CONFIG_PROPERTY,
+        JWT_CREDS_ADDITIONAL_INFORMATION
+    }
+
+    private void arrangeUpdateByCaller(UaaClientDetails existing, boolean admin, List<String> callerScopes) {
+        when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(existing);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(admin);
+        when(mockSecurityContextAccessor.getScopes()).thenReturn(callerScopes);
+        input.setScope(Collections.singletonList(input.getClientId() + ".read"));
+    }
+
+    private void putJwtConfigOnInput(JwtConfigRoute route) {
+        if (route == JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY) {
+            input.setClientJwtConfig(CLIENT_JWT_CONFIG_WITH_ONE_KEY);
+        } else {
+            input.setAdditionalInformation(Map.of(ClientJwtConfiguration.JWT_CREDS,
+                    List.of(Map.of("sub", "added-subject", "iss", "https://added-issuer.example.com"))));
+        }
+    }
+
+    private ClientJwtConfiguration updatedClientJwtConfiguration() {
+        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
+        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture(), anyString());
+        return ClientJwtConfiguration.readValue(clientCaptor.getValue());
+    }
+
+    // Changing the keys a client authenticates with has its own endpoint, PUT /oauth/clients/{id}/clientjwt,
+    // for callers with clients.trust (or admin). A caller with only clients.write must not be able to add a jwt
+    // configuration through the general update, neither as the client_jwt_config property nor as jwt_creds in the
+    // additional information. Either a rejection or leaving the stored configuration alone is fine; what must not
+    // happen is that the update stores the new configuration.
+    @ParameterizedTest
+    @EnumSource(JwtConfigRoute.class)
+    void updateClientDetailsByACallerWithOnlyClientsWriteDoesNotAddAClientJwtConfiguration(JwtConfigRoute route) {
+        arrangeUpdateByCaller(new UaaClientDetails(input), false, List.of("clients.write"));
+        putJwtConfigOnInput(route);
+
+        try {
+            endpoints.updateClientDetails(input, input.getClientId());
+        } catch (InvalidClientDetailsException expectedRejection) {
+            verify(clientRegistrationService, never()).updateClientDetails(any(), anyString());
+            return;
+        }
+
+        ClientJwtConfiguration stored = updatedClientJwtConfiguration();
+        assertThat(stored == null ? "" : JsonUtils.writeValueAsString(stored)).doesNotContain("new-key", "added-subject");
+    }
+
+    // Guard: an admin caller can still set the jwt configuration
+    // through the general update.
+    @ParameterizedTest
+    @EnumSource(JwtConfigRoute.class)
+    void updateClientDetailsByAnAdminStillAddsAClientJwtConfiguration(JwtConfigRoute route) {
+        arrangeUpdateByCaller(new UaaClientDetails(input), true, List.of("clients.admin"));
+        putJwtConfigOnInput(route);
+
+        endpoints.updateClientDetails(input, input.getClientId());
+
+        assertThat(updatedClientJwtConfiguration()).isNotNull().extracting(ClientJwtConfiguration::hasConfiguration).isEqualTo(true);
+    }
+
+    // Guard: a client that reads its details and writes them back
+    // sends the stored client_jwt_config unchanged. That must keep working for a caller with only clients.write, and
+    // the stored configuration must stay as it was.
+    @Test
+    void updateClientDetailsByACallerWithOnlyClientsWriteKeepsTheStoredClientJwtConfigurationWhenSentBackUnchanged() {
+        UaaClientDetails existing = new UaaClientDetails(input);
+        existing.setClientJwtConfig(CLIENT_JWT_CONFIG_WITH_ONE_KEY);
+        arrangeUpdateByCaller(existing, false, List.of("clients.write"));
+        input.setClientJwtConfig(CLIENT_JWT_CONFIG_WITH_ONE_KEY);
+
+        endpoints.updateClientDetails(input, input.getClientId());
+
+        assertThat(updatedClientJwtConfiguration()).isEqualTo(ClientJwtConfiguration.readValue(CLIENT_JWT_CONFIG_WITH_ONE_KEY));
+    }
+
+    // Guard: an update without any jwt configuration, from a caller
+    // with only clients.write, leaves the stored configuration in place.
+    @Test
+    void updateClientDetailsByACallerWithOnlyClientsWriteKeepsTheStoredClientJwtConfigurationWhenNoneIsSent() {
+        UaaClientDetails existing = new UaaClientDetails(input);
+        existing.setClientJwtConfig(CLIENT_JWT_CONFIG_WITH_ONE_KEY);
+        arrangeUpdateByCaller(existing, false, List.of("clients.write"));
+
+        endpoints.updateClientDetails(input, input.getClientId());
+
+        assertThat(updatedClientJwtConfiguration()).isEqualTo(ClientJwtConfiguration.readValue(CLIENT_JWT_CONFIG_WITH_ONE_KEY));
+    }
+
+    // On create, the documented jwks_uri and jwks fields go through ClientJwtConfiguration.parse, which
+    // rejects for example a jwks_uri with http on a host other than localhost. The raw client_jwt_config property must
+    // be held to the same rules.
+    @Test
+    void createClientDetailsWithARawClientJwtConfigurationIsValidatedLikeTheJwksUriField() {
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        ClientDetailsCreation createRequest = createClientDetailsCreation(input);
+        createRequest.setClientJwtConfig("{\"jwks_uri\":\"http://any.domain.net/openid/jwks-uri\"}");
+
+        assertThatThrownBy(() -> endpoints.createClientDetails(createRequest))
+                .isInstanceOf(InvalidClientDetailsException.class);
     }
 
     private ClientDetailsCreation createClientDetailsCreation(UaaClientDetails baseClientDetails) {

@@ -49,6 +49,8 @@ import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -818,6 +820,152 @@ class IdentityProviderEndpointsMockMvcTests {
         assertThat(event.getAuditEvent().getType()).isEqualTo(AuditEventType.IdentityProviderModifiedEvent);
 
         return identityProvider;
+    }
+
+    private static final String PRIVATE_KEY_MARKER = "-----BEGIN PRIVATE KEY-----marker-0123456789-----END PRIVATE KEY-----";
+
+    private IdentityProvider<OIDCIdentityProviderDefinition> oidcProviderWithJwtClientAuthentication(Map<String, String> jwtClientAuthentication) throws MalformedURLException {
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> base = getOAuthProviderConfig();
+        OIDCIdentityProviderDefinition config = (OIDCIdentityProviderDefinition) base.getConfig();
+        config.setRelyingPartySecret(null);
+        config.setJwtClientAuthentication(jwtClientAuthentication);
+        base.setOriginKey("oidc-" + RandomStringUtils.randomAlphabetic(8).toLowerCase());
+        return (IdentityProvider) base;
+    }
+
+    private static Map<String, String> jwtClientAuthenticationWithInlineKey(String key) {
+        Map<String, String> jwtClientAuthentication = new HashMap<>();
+        jwtClientAuthentication.put("kid", "client-key-1");
+        jwtClientAuthentication.put("alg", "RS256");
+        jwtClientAuthentication.put("cert", "-----BEGIN CERTIFICATE-----public-----END CERTIFICATE-----");
+        if (key != null) {
+            jwtClientAuthentication.put("key", key);
+        }
+        return jwtClientAuthentication;
+    }
+
+    private MvcResult postProvider(IdentityProvider<?> provider, ResultMatcher expected) throws Exception {
+        return mockMvc.perform(post("/identity-providers")
+                        .header("Authorization", "bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(provider)))
+                .andExpect(expected)
+                .andReturn();
+    }
+
+    private MvcResult putProvider(IdentityProvider<?> provider, ResultMatcher expected) throws Exception {
+        return mockMvc.perform(put("/identity-providers/" + provider.getId())
+                        .header("Authorization", "bearer " + adminToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(provider)))
+                .andExpect(expected)
+                .andReturn();
+    }
+
+    private IdentityProvider<OIDCIdentityProviderDefinition> createOidcProviderWithInlineKey() throws Exception {
+        MvcResult created = postProvider(oidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey(PRIVATE_KEY_MARKER)), status().isCreated());
+        return JsonUtils.readValue(created.getResponse().getContentAsString(), new TypeReference<>() {
+        });
+    }
+
+    private String storedPrivateKey(IdentityProvider<?> provider) {
+        IdentityProvider<?> stored = identityProviderProvisioning.retrieve(provider.getId(), provider.getIdentityZoneId());
+        Object jwtClientAuthentication = ((OIDCIdentityProviderDefinition) stored.getConfig()).getJwtClientAuthentication();
+        return (String) ((Map<?, ?>) jwtClientAuthentication).get("key");
+    }
+
+    // When an update to an identity provider fails, the error response must not carry the secret that is
+    // stored for the provider. The update request leaves the secret out (it is never returned), the server fills in the
+    // stored one for validation, and the failure response must not echo it.
+    @Test
+    void update_that_fails_validation_does_not_return_the_stored_secret() throws Exception {
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getOAuthProviderConfig();
+        provider.setOriginKey("oidc-" + RandomStringUtils.randomAlphabetic(8).toLowerCase());
+        MvcResult created = postProvider(provider, status().isCreated());
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> withoutSecret = JsonUtils.readValue(created.getResponse().getContentAsString(), new TypeReference<>() {
+        });
+        withoutSecret.getConfig().setTokenUrl(null);
+
+        MvcResult failed = putProvider(withoutSecret, status().isUnprocessableEntity());
+
+        assertThat(failed.getResponse().getContentAsString()).doesNotContain("identitysecret");
+    }
+
+    // An OIDC provider can keep the private key for private_key_jwt inline in jwtClientAuthentication.
+    // The response of create must not return that key.
+    @Test
+    void create_oidc_provider_response_redacts_the_private_key_of_jwt_client_authentication() throws Exception {
+        MvcResult created = postProvider(oidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey(PRIVATE_KEY_MARKER)), status().isCreated());
+
+        assertThat(created.getResponse().getContentAsString()).doesNotContain(PRIVATE_KEY_MARKER);
+    }
+
+    // The response of retrieve by id must not return the inline private key.
+    @Test
+    void retrieve_oidc_provider_by_id_redacts_the_private_key_of_jwt_client_authentication() throws Exception {
+        IdentityProvider<OIDCIdentityProviderDefinition> created = createOidcProviderWithInlineKey();
+
+        MvcResult retrieved = mockMvc.perform(get("/identity-providers/" + created.getId())
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(retrieved.getResponse().getContentAsString()).doesNotContain(PRIVATE_KEY_MARKER);
+    }
+
+    // The response of the list must not return the inline private key, with or without rawConfig.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void retrieve_all_providers_redacts_the_private_key_of_jwt_client_authentication(boolean rawConfig) throws Exception {
+        createOidcProviderWithInlineKey();
+
+        MvcResult retrieved = mockMvc.perform(get("/identity-providers")
+                        .param("rawConfig", String.valueOf(rawConfig))
+                        .header("Authorization", "bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(retrieved.getResponse().getContentAsString()).doesNotContain(PRIVATE_KEY_MARKER);
+    }
+
+    // The response of an update must not return the inline private key that was sent or stored.
+    @Test
+    void update_oidc_provider_response_redacts_the_private_key_of_jwt_client_authentication() throws Exception {
+        IdentityProvider<OIDCIdentityProviderDefinition> created = createOidcProviderWithInlineKey();
+        IdentityProvider<OIDCIdentityProviderDefinition> update = oidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey(PRIVATE_KEY_MARKER));
+        update.setId(created.getId());
+        update.setOriginKey(created.getOriginKey());
+
+        MvcResult updated = putProvider(update, status().isOk());
+
+        assertThat(updated.getResponse().getContentAsString()).doesNotContain(PRIVATE_KEY_MARKER);
+    }
+
+    // A client that reads a provider (the key is not returned) and writes it back must not wipe the
+    // stored key: an update without a key keeps the stored one.
+    @Test
+    void update_oidc_provider_without_the_private_key_keeps_the_stored_private_key() throws Exception {
+        IdentityProvider<OIDCIdentityProviderDefinition> created = createOidcProviderWithInlineKey();
+        IdentityProvider<OIDCIdentityProviderDefinition> update = oidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey(null));
+        update.setId(created.getId());
+        update.setOriginKey(created.getOriginKey());
+
+        putProvider(update, status().isOk());
+
+        assertThat(storedPrivateKey(created)).isEqualTo(PRIVATE_KEY_MARKER);
+    }
+
+    // Guard: an update that sends a new private key stores it.
+    @Test
+    void update_oidc_provider_with_a_new_private_key_stores_the_new_private_key() throws Exception {
+        IdentityProvider<OIDCIdentityProviderDefinition> created = createOidcProviderWithInlineKey();
+        IdentityProvider<OIDCIdentityProviderDefinition> update = oidcProviderWithJwtClientAuthentication(jwtClientAuthenticationWithInlineKey("-----BEGIN PRIVATE KEY-----new-key-----END PRIVATE KEY-----"));
+        update.setId(created.getId());
+        update.setOriginKey(created.getOriginKey());
+
+        putProvider(update, status().isOk());
+
+        assertThat(storedPrivateKey(created)).isEqualTo("-----BEGIN PRIVATE KEY-----new-key-----END PRIVATE KEY-----");
     }
 
     private void addScopeToIdentityClient(String scope) {

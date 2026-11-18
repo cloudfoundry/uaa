@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
@@ -56,6 +57,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -2388,5 +2390,155 @@ class ClientAdminEndpointsMockMvcZonePathTests {
                 .content(JsonUtils.writeValueAsString(client));
         mockMvc.perform(createClientPost).andExpect(status().isCreated());
         return getClient(client.getClientId());
+    }
+
+    private static final String CLIENT_JWT_CONFIG_WITH_ONE_KEY = "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"new-key\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}]}}";
+    private static final String JWK_KEY_1 = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
+    private static final String JWK_KEY_1_DIFFERENT_VALUE = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"new\"}";
+    private static final String JWK_KEY_2 = JWK_KEY_1.replace("key-1", "key-2");
+
+    private enum JwtConfigRoute {
+        CLIENT_JWT_CONFIG_PROPERTY,
+        JWT_CREDS_ADDITIONAL_INFORMATION
+    }
+
+    // A zone with one client that has clients.admin and clients.write; "admin" tokens use both, "write only" tokens ask
+    // for the clients.write scope alone.
+    private final class JwtConfigZone {
+        final ZoneResolutionMode mode;
+        final String subdomain;
+        final String zoneId;
+
+        JwtConfigZone(ZoneResolutionMode mode) throws Exception {
+            this.mode = mode;
+            this.subdomain = generator.generate().toLowerCase();
+            UaaClientDetails zoneClient = new UaaClientDetails("zone-jwt-admin", "", "clients.read,openid", "client_credentials", "clients.admin,clients.read,clients.write,openid", "http://redirect.url");
+            zoneClient.setClientSecret("zone-admin-secret");
+            MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, zoneClient, IdentityZoneHolder.getCurrentZoneId());
+            this.zoneId = result.getIdentityZone().getId();
+        }
+
+        String token(String scope) throws Exception {
+            return MockMvcUtilsZonePath.getClientCredentialsOAuthAccessToken(mode, mockMvc, "zone-jwt-admin", "zone-admin-secret", scope, subdomain, false);
+        }
+
+        ResultActions send(HttpMethod method, String path, String token, Object body) throws Exception {
+            return mockMvc.perform(mode.createRequestBuilder(subdomain, method, path)
+                    .header("Authorization", "Bearer " + token)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(body)));
+        }
+
+        UaaClientDetails body(String id, JwtConfigRoute route) {
+            UaaClientDetails body = new UaaClientDetails(id, null, "openid", "client_credentials", "uaa.none");
+            if (route == JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY) {
+                body.setClientJwtConfig(CLIENT_JWT_CONFIG_WITH_ONE_KEY);
+            } else if (route == JwtConfigRoute.JWT_CREDS_ADDITIONAL_INFORMATION) {
+                body.addAdditionalInformation(ClientJwtConfiguration.JWT_CREDS,
+                        List.of(Map.of("sub", "added-subject", "iss", "https://added-issuer.example.com")));
+            }
+            return body;
+        }
+
+        String createClient() throws Exception {
+            String id = generator.generate();
+            UaaClientDetails body = body(id, null);
+            body.setClientSecret("secret");
+            send(HttpMethod.POST, "/oauth/clients", token("clients.admin clients.write"), body).andExpect(status().isCreated());
+            return id;
+        }
+
+        String stored(String clientId) {
+            return webApplicationContext.getBean(JdbcTemplate.class).queryForObject(
+                    "select client_jwt_config from oauth_client_details where client_id=? and identity_zone_id=?", String.class, clientId, zoneId);
+        }
+
+        ResultActions addKeys(String clientId, String jwkSet) throws Exception {
+            ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, jwkSet);
+            request.setClientId("zone-jwt-admin");
+            request.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+            return send(HttpMethod.PUT, "/oauth/clients/" + clientId + "/clientjwt", token("clients.admin clients.write"), request);
+        }
+    }
+
+    // In a zone (subdomain or zone path), a caller with only clients.write must not be able to add a jwt
+    // configuration through the general update, as the client_jwt_config property or as jwt_creds. A rejection or
+    // ignoring the value are both fine; storing it is not.
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,CLIENT_JWT_CONFIG_PROPERTY", "SUBDOMAIN,JWT_CREDS_ADDITIONAL_INFORMATION", "ZONE_PATH,CLIENT_JWT_CONFIG_PROPERTY", "ZONE_PATH,JWT_CREDS_ADDITIONAL_INFORMATION"})
+    void update_by_a_caller_with_only_clients_write_does_not_add_a_client_jwt_configuration(ZoneResolutionMode mode, JwtConfigRoute route) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.write"), zone.body(id, route));
+
+        assertThat(String.valueOf(zone.stored(id))).as("stored client_jwt_config").doesNotContain("new-key", "added-subject");
+    }
+
+    // Guard: an admin caller in a zone can still set the jwt
+    // configuration through the general update.
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,CLIENT_JWT_CONFIG_PROPERTY", "SUBDOMAIN,JWT_CREDS_ADDITIONAL_INFORMATION", "ZONE_PATH,CLIENT_JWT_CONFIG_PROPERTY", "ZONE_PATH,JWT_CREDS_ADDITIONAL_INFORMATION"})
+    void update_by_an_admin_still_adds_a_client_jwt_configuration(ZoneResolutionMode mode, JwtConfigRoute route) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.admin clients.write"), zone.body(id, route)).andExpect(status().isOk());
+
+        assertThat(zone.stored(id)).as("stored client_jwt_config").containsAnyOf("new-key", "added-subject");
+    }
+
+    // Guard: an update without any jwt configuration, from a caller
+    // with only clients.write, leaves the stored configuration in place.
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void update_by_a_caller_with_only_clients_write_keeps_the_stored_client_jwt_configuration_when_none_is_sent(ZoneResolutionMode mode) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.admin clients.write"), zone.body(id, JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY)).andExpect(status().isOk());
+        String before = zone.stored(id);
+
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.write"), zone.body(id, null)).andExpect(status().isOk());
+
+        assertThat(zone.stored(id)).isEqualTo(before);
+    }
+
+    // On create in a zone, the raw client_jwt_config property is validated like the jwks_uri field (a
+    // jwks_uri with http on a host other than localhost is rejected).
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void create_with_a_raw_client_jwt_config_is_validated_like_the_jwks_uri_field(ZoneResolutionMode mode) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        UaaClientDetails body = zone.body(generator.generate(), null);
+        body.setClientSecret("secret");
+        body.setClientJwtConfig("{\"jwks_uri\":\"http://any.domain.net/openid/jwks-uri\"}");
+
+        zone.send(HttpMethod.POST, "/oauth/clients", zone.token("clients.admin clients.write"), body).andExpect(status().isBadRequest());
+    }
+
+    // In a zone, a JWK set with two keys that have the same kid is rejected with a 400, for different keys
+    // and for the same key repeated.
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,true", "SUBDOMAIN,false", "ZONE_PATH,true", "ZONE_PATH,false"})
+    void add_client_jwt_keys_with_a_duplicate_kid_is_rejected(ZoneResolutionMode mode, boolean differentKeys) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+        String second = differentKeys ? JWK_KEY_1_DIFFERENT_VALUE : JWK_KEY_1;
+
+        zone.addKeys(id, "{\"keys\":[" + JWK_KEY_1 + "," + second + "]}").andExpect(status().isBadRequest());
+    }
+
+    // Guard: in a zone, a key set with distinct kids is accepted and
+    // both keys are stored.
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void add_client_jwt_keys_with_distinct_kids_keeps_both_keys(ZoneResolutionMode mode) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+
+        zone.addKeys(id, "{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_2 + "]}").andExpect(status().isOk());
+
+        assertThat(zone.stored(id)).contains("key-1", "key-2");
     }
 }
