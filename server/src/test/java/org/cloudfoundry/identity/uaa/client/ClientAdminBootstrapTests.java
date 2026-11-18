@@ -311,6 +311,22 @@ class ClientAdminBootstrapTests {
         assertThat(clientDetails.getClientJwtConfig()).isNotNull();
     }
 
+    // Guard: a key set configured for a client in uaa.yml that repeats a kid is stored as before, with the last key
+    // of that kid, and does not stop the bootstrap.
+    @Test
+    void simpleAddClientWithJwkSetThatRepeatsAKidKeepsTheLastKey() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo-jwks-repeated-kid");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
+        map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
+        map.put("jwks", "{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"n\":\"first\"},{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"n\":\"last\"}]}");
+        UaaClientDetails clientDetails = (UaaClientDetails) doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        assertThat(clientDetails.getClientJwtConfig()).contains("last").doesNotContain("first");
+    }
+
     @Test
     void simpleInvalidClientWithJwkSet() {
         Map<String, Object> map = new HashMap<>();

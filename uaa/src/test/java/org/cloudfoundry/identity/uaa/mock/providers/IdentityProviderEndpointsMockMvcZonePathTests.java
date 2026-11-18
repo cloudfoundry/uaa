@@ -978,6 +978,19 @@ class IdentityProviderEndpointsMockMvcZonePathTests {
             assertThat(failed.getResponse().getContentAsString()).doesNotContain("identitysecret");
         }
 
+        // A failed create in a zone, resolved by subdomain or by path, must not return the secret of the request.
+        @ParameterizedTest
+        @EnumSource(ZoneResolutionMode.class)
+        void create_that_fails_validation_does_not_return_the_secret(ZoneResolutionMode mode) throws Exception {
+            setUpZone(mode);
+            IdentityProvider<OIDCIdentityProviderDefinition> provider = oidcProvider(inlineKey(PRIVATE_KEY_MARKER), true);
+            provider.getConfig().setTokenUrl(null);
+
+            MvcResult failed = send(mode, HttpMethod.POST, "/identity-providers", provider, status().isUnprocessableEntity());
+
+            assertThat(failed.getResponse().getContentAsString()).doesNotContain("identitysecret", PRIVATE_KEY_MARKER);
+        }
+
         // Create, retrieve by id, list and update in a zone must not return the inline private key of
         // jwtClientAuthentication.
         @ParameterizedTest

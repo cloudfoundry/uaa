@@ -1267,6 +1267,9 @@ class ClientAdminEndpointsTests {
         assertThat(ClientJwtConfiguration.parse(jsonJwk3)).isNotEqualTo(ClientJwtConfiguration.readValue(created));
     }
 
+    // Parses as JSON, but the key has no modulus and exponent, so the stored configuration cannot be read.
+    private static final String UNREADABLE_CLIENT_JWT_CONFIG = "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"kid\":\"unreadable\"}]}}";
+
     private static final String CLIENT_JWT_CONFIG_WITH_ONE_KEY = "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"new-key\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}]}}";
 
     private enum JwtConfigRoute {
@@ -1361,6 +1364,69 @@ class ClientAdminEndpointsTests {
         assertThat(updatedClientJwtConfiguration()).isEqualTo(ClientJwtConfiguration.readValue(CLIENT_JWT_CONFIG_WITH_ONE_KEY));
     }
 
+    // When the stored configuration cannot be read, merging the request into it fails and the update continues with
+    // the request as sent. A caller with only clients.write must not get its jwt configuration stored that way.
+    @ParameterizedTest
+    @EnumSource(JwtConfigRoute.class)
+    void updateClientDetailsByACallerWithOnlyClientsWriteDoesNotStoreAClientJwtConfigurationWhenTheStoredOneCannotBeRead(JwtConfigRoute route) {
+        UaaClientDetails existing = new UaaClientDetails(input);
+        existing.setClientJwtConfig(UNREADABLE_CLIENT_JWT_CONFIG);
+        arrangeUpdateByCaller(existing, false, List.of("clients.write"));
+        putJwtConfigOnInput(route);
+
+        // The response reads the stored value back and fails on it; what was written is checked below.
+        catchThrowable(() -> endpoints.updateClientDetails(input, input.getClientId()));
+
+        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
+        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture(), anyString());
+        assertThat(clientCaptor.getValue().getClientJwtConfig()).isEqualTo(UNREADABLE_CLIENT_JWT_CONFIG);
+        assertThat(String.valueOf(clientCaptor.getValue().getAdditionalInformation())).doesNotContain("added-subject");
+    }
+
+    // A client_jwt_config that is not valid JSON is rejected, also for a caller whose value would be ignored.
+    @Test
+    void updateClientDetailsByACallerWithOnlyClientsWriteWithAMalformedClientJwtConfigurationIsRejected() {
+        arrangeUpdateByCaller(new UaaClientDetails(input), false, List.of("clients.write"));
+        input.setClientJwtConfig("not json");
+
+        assertThatThrownBy(() -> endpoints.updateClientDetails(input, input.getClientId()))
+                .isInstanceOf(InvalidClientDetailsException.class);
+
+        verify(clientRegistrationService, never()).updateClientDetails(any(), anyString());
+    }
+
+    // PUT /oauth/clients/{id}/clientjwt lets a caller with clients.trust change only its own client (unless it is an
+    // admin or has clients.admin). The general update follows the same rule.
+    @ParameterizedTest
+    @EnumSource(JwtConfigRoute.class)
+    void updateClientDetailsByACallerWithClientsTrustDoesNotChangeTheJwtConfigurationOfAnotherClient(JwtConfigRoute route) {
+        arrangeUpdateByCaller(new UaaClientDetails(input), false, List.of("clients.write", "clients.trust"));
+        UaaClientDetails caller = new UaaClientDetails(detail);
+        caller.setClientId("another-client");
+        caller.setScope(input.getScope());
+        when(clientDetailsService.retrieve("another-client", IdentityZoneHolder.get().getId())).thenReturn(caller);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("another-client");
+        putJwtConfigOnInput(route);
+
+        endpoints.updateClientDetails(input, input.getClientId());
+
+        ClientJwtConfiguration stored = updatedClientJwtConfiguration();
+        assertThat(stored == null ? "" : JsonUtils.writeValueAsString(stored)).doesNotContain("new-key", "added-subject");
+    }
+
+    // Guard: a caller with clients.trust still changes the jwt configuration of its own client.
+    @ParameterizedTest
+    @EnumSource(JwtConfigRoute.class)
+    void updateClientDetailsByACallerWithClientsTrustChangesItsOwnJwtConfiguration(JwtConfigRoute route) {
+        arrangeUpdateByCaller(new UaaClientDetails(input), false, List.of("clients.write", "clients.trust"));
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(input.getClientId());
+        putJwtConfigOnInput(route);
+
+        endpoints.updateClientDetails(input, input.getClientId());
+
+        assertThat(updatedClientJwtConfiguration()).isNotNull().extracting(ClientJwtConfiguration::hasConfiguration).isEqualTo(true);
+    }
+
     // On create, the documented jwks_uri and jwks fields go through ClientJwtConfiguration.parse, which
     // rejects for example a jwks_uri with http on a host other than localhost. The raw client_jwt_config property must
     // be held to the same rules.
@@ -1374,6 +1440,96 @@ class ClientAdminEndpointsTests {
 
         assertThatThrownBy(() -> endpoints.createClientDetails(createRequest))
                 .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    private static final String JWK_KEY_1 = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
+    private static final String JWK_KEY_1_DIFFERENT_VALUE = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"new\"}";
+
+    private static String rawConfigWithRepeatedKid(boolean differentKeys) {
+        return "{\"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + (differentKeys ? JWK_KEY_1_DIFFERENT_VALUE : JWK_KEY_1) + "]}}";
+    }
+
+    // A raw client_jwt_config that repeats a kid is rejected on create like the jwks field.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void createClientDetailsWithARawClientJwtConfigurationThatRepeatsAKidIsRejected(boolean differentKeys) {
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        ClientDetailsCreation createRequest = createClientDetailsCreation(input);
+        createRequest.setClientJwtConfig(rawConfigWithRepeatedKid(differentKeys));
+
+        assertThatThrownBy(() -> endpoints.createClientDetails(createRequest))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    // The same on an update by a caller who may change the jwt configuration: rejected, nothing stored.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void updateClientDetailsByAnAdminWithARawClientJwtConfigurationThatRepeatsAKidIsRejected(boolean differentKeys) {
+        arrangeUpdateByCaller(new UaaClientDetails(input), true, List.of("clients.admin"));
+        input.setClientJwtConfig(rawConfigWithRepeatedKid(differentKeys));
+
+        assertThatThrownBy(() -> endpoints.updateClientDetails(input, input.getClientId()))
+                .isInstanceOf(InvalidClientDetailsException.class);
+
+        verify(clientRegistrationService, never()).updateClientDetails(any(), anyString());
+    }
+
+    // Guard: for a caller whose value is ignored, a value that repeats a kid is ignored like any other: the update
+    // succeeds and the stored configuration stays.
+    @Test
+    void updateClientDetailsByACallerWithOnlyClientsWriteIgnoresARawClientJwtConfigurationThatRepeatsAKid() {
+        UaaClientDetails existing = new UaaClientDetails(input);
+        existing.setClientJwtConfig(CLIENT_JWT_CONFIG_WITH_ONE_KEY);
+        arrangeUpdateByCaller(existing, false, List.of("clients.write"));
+        input.setClientJwtConfig(rawConfigWithRepeatedKid(true));
+
+        endpoints.updateClientDetails(input, input.getClientId());
+
+        assertThat(updatedClientJwtConfiguration()).isEqualTo(ClientJwtConfiguration.readValue(CLIENT_JWT_CONFIG_WITH_ONE_KEY));
+    }
+
+    // The same when the stored value cannot be read: the check compares with the stored value as it is.
+    @Test
+    void updateClientDetailsByAnAdminWithARawClientJwtConfigurationThatRepeatsAKidIsRejectedWhenTheStoredOneCannotBeRead() {
+        UaaClientDetails existing = new UaaClientDetails(input);
+        existing.setClientJwtConfig(UNREADABLE_CLIENT_JWT_CONFIG);
+        arrangeUpdateByCaller(existing, true, List.of("clients.admin"));
+        input.setClientJwtConfig(rawConfigWithRepeatedKid(true));
+
+        assertThatThrownBy(() -> endpoints.updateClientDetails(input, input.getClientId()))
+                .isInstanceOf(InvalidClientDetailsException.class);
+
+        verify(clientRegistrationService, never()).updateClientDetails(any(), anyString());
+    }
+
+    // The same for the update action of POST /oauth/clients/tx/modify.
+    @Test
+    void modifyClientDetailsTxUpdateWithARawClientJwtConfigurationThatRepeatsAKidIsRejected() {
+        arrangeUpdateByCaller(new UaaClientDetails(input), true, List.of("clients.admin"));
+        ClientDetailsModification update = new ClientDetailsModification(input);
+        update.setAction(ClientDetailsModification.UPDATE);
+        update.setClientJwtConfig(rawConfigWithRepeatedKid(true));
+
+        assertThatThrownBy(() -> endpoints.modifyClientDetailsTx(new ClientDetailsModification[]{update}))
+                .isInstanceOf(InvalidClientDetailsException.class);
+
+        verify(clientRegistrationService, never()).updateClientDetails(any(), anyString());
+    }
+
+    // Guard: a stored client_jwt_config from before the rule can repeat a kid. Sent back unchanged by an admin, the
+    // update keeps working.
+    @Test
+    void updateClientDetailsByAnAdminAcceptsAStoredClientJwtConfigurationThatRepeatsAKidWhenSentBackUnchanged() {
+        UaaClientDetails existing = new UaaClientDetails(input);
+        existing.setClientJwtConfig(rawConfigWithRepeatedKid(true));
+        arrangeUpdateByCaller(existing, true, List.of("clients.admin"));
+        input.setClientJwtConfig(rawConfigWithRepeatedKid(true));
+
+        endpoints.updateClientDetails(input, input.getClientId());
+
+        verify(clientRegistrationService).updateClientDetails(any(), anyString());
     }
 
     private ClientDetailsCreation createClientDetailsCreation(UaaClientDetails baseClientDetails) {

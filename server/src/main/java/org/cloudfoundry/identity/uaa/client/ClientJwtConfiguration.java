@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -165,23 +166,42 @@ public class ClientJwtConfiguration implements Cloneable {
         return configurationChanges;
     }
 
+    /**
+     * Parses a key configuration that a caller submits. A key set that repeats a kid is rejected.
+     */
     @JsonIgnore
     public static ClientJwtConfiguration parse(String privateKeyConfig) {
-        return UaaUrlUtils.isUrl(privateKeyConfig) ? parseJwksUri(privateKeyConfig) : parseJwkSet(privateKeyConfig);
+        return UaaUrlUtils.isUrl(privateKeyConfig) ? parseJwksUri(privateKeyConfig) : parseJwkSet(privateKeyConfig, true);
     }
 
+    /**
+     * Parses a key configuration that a caller submits. A key set that repeats a kid is rejected.
+     */
     @JsonIgnore
     public static ClientJwtConfiguration parse(String privateKeyUrl, String privateKeyJwt) {
+        return parse(privateKeyUrl, privateKeyJwt, true);
+    }
+
+    /**
+     * Parses a key set that is published at a jwks_uri or configured in uaa.yml. A key set that repeats a kid keeps
+     * the last key of that kid.
+     */
+    @JsonIgnore
+    public static ClientJwtConfiguration parseKeepingLastKeyPerKid(String privateKeyUrl, String privateKeyJwt) {
+        return parse(privateKeyUrl, privateKeyJwt, false);
+    }
+
+    private static ClientJwtConfiguration parse(String privateKeyUrl, String privateKeyJwt, boolean rejectRepeatedKids) {
         ClientJwtConfiguration clientJwtConfiguration = null;
         if (privateKeyUrl != null) {
             clientJwtConfiguration = parseJwksUri(privateKeyUrl);
         } else if (privateKeyJwt != null && privateKeyJwt.contains("{") && privateKeyJwt.contains("}")) {
-            clientJwtConfiguration = parseJwkSet(privateKeyJwt);
+            clientJwtConfiguration = parseJwkSet(privateKeyJwt, rejectRepeatedKids);
         }
         return clientJwtConfiguration;
     }
 
-    private static ClientJwtConfiguration parseJwkSet(String privateKeyJwt) {
+    private static ClientJwtConfiguration parseJwkSet(String privateKeyJwt, boolean rejectRepeatedKids) {
         ClientJwtConfiguration clientJwtConfiguration;
         String cleanJwtString;
         try {
@@ -190,6 +210,9 @@ public class ClientJwtConfiguration implements Cloneable {
                 return new ClientJwtConfiguration();
             }
             if (jsonMap.containsKey("keys")) {
+                if (rejectRepeatedKids) {
+                    rejectRepeatedKidsInKeys(jsonMap.get("keys"));
+                }
                 cleanJwtString = JWKSet.parse(jsonMap).toString(true);
             } else {
                 cleanJwtString = JWK.parse(jsonMap).toPublicJWK().toString();
@@ -212,6 +235,51 @@ public class ClientJwtConfiguration implements Cloneable {
         ClientJwtConfiguration clientJwtConfiguration = new ClientJwtConfiguration(normalizedUri, null);
         clientJwtConfiguration.validateJwksUri();
         return clientJwtConfiguration;
+    }
+
+    /**
+     * Rejects a raw client_jwt_config whose jwks repeats a kid. The check runs on the JSON itself: once it is read,
+     * JsonWebKeySet keeps one key per kid and the repeated entry is gone.
+     */
+    @JsonIgnore
+    public static void rejectRepeatedKids(String clientJwtConfig) {
+        if (!StringUtils.hasText(clientJwtConfig)) {
+            return;
+        }
+        Map<?, ?> config;
+        try {
+            config = JsonUtils.readValue(clientJwtConfig, HashMap.class);
+        } catch (JsonUtils.JsonUtilException e) {
+            throw new InvalidClientDetailsException("Invalid client_jwt_config: " + e.getMessage(), e);
+        }
+        if (config != null && config.get(JWKS) instanceof Map<?, ?> jwks) {
+            rejectRepeatedKidsInKeys(jwks.get("keys"));
+        }
+    }
+
+    // JsonWebKeySet keeps one key per kid, so a repeated kid is only visible in the key list as sent.
+    private static void rejectRepeatedKidsInKeys(Object keys) {
+        if (keys instanceof List<?> keyList) {
+            Set<String> kids = new HashSet<>();
+            for (Object key : keyList) {
+                if (key instanceof Map<?, ?> properties && properties.get("kid") instanceof String kid && !kids.add(kid)) {
+                    throw new InvalidClientDetailsException("Invalid private_key_jwt: duplicate kid in JWKSet not allowed");
+                }
+            }
+        }
+    }
+
+    /**
+     * Applies the rules of the documented jwks_uri and jwks fields to a configuration that was read as is.
+     */
+    @JsonIgnore
+    public void validate() {
+        if (StringUtils.hasText(jwksUri)) {
+            validateJwksUri();
+        }
+        if (jwkSet != null) {
+            validateJwkSet();
+        }
     }
 
     private boolean validateJwkSet() {

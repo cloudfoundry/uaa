@@ -891,6 +891,22 @@ class IdentityProviderEndpointsMockMvcTests {
         assertThat(failed.getResponse().getContentAsString()).doesNotContain("identitysecret");
     }
 
+    // A failed create must not return the secret of the request either: the caller already has what it sent.
+    @Test
+    void create_that_fails_does_not_return_the_secret() throws Exception {
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getOAuthProviderConfig();
+        provider.setOriginKey("oidc-" + RandomStringUtils.randomAlphabetic(8).toLowerCase());
+        postProvider(provider, status().isCreated());
+
+        MvcResult existingOrigin = postProvider(provider, status().isConflict());
+        provider.setOriginKey("oidc-" + RandomStringUtils.randomAlphabetic(8).toLowerCase());
+        provider.getConfig().setTokenUrl(null);
+        MvcResult invalid = postProvider(provider, status().isUnprocessableEntity());
+
+        assertThat(existingOrigin.getResponse().getContentAsString()).as("existing origin").doesNotContain("identitysecret");
+        assertThat(invalid.getResponse().getContentAsString()).as("validation error").doesNotContain("identitysecret");
+    }
+
     // An OIDC provider can keep the private key for private_key_jwt inline in jwtClientAuthentication.
     // The response of create must not return that key.
     @Test

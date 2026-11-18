@@ -2464,17 +2464,32 @@ class ClientAdminEndpointsMockMvcZonePathTests {
     }
 
     // In a zone (subdomain or zone path), a caller with only clients.write must not be able to add a jwt
-    // configuration through the general update, as the client_jwt_config property or as jwt_creds. A rejection or
-    // ignoring the value are both fine; storing it is not.
+    // configuration through the general update, as the client_jwt_config property or as jwt_creds. The update
+    // succeeds, and the value is ignored.
     @ParameterizedTest
     @CsvSource({"SUBDOMAIN,CLIENT_JWT_CONFIG_PROPERTY", "SUBDOMAIN,JWT_CREDS_ADDITIONAL_INFORMATION", "ZONE_PATH,CLIENT_JWT_CONFIG_PROPERTY", "ZONE_PATH,JWT_CREDS_ADDITIONAL_INFORMATION"})
     void update_by_a_caller_with_only_clients_write_does_not_add_a_client_jwt_configuration(ZoneResolutionMode mode, JwtConfigRoute route) throws Exception {
         JwtConfigZone zone = new JwtConfigZone(mode);
         String id = zone.createClient();
 
-        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.write"), zone.body(id, route));
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.write"), zone.body(id, route)).andExpect(status().isOk());
 
         assertThat(String.valueOf(zone.stored(id))).as("stored client_jwt_config").doesNotContain("new-key", "added-subject");
+    }
+
+    // In a zone, a client_jwt_config that is not valid JSON is rejected with 400, also for a caller whose value would
+    // be ignored.
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void update_by_a_caller_with_only_clients_write_with_a_malformed_client_jwt_config_is_rejected(ZoneResolutionMode mode) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+        UaaClientDetails body = zone.body(id, null);
+        body.setClientJwtConfig("not json");
+
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.write"), body).andExpect(status().isBadRequest());
+
+        assertThat(zone.stored(id)).isNull();
     }
 
     // Guard: an admin caller in a zone can still set the jwt
@@ -2516,6 +2531,53 @@ class ClientAdminEndpointsMockMvcZonePathTests {
         body.setClientJwtConfig("{\"jwks_uri\":\"http://any.domain.net/openid/jwks-uri\"}");
 
         zone.send(HttpMethod.POST, "/oauth/clients", zone.token("clients.admin clients.write"), body).andExpect(status().isBadRequest());
+    }
+
+    private static String rawConfigWithRepeatedKid(boolean differentKeys) {
+        return "{\"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + (differentKeys ? JWK_KEY_1_DIFFERENT_VALUE : JWK_KEY_1) + "]}}";
+    }
+
+    // In a zone, the raw client_jwt_config property is held to the duplicate kid rule of the jwks field: a key set that
+    // repeats a kid is rejected on create, for different keys and for the same key repeated.
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,true", "SUBDOMAIN,false", "ZONE_PATH,true", "ZONE_PATH,false"})
+    void create_with_a_raw_client_jwt_config_that_repeats_a_kid_is_rejected(ZoneResolutionMode mode, boolean differentKeys) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        UaaClientDetails body = zone.body(generator.generate(), null);
+        body.setClientSecret("secret");
+        body.setClientJwtConfig(rawConfigWithRepeatedKid(differentKeys));
+
+        zone.send(HttpMethod.POST, "/oauth/clients", zone.token("clients.admin clients.write"), body).andExpect(status().isBadRequest());
+    }
+
+    // The same on an update by a caller who may change the jwt configuration: rejected, and the stored configuration
+    // stays as it was.
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,true", "SUBDOMAIN,false", "ZONE_PATH,true", "ZONE_PATH,false"})
+    void update_by_an_admin_with_a_raw_client_jwt_config_that_repeats_a_kid_is_rejected(ZoneResolutionMode mode, boolean differentKeys) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+        UaaClientDetails body = zone.body(id, null);
+        body.setClientJwtConfig(rawConfigWithRepeatedKid(differentKeys));
+
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.admin clients.write"), body).andExpect(status().isBadRequest());
+
+        assertThat(zone.stored(id)).isNull();
+    }
+
+    // Guard: a stored client_jwt_config that repeats a kid (from before the rule) sent back unchanged keeps working.
+    @ParameterizedTest
+    @EnumSource(ZoneResolutionMode.class)
+    void update_with_the_stored_client_jwt_config_sent_back_unchanged_works_when_it_repeats_a_kid(ZoneResolutionMode mode) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+        String stored = rawConfigWithRepeatedKid(true);
+        webApplicationContext.getBean(JdbcTemplate.class).update(
+                "update oauth_client_details set client_jwt_config=? where client_id=? and identity_zone_id=?", stored, id, zone.zoneId);
+        UaaClientDetails body = zone.body(id, null);
+        body.setClientJwtConfig(stored);
+
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.admin clients.write"), body).andExpect(status().isOk());
     }
 
     // In a zone, a JWK set with two keys that have the same kid is rejected with a 400, for different keys
