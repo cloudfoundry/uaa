@@ -269,7 +269,12 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         // A client_jwt_config supplied directly is persisted as given, on create as well as on
         // update, so reject a malformed one here rather than letting it fail when read back.
         if (StringUtils.hasText(client.getClientJwtConfig())) {
-            ClientJwtConfiguration.readSuppliedValue(client.getClientJwtConfig());
+            ClientJwtConfiguration suppliedConfig = ClientJwtConfiguration.readSuppliedValue(client.getClientJwtConfig());
+            if (create && suppliedConfig != null) {
+                // same rules as for the jwks_uri and jwks fields
+                ClientJwtConfiguration.rejectRepeatedKids(client.getClientJwtConfig());
+                suppliedConfig.validate();
+            }
         }
 
         if (create) {

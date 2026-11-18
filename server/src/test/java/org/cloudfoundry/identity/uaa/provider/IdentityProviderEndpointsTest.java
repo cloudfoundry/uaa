@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
@@ -1286,6 +1287,45 @@ class IdentityProviderEndpointsTest {
         }
     }
 
+    // A create that fails returns the request body too. The caller already has what it sent, so the response does not
+    // echo its secrets either: bind password, relying party secret and the inline private key of jwtClientAuthentication.
+    @ParameterizedTest
+    @MethodSource("updateFailuresForTypesWithAStoredSecret")
+    void create_that_fails_does_not_return_the_secret(String type, UpdateFailure failure) {
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider body = LDAP.equals(type) ? getLdapDefinition() : getExternalOAuthProvider();
+        body.setType(type);
+        if (LDAP.equals(type)) {
+            ((LdapIdentityProviderDefinition) body.getConfig()).setBindPassword("create-secret");
+        } else {
+            ((OIDCIdentityProviderDefinition) body.getConfig()).setRelyingPartySecret("create-secret");
+            ((OIDCIdentityProviderDefinition) body.getConfig()).setJwtClientAuthentication(jwtClientAuthenticationWithInlineKey());
+        }
+        arrangeCreateFailure(failure, zoneId);
+
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(body, true);
+
+        assertThat(response.getStatusCode()).isEqualTo(failure.expectedStatus);
+        assertThat(JsonUtils.writeValueAsString(response.getBody())).doesNotContain("create-secret", INLINE_PRIVATE_KEY);
+    }
+
+    private void arrangeCreateFailure(UpdateFailure failure, String zoneId) {
+        switch (failure) {
+            case CONFIG_VALIDATION -> doThrow(new IllegalArgumentException("invalid"))
+                    .when(mockIdentityProviderConfigValidationDelegator).validate(any());
+            case ALIAS_PROPERTIES_INVALID -> when(mockIdpAliasHandler.aliasPropertiesAreValid(any(), any())).thenReturn(false);
+            case IDP_ALREADY_EXISTS -> when(mockIdentityProviderProvisioning.create(any(), eq(zoneId)))
+                    .thenThrow(new IdpAlreadyExistsException("IdP with this origin key already exists."));
+            case ALIAS_CREATION_FAILED -> {
+                when(mockIdentityProviderProvisioning.create(any(), eq(zoneId))).thenAnswer(invocation -> invocation.getArgument(0));
+                when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(any(), any()))
+                        .thenThrow(new EntityAliasFailedException("Error", HttpStatus.BAD_REQUEST.value(), null));
+            }
+            case UNEXPECTED_ERROR -> when(mockIdentityProviderProvisioning.create(any(), eq(zoneId)))
+                    .thenThrow(new IllegalStateException());
+        }
+    }
+
     private static final String INLINE_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----inline-test-key-----END PRIVATE KEY-----";
 
     private IdentityProvider<OIDCIdentityProviderDefinition> getOidcProviderWithJwtClientAuthentication(Object jwtClientAuthentication) {
@@ -1424,5 +1464,40 @@ class IdentityProviderEndpointsTest {
                 .thenReturn(getOidcProviderWithJwtClientAuthentication(true));
         ResponseEntity<IdentityProvider> trueResponse = identityProviderEndpoints.retrieveIdentityProvider("id", true);
         assertThat(((OIDCIdentityProviderDefinition) trueResponse.getBody().getConfig()).getJwtClientAuthentication()).isEqualTo(true);
+    }
+
+    // A reference can carry a default value, ${name:default}. The default is used as the key when the lookup does not
+    // happen (for example in a custom zone), so it can be key material and is removed like an inline key.
+    @Test
+    void retrieve_oidc_provider_by_id_redacts_a_key_reference_with_a_default_value() {
+        Map<String, String> withDefault = jwtClientAuthenticationWithInlineKey();
+        withDefault.put("key", "${unused.key:c2VjcmV0LWtleQ==}");
+        when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString()))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(withDefault));
+
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.retrieveIdentityProvider("id", true);
+
+        assertThat(jwtClientAuthenticationOf(response.getBody()).get("key")).isNull();
+    }
+
+    // A read returns a plain ${...} reference, so an update that leaves it out removes it on purpose (for example to
+    // use the token policy key of the kid). Only a key that reads do not return is kept.
+    @Test
+    void update_oidc_provider_that_leaves_out_a_key_reference_does_not_keep_the_reference() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        Map<String, String> storedWithReference = jwtClientAuthenticationWithInlineKey();
+        storedWithReference.put("key", "${jwt.client.key}");
+        when(mockIdentityProviderProvisioning.retrieve("id", zoneId))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(storedWithReference));
+        when(mockIdentityProviderProvisioning.update(any(), eq(zoneId)))
+                .thenReturn(getOidcProviderWithJwtClientAuthentication(storedWithReference));
+        Map<String, String> sent = jwtClientAuthenticationWithInlineKey();
+        sent.remove("key");
+
+        identityProviderEndpoints.updateIdentityProvider("id", getOidcProviderWithJwtClientAuthentication(sent), true);
+
+        ArgumentCaptor<IdentityProvider> captor = ArgumentCaptor.forClass(IdentityProvider.class);
+        verify(mockIdentityProviderProvisioning).update(captor.capture(), eq(zoneId));
+        assertThat(jwtClientAuthenticationOf(captor.getValue())).doesNotContainKey("key");
     }
 }

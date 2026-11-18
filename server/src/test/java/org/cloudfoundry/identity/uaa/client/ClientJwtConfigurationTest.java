@@ -6,6 +6,8 @@ import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -106,6 +108,25 @@ class ClientJwtConfigurationTest {
                 ClientJwtConfiguration.parse(jsonWebKeyDifferentValue),
                 false);
         assertThat(replaced.getJwkSet().getKeys()).hasSize(1);
+    }
+
+    // A raw client_jwt_config is checked before the JSON becomes a key set, which keeps one key per kid.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void rejectRepeatedKidsRejectsARawConfigWithTheSameKidTwice(boolean differentKeys) {
+        String raw = "{\"jwks\":{\"keys\":[" + jsonWebKey + "," + (differentKeys ? jsonWebKeyDifferentValue : jsonWebKey) + "]}}";
+
+        assertThatThrownBy(() -> ClientJwtConfiguration.rejectRepeatedKids(raw))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("duplicate kid");
+    }
+
+    // Guard: distinct kids, a configuration without a key set, and one with only a jwks_uri are accepted.
+    @Test
+    void rejectRepeatedKidsAcceptsDistinctKidsAndConfigurationsWithoutAKeySet() {
+        ClientJwtConfiguration.rejectRepeatedKids("{\"jwks\":{\"keys\":[" + jsonWebKey + "," + jsonWebKey2 + "]}}");
+        ClientJwtConfiguration.rejectRepeatedKids("{\"jwks_uri\":\"https://example.com/token_keys\"}");
+        ClientJwtConfiguration.rejectRepeatedKids("{\"jwt_creds\":[{\"iss\":\"https://issuer.example.com\",\"sub\":\"subject\"}]}");
     }
 
     @Test

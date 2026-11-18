@@ -57,6 +57,18 @@ The new parameters for JWKS Trust in UAA clients are:
 * jwks_uri
 * jwks
 
+A key set that is sent to UAA must not contain the same `kid` twice (also not with the same key); such a request is
+answered with 400. This holds for the `jwks` field, for `PUT /oauth/clients/{id}/clientjwt`, and for a `jwks` inside a
+raw `client_jwt_config` on create and on an update that changes the value (`PUT /oauth/clients/{id}`, `PUT /oauth/clients/tx`
+and the update action of `POST /oauth/clients/tx/modify`). A stored value that was saved earlier is not affected, and
+sending it back unchanged is accepted. A key set that is read from a `jwks_uri` or configured for a client in `uaa.yml`
+keeps the last key of a repeated `kid`, as before.
+The key set of a client is changed with `PUT /oauth/clients/{id}/clientjwt` (scope `clients.trust`). A general update of
+a client, `PUT /oauth/clients/{id}`, changes `client_jwt_config` and `jwt_creds` only for admin callers, callers with
+`clients.admin`, and callers with `clients.trust` for their own client. For other callers the stored values stay: a
+value they send is ignored, also one that repeats a `kid`, and the update is answered with 200. A `client_jwt_config`
+that is not valid JSON is rejected with 400 for every caller.
+
 This should allow continuous trust between UAA to UAA communication, e.g., using own UAA instances or within a UAA using
 different zones.
 
