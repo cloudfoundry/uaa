@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.opensaml.saml.saml2.core.Response;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -57,10 +58,13 @@ import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_C
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_DIGEST_SHA256;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.http.HttpHeaders.HOST;
+import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -383,6 +387,59 @@ class SamlAuthenticationMockMvcTests {
                 // expect redirect to the Uaa Home Page: /uaa/
                 .andExpect(redirectedUrl("/uaa/"))
                 .andReturn();
+    }
+
+    @Test
+    void failedSamlSignInDoesNotRedirectToAnUnregisteredRedirectUri() throws Exception {
+        UaaClientDetails client = createClientWithRedirectUri("http://registered.example.com/*");
+        MockHttpSession session = new MockHttpSession();
+
+        startAuthorizationInSession(session, client, "http://unregistered.example.com/page");
+        Response response = responseWithAssertions();
+        response.setInResponseTo("incorrect");
+
+        mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
+                        .session(session)
+                        .param(SAML_RESPONSE, serializedResponse(response)))
+                .andExpect(status().is3xxRedirection())
+                // the redirect URI of the request is not one of the client's, so the error page is shown
+                .andExpect(redirectedUrl("/uaa/saml_error"));
+    }
+
+    @Test
+    void failedSamlSignInRedirectsToARegisteredRedirectUriWithTheError() throws Exception {
+        UaaClientDetails client = createClientWithRedirectUri("http://registered.example.com/*");
+        MockHttpSession session = new MockHttpSession();
+
+        startAuthorizationInSession(session, client, "http://registered.example.com/page");
+        Response response = responseWithAssertions();
+        response.setInResponseTo("incorrect");
+
+        mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
+                        .session(session)
+                        .param(SAML_RESPONSE, serializedResponse(response)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string(LOCATION, startsWith("http://registered.example.com/page?error=access_denied&error_description=")));
+    }
+
+    private UaaClientDetails createClientWithRedirectUri(String redirectUri) throws Exception {
+        String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.admin", null);
+        UaaClientDetails client = new UaaClientDetails("client-" + generator.generate(), "", "openid", "authorization_code", "uaa.none", redirectUri);
+        client.setClientSecret("secret");
+        return MockMvcUtils.createClient(mockMvc, adminToken, client);
+    }
+
+    private void startAuthorizationInSession(MockHttpSession session, UaaClientDetails client, String redirectUri) throws Exception {
+        mockMvc.perform(get("/uaa/oauth/authorize?client_id={clientId}&response_type=code&redirect_uri={redirectUri}",
+                                client.getClientId(), redirectUri)
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
+                        .session(session))
+                .andExpect(status().is3xxRedirection());
     }
 
     private ResultActions postSamlResponse(
