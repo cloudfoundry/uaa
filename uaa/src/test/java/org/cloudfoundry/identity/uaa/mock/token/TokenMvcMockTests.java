@@ -2534,6 +2534,94 @@ class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    void loginAuthenticationFilterDoesNotAcceptTheUserIdOfAUaaOriginUser() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        setUpClients(clientId, "uaa.user", "uaa.user", GRANT_TYPES, true);
+        String userScopes = "uaa.user,scope.one";
+        ScimUser uaaUser = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "testuser" + generator.generate(), userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        ScimUser externalUser = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "testuser" + generator.generate(), userScopes, OriginKeys.LOGIN_SERVER, IdentityZoneHolder.get().getId());
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
+
+        // the user is named by its ID only
+        mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .header("Authorization", "Bearer " + loginToken)
+                        .param("source", "login")
+                        .param("add_new", "false")
+                        .param("grant_type", "password")
+                        .param("client_id", clientId)
+                        .param("client_secret", SECRET)
+                        .param("user_id", uaaUser.getId()))
+                .andExpect(status().isUnauthorized());
+
+        // the ID and another origin are given
+        mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .header("Authorization", "Bearer " + loginToken)
+                        .param("source", "login")
+                        .param("add_new", "false")
+                        .param("grant_type", "password")
+                        .param("client_id", clientId)
+                        .param("client_secret", SECRET)
+                        .param("user_id", uaaUser.getId())
+                        .param(OriginKeys.ORIGIN, OriginKeys.LOGIN_SERVER))
+                .andExpect(status().isUnauthorized());
+
+        // a user of another origin is still accepted by its ID
+        mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .header("Authorization", "Bearer " + loginToken)
+                        .param("source", "login")
+                        .param("add_new", "false")
+                        .param("grant_type", "password")
+                        .param("client_id", clientId)
+                        .param("client_secret", SECRET)
+                        .param("user_id", externalUser.getId()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void loginAuthorizeDoesNotAcceptTheUserIdOfAUaaOriginUser() throws Exception {
+        String clientId = "testclient" + generator.generate();
+        setUpClients(clientId, "uaa.user", "uaa.user", GRANT_TYPES, true, "http://localhost/callback");
+        ScimUser uaaUser = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "testuser" + generator.generate(), "uaa.user,scope.one", OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
+
+        mockMvc.perform(post("/oauth/authorize")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .header("Authorization", "Bearer " + loginToken)
+                        .param("source", "login")
+                        .param("user_id", uaaUser.getId())
+                        .param("client_id", clientId)
+                        .param("response_type", "code")
+                        .param("redirect_uri", "http://localhost/callback"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"UAA", "Uaa", "ua\u00e1"})
+    void loginAuthenticationFilterDoesNotAcceptAnotherSpellingOfTheUaaOrigin(String origin) throws Exception {
+        String clientId = "testclient" + generator.generate();
+        setUpClients(clientId, "uaa.user", "uaa.user", GRANT_TYPES, true);
+        ScimUser uaaUser = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "testuser" + generator.generate(), "uaa.user,scope.one", OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
+
+        // the user is named by username, and the origin is written in another case or with an accent: a database
+        // that compares them loosely (MySQL by default) finds the user of the uaa origin for it
+        mockMvc.perform(post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .header("Authorization", "Bearer " + loginToken)
+                        .param("source", "login")
+                        .param("add_new", "false")
+                        .param("grant_type", "password")
+                        .param("client_id", clientId)
+                        .param("client_secret", SECRET)
+                        .param("username", uaaUser.getUserName())
+                        .param(OriginKeys.ORIGIN, origin))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void loginAuthenticationFilter() throws Exception {
         String clientId = "testclient" + generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";

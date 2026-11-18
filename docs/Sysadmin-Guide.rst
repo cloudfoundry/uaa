@@ -420,6 +420,10 @@ Create new clients:
 
     uaac client add media_server --scope openid,scim.read,scim.write --authorized_grant_types client_credentials --authorities oauth.login
 
+The ``oauth.login`` authority lets a client authenticate users of other origins without their password. Give it only to a
+client that you trust as a login application. It does not apply to users of the ``uaa`` origin, who always authenticate
+with UAA itself.
+
 UAA Signing
 -----------
 
