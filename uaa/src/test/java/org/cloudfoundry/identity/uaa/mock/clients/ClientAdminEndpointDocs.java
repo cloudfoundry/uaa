@@ -125,6 +125,13 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
             fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `" + ADD + "`, the new `secret` will be added to the existing one and if the change mode is set to `" + DELETE + "`, the old secret will be deleted to support secret rotation. Currently only two client secrets are supported at any given time.")
     };
 
+    private static final FieldDescriptor[] clientJwtChangeResponseFields = new FieldDescriptor[]{
+            fieldWithPath("status").description("`ok` when the change was applied."),
+            fieldWithPath("message").description("A description of the applied change."),
+            fieldWithPath("kids").type(ARRAY).description("The key ids (`kid`) of the JWK set of the client after the change, as stored when the request finished. Changes of one client that arrive at the same time can replace each other; compare this list with the keys you want and send the change again if a key is missing."),
+            fieldWithPath("jwt_creds").type(ARRAY).description("The federated credentials (`iss`, `sub` or `sub_pattern`, `aud`) of the client after the change, as stored when the request finished. Use it like `kids`."),
+    };
+
     private static final FieldDescriptor[] clientJwtChangeFields = new FieldDescriptor[]{
             fieldWithPath("client_id").required().description(clientIdDescription),
             fieldWithPath("jwks").constrained("Optional only, if jwks_uri is used. Required otherwise. OIDC standard.").type(STRING).description("A valid JSON string according JSON Web Key Set standard, see [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517), e.g. content of /token_keys endpoint from UAA. A key set must not repeat a `kid`; such a request is answered with 400."),
@@ -352,7 +359,8 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
                         IDENTITY_ZONE_ID_HEADER,
                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
-                requestFields(clientJwtChangeFields)
+                requestFields(clientJwtChangeFields),
+                responseFields(clientJwtChangeResponseFields)
         )
         );
     }
