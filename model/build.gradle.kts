@@ -24,6 +24,8 @@ dependencies {
 
     implementation(libs.nimbusJwt)
 
+    implementation(libs.re2j)
+
     implementation(libs.slf4jApi)
 
     testImplementation(libs.springBootStarterTest) {

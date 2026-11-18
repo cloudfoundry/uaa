@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
+import org.cloudfoundry.identity.uaa.util.BoundedRegex;
+
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.oauth.tls.MtlsTrustBundles;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
@@ -12,10 +16,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
+import java.util.function.UnaryOperator;
 
 @Component
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
@@ -84,10 +88,10 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                 throw new InvalidIdentityZoneConfigurationException("You cannot set issuer value unless you have set your own signing key for this identity zone.");
             }
 
-            validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedUris(), "config.corsPolicy.xhrConfiguration.allowedUris");
-            validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedOrigins(), "config.corsPolicy.xhrConfiguration.allowedOrigins");
-            validateRegexStrings(config.getCorsPolicy().getDefaultConfiguration().getAllowedUris(), "config.corsPolicy.defaultConfiguration.allowedUris");
-            validateRegexStrings(config.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins(), "config.corsPolicy.defaultConfiguration.allowedOrigins");
+            validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedUris(), UnaryOperator.identity(), "config.corsPolicy.xhrConfiguration.allowedUris");
+            validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedOrigins(), CorsConfiguration::anchorOrigin, "config.corsPolicy.xhrConfiguration.allowedOrigins");
+            validateRegexStrings(config.getCorsPolicy().getDefaultConfiguration().getAllowedUris(), UnaryOperator.identity(), "config.corsPolicy.defaultConfiguration.allowedUris");
+            validateRegexStrings(config.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins(), CorsConfiguration::anchorOrigin, "config.corsPolicy.defaultConfiguration.allowedOrigins");
 
             UserConfigValidator.validate(config.getUserConfig());
         }
@@ -110,16 +114,30 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         return config;
     }
 
-    private void validateRegexStrings(List<String> uris, String fieldName) throws InvalidIdentityZoneConfigurationException {
+    private void validateRegexStrings(List<String> uris, UnaryOperator<String> prepare, String fieldName) throws InvalidIdentityZoneConfigurationException {
         if (uris != null) {
+            if (uris.size() > BoundedRegex.MAX_PATTERNS) {
+                throw new InvalidIdentityZoneConfigurationException(
+                        "Invalid value in %s: at most %d patterns are allowed.".formatted(fieldName, BoundedRegex.MAX_PATTERNS), null);
+            }
+            List<Pattern> compiled = new ArrayList<>();
             for (String uri : uris) {
                 try {
-                    Pattern.compile(UaaStringUtils.getCleanedUserControlString(uri));
+                    compiled.add(BoundedRegex.compile(prepare.apply(UaaStringUtils.getCleanedUserControlString(uri))));
                 } catch (PatternSyntaxException patternSyntaxException) {
-                    throw new InvalidIdentityZoneConfigurationException("Invalid value in %s: '%s'.".formatted(fieldName, uri), patternSyntaxException);
+                    throw new InvalidIdentityZoneConfigurationException("Invalid value in %s: '%s'.".formatted(fieldName, abbreviate(uri)), patternSyntaxException);
                 }
             }
+            if (!BoundedRegex.withinListLimits(compiled)) {
+                throw new InvalidIdentityZoneConfigurationException(
+                        "Invalid value in %s: the patterns together are too costly to evaluate.".formatted(fieldName), null);
+            }
         }
+    }
+
+    private static String abbreviate(String value) {
+        String cleaned = UaaStringUtils.getCleanedUserControlString(value);
+        return cleaned != null && cleaned.length() > 100 ? cleaned.substring(0, 100) + "..." : cleaned;
     }
 
     private void failIfPartialCertKeyInfo(String samlSpCert, String samlSpKey, String samlSpkeyPassphrase) throws InvalidIdentityZoneConfigurationException {

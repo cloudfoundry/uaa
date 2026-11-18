@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Pattern;
+import com.google.re2j.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -416,6 +416,31 @@ class CorsFilterDefaultZoneTests {
         corsFilter.initialize();
 
         assertThat(logEvents).anySatisfy(l -> assertThat(l).startsWith("Invalid regular expression pattern in cors.xhr.allowed.uris:"));
+    }
+
+    @Test
+    void doInitializeWithTooManyPatternsUsesNone() {
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, false);
+        corsFilter.getXhrConfiguration().setAllowedUris(Collections.nCopies(33, "^/uaa/userinfo$"));
+        corsFilter.getXhrConfiguration().setAllowedOrigins(Collections.nCopies(33, "example\\.com"));
+
+        corsFilter.initialize();
+
+        assertThat(corsFilter.getXhrConfiguration().getAllowedUriPatterns()).isEmpty();
+        assertThat(corsFilter.getXhrConfiguration().getAllowedOriginPatterns()).isEmpty();
+    }
+
+    @Test
+    void doInitializeWithPatternsThatAreTooCostlyUsesOnlyTheOthers() {
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, false);
+        corsFilter.getXhrConfiguration().setAllowedUris(
+                List.of("((((a{1000}){1000}){1000}){1000})", "(?:" + "a".repeat(480) + "){1000}", "^/uaa/userinfo$"));
+        corsFilter.getXhrConfiguration().setAllowedOrigins(List.of("^https://(?=example)example\\.com$", "example\\.com"));
+
+        corsFilter.initialize();
+
+        assertThat(corsFilter.getXhrConfiguration().getAllowedUriPatterns()).hasSize(1);
+        assertThat(corsFilter.getXhrConfiguration().getAllowedOriginPatterns()).hasSize(1);
     }
 
     @Test

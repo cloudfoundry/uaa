@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Pattern;
+import com.google.re2j.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -434,7 +434,7 @@ class CorsFilterNonDefaultZoneTests {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
         request.addHeader("Origin", "https://" + "a".repeat(28) + "!");
 
-        org.junit.jupiter.api.Assertions.assertTimeout(java.time.Duration.ofSeconds(1),
+        org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(java.time.Duration.ofSeconds(1),
                 () -> corsFilter.doFilter(request, response, filterChain));
         org.assertj.core.api.Assertions.assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
     }
@@ -461,6 +461,141 @@ class CorsFilterNonDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void patternsThatNeedBacktrackingAreNotUsed() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration()
+                .setAllowedOrigins(List.of("^https://(?=example)example\\.com$"));
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "https://example.com");
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void patternsWithCostlyCompilationAreNotUsed() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration()
+                .setAllowedUris(List.of("((((a{1000}){1000}){1000}){1000})"));
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "example.com");
+
+        org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(java.time.Duration.ofSeconds(2),
+                () -> corsFilter.doFilter(request, response, filterChain));
+        assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void tooManyPatternsAreNotUsed() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration()
+                .setAllowedOrigins(Collections.nCopies(33, ".*"));
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "example.com");
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void originAtTheLengthLimitIsMatchedAndLongerOriginIsRejected() throws Exception {
+        var configuration = identityZone.getConfig().getCorsPolicy().getDefaultConfiguration();
+        configuration.setAllowedOrigins(List.of(".*"));
+        configuration.setAllowedUris(List.of(".*"));
+
+        assertThat(statusForOrigin("a".repeat(2048))).isEqualTo(OK.value());
+        assertThat(statusForOrigin("a".repeat(2049))).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void uriAtTheLengthLimitIsMatchedAndLongerUriIsRejected() throws Exception {
+        var configuration = identityZone.getConfig().getCorsPolicy().getDefaultConfiguration();
+        configuration.setAllowedOrigins(List.of(".*"));
+        configuration.setAllowedUris(List.of(".*"));
+
+        assertThat(statusForUri("/" + "a".repeat(8191))).isEqualTo(OK.value());
+        assertThat(statusForUri("/" + "a".repeat(8192))).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void originPatternIsMatchedAgainstTheWholeOrigin() throws Exception {
+        // example.com$ has no ^, so it is used as written: matches() must not accept a longer host that ends the same way.
+        assertThat(statusForOrigin("evil-example.com")).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void caseInsensitiveOriginPatternMatches() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration()
+                .setAllowedOrigins(List.of("(?i)^https://example\\.com$"));
+
+        assertThat(statusForOrigin("https://EXAMPLE.com")).isEqualTo(OK.value());
+    }
+
+    @Test
+    void listOfExactlyThePermittedNumberOfPatternsIsUsed() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration()
+                .setAllowedOrigins(Collections.nCopies(32, "example\\.com"));
+
+        assertThat(statusForOrigin("example.com")).isEqualTo(OK.value());
+    }
+
+    @Test
+    void tooManyPatternsAreNotUsedForXhrRequests() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getXhrConfiguration()
+                .setAllowedOrigins(Collections.nCopies(33, ".*"));
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "example.com");
+        request.addHeader("X-Requested-With", "XMLHttpRequest");
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void patternsThatNeedBacktrackingAreNotUsedForXhrRequests() throws Exception {
+        identityZone.getConfig().getCorsPolicy().getXhrConfiguration()
+                .setAllowedUris(List.of("^/uaa/(?=user)userinfo$"));
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "example.com");
+        request.addHeader("X-Requested-With", "XMLHttpRequest");
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void repeatedXhrRequestsDoNotAccumulateCompiledPatternsInTheZone() throws Exception {
+        for (int i = 0; i < 3; i++) {
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+            request.addHeader("Origin", "example.com");
+            request.addHeader("X-Requested-With", "XMLHttpRequest");
+            MockHttpServletResponse result = new MockHttpServletResponse();
+            corsFilter.doFilter(request, result, filterChain);
+            assertThat(result.getStatus()).isEqualTo(OK.value());
+        }
+        var configuration = identityZone.getConfig().getCorsPolicy().getXhrConfiguration();
+        assertThat(configuration.getAllowedOriginPatterns()).isEmpty();
+        assertThat(configuration.getAllowedUriPatterns()).isEmpty();
+    }
+
+    private int statusForOrigin(String origin) throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", origin);
+        MockHttpServletResponse result = new MockHttpServletResponse();
+        corsFilter.doFilter(request, result, filterChain);
+        return result.getStatus();
+    }
+
+    private int statusForUri(String uri) throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", uri);
+        request.addHeader("Origin", "example.com");
+        MockHttpServletResponse result = new MockHttpServletResponse();
+        corsFilter.doFilter(request, result, filterChain);
+        return result.getStatus();
     }
 
     @Test
@@ -522,10 +657,7 @@ class CorsFilterNonDefaultZoneTests {
             request = new MockHttpServletRequest("GET", "/uaa/userinfo");
             request.addHeader("Origin", "example.com");
             var config = fixture.identityZone.getConfig().getCorsPolicy().getDefaultConfiguration();
-            // The baseline call may have left compiled patterns in the zone; drop them so only the costly one is evaluated.
-            config.getAllowedOriginPatterns().clear();
-            config.getAllowedUriPatterns().clear();
-            // Nested finite repetitions make the failure decisive without relying on machine speed.
+            // Java regex would spin on this for minutes; RE2/J rejects the lookahead, so the request fails closed.
             String pattern = "^(?:(?=){2147483647}){2147483647}.*$";
             if ("origin".equals(args[0])) {
                 config.setAllowedOrigins(List.of(pattern));

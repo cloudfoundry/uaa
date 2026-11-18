@@ -14,7 +14,10 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
+import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
 import lombok.extern.slf4j.Slf4j;
+import org.cloudfoundry.identity.uaa.util.BoundedRegex;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
@@ -31,9 +34,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
+import java.util.function.UnaryOperator;
 
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.containsIgnoreCase;
 import static org.springframework.http.HttpHeaders.ACCEPT;
@@ -82,6 +85,10 @@ public class CorsFilter extends OncePerRequestFilter {
 
     public static final String X_REQUESTED_WITH = "X-Requested-With";
     public static final String WILDCARD = "*";
+    /** Longest Origin header value that is matched against the configured patterns. */
+    static final int MAX_ORIGIN_LENGTH = 2048;
+    /** Longest request URI that is matched against the configured patterns. */
+    static final int MAX_URI_LENGTH = 8192;
 
     private final CorsConfiguration xhrConfiguration = new CorsConfiguration();
     private final CorsConfiguration defaultConfiguration = new CorsConfiguration();
@@ -307,7 +314,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     protected boolean isAllowedRequestUri(final String uri, CorsConfiguration configuration) {
-        if (UaaStringUtils.isEmpty(uri)) {
+        if (UaaStringUtils.isEmpty(uri) || uri.length() > MAX_URI_LENGTH) {
             return false;
         }
 
@@ -322,6 +329,9 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     protected boolean isAllowedOrigin(final String origin, CorsConfiguration configuration) {
+        if (origin != null && origin.length() > MAX_ORIGIN_LENGTH) {
+            return false;
+        }
         for (Pattern pattern : configuration.getAllowedOriginPatterns()) {
             // Making sure that the pattern matches
             if (pattern.matcher(origin).matches()) {
@@ -339,8 +349,7 @@ public class CorsFilter extends OncePerRequestFilter {
             if (zoneCorsPolicy != null) {
                 CorsConfiguration zoneXhrCorsConfiguration = zoneCorsPolicy.getXhrConfiguration();
                 if (zoneXhrCorsConfiguration != null) {
-                    compileAllowedOriginsAndUris(zoneXhrCorsConfiguration, "xhr");
-                    return zoneXhrCorsConfiguration;
+                    return copyAndCompile(zoneXhrCorsConfiguration, "xhr");
                 }
             }
         }
@@ -356,8 +365,7 @@ public class CorsFilter extends OncePerRequestFilter {
             if (zoneCorsPolicy != null) {
                 CorsConfiguration zoneDefaultCorsConfiguration = zoneCorsPolicy.getDefaultConfiguration();
                 if (zoneDefaultCorsConfiguration != null) {
-                    compileAllowedOriginsAndUris(zoneDefaultCorsConfiguration, "default");
-                    return zoneDefaultCorsConfiguration;
+                    return copyAndCompile(zoneDefaultCorsConfiguration, "default");
                 }
             }
         }
@@ -366,31 +374,62 @@ public class CorsFilter extends OncePerRequestFilter {
         return getDefaultConfiguration();
     }
 
+    /**
+     * Compiles into a copy so that patterns compiled for one request are not added to the zone's own configuration,
+     * where they would pile up and be evaluated again by every later request.
+     */
+    private CorsConfiguration copyAndCompile(CorsConfiguration source, String type) {
+        CorsConfiguration copy = new CorsConfiguration();
+        copy.setAllowedUris(source.getAllowedUris());
+        copy.setAllowedOrigins(source.getAllowedOrigins());
+        copy.setAllowedMethods(source.getAllowedMethods());
+        copy.setAllowedHeaders(source.getAllowedHeaders());
+        copy.setAllowedCredentials(source.isAllowedCredentials());
+        copy.setMaxAge(source.getMaxAge());
+        copy.getAllowedUriPatterns().addAll(source.getAllowedUriPatterns());
+        copy.getAllowedOriginPatterns().addAll(source.getAllowedOriginPatterns());
+        compileAllowedOriginsAndUris(copy, type);
+        return copy;
+    }
+
     private void compileAllowedOriginsAndUris(CorsConfiguration configuration, String type) {
-        if (configuration.getAllowedUris() != null) {
-            for (String allowedUri : configuration.getAllowedUris()) {
-                try {
-                    configuration.getAllowedUriPatterns().add(Pattern.compile(allowedUri));
-                    log.debug("URI '%s' is allowed for a %s CORS requests.".formatted(allowedUri, type));
-                } catch (PatternSyntaxException patternSyntaxException) {
-                    log.error("Invalid regular expression pattern in cors.{}.allowed.uris: {}", type, allowedUri, patternSyntaxException);
-                }
+        compileInto(configuration.getAllowedUris(), configuration.getAllowedUriPatterns(), UnaryOperator.identity(), type, "uris");
+        compileInto(configuration.getAllowedOrigins(), configuration.getAllowedOriginPatterns(), CorsConfiguration::anchorOrigin, type, "origins");
+    }
+
+    /**
+     * Patterns that are invalid, too costly, or that together exceed the list limits are not used, so the
+     * requests they would have allowed are rejected.
+     */
+    private void compileInto(List<String> sources, List<Pattern> target, UnaryOperator<String> prepare, String type, String name) {
+        if (sources == null) {
+            return;
+        }
+        if (sources.size() > BoundedRegex.MAX_PATTERNS) {
+            log.warn("Ignoring cors.{}.allowed.{}: more than {} patterns configured", type, name, BoundedRegex.MAX_PATTERNS);
+            return;
+        }
+        List<Pattern> compiled = new ArrayList<>();
+        for (String source : sources) {
+            try {
+                compiled.add(BoundedRegex.compile(prepare.apply(source)));
+                log.debug("Pattern '{}' is allowed for {} CORS requests in cors.{}.allowed.{}.", abbreviate(source), type, type, name);
+            } catch (PatternSyntaxException patternSyntaxException) {
+                log.error("Invalid regular expression pattern in cors.{}.allowed.{}: {} ({})", type, name, abbreviate(source), patternSyntaxException.getDescription());
             }
         }
-        if (configuration.getAllowedOrigins() != null) {
-            for (String allowedOrigin : configuration.getAllowedOrigins()) {
-                try {
-                    String patternToCompile = allowedOrigin;
-                    if (!patternToCompile.startsWith("^") && !patternToCompile.endsWith("$")) {
-                        patternToCompile = "^.*(?:" + patternToCompile + ")(?::\\d+)?$";
-                    }
-                    configuration.getAllowedOriginPatterns().add(Pattern.compile(patternToCompile));
-                    log.debug("Origin '%s' is allowed for a %s CORS requests.".formatted(allowedOrigin, type));
-                } catch (PatternSyntaxException patternSyntaxException) {
-                    log.error("Invalid regular expression pattern in cors.{}.allowed.origins: {}", type, allowedOrigin, patternSyntaxException);
-                }
-            }
+        List<Pattern> all = new ArrayList<>(target);
+        all.addAll(compiled);
+        if (!BoundedRegex.withinListLimits(all)) {
+            log.warn("Ignoring cors.{}.allowed.{}: the patterns together are too costly to evaluate", type, name);
+            return;
         }
+        target.addAll(compiled);
+    }
+
+    private static String abbreviate(String value) {
+        String cleaned = UaaStringUtils.getCleanedUserControlString(value);
+        return cleaned != null && cleaned.length() > 100 ? cleaned.substring(0, 100) + "..." : cleaned;
     }
 
     //----------------REQUEST INFO ----------------------------------------------//
