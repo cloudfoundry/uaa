@@ -57,6 +57,11 @@ The new parameters for JWKS Trust in UAA clients are:
 * jwks_uri
 * jwks
 
+The key set of a client is changed with `PUT /oauth/clients/{id}/clientjwt` (scope `clients.trust`). The response lists
+the key ids (`kids`) and the federated credentials (`jwt_creds`) of the client as stored when the request finished.
+Changes of one client that arrive at the same time can replace each other; a caller compares the lists with the state
+it wants and sends the change again if needed.
+
 This should allow continuous trust between UAA to UAA communication, e.g., using own UAA instances or within a UAA using
 different zones.
 

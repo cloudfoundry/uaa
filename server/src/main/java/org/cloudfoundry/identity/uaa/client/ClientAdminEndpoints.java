@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtActionResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
@@ -59,6 +60,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.BadClientCredentialsException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -603,7 +605,27 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
         clientJwtChanges.incrementAndGet();
 
-        return result;
+        return withResultingClientJwtConfiguration(client_id, result);
+    }
+
+    /**
+     * Adds the jwt configuration of the client as it is stored after the change to the result. Concurrent changes
+     * of one client can replace each other; the caller can see from this whether its change is part of the end state.
+     */
+    private ActionResult withResultingClientJwtConfiguration(String clientId, ActionResult result) {
+        ClientJwtConfiguration stored = null;
+        try {
+            if (clientDetailsService.retrieve(clientId, identityZoneManager.getCurrentIdentityZoneId()) instanceof UaaClientDetails details) {
+                stored = ClientJwtConfiguration.readValue(details);
+            }
+        } catch (InvalidClientException _) {
+            // removed in the meantime: nothing is stored any more
+        }
+        List<String> kids = stored == null || stored.getJwkSet() == null ? List.of() :
+                stored.getJwkSet().getKeys().stream().map(JsonWebKey::getKid).toList();
+        List<ClientJwtCredential> credentials = stored == null || stored.getClientJwtCredentials() == null ?
+                List.of() : stored.getClientJwtCredentials();
+        return new ClientJwtActionResult(result.getStatus(), result.getMessage(), kids, credentials);
     }
 
     private ClientJwtCredential getValidatedFederation(ClientJwtChangeRequest change) {
