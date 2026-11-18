@@ -1,10 +1,12 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -22,7 +24,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +34,7 @@ import java.util.function.Supplier;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 
+@Slf4j
 public class PasswordGrantAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
     private final DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager;
@@ -141,7 +146,14 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             idToken = externalOAuthAuthenticationManager.oauthTokenRequest(uaaAuthenticationDetails, identityProvider, GRANT_TYPE_PASSWORD, params);
         } catch (HttpClientErrorException e) {
             publish(new IdentityProviderAuthenticationFailureEvent(authentication, userName, OriginKeys.OIDC10, IdentityZoneHolder.getCurrentZoneId()));
-            throw new BadCredentialsException(e.getResponseBodyAsString(), e);
+            // the answer is the same as for wrong client credentials; the body of the provider stays in the log
+            log.debug("Provider {} rejected the password grant with status {}: {}",
+                    identityProvider.getOriginKey(), e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BadCredentialsException("Bad credentials", e);
+        } catch (HttpServerErrorException e) {
+            // a failure of the provider itself is passed on to the client, with the text of the provider
+            String description = StringUtils.hasText(e.getResponseBodyAsString()) ? e.getResponseBodyAsString() : e.getStatusText();
+            throw new IdentityProviderServerErrorException(description, e);
         }
 
         if (idToken == null) {
@@ -150,6 +162,25 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         }
         ExternalOAuthCodeToken token = new ExternalOAuthCodeToken(null, null, null, idToken, null, null);
         return externalOAuthAuthenticationManager.authenticate(token);
+    }
+
+    /**
+     * Answers with the text of an identity provider that fails with a 5xx response.
+     */
+    static class IdentityProviderServerErrorException extends OAuth2Exception {
+        IdentityProviderServerErrorException(String description, Throwable cause) {
+            super(description, cause);
+        }
+
+        @Override
+        public String getOAuth2ErrorCode() {
+            return "server_error";
+        }
+
+        @Override
+        public int getHttpErrorCode() {
+            return 500;
+        }
     }
 
     private boolean providerSupportsPasswordGrant(IdentityProvider provider) {

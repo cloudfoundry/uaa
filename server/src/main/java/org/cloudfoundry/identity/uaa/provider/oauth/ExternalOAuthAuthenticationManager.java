@@ -835,7 +835,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         if (tokenEndpointBuilder.getTokenEndpoint(identityZoneManager.getCurrentIdentityZone()).equals(config.getIssuer())) {
             List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
-            jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
+            // the token must be issued by this zone: a zone without keys of its own verifies with the keys of the
+            // default zone, so the signature alone does not tell which zone issued the token
+            jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService)
+                    .checkIssuer(config.getIssuer());
             if (enforceRelyingPartyAudience && hasText(config.getRelyingPartyId())) {
                 // an explicitly registered self-referencing OIDC IdP must still bind the id_token
                 // to its own relying party for an interactive login, otherwise any token signed by
