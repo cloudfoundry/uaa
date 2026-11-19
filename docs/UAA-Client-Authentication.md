@@ -23,6 +23,20 @@ standards define token-based authentication mechanisms for OAuth2 clients. They 
   [RFC 7523 from OAuth2 standard](https://www.rfc-editor.org/info/rfc7523)
 * tls_client_auth [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705)
 
+## Client administration API and CSRF
+
+The `/oauth/clients/**` administration endpoints use stateless OAuth2 authentication, not login sessions or
+HTTP Basic credentials. Send an access token with the required client-management scopes in an
+`Authorization: Bearer <token>` header. These explicitly authenticated requests do not require a CSRF token.
+The access token is still validated, and an invalid bearer header does not fall back to a login session.
+
+For state-changing requests without a nonempty bearer header, CSRF protection is enabled. Legacy callers using
+only the `access_token` request parameter must also supply the `X-Uaa-Csrf` cookie (named `__Host-X-Uaa-Csrf`
+over HTTPS) and its matching value in the `X-CSRF-TOKEN` header or `X-Uaa-Csrf` request parameter.
+Missing or mismatched CSRF tokens result in HTTP 403. Prefer the bearer header instead of sending access tokens
+in request parameters. Read-only requests do not require a CSRF token, but still require OAuth2 authentication.
+The CSRF token alone never authorizes a request.
+
 ## New methods
 
 The new methods are based on asymmetric trust relation, so that the keys are divided into a private and a public one.
