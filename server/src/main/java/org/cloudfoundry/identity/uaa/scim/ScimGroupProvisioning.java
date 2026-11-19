@@ -20,7 +20,9 @@ import java.util.List;
 
 public interface ScimGroupProvisioning extends ResourceManager<ScimGroup>, Queryable<ScimGroup> {
     /** Returns a lazy list with a total size, fetching at most maxPageSize rows per database page. */
-    List<ScimGroup> query(String filter, String sortBy, boolean ascending, String zoneId, int maxPageSize);
+    default List<ScimGroup> query(String filter, String sortBy, boolean ascending, String zoneId, int maxPageSize) {
+        return query(filter, sortBy, ascending, zoneId);
+    }
 
     ScimGroup createOrGet(ScimGroup group, String zoneId);
 
