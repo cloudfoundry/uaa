@@ -2639,6 +2639,49 @@ class ClientAdminEndpointsMockMvcTests {
                 .andExpect(status().isBadRequest());
     }
 
+    // The client_jwt_config can also be sent in the additionalInformation of the request, as a JSON string or as an
+    // object. The request body has to carry it under additionalInformation: a top-level client_jwt_config is the
+    // property above.
+    private org.springframework.test.web.servlet.ResultActions postClientWithNestedClientJwtConfig(String id, String clientJwtConfig, boolean asMap) throws Exception {
+        UaaClientDetails client = new UaaClientDetails(id, null, null, "client_credentials", "uaa.none");
+        client.setClientSecret(SECRET);
+        Map<String, Object> body = JsonUtils.readValue(JsonUtils.writeValueAsString(client), Map.class);
+        body.put("additionalInformation", Map.of("client_jwt_config", asMap ? JsonUtils.readValue(clientJwtConfig, Map.class) : clientJwtConfig));
+        return mockMvc.perform(post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(body)));
+    }
+
+    // That nested client_jwt_config is held to the same duplicate kid rule on create.
+    @ParameterizedTest
+    @CsvSource({"true,true", "true,false", "false,true", "false,false"})
+    void create_with_a_nested_client_jwt_config_that_repeats_a_kid_is_rejected(boolean asMap, boolean differentKeys) throws Exception {
+        postClientWithNestedClientJwtConfig(generator.generate(), rawConfigWithRepeatedKid(differentKeys), asMap)
+                .andExpect(status().isBadRequest());
+    }
+
+    // ... and validated like the jwks_uri field.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void create_with_a_nested_client_jwt_config_is_validated_like_the_jwks_uri_field(boolean asMap) throws Exception {
+        postClientWithNestedClientJwtConfig(generator.generate(), "{\"jwks_uri\":\"http://any.domain.net/openid/jwks-uri\"}", asMap)
+                .andExpect(status().isBadRequest());
+    }
+
+    // Guard: a nested key set with distinct kids is still stored, with both keys.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void create_with_a_nested_client_jwt_config_with_distinct_kids_stores_both_keys(boolean asMap) throws Exception {
+        String id = generator.generate();
+
+        postClientWithNestedClientJwtConfig(id, "{\"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_2 + "]}}", asMap)
+                .andExpect(status().isCreated());
+
+        assertThat(storedClientJwtConfig(id)).contains("key-1", "key-2");
+    }
+
     // The same on an update by a caller who may change the jwt configuration: the request is rejected and the stored
     // configuration stays as it was.
     @ParameterizedTest

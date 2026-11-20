@@ -2550,6 +2550,54 @@ class ClientAdminEndpointsMockMvcZonePathTests {
         zone.send(HttpMethod.POST, "/oauth/clients", zone.token("clients.admin clients.write"), body).andExpect(status().isBadRequest());
     }
 
+    // The client_jwt_config can also be sent in the additionalInformation of the request, as a JSON string or as an
+    // object. The request body has to carry it under additionalInformation: a top-level client_jwt_config is the
+    // property above.
+    private Map<String, Object> bodyWithNestedClientJwtConfig(JwtConfigZone zone, String id, String clientJwtConfig, boolean asMap) {
+        UaaClientDetails client = zone.body(id, null);
+        client.setClientSecret("secret");
+        Map<String, Object> body = JsonUtils.readValue(JsonUtils.writeValueAsString(client), Map.class);
+        body.put("additionalInformation", Map.of("client_jwt_config", asMap ? JsonUtils.readValue(clientJwtConfig, Map.class) : clientJwtConfig));
+        return body;
+    }
+
+    // In a zone, that nested client_jwt_config is held to the same duplicate kid rule on create.
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,true,true", "SUBDOMAIN,true,false", "SUBDOMAIN,false,true", "SUBDOMAIN,false,false",
+            "ZONE_PATH,true,true", "ZONE_PATH,true,false", "ZONE_PATH,false,true", "ZONE_PATH,false,false"})
+    void create_with_a_nested_client_jwt_config_that_repeats_a_kid_is_rejected(ZoneResolutionMode mode, boolean asMap, boolean differentKeys) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+
+        zone.send(HttpMethod.POST, "/oauth/clients", zone.token("clients.admin clients.write"),
+                bodyWithNestedClientJwtConfig(zone, generator.generate(), rawConfigWithRepeatedKid(differentKeys), asMap))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ... and validated like the jwks_uri field.
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,true", "SUBDOMAIN,false", "ZONE_PATH,true", "ZONE_PATH,false"})
+    void create_with_a_nested_client_jwt_config_is_validated_like_the_jwks_uri_field(ZoneResolutionMode mode, boolean asMap) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+
+        zone.send(HttpMethod.POST, "/oauth/clients", zone.token("clients.admin clients.write"),
+                bodyWithNestedClientJwtConfig(zone, generator.generate(), "{\"jwks_uri\":\"http://any.domain.net/openid/jwks-uri\"}", asMap))
+                .andExpect(status().isBadRequest());
+    }
+
+    // Guard: a nested key set with distinct kids is still stored, with both keys.
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,true", "SUBDOMAIN,false", "ZONE_PATH,true", "ZONE_PATH,false"})
+    void create_with_a_nested_client_jwt_config_with_distinct_kids_stores_both_keys(ZoneResolutionMode mode, boolean asMap) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = generator.generate();
+
+        zone.send(HttpMethod.POST, "/oauth/clients", zone.token("clients.admin clients.write"),
+                bodyWithNestedClientJwtConfig(zone, id, "{\"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_2 + "]}}", asMap))
+                .andExpect(status().isCreated());
+
+        assertThat(zone.stored(id)).contains("key-1", "key-2");
+    }
+
     // The same on an update by a caller who may change the jwt configuration: rejected, and the stored configuration
     // stays as it was.
     @ParameterizedTest
