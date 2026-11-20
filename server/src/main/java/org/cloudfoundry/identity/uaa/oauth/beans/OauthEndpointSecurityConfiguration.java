@@ -64,7 +64,7 @@ import org.springframework.security.config.annotation.web.configurers.CsrfConfig
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf;
@@ -428,7 +428,7 @@ class OauthEndpointSecurityConfiguration {
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
                 .addFilterAfter(passwordChangeRequiredFilter.getFilter(), BasicAuthenticationFilter.class)
-                .addFilterBefore(currentUserCookieFilter.getFilter(), FilterSecurityInterceptor.class)
+                .addFilterBefore(currentUserCookieFilter.getFilter(), AuthorizationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
