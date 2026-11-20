@@ -471,6 +471,7 @@ class JdbcScimUserProvisioningTests {
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{LOGIN_SERVER, currentIdentityZoneId})).isOne();
         addMembership(jdbcTemplate, created.getId(), created.getOrigin(), currentIdentityZoneId);
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isOne();
+        jdbcTemplate.update("insert into user_info (user_id, info) values (?, ?)", created.getId(), "{}");
 
         IdentityProvider loginServer =
                 new IdentityProvider()
@@ -479,6 +480,7 @@ class JdbcScimUserProvisioningTests {
         jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, currentIdentityZoneId));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{LOGIN_SERVER, currentIdentityZoneId})).isZero();
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from user_info where user_id=?", Integer.class, new Object[]{created.getId()})).isZero();
     }
 
     @WithDatabaseContext
@@ -508,13 +510,14 @@ class JdbcScimUserProvisioningTests {
             assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{UAA, currentIdentityZoneId})).isOne();
             addMembership(jdbcTemplate, created.getId(), created.getOrigin(), currentIdentityZoneId);
             assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isOne();
-
+            jdbcTemplate.update("insert into user_info (user_id, info) values (?, ?)", created.getId(), "{}");
 
             IdentityZone zoneToDelete = new IdentityZone();
             zoneToDelete.setId(currentIdentityZoneId);
             jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<>(zoneToDelete, null, currentIdentityZoneId));
             assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{UAA, currentIdentityZoneId})).isZero();
             assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isZero();
+            assertThat(jdbcTemplate.queryForObject("select count(*) from user_info where user_id=?", Integer.class, new Object[]{created.getId()})).isZero();
         }
 
         @Test
