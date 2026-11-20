@@ -167,7 +167,8 @@ public class ScimGroupEndpoints {
             result = dao.query(filter,
                     sortBy,
                     "ascending".equalsIgnoreCase(sortOrder),
-                    identityZoneManager.getCurrentIdentityZoneId());
+                    identityZoneManager.getCurrentIdentityZoneId(),
+                    Math.max(1, count));
         } catch (IllegalArgumentException _) {
             throw new ScimException("Invalid filter expression: [" + HtmlUtils.htmlEscape(filter) + "]",
                     HttpStatus.BAD_REQUEST);
