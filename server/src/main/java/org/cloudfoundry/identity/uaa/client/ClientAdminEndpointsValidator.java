@@ -314,10 +314,14 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 try {
                     ClientJwtConfiguration fromNested;
                     switch (cjc) {
-                        case String s -> fromNested = ClientJwtConfiguration.readValue(s);
+                        case String s -> {
+                            ClientJwtConfiguration.rejectRepeatedKids(s);
+                            fromNested = ClientJwtConfiguration.readValue(s);
+                        }
                         case Map<?, ?> map -> {
-                            fromNested = ClientJwtConfiguration.readValue(
-                                    JsonUtils.writeValueAsString(cjc));
+                            String nestedJson = JsonUtils.writeValueAsString(cjc);
+                            ClientJwtConfiguration.rejectRepeatedKids(nestedJson);
+                            fromNested = ClientJwtConfiguration.readValue(nestedJson);
                             ClientJwtConfiguration credsOnly = ClientJwtConfiguration.fromJwtCredsValue(
                                     map.get(ClientJwtConfiguration.JWT_CREDS));
                             if (credsOnly != null) {
@@ -330,6 +334,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                                 "Invalid client_jwt_config in additionalInformation: expected String or Map");
                     }
                     if (fromNested != null) {
+                        // same rules as for the client_jwt_config property and the jwks_uri and jwks fields
+                        fromNested.validate();
                         ClientJwtConfiguration current = Optional.ofNullable(ClientJwtConfiguration.readValue(client))
                                 .orElseGet(ClientJwtConfiguration::new);
                         ClientJwtConfiguration.merge(current, fromNested, false).writeValue(client);
