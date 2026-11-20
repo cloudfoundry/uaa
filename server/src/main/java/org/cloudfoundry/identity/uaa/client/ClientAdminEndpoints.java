@@ -624,14 +624,22 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
     /**
-     * Adds the jwt configuration of the client as it is stored after the change to the result. Concurrent changes
-     * of one client can replace each other; the caller can see from this whether its change is part of the end state.
+     * Adds the jwt configuration of the client as it is in effect after the change to the result: the configuration
+     * that a read of the client returns and that client authentication uses, which includes federated credentials
+     * kept as jwt_creds in the additional information. Concurrent changes of one client can replace each other; the
+     * caller can see from this whether its change is part of the end state.
      */
     private ActionResult withResultingClientJwtConfiguration(String clientId, ActionResult result) {
         ClientJwtConfiguration stored = null;
         try {
             if (clientDetailsService.retrieve(clientId, identityZoneManager.getCurrentIdentityZoneId()) instanceof UaaClientDetails details) {
-                stored = ClientJwtConfiguration.readValue(details);
+                stored = new UaaClient(
+                        details.getClientId(),
+                        details.getClientSecret(),
+                        details.getAuthorities(),
+                        new HashMap<>(Optional.ofNullable(details.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
+                        details.getClientJwtConfig()
+                ).getClientJwtConfiguration();
             }
         } catch (InvalidClientException _) {
             // removed in the meantime: nothing is stored any more

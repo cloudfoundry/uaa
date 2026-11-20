@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtActionResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
@@ -1168,6 +1169,67 @@ class ClientAdminEndpointsTests {
         change.setJsonWebKeyUri(null);
         result = endpoints.changeClientJwt(detail.getClientId(), change);
         assertThat(result.getMessage()).isEqualTo("No key added");
+    }
+
+    private enum LegacyJwtCreds {
+        TOP_LEVEL,
+        NESTED_IN_CLIENT_JWT_CONFIG
+    }
+
+    private ClientJwtActionResult changeClientJwtOfStoredClient(UaaClientDetails stored) {
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
+        when(clientDetailsService.retrieve(stored.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(stored);
+        ClientJwtChangeRequest change = new ClientJwtChangeRequest();
+        change.setJsonWebKeyUri("https://any.domain.net/openid/jwks-uri");
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+
+        ActionResult result = endpoints.changeClientJwt(stored.getClientId(), change);
+
+        assertThat(result).isInstanceOf(ClientJwtActionResult.class);
+        return (ClientJwtActionResult) result;
+    }
+
+    // The response lists the jwt configuration the client has in effect, the same that a read of the client returns and
+    // that client authentication uses. Federated credentials that are kept as jwt_creds in the additional information
+    // (a legacy form, also nested in client_jwt_config) count too, so the caller can rely on the response.
+    @ParameterizedTest
+    @EnumSource(LegacyJwtCreds.class)
+    void changeClientJwtResponseListsLegacyFederatedCredentialsOfTheAdditionalInformation(LegacyJwtCreds form) {
+        UaaClientDetails stored = new UaaClientDetails(detail);
+        List<Map<String, Object>> legacyCredentials = List.of(Map.of("iss", "https://legacy.example.com", "sub", "legacy-subject"));
+        stored.setAdditionalInformation(form == LegacyJwtCreds.TOP_LEVEL ?
+                Map.of(ClientJwtConfiguration.JWT_CREDS, legacyCredentials) :
+                Map.of("client_jwt_config", Map.of(ClientJwtConfiguration.JWT_CREDS, legacyCredentials)));
+
+        ClientJwtActionResult result = changeClientJwtOfStoredClient(stored);
+
+        assertThat(result.getCredentials()).singleElement().satisfies(credential -> {
+            assertThat(credential.getSubject()).isEqualTo("legacy-subject");
+            assertThat(credential.getIssuer()).isEqualTo("https://legacy.example.com");
+        });
+    }
+
+    // Guard: the keys and the federated credentials stored in client_jwt_config are listed as before, and a client
+    // without any jwt configuration gets empty lists.
+    @Test
+    void changeClientJwtResponseListsTheStoredKeysAndCredentials() {
+        UaaClientDetails stored = new UaaClientDetails(detail);
+        stored.setClientJwtConfig("{\"jwks\":{\"keys\":[" + JWK_KEY_1 + "]},\"jwt_creds\":[{\"iss\":\"https://stored.example.com\",\"sub\":\"stored-subject\"}]}");
+
+        ClientJwtActionResult result = changeClientJwtOfStoredClient(stored);
+
+        assertThat(result.getKids()).containsExactly("key-1");
+        assertThat(result.getCredentials()).extracting(ClientJwtCredential::getSubject).containsExactly("stored-subject");
+    }
+
+    @Test
+    void changeClientJwtResponseOfAClientWithoutJwtConfigurationHasEmptyLists() {
+        ClientJwtActionResult result = changeClientJwtOfStoredClient(new UaaClientDetails(detail));
+
+        assertThat(result.getKids()).isEmpty();
+        assertThat(result.getCredentials()).isEmpty();
     }
 
     @Test
