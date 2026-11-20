@@ -4,7 +4,8 @@ External group membership auditing
 During external authentication, UAA reconciles the user's stored external
 group memberships with the authorities supplied by the identity provider.
 When this reconciliation successfully removes a stale membership, UAA
-publishes a GroupModifiedEvent for that group.
+attempts to publish a GroupModifiedEvent for that group. If collecting or
+publishing the audit data fails, UAA logs a warning and continues reconciliation.
 
 The event contains the group's ID, display name, identity zone, and member
 IDs remaining after the removal, including an empty list if the last member

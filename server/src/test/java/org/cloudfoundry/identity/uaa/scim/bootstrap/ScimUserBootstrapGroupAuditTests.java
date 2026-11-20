@@ -18,8 +18,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.core.authority.AuthorityUtils;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -95,6 +98,58 @@ class ScimUserBootstrapGroupAuditTests {
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, List.of(), true));
 
         verify(membershipManager, never()).getMembers(anyString(), anyBoolean(), anyString());
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void zeroRowDeleteSkipsAuditAndContinuesReconciliation() {
+        ScimGroup alreadyRemoved = new ScimGroup("removed", "removed.scope", "tenant");
+        ScimGroup stale = new ScimGroup("stale", "stale.scope", "tenant");
+        when(membershipManager.getGroupsWithExternalMember("user", "oidc", "tenant"))
+                .thenReturn(new LinkedHashSet<>(List.of(alreadyRemoved, stale)));
+        when(membershipManager.removeMemberById("removed", "user", "tenant"))
+                .thenThrow(new IncorrectResultSizeDataAccessException(1, 0));
+
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, List.of(), true));
+
+        verify(membershipManager, never()).getMembers("removed", false, "tenant");
+        verify(membershipManager).removeMemberById("stale", "user", "tenant");
+        ArgumentCaptor<GroupModifiedEvent> captor = ArgumentCaptor.forClass(GroupModifiedEvent.class);
+        verify(publisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().getGroupId()).isEqualTo("stale");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void auditFailureAllowsLaterMembershipRemoval(boolean failDuringPublication) {
+        ScimGroup first = new ScimGroup("first", "first.scope", "tenant");
+        ScimGroup second = new ScimGroup("second", "second.scope", "tenant");
+        when(membershipManager.getGroupsWithExternalMember("user", "oidc", "tenant"))
+                .thenReturn(new LinkedHashSet<>(List.of(first, second)));
+        var failure = new DataAccessResourceFailureException("Audit data unavailable");
+        if (failDuringPublication) {
+            doThrow(failure).when(publisher)
+                    .publishEvent(argThat((GroupModifiedEvent event) -> "first".equals(event.getGroupId())));
+        } else {
+            when(membershipManager.getMembers("first", false, "tenant")).thenThrow(failure);
+        }
+
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, List.of(), true));
+
+        verify(membershipManager).removeMemberById("first", "user", "tenant");
+        verify(membershipManager).removeMemberById("second", "user", "tenant");
+        verify(publisher).publishEvent(argThat((GroupModifiedEvent event) -> "second".equals(event.getGroupId())));
+    }
+
+    @Test
+    void unexpectedDeleteCountStillFailsReconciliation() {
+        when(membershipManager.getGroupsWithExternalMember("user", "oidc", "tenant"))
+                .thenReturn(Set.of(new ScimGroup("group", "revoked.scope", "tenant")));
+        var failure = new IncorrectResultSizeDataAccessException(1, 2);
+        when(membershipManager.removeMemberById("group", "user", "tenant")).thenThrow(failure);
+
+        assertThatThrownBy(() -> bootstrap.onApplicationEvent(
+                new ExternalGroupAuthorizationEvent(user, false, List.of(), true))).isSameAs(failure);
         verifyNoInteractions(publisher);
     }
 

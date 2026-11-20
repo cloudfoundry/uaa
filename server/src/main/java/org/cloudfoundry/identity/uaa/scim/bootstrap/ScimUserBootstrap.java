@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -287,11 +288,21 @@ public class ScimUserBootstrap implements
                         membershipManager.removeMemberById(group.getId(), exEvent.getUser().getId(), group.getZoneId());
                     } catch (MemberNotFoundException _) {
                         continue;
+                    } catch (IncorrectResultSizeDataAccessException e) {
+                        if (e.getExpectedSize() == 1 && e.getActualSize() == 0) {
+                            continue;
+                        }
+                        throw e;
                     }
-                    String[] members = membershipManager.getMembers(group.getId(), false, group.getZoneId())
-                            .stream().map(ScimGroupMember::getMemberId).toArray(String[]::new);
-                    publish(GroupModifiedEvent.groupModified(
-                            group.getId(), group.getDisplayName(), members, group.getZoneId()));
+                    try {
+                        String[] members = membershipManager.getMembers(group.getId(), false, group.getZoneId())
+                                .stream().map(ScimGroupMember::getMemberId).toArray(String[]::new);
+                        publish(GroupModifiedEvent.groupModified(
+                                group.getId(), group.getDisplayName(), members, group.getZoneId()));
+                    } catch (RuntimeException e) {
+                        logger.warn("Failed to audit external membership removal for group {} in zone {}",
+                                group.getId(), group.getZoneId(), e);
+                    }
                 }
             }
             //update the user itself
