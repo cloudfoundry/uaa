@@ -46,6 +46,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -260,11 +261,11 @@ class OpenIdTokenGrantsIT {
                 redirectUri
         );
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
+        String location = IntegrationTestUtils.resolveRedirect(baseUrl + "/oauth/authorize", result.getHeaders().getLocation());
         IntegrationTestUtils.extractCookies(result, cookies);
 
         ResponseEntity<String> response = restOperations.exchange(
-                location,
+                URI.create(location),
                 HttpMethod.GET,
                 new HttpEntity<>(null, getHeaders(cookies)),
                 String.class);
@@ -287,9 +288,9 @@ class OpenIdTokenGrantsIT {
         cookies.clear();
         IntegrationTestUtils.extractCookies(result, cookies);
 
-        location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
+        location = IntegrationTestUtils.resolveRedirect(baseUrl + "/login.do", result.getHeaders().getLocation());
         response = restOperations.exchange(
-                location,
+                URI.create(location),
                 HttpMethod.GET,
                 new HttpEntity<>(null, getHeaders(cookies)),
                 String.class);
@@ -304,11 +305,11 @@ class OpenIdTokenGrantsIT {
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = restOperations.exchange(baseUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
+            location = IntegrationTestUtils.resolveRedirect(baseUrl + "/oauth/authorize", result.getHeaders().getLocation());
         } else {
             // Token cached so no need for second approval
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = UriUtils.decode(response.getHeaders().getLocation().toString(), "UTF-8");
+            location = IntegrationTestUtils.resolveRedirect(location, response.getHeaders().getLocation());
         }
         assertThat(location).as("Wrong location: " + location).matches(redirectUri + responseTypeMatcher);
 

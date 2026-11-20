@@ -119,7 +119,7 @@ class ImplicitTokenGrantIntegrationTests {
 
         ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl(), getHeaders(cookies));
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = result.getHeaders().getLocation().toString();
+        String location = IntegrationTestUtils.resolveRedirect(serverRunning.getUrl(implicitUrl()), result.getHeaders().getLocation());
         IntegrationTestUtils.extractCookies(result, cookies);
 
         ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));

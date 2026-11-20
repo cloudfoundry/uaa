@@ -14,7 +14,6 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
@@ -32,6 +31,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -60,7 +60,11 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
     public List<MediaType> getSupportedMediaTypes() {
         Set<MediaType> list = new LinkedHashSet<>();
         for (HttpMessageConverter<?> converter : messageConverters) {
-            list.addAll(converter.getSupportedMediaTypes());
+            for (MediaType mediaType : converter.getSupportedMediaTypes()) {
+                if (converter.canRead(Map.class, mediaType) || converter.canWrite(Map.class, mediaType)) {
+                    list.add(mediaType);
+                }
+            }
         }
         return new ArrayList<>(list);
     }
@@ -71,17 +75,22 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
     }
 
     @Override
+    protected MediaType getDefaultContentType(ExceptionReport report) {
+        return MediaType.APPLICATION_JSON;
+    }
+
+    @Override
     protected ExceptionReport readInternal(Class<? extends ExceptionReport> clazz, HttpInputMessage inputMessage)
             throws IOException, HttpMessageNotReadableException {
+        MediaType contentType = Optional.ofNullable(inputMessage).map(HttpInputMessage::getHeaders)
+                .map(h -> h.getContentType()).orElse(MediaType.APPLICATION_JSON);
         for (HttpMessageConverter<?> converter : messageConverters) {
-            for (MediaType mediaType : converter.getSupportedMediaTypes()) {
-                if (converter.canRead(Map.class, mediaType)) {
-                    @SuppressWarnings({"rawtypes", "unchecked"})
-                    HttpMessageConverter<Map> messageConverter = (HttpMessageConverter<Map>) converter;
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> map = messageConverter.read(Map.class, inputMessage);
-                    return new ExceptionReport(getException(map));
-                }
+            if (converter.canRead(Map.class, contentType)) {
+                @SuppressWarnings({"rawtypes", "unchecked"})
+                HttpMessageConverter<Map> messageConverter = (HttpMessageConverter<Map>) converter;
+                @SuppressWarnings("unchecked")
+                Map<String, String> map = messageConverter.read(Map.class, inputMessage);
+                return new ExceptionReport(getException(map));
             }
         }
         return null;
@@ -107,14 +116,14 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
             e.printStackTrace(new PrintWriter(trace));
             map.put("trace", trace.toString());
         }
+        MediaType contentType = Optional.ofNullable(outputMessage).map(HttpOutputMessage::getHeaders)
+                .map(h -> h.getContentType()).orElse(MediaType.APPLICATION_JSON);
         for (HttpMessageConverter<?> converter : messageConverters) {
-            for (MediaType mediaType : converter.getSupportedMediaTypes()) {
-                if (converter.canWrite(Map.class, mediaType)) {
-                    @SuppressWarnings({"rawtypes", "unchecked"})
-                    HttpMessageConverter<Map> messageConverter = (HttpMessageConverter<Map>) converter;
-                    messageConverter.write(map, mediaType, outputMessage);
-                    return;
-                }
+            if (converter.canWrite(Map.class, contentType)) {
+                @SuppressWarnings({"rawtypes", "unchecked"})
+                HttpMessageConverter<Map> messageConverter = (HttpMessageConverter<Map>) converter;
+                messageConverter.write(map, contentType, outputMessage);
+                return;
             }
         }
     }

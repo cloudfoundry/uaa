@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -12,11 +12,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.xmlunit.assertj.XmlAssert;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,16 +41,18 @@ class ErrorRoutingIT {
                 .as("Check if on the error page").contains("Something went amiss.");
     }
 
-    @Test
-    void statusCodeToErrorPage() throws Exception {
-        CallErrorPageAndCheckHttpStatusCode("/error", "GET", 200);
-        CallErrorPageAndCheckHttpStatusCode("/error404", "GET", 200);
-        CallErrorPageAndCheckHttpStatusCode("/error429", "GET", 200);
-        CallErrorPageAndCheckHttpStatusCode("/error500", "GET", 200);
-        CallErrorPageAndCheckHttpStatusCode("/errorAny", "GET", 200);
-        CallErrorPageAndCheckHttpStatusCode("/rejected", "GET", 400);
-        CallErrorPageAndCheckHttpStatusCode("/saml_error", "GET", 200);
-        CallErrorPageAndCheckHttpStatusCode("/error", "GET", 200);
+    @ParameterizedTest
+    @CsvSource({
+            "/error, 200",
+            "/error404, 200",
+            "/error429, 200",
+            "/error500, 200",
+            "/errorAny, 200",
+            "/rejected, 400",
+            "/saml_error, 200"
+    })
+    void statusCodeToErrorPage(String path, int expectedStatus) throws Exception {
+        callErrorPageAndCheckHttpStatusCode(path, "GET", expectedStatus);
     }
 
     @Test
@@ -59,17 +61,20 @@ class ErrorRoutingIT {
         HttpURLConnection cn = (HttpURLConnection) new URL(baseUrl + "/info").openConnection();
         cn.setRequestMethod("TRACE");
 
-        cn.connect();
-        assertThat(cn.getResponseCode())
-                .as("Check status code from TRACE method is 405")
-                .isEqualTo(405);
+        try {
+            assertThat(cn.getResponseCode())
+                    .as("Check status code from TRACE method is 405")
+                    .isEqualTo(405);
+        } finally {
+            cn.disconnect();
+        }
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "/login?param=%00", "/login?param=val%00ue" } )
     void requestInvalidParameterErrorPage(String invalidParameter) throws Exception {
-        String body = CallErrorPageAndCheckHttpStatusCode(invalidParameter, "GET", 400);
-        XmlAssert.assertThat(body)
+        String body = callErrorPageAndCheckHttpStatusCode(invalidParameter, "GET", 400);
+        errorPage(body)
                 .hasXPath("//p")
                 .extractingText()
                 .contains("The request contains an invalid parameter that can not be processed.");
@@ -79,42 +84,30 @@ class ErrorRoutingIT {
     @ValueSource(strings = { "/login;endpoint=x", "/login;?endpoint=x", "/login?%00param=%00value" } )
     void requestRejectedExceptionErrorPage(String rejectedEndpoint) throws Exception {
         // spring security throws RequestRejectedException with status code 400
-        String body = CallErrorPageAndCheckHttpStatusCode(rejectedEndpoint, "GET", 400);
-        XmlAssert.assertThat(body)
+        String body = callErrorPageAndCheckHttpStatusCode(rejectedEndpoint, "GET", 400);
+        errorPage(body)
                 .hasXPath("//h2")
                 .extractingText()
                 .contains("The request was rejected because it contained a potentially malicious character.");
     }
 
-    private String CallErrorPageAndCheckHttpStatusCode(String errorPath, String method, int codeExpected) throws IOException {
+    private XmlAssert errorPage(String body) {
+        // Remove only the HTML5 declaration; keep XMLUnit's secure parser defaults intact.
+        return XmlAssert.assertThat(body.replace("<!DOCTYPE html>", ""));
+    }
+
+    private String callErrorPageAndCheckHttpStatusCode(String errorPath, String method, int codeExpected) throws IOException {
         HttpURLConnection cn = (HttpURLConnection) new URL(baseUrl + errorPath).openConnection();
         cn.setRequestMethod(method);
         cn.setRequestProperty("Accept", "text/html");
-        // connection initiate
-        cn.connect();
-        assertThat(cn.getResponseCode()).as("Check status code from " + errorPath + " is " + codeExpected).isEqualTo(codeExpected);
-        return getResponseBody(cn);
-    }
-
-    private String getResponseBody(HttpURLConnection connection) throws IOException {
-        BufferedReader reader;
-        if (200 <= connection.getResponseCode() && connection.getResponseCode() <= 299) {
-            reader = new BufferedReader(new InputStreamReader((connection.getInputStream())));
-        } else {
-            reader = new BufferedReader(new InputStreamReader((connection.getErrorStream())));
-        }
-
-        StringBuilder sb = new StringBuilder();
-        int bufferSize = 4096;
-        char[] buffer = new char[bufferSize];
-        int charsRead = 0;
         try {
-            while ((charsRead = reader.read(buffer, 0, bufferSize)) != -1) {
-                sb.append(buffer, 0, charsRead);
+            int status = cn.getResponseCode();
+            assertThat(status).as("Check status code from %s is %s", errorPath, codeExpected).isEqualTo(codeExpected);
+            try (InputStream body = status < 400 ? cn.getInputStream() : cn.getErrorStream()) {
+                return new String(body.readAllBytes(), StandardCharsets.UTF_8);
             }
-        } catch (IOException _) {
-            IOUtils.close(connection);
+        } finally {
+            cn.disconnect();
         }
-        return sb.toString();
     }
 }

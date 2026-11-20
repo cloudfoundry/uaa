@@ -965,9 +965,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             body.add("code_verifier", getSessionValue(SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin())));
         }
         headers.add("Accept", "application/json");
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         URI requestUri;
-        HttpEntity requestEntity = new HttpEntity<>(body, headers);
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
         try {
             requestUri = config.getTokenUrl().toURI();
         } catch (URISyntaxException e) {

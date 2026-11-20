@@ -610,7 +610,7 @@ class ScimGroupEndpointsIntegrationTests {
                 uri.toString(), HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
                 Void.class);
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = result.getHeaders().getLocation().toString();
+        String location = IntegrationTestUtils.resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         IntegrationTestUtils.extractCookies(result, cookies);
 
         ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
@@ -638,7 +638,7 @@ class ScimGroupEndpointsIntegrationTests {
         IntegrationTestUtils.extractCookies(result, cookies);
 
         response = serverRunning.createRestTemplate().exchange(
-                new URI(result.getHeaders().getLocation().toString()),
+                URI.create(IntegrationTestUtils.resolveRedirect(serverRunning.getUrl("/login.do"), result.getHeaders().getLocation())),
                 HttpMethod.GET,
                 new HttpEntity<>(null, getHeaders(cookies)),
                 String.class);
@@ -654,11 +654,11 @@ class ScimGroupEndpointsIntegrationTests {
             formData.add("scope.0", "scope." + cfid);
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = result.getHeaders().getLocation().toString();
+            location = IntegrationTestUtils.resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         } else {
             // Token cached so no need for second approval
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = response.getHeaders().getLocation().toString();
+            location = IntegrationTestUtils.resolveRedirect(uri.toString(), response.getHeaders().getLocation());
         }
         assertThat(location).as("Wrong location: " + location).matches("http://redirect.uri" + ".*code=.+");
 
