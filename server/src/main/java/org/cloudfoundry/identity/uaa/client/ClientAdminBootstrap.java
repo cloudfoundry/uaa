@@ -251,7 +251,7 @@ public class ClientAdminBootstrap implements
             if (map.get(JWKS_URI) instanceof String || map.get(JWKS) instanceof String) {
                 String jwksUri = (String) map.get(JWKS_URI);
                 String jwks = (String) map.get(JWKS);
-                keyConfig = ClientJwtConfiguration.parse(jwksUri, jwks);
+                keyConfig = ClientJwtConfiguration.parseKeepingLastKeyPerKid(jwksUri, jwks);
                 writeJwtClientConfiguration(keyConfig, client);
             }
 

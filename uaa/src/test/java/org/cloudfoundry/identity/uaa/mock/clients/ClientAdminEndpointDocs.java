@@ -109,9 +109,9 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
             fieldWithPath(TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS).optional(null).type(Arrays.asList(BOOLEAN, STRING))
                     .description("[RFC 8705 section 3.4](https://www.rfc-editor.org/rfc/rfc8705#section-3.4): `true` makes access tokens issued to this client at `/oauth/mtls/token` certificate-bound (`cnf.x5t#S256`) and requires a nonblank `tls-client-auth-ca` or a valid `tls-client-auth-ca-ref`, and exactly one subject binding. Registration is rejected without these prerequisites, whether or not mTLS is enabled; token issuance refuses a missing certificate confirmation. `false` or absent (the default) issues an ordinary bearer JWT after the same certificate, chain and subject validation. Must be `true` or `false`. Set at registration only; a token request cannot change it."),
             fieldWithPath("client_jwt_config").optional(null).type(STRING)
-                    .description("**Preferred (top-level).** JSON string of the client's JWT trust for `private_key_jwt` client authentication, using the `ClientJwtConfiguration` shape: optional `jwks` (JWK set), `jwks_uri` (per OpenID `jwks_uri` semantics), and/or `jwt_creds` (array of `iss`/`sub`/`aud` objects for federated RFC 7523). Stored in the `client_jwt_config` column, merged on create/update, and re-read for token validation. For new work, set trust only here, not in duplicate legacy fields."),
+                    .description("**Preferred (top-level).** JSON string of the client's JWT trust for `private_key_jwt` client authentication, using the `ClientJwtConfiguration` shape: optional `jwks` (JWK set), `jwks_uri` (per OpenID `jwks_uri` semantics), and/or `jwt_creds` (array of `iss`/`sub`/`aud` objects for federated RFC 7523). Stored in the `client_jwt_config` column, merged on create/update, and re-read for token validation. For new work, set trust only here, not in duplicate legacy fields. On create the value follows the rules of `jwks_uri` and `jwks`. On update, it is applied only for callers with an admin token, with `clients.admin`, or with `clients.trust` for their own client; for other callers the value is ignored and the stored value stays. A value that is not valid JSON is rejected with 400 for every caller. A JWK set must not repeat a `kid`: on create, and on an update that applies a changed value, such a value is rejected with 400."),
             fieldWithPath("jwt_creds").optional(null).type(ARRAY)
-                    .description("**Not preferred (legacy, backward compatibility).** A `jwt_creds` array in the same JSON object as the other top-level client fields. It is merged with `client_jwt_config` to form the effective `ClientJwtConfiguration` for the client, then normalized for responses. For new work, **prefer** placing `jwt_creds` (if required) only inside the `client_jwt_config` JSON string, with `client_jwt_config` as the only top-level field that carries JWT policy."),
+                    .description("**Not preferred (legacy, backward compatibility).** A `jwt_creds` array in the same JSON object as the other top-level client fields. It is merged with `client_jwt_config` to form the effective `ClientJwtConfiguration` for the client, then normalized for responses. For new work, **prefer** placing `jwt_creds` (if required) only inside the `client_jwt_config` JSON string, with `client_jwt_config` as the only top-level field that carries JWT policy. On update, it is applied only for callers with an admin token, with `clients.admin`, or with `clients.trust` for their own client; for other callers the value is ignored and the stored value stays."),
             fieldWithPath("jwks_uri").optional(null).type(STRING)
                     .description("**Primarily returned** on get/list/retrieve when the response is a `ClientDetailsModification` with JWT trust: the trust can be decomposed to a top-level `jwks_uri` (OIDC) for readability. It is derived from the stored `client_jwt_config`. For **new write operations**, do not rely on sending a standalone `jwks_uri`; **prefer** the full `client_jwt_config` string or the client-JWT change endpoint, so the column is the source of truth."),
             fieldWithPath("jwks").optional(null).type(OBJECT)
@@ -125,9 +125,16 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
             fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `" + ADD + "`, the new `secret` will be added to the existing one and if the change mode is set to `" + DELETE + "`, the old secret will be deleted to support secret rotation. Currently only two client secrets are supported at any given time.")
     };
 
+    private static final FieldDescriptor[] clientJwtChangeResponseFields = new FieldDescriptor[]{
+            fieldWithPath("status").description("`ok` when the change was applied."),
+            fieldWithPath("message").description("A description of the applied change."),
+            fieldWithPath("kids").type(ARRAY).description("The key ids (`kid`) of the JWK set of the client after the change, as stored when the request finished. Changes of one client that arrive at the same time can replace each other; compare this list with the keys you want and send the change again if a key is missing."),
+            fieldWithPath("jwt_creds").type(ARRAY).description("The federated credentials (`iss`, `sub` or `sub_pattern`, `aud`) of the client after the change, as stored when the request finished, including credentials that are kept as `jwt_creds` in the additional information of the client. It is the same list that a read of the client returns. Use it like `kids`."),
+    };
+
     private static final FieldDescriptor[] clientJwtChangeFields = new FieldDescriptor[]{
             fieldWithPath("client_id").required().description(clientIdDescription),
-            fieldWithPath("jwks").constrained("Optional only, if jwks_uri is used. Required otherwise. OIDC standard.").type(STRING).description("A valid JSON string according JSON Web Key Set standard, see [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517), e.g. content of /token_keys endpoint from UAA"),
+            fieldWithPath("jwks").constrained("Optional only, if jwks_uri is used. Required otherwise. OIDC standard.").type(STRING).description("A valid JSON string according JSON Web Key Set standard, see [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517), e.g. content of /token_keys endpoint from UAA. A key set must not repeat a `kid`; such a request is answered with 400."),
             fieldWithPath("jwks_uri").constrained("Optional only, if jwks is used. Required otherwise. OIDC standard.").type(STRING).description("A valid URI to token keys endpoint. Must be compliant to jwks_uri from [OpenID Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html)."),
             fieldWithPath("iss").constrained("Optional only, if OIDC standard is used. Required otherwise. OAuth2 standard.").type(STRING).description("OIDC compliant issuer URI, matching the retrieved OAuth2 compliant JWT (iss claim)."),
             fieldWithPath("sub").constrained("Optional only, if OIDC standard is used. Required otherwise. OAuth2 standard.").type(STRING).description("A subject string, matching the retrieved OAuth2 compliant JWT (sub claim)."),
@@ -352,7 +359,8 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
                         IDENTITY_ZONE_ID_HEADER,
                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
-                requestFields(clientJwtChangeFields)
+                requestFields(clientJwtChangeFields),
+                responseFields(clientJwtChangeResponseFields)
         )
         );
     }

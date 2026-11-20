@@ -57,8 +57,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -85,6 +88,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
+    private static final String JWT_CLIENT_KEY = "key";
+    // A ${name} reference to uaa.yml. With a default value, ${name:default}, the default can be the key itself.
+    private static final Pattern JWT_CLIENT_KEY_REFERENCE = Pattern.compile("^\\$\\{[\\w.\\-]++}$");
+
     private final NoOpLdapLoginAuthenticationManager noOpManager = new NoOpLdapLoginAuthenticationManager();
     private final SamlIdentityProviderConfigurator samlConfigurator;
     private final IdentityProviderConfigValidator configValidator;
@@ -130,7 +137,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
             logger.debug("IdentityProvider[origin=%s; zone=%s] - Configuration validation error.".formatted(body.getOriginKey(), body.getIdentityZoneId()), e);
-            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(redacted(body), UNPROCESSABLE_ENTITY);
         }
         if (SAML.equals(body.getType())) {
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
@@ -141,7 +148,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
 
         if (!idpAliasHandler.aliasPropertiesAreValid(body, null)) {
-            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(redacted(body), UNPROCESSABLE_ENTITY);
         }
 
         // persist IdP and create alias if necessary
@@ -201,11 +208,12 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         body.setId(id);
         body.setIdentityZoneId(zoneId);
         patchSensitiveData(id, body);
+        patchJwtClientAuthenticationKey(existing, body);
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
             logger.debug("IdentityProvider[origin=%s; zone=%s] - Configuration validation error for update.".formatted(body.getOriginKey(), body.getIdentityZoneId()), e);
-            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(redacted(body), UNPROCESSABLE_ENTITY);
         }
 
         if (!idpAliasHandler.aliasPropertiesAreValid(body, existing)) {
@@ -213,7 +221,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                 logger.warn("IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of IdP with alias.",
                         getCleanedUserControlString(body.getOriginKey()), getCleanedUserControlString(body.getIdentityZoneId()));
             }
-            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(redacted(body), UNPROCESSABLE_ENTITY);
         }
 
         if (SAML.equals(body.getType())) {
@@ -237,15 +245,15 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                 return idpAliasHandler.ensureConsistencyOfAliasEntity(updatedOriginalIdp, existing);
             });
         } catch (final IdpAlreadyExistsException _) {
-            return new ResponseEntity<>(body, CONFLICT);
+            return new ResponseEntity<>(redacted(body), CONFLICT);
         } catch (final EntityAliasFailedException e) {
             logger.warn("Could not create alias for %s".formatted(e.getMessage()));
             final HttpStatus responseCode = Optional.ofNullable(HttpStatus.resolve(e.getHttpStatus())).orElse(INTERNAL_SERVER_ERROR);
-            return new ResponseEntity<>(body, responseCode);
+            return new ResponseEntity<>(redacted(body), responseCode);
         } catch (final Exception e) {
             logger.warn("Unable to %s IdentityProvider[origin=%s; zone=%s]".formatted(
                     status == CREATED ? "create" : "update", body.getOriginKey(), body.getIdentityZoneId()), e);
-            return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(redacted(body), INTERNAL_SERVER_ERROR);
         }
         if (updatedIdp == null) {
             if (logger.isWarnEnabled()) {
@@ -254,7 +262,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                         getCleanedUserControlString(body.getOriginKey()), getCleanedUserControlString(body.getIdentityZoneId()),
                         status == CREATED ? "creating" : "updating");
             }
-            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+            return new ResponseEntity<>(redacted(body), UNPROCESSABLE_ENTITY);
         }
         updatedIdp.setSerializeConfigRaw(rawConfig);
         setAuthMethod(updatedIdp);
@@ -450,6 +458,30 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
     }
 
+    // Keeps the stored key that reads do not return. A reference is returned by reads, so leaving it out removes it.
+    private void patchJwtClientAuthenticationKey(IdentityProvider existing, IdentityProvider provider) {
+        if (!(provider.getConfig() instanceof OIDCIdentityProviderDefinition definition)
+                || !(definition.getJwtClientAuthentication() instanceof Map<?, ?> sent)
+                || sent.get(JWT_CLIENT_KEY) != null) {
+            return;
+        }
+        if (existing != null
+                && existing.getConfig() instanceof OIDCIdentityProviderDefinition existingDefinition
+                && existingDefinition.getJwtClientAuthentication() instanceof Map<?, ?> stored
+                && isRedactedJwtClientKey(stored.get(JWT_CLIENT_KEY))) {
+            Map<Object, Object> patched = new HashMap<>(sent);
+            patched.put(JWT_CLIENT_KEY, stored.get(JWT_CLIENT_KEY));
+            definition.setJwtClientAuthentication(patched);
+        }
+    }
+
+    // Error responses return the request body. On an update it carries the stored secrets that were copied into it
+    // for validation; on a create the caller already has what it sent. Neither is echoed.
+    private IdentityProvider redacted(IdentityProvider provider) {
+        redactSensitiveData(provider);
+        return provider;
+    }
+
     protected void redactSensitiveData(IdentityProvider provider) {
         if (provider.getConfig() == null) {
             return;
@@ -467,12 +499,29 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                     logger.debug("Removing relying secret from OAuth/OIDC provider id: {}", provider.getId());
                     definition.setRelyingPartySecret(null);
                 }
+                redactJwtClientAuthenticationKey(provider);
                 break;
             }
             default:
                 break;
 
         }
+    }
+
+    // An inline private key is removed. A ${name} reference is configuration, not a secret, and stays.
+    private void redactJwtClientAuthenticationKey(IdentityProvider provider) {
+        if (provider.getConfig() instanceof OIDCIdentityProviderDefinition definition
+                && definition.getJwtClientAuthentication() instanceof Map<?, ?> jwtClientAuthentication
+                && isRedactedJwtClientKey(jwtClientAuthentication.get(JWT_CLIENT_KEY))) {
+            logger.debug("Removing private key from jwtClientAuthentication of OIDC provider id: {}", provider.getId());
+            Map<Object, Object> redactedMap = new HashMap<>(jwtClientAuthentication);
+            redactedMap.remove(JWT_CLIENT_KEY);
+            definition.setJwtClientAuthentication(redactedMap);
+        }
+    }
+
+    private static boolean isRedactedJwtClientKey(Object key) {
+        return key instanceof String value && !JWT_CLIENT_KEY_REFERENCE.matcher(value).matches();
     }
 
     protected boolean secretNeeded(AbstractExternalOAuthIdentityProviderDefinition abstractExternalOAuthIdentityProviderDefinition) {
