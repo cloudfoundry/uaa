@@ -19,7 +19,5 @@ public class OAuth2SecurityNamespaceHandler extends NamespaceHandlerSupport {
         registerBeanDefinitionParser("client", new ClientBeanDefinitionParser());
         registerBeanDefinitionParser("resource", new ResourceBeanDefinitionParser());
         registerBeanDefinitionParser("rest-template", new RestTemplateBeanDefinitionParser());
-        registerBeanDefinitionParser("expression-handler", new ExpressionHandlerBeanDefinitionParser());
-        registerBeanDefinitionParser("web-expression-handler", new WebExpressionHandlerBeanDefinitionParser());
     }
 }
