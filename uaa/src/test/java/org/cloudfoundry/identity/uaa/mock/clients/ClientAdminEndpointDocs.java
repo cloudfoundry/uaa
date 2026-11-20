@@ -129,7 +129,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
             fieldWithPath("status").description("`ok` when the change was applied."),
             fieldWithPath("message").description("A description of the applied change."),
             fieldWithPath("kids").type(ARRAY).description("The key ids (`kid`) of the JWK set of the client after the change, as stored when the request finished. Changes of one client that arrive at the same time can replace each other; compare this list with the keys you want and send the change again if a key is missing."),
-            fieldWithPath("jwt_creds").type(ARRAY).description("The federated credentials (`iss`, `sub` or `sub_pattern`, `aud`) of the client after the change, as stored when the request finished. Use it like `kids`."),
+            fieldWithPath("jwt_creds").type(ARRAY).description("The federated credentials (`iss`, `sub` or `sub_pattern`, `aud`) of the client after the change, as stored when the request finished, including credentials that are kept as `jwt_creds` in the additional information of the client. It is the same list that a read of the client returns. Use it like `kids`."),
     };
 
     private static final FieldDescriptor[] clientJwtChangeFields = new FieldDescriptor[]{
