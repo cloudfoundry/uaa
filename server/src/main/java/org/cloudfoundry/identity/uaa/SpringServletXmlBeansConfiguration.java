@@ -20,7 +20,7 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.WebResponseExceptionTranslator;
-import org.cloudfoundry.identity.uaa.oauth.provider.vote.ScopeVoter;
+
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
@@ -30,7 +30,6 @@ import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler;
 import org.cloudfoundry.identity.uaa.security.IdpOutboundTrustCache;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -55,10 +54,7 @@ import org.springframework.context.support.ReloadableResourceBundleMessageSource
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDecisionVoter;
-import org.springframework.security.access.vote.AuthenticatedVoter;
-import org.springframework.security.access.vote.RoleVoter;
-import org.springframework.security.access.vote.UnanimousBased;
+
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.firewall.RequestRejectedHandler;
@@ -181,11 +177,6 @@ public class SpringServletXmlBeansConfiguration {
     }
 
     @Bean
-    ContextSensitiveOAuth2WebSecurityExpressionHandler oauthWebExpressionHandler() {
-        return new ContextSensitiveOAuth2WebSecurityExpressionHandler();
-    }
-
-    @Bean
     ReloadableResourceBundleMessageSource messageSource() {
         String basenames = System.getenv().get("CLOUDFOUNDRY_CONFIG_PATH");
         if (basenames != null) {
@@ -224,17 +215,6 @@ public class SpringServletXmlBeansConfiguration {
         OAuth2AuthenticationEntryPoint bean = new OAuth2AuthenticationEntryPoint();
         bean.setRealmName("UAA/oauth");
         return bean;
-    }
-
-    @Bean
-    UnanimousBased accessDecisionManager() {
-        List<AccessDecisionVoter<?>> voters = new ArrayList<>();
-        ScopeVoter scopeVoter = new ScopeVoter();
-        scopeVoter.setScopePrefix("scope=");
-        voters.add(scopeVoter);
-        voters.add(new RoleVoter());
-        voters.add(new AuthenticatedVoter());
-        return new UnanimousBased(voters);
     }
 
     @Bean

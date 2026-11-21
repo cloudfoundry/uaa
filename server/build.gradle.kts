@@ -23,7 +23,6 @@ dependencies {
     implementation(libs.springJdbc)
     implementation(libs.springWeb)
     implementation(libs.springSecurityCore)
-    implementation(libs.springSecurityAccess)
     implementation(libs.springSecurityWeb)
     implementation(libs.springSecurityConfig)
     implementation(libs.springBootStarterMail)
