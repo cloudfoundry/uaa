@@ -34,6 +34,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.security.access.AccessDeniedException;
+import static org.mockito.Mockito.doThrow;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -142,6 +146,21 @@ class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter("password", "koala");
         filter.doFilter(request, response, chain);
         verify(entryPoint, times(1)).commence(same(request), same(response), any(PasswordChangeRequiredException.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {GRANT_TYPE_JWT_BEARER, GRANT_TYPE_TOKEN_EXCHANGE})
+    void networkDenialClearsContextWithoutInvokingDownstream(String grantType) throws Exception {
+        request.addParameter(GRANT_TYPE, grantType);
+        SecurityContextHolder.getContext().setAuthentication(mock(UaaAuthentication.class));
+        doThrow(new AccessDeniedException("Administrative token source address is not allowed"))
+                .when(filter).attemptTokenAuthentication(request, response);
+        filter.doFilter(request, response, chain);
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getContentAsString()).contains("access_denied");
+        assertThat(response.getHeader("Cache-Control")).isEqualTo("no-store");
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verifyNoInteractions(chain, entryPoint, requestFactory);
     }
 
     @Test

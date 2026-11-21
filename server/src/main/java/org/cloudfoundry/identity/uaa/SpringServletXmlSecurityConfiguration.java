@@ -166,6 +166,7 @@ public class SpringServletXmlSecurityConfiguration {
 
     @Bean
     SecurityFilterChainPostProcessor securityFilterChainPostProcessor(
+            org.cloudfoundry.identity.uaa.oauth.AdminTokenNetworkPolicy adminTokenNetworkPolicy,
             MtlsFeaturePolicy mtlsFeaturePolicy,
             UaaProperties.RootLevel rootLevel,
             @Qualifier("tracingFilter") FilterRegistrationBean<Filter> tracingFilter,
@@ -191,6 +192,7 @@ public class SpringServletXmlSecurityConfiguration {
         Filter utf8ConversionFilter = new UTF8ConversionFilter();
 
         SecurityFilterChainPostProcessor bean = new SecurityFilterChainPostProcessor();
+        bean.setAdminTokenNetworkPolicy(adminTokenNetworkPolicy);
         bean.setDumpRequests(rootLevel.dump_requests());
         bean.setRequireHttps(rootLevel.require_https());
         bean.setHttpsPort(rootLevel.https_port());

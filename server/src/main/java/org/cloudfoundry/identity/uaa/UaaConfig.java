@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties({
         UaaProperties.Uaa.class,
+        UaaProperties.AdminTokenNetworkPolicy.class,
         UaaProperties.Login.class,
         UaaProperties.Logout.class,
         UaaProperties.Servlet.class,
@@ -23,6 +24,12 @@ import org.springframework.context.annotation.Configuration;
         UaaProperties.DefaultClientSecretPolicy.class
 })
 public class UaaConfig {
+
+    @Bean
+    public org.cloudfoundry.identity.uaa.oauth.AdminTokenNetworkPolicy adminTokenNetworkPolicy(
+            UaaProperties.AdminTokenNetworkPolicy properties) {
+        return new org.cloudfoundry.identity.uaa.oauth.AdminTokenNetworkPolicy(properties);
+    }
 
     @Bean
     public KeyInfoService keyInfoService(UaaProperties.Uaa uaaProperties) {

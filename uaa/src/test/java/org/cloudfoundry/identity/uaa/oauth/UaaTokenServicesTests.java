@@ -110,6 +110,100 @@ class UaaTokenServicesTests {
     private MultitenantClientServices jdbcClientDetailsService;
 
     @Nested
+    class WithAdminTokenNetworkPolicy {
+        @Autowired
+        private AdminTokenNetworkPolicy originalPolicy;
+        @Autowired
+        private RefreshTokenCreator refreshTokenCreator;
+
+        @BeforeEach
+        void enablePolicy() {
+            tokenServices.setAdminTokenNetworkPolicy(new AdminTokenNetworkPolicy(
+                    new org.cloudfoundry.identity.uaa.UaaProperties.AdminTokenNetworkPolicy(
+                            true, List.of("192.0.2.0/24"), List.of())));
+        }
+
+        @AfterEach
+        void restorePolicy() {
+            tokenServices.setAdminTokenNetworkPolicy(originalPolicy);
+            tokenServices.setUaaTokenEnhancers(List.of());
+            org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT, GRANT_TYPE_TOKEN_EXCHANGE})
+        void deniesAdministrativeUserGrantsButPreservesOrdinaryTokens(String grantType) {
+            AuthorizationRequest admin = constructAuthorizationRequest(clientId, grantType, "uaa.admin");
+            assertThatThrownBy(() -> tokenServices.createAccessToken(constructUserAuthenticationFromAuthzRequest(admin, "admin", "uaa")))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            AuthorizationRequest ordinary = constructAuthorizationRequest(clientId, grantType, "openid");
+            assertThat(tokenServices.createAccessToken(constructUserAuthenticationFromAuthzRequest(ordinary, "admin", "uaa"))).isNotNull();
+        }
+
+        @Test
+        void allowsAdministrativeIssuanceFromCurrentAllowedRequest() {
+            org.springframework.mock.web.MockHttpServletRequest request = new org.springframework.mock.web.MockHttpServletRequest();
+            request.setRemoteAddr("192.0.2.10");
+            org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                    new org.springframework.web.context.request.ServletRequestAttributes(request));
+            AuthorizationRequest admin = constructAuthorizationRequest(clientId, GRANT_TYPE_PASSWORD, "uaa.admin");
+            assertThat(tokenServices.createAccessToken(constructUserAuthenticationFromAuthzRequest(admin, "admin", "uaa"))).isNotNull();
+        }
+
+        @Test
+        void deniesDownscopedClientCredentialsWhenAuthoritiesRemainAdministrative() {
+            AuthorizationRequest request = constructAuthorizationRequest("admin", GRANT_TYPE_CLIENT_CREDENTIALS, "openid");
+            assertThatThrownBy(() -> tokenServices.createAccessToken(new OAuth2Authentication(request.createOAuth2Request(), null)))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        @Test
+        void deniesRefreshWithRetainedAdministrativeScopesEvenWhenDownscoped() {
+            String refreshClientId = "network-policy-" + java.util.UUID.randomUUID();
+            UaaClientDetails client = new UaaClientDetails(jdbcClientDetailsService.loadClientByClientId(clientId));
+            client.setClientId(refreshClientId);
+            client.setScope(Set.of("openid", "uaa.admin"));
+            jdbcClientDetailsService.addClientDetails(client);
+            try {
+                RefreshTokenRequestData data = new RefreshTokenRequestData(
+                        GRANT_TYPE_AUTHORIZATION_CODE, Set.of("openid", "uaa.admin"), null, "",
+                        Set.of(refreshClientId), refreshClientId, false, new Date(), null, Map.of());
+                var refresh = refreshTokenCreator.createRefreshToken(jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa"),
+                        data, null, System.currentTimeMillis());
+                assertThatThrownBy(() -> tokenServices.refreshAccessToken(refresh.getValue(),
+                        new TokenRequest(Map.of(), refreshClientId, List.of("openid"), GRANT_TYPE_REFRESH_TOKEN)))
+                        .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            } finally {
+                jdbcClientDetailsService.removeClientDetails(refreshClientId);
+            }
+        }
+
+        @Test
+        void checksFinalClaimsAfterEnhancerOverrides() {
+            UaaTokenEnhancer enhancer = new UaaTokenEnhancer() {
+                @Override
+                public Map<String, String> getExternalAttributes(OAuth2Authentication authentication) {
+                    return Map.of();
+                }
+
+                @Override
+                public Set<String> getLateOverrideClaims() {
+                    return Set.of("scope");
+                }
+
+                @Override
+                public Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
+                    return Map.of("scope", List.of("cloud_controller.admin"));
+                }
+            };
+            tokenServices.setUaaTokenEnhancers(List.of(enhancer));
+            AuthorizationRequest ordinary = constructAuthorizationRequest(clientId, GRANT_TYPE_PASSWORD, "openid");
+            assertThatThrownBy(() -> tokenServices.createAccessToken(constructUserAuthenticationFromAuthzRequest(ordinary, "admin", "uaa")))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("when performing a token exchange")
     @DefaultTestContext
     class WhenPerformingATokenExchange {

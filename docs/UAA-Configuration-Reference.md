@@ -14,6 +14,7 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
   - [Database](#database)
   - [Servlet & Session](#servlet--session)
   - [JWT Token Policy](#jwt-token-policy)
+  - [Administrative Token Network Policy](#administrative-token-network-policy)
   - [OAuth Clients & Users](#oauth-clients--users)
   - [Password Policy](#password-policy)
   - [Client Secret Policy](#client-secret-policy)
@@ -41,6 +42,26 @@ or `$CLOUDFOUNDRY_CONFIG_PATH/uaa.yml`.
 ---
 
 ## Property Quick-Reference Table
+
+### Administrative Token Network Policy
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `uaa.admin_token_network_policy.enabled` | `false` | Boolean; restrict protected token issuance, refresh, and UAA bearer usage across all identity zones |
+| `uaa.admin_token_network_policy.allowed_cidrs` | `[]` | List of numeric IPv4/IPv6 hosts or CIDRs; empty means deny-all when enabled; invalid entries fail startup |
+| `uaa.admin_token_network_policy.additional_protected_scopes` | `[]` | List of exact additional scope/authority names; extends non-removable built-in protected scopes |
+
+```yaml
+uaa:
+  admin_token_network_policy:
+    enabled: true
+    allowed_cidrs: [192.0.2.10/32, '2001:db8::/32']
+    additional_protected_scopes: [clients.write]
+```
+
+These addresses are examples. Configure container proxy trust separately and configure the matching
+Cloud Controller use-time policy. See [Administrative token network policy](Administrative-Token-Network-Policy.md)
+for protected scopes, parsing rules, HTTP errors, proxy trust, and rollout prerequisites.
 
 ### Core / General
 
