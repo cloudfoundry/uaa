@@ -50,6 +50,13 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.security.access.AccessDeniedException;
+import org.cloudfoundry.identity.uaa.UaaProperties;
+import org.cloudfoundry.identity.uaa.oauth.AdminTokenNetworkPolicy;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -1332,6 +1339,46 @@ class ExternalOAuthAuthenticationManagerTest {
         JWTClaimsSet result = manager.verifySubjectToken(subjectToken);
 
         assertThat(result.getSubject()).isEqualTo("abc-def-asdf");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"uaa.admin", "cloud_controller.admin", "zones.tenant.admin"})
+    void administrativeAssertionsAndExchangeSubjectsRequireAllowedCurrentSource(String scope) {
+        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
+        ExternalOAuthAuthenticationManager manager = new ExternalOAuthAuthenticationManager(
+                identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(),
+                tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher, false) {
+            @Override
+            public IdentityProvider resolveOriginProvider(String token) {
+                return provider;
+            }
+        };
+        manager.setAdminTokenNetworkPolicy(new AdminTokenNetworkPolicy(
+                new UaaProperties.AdminTokenNetworkPolicy(true, List.of("192.0.2.0/24"), List.of())));
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Map.of("uaa-key", UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY));
+        JWSSigner signer = new KeyInfo("uaa-key", UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY, DEFAULT_UAA_URL).getSigner();
+        Map<String, Object> header = Map.of(HeaderParameterNames.ALGORITHM, "RS256", HeaderParameterNames.KEY_ID, "uaa-key");
+        Map<String, Object> claims = new HashMap<>(Map.of(
+                ISS, oidcConfig.getIssuer(), AUD, "uaa-relying-party", EMAIL, "someuser@google.com",
+                EXPIRY_IN_SECONDS, System.currentTimeMillis() / 1000L + 60, SUB, "abc-def-asdf", "scope", List.of(scope)));
+        String administrative = UaaTokenUtils.constructToken(header, claims, signer);
+        claims.put("scope", List.of("openid"));
+        String ordinary = UaaTokenUtils.constructToken(header, claims, signer);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("198.51.100.1");
+        request.addHeader("X-Forwarded-For", "192.0.2.1");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        try {
+            assertThatThrownBy(() -> manager.verifySubjectToken(administrative)).isInstanceOf(AccessDeniedException.class);
+            ExternalOAuthCodeToken assertion = new ExternalOAuthCodeToken(null, ORIGIN, null, administrative, null, null);
+            assertThatThrownBy(() -> manager.getExternalAuthenticationDetails(assertion)).isInstanceOf(AccessDeniedException.class);
+            assertThat(manager.verifySubjectToken(ordinary).getSubject()).isEqualTo("abc-def-asdf");
+            request.setRemoteAddr("192.0.2.1");
+            assertThat(manager.verifySubjectToken(administrative).getSubject()).isEqualTo("abc-def-asdf");
+            assertThat(manager.getExternalAuthenticationDetails(assertion)).isNotNull();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
     }
 
     private static void assertAuthorizationHeaderIsSetAndStartsWithBasic(final HttpHeaders headers) {

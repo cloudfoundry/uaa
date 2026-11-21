@@ -41,6 +41,9 @@ import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.AdminTokenNetworkPolicy;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -159,6 +162,13 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private final boolean externalGroupsFromMappedAuthorities;
     private final IdpOutboundTrustCache trustCache;
     private final RestTemplateConfig restTemplateConfig;
+    private AdminTokenNetworkPolicy adminTokenNetworkPolicy = AdminTokenNetworkPolicy.disabled();
+
+    @Autowired
+    public void setAdminTokenNetworkPolicy(AdminTokenNetworkPolicy policy) {
+        Objects.requireNonNull(policy, "Administrative token network policy is required");
+        this.adminTokenNetworkPolicy = policy;
+    }
 
     public ExternalOAuthAuthenticationManager(
             IdentityProviderProvisioning providerProvisioning,
@@ -809,6 +819,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
      * @return the verified and expiry-checked {@link JWTClaimsSet}
      * @throws InsufficientAuthenticationException if the issuer cannot be mapped to a registered provider
      * @throws InvalidTokenException               if the signature or expiry checks fail
+     * @throws AccessDeniedException               if administrative subject-token use is prohibited
      */
     public JWTClaimsSet verifySubjectToken(String idToken) {
         IdentityProvider provider = resolveOriginProvider(idToken);
@@ -817,7 +828,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
         try {
             return validateToken(idToken, config, false).getJwt().getClaimSet();
-        } catch (InvalidTokenException e) {
+        } catch (InvalidTokenException | AccessDeniedException e) {
             throw e;
         } catch (RuntimeException e) {
             throw new InvalidTokenException("Unable to verify subject_token", e);
@@ -863,7 +874,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 jwtToken.checkAudience(config.getRelyingPartyId());
             }
         }
-        return jwtToken.checkExpiry();
+        jwtToken.checkExpiry();
+        // Assertions and exchange subject tokens are credentials, even when output scopes are ordinary.
+        // This validation path is not used for introspection subjects.
+        adminTokenNetworkPolicy.checkClaims(JsonUtils.readValueAsMap(jwtToken.getJwt().getClaims()));
+        return jwtToken;
     }
 
     protected List<SignatureVerifier> getTokenKeyForUaaOrigin() {

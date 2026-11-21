@@ -46,6 +46,7 @@ import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -190,6 +191,13 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
                 onSuccessfulAuthentication();
             }
+        } catch (AccessDeniedException denied) {
+            onUnsuccessfulAuthentication();
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json;charset=UTF-8");
+            response.setHeader("Cache-Control", "no-store");
+            response.getWriter().write("{\"error\":\"access_denied\",\"error_description\":\"Administrative token source address is not allowed\"}");
+            return;
         } catch (AuthenticationException failed) {
             log.debug("Authentication request failed: {}", failed.getMessage());
             onUnsuccessfulAuthentication();
