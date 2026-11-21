@@ -67,6 +67,19 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     @Override
     public List<T> query(String filter, String sortBy, boolean ascending, String zoneId) {
+        return queryWithPageSize(filter, sortBy, ascending, zoneId, pageSize);
+    }
+
+    /** Query lazily, fetching no more than the requested number of rows per database page. */
+    public List<T> query(String filter, String sortBy, boolean ascending, String zoneId, int maxPageSize) {
+        if (maxPageSize <= 0) {
+            throw new IllegalArgumentException("Maximum page size must be positive");
+        }
+        int effectivePageSize = pageSize > 0 ? Math.min(pageSize, maxPageSize) : maxPageSize;
+        return queryWithPageSize(filter, sortBy, ascending, zoneId, effectivePageSize);
+    }
+
+    private List<T> queryWithPageSize(String filter, String sortBy, boolean ascending, String zoneId, int fetchSize) {
         validateOrderBy(queryConverter.map(sortBy));
 
         SearchQueryConverter.ProcessedFilter where = queryConverter.convert(filter, sortBy, ascending, zoneId);
@@ -75,8 +88,8 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         try {
             String completeSql = getQuerySQL(where);
             logger.debug("complete sql: {}, params: {}", completeSql, where.getParams());
-            if (pageSize > 0 && pageSize < Integer.MAX_VALUE) {
-                result = pagingListFactory.createJdbcPagingList(completeSql, where.getParams(), rowMapper, pageSize);
+            if (fetchSize > 0 && fetchSize < Integer.MAX_VALUE) {
+                result = pagingListFactory.createJdbcPagingList(completeSql, where.getParams(), rowMapper, fetchSize);
             } else {
                 result = namedParameterJdbcTemplate.query(completeSql, where.getParams(), rowMapper);
             }

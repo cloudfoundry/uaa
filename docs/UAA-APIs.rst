@@ -105,6 +105,12 @@ There are four different data types
 * boolean - values must be either ``true`` or ``false`` and not enclosed in quotes
 * numerical - values are not enclosed in quotes, and can contain numbers and a dot for decimal delimitation
 
+Group listing uses database-backed pagination. Database fetches are bounded by the effective
+``count`` (after applying ``groupMaxCount``) and the configured database page size.
+``totalResults`` still reports all groups matching the filter in the current identity zone,
+including when the requested page is empty. Membership details are loaded only for returned
+groups when requested by ``attributes`` or when no attribute projection is specified.
+
 For complete information on filters and pagination, please review the [specification](http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources)
 
 User column names
