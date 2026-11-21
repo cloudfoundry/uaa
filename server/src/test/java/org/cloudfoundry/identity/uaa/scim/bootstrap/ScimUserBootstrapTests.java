@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
+import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -1022,8 +1023,23 @@ class ScimUserBootstrapTests {
         validateAuthoritiesCreated(add ? externalAuthorities : new String[0], userAuthorities, origin, created, jdbcScimGroupMembershipManager);
 
         externalAuthorities = new String[]{"extTest1", "extTest2"};
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+        bootstrap.setApplicationEventPublisher(publisher);
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities), add));
         validateAuthoritiesCreated(add ? externalAuthorities : new String[0], userAuthorities, origin, created, jdbcScimGroupMembershipManager);
+        if (add) {
+            ArgumentCaptor<ApplicationEvent> captor = ArgumentCaptor.forClass(ApplicationEvent.class);
+            verify(publisher).publishEvent(captor.capture());
+            assertThat(captor.getValue()).isInstanceOfSatisfying(GroupModifiedEvent.class, event -> {
+                ScimGroup removedGroup = jdbcScimGroupProvisioning.getByName("extTest3", IdentityZone.getUaaZoneId());
+                assertThat(event.getGroupId()).isEqualTo(removedGroup.getId());
+                assertThat(event.getMembers()).isEmpty();
+                assertThat(jdbcScimGroupMembershipManager.getMembers(removedGroup.getId(), false, IdentityZone.getUaaZoneId()))
+                        .isEmpty();
+            });
+        } else {
+            verify(publisher, never()).publishEvent(any(ApplicationEvent.class));
+        }
     }
 
     private static void validateAuthoritiesCreated(
@@ -1327,3 +1343,4 @@ class ScimUserBootstrapTests {
         verify(bootstrap, never()).updateUser(any(), eq(user));
     }
 }
+
