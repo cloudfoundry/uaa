@@ -240,7 +240,7 @@ public class OidcMetadataFetcher implements DisposableBean {
         if (rawContents != null && rawContents.length > 0) {
             String json = new String(rawContents, StandardCharsets.UTF_8);
             requireAtMostKeys(json, ClientJwtConfiguration.MAX_KEY_SIZE);
-            ClientJwtConfiguration clientKeys = ClientJwtConfiguration.parse(null, json);
+            ClientJwtConfiguration clientKeys = ClientJwtConfiguration.parseKeepingLastKeyPerKid(null, json);
             if (clientKeys != null && clientKeys.getJwkSet() != null) {
                 return CachedKeySet.of(clientKeys.getJwkSet(), rawContents.length);
             }

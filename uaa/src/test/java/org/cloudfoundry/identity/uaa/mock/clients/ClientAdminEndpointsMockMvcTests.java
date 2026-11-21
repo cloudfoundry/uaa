@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
@@ -53,6 +54,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +62,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -2488,5 +2491,304 @@ class ClientAdminEndpointsMockMvcTests {
                 .content(JsonUtils.writeValueAsString(client));
         mockMvc.perform(createClientPost).andExpect(status().isCreated());
         return getClient(client.getClientId());
+    }
+
+    private static final String CLIENT_JWT_CONFIG_WITH_ONE_KEY = "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"new-key\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}]}}";
+    private static final String JWK_KEY_1 = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
+    private static final String JWK_KEY_1_DIFFERENT_VALUE = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"new\"}";
+    private static final String JWK_KEY_2 = JWK_KEY_1.replace("key-1", "key-2");
+
+    private enum JwtConfigRoute {
+        CLIENT_JWT_CONFIG_PROPERTY,
+        JWT_CREDS_ADDITIONAL_INFORMATION
+    }
+
+    private UaaClientDetails clientBody(String id, JwtConfigRoute route) throws Exception {
+        UaaClientDetails body = new UaaClientDetails(getClient(id));
+        body.setClientSecret(null);
+        body.setScope(List.of("uaa.none"));
+        if (route == JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY) {
+            body.setClientJwtConfig(CLIENT_JWT_CONFIG_WITH_ONE_KEY);
+        } else if (route == JwtConfigRoute.JWT_CREDS_ADDITIONAL_INFORMATION) {
+            body.addAdditionalInformation(ClientJwtConfiguration.JWT_CREDS,
+                    List.of(Map.of("sub", "added-subject", "iss", "https://added-issuer.example.com")));
+        }
+        return body;
+    }
+
+    private String storedClientJwtConfig(String clientId) {
+        return webApplicationContext.getBean(JdbcTemplate.class).queryForObject(
+                "select client_jwt_config from oauth_client_details where client_id=? and identity_zone_id='uaa'", String.class, clientId);
+    }
+
+    private ClientDetails createClientWithoutJwtConfig(String id) throws Exception {
+        UaaClientDetails body = new UaaClientDetails(id, null, "uaa.none", "client_credentials", "uaa.none");
+        body.setClientSecret(SECRET);
+        mockMvc.perform(post("/oauth/clients")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(body)))
+                .andExpect(status().isCreated());
+        return getClient(id);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions updateClient(String token, String id, UaaClientDetails body) throws Exception {
+        return mockMvc.perform(put("/oauth/clients/" + id)
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(body)));
+    }
+
+    private String clientsWriteOnlyToken() throws Exception {
+        return testClient.getClientCredentialsOAuthAccessToken(testAccounts.getAdminClientId(), testAccounts.getAdminClientSecret(), "clients.write");
+    }
+
+    // Changing the keys a client authenticates with has its own endpoint, PUT /oauth/clients/{id}/clientjwt,
+    // for callers with clients.trust (or admin). A caller with only clients.write must not be able to add a jwt
+    // configuration through the general update, neither as the client_jwt_config property nor as jwt_creds in the
+    // additional information. The update succeeds, and the value is ignored.
+    @ParameterizedTest
+    @EnumSource(JwtConfigRoute.class)
+    void update_by_a_caller_with_only_clients_write_does_not_add_a_client_jwt_configuration(JwtConfigRoute route) throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+
+        updateClient(clientsWriteOnlyToken(), id, clientBody(id, route)).andExpect(status().isOk());
+
+        assertThat(String.valueOf(storedClientJwtConfig(id))).as("stored client_jwt_config").doesNotContain("new-key", "added-subject");
+    }
+
+    // A client_jwt_config that is not valid JSON is rejected with 400, also for a caller whose value would be ignored.
+    @Test
+    void update_by_a_caller_with_only_clients_write_with_a_malformed_client_jwt_config_is_rejected() throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        UaaClientDetails body = clientBody(id, null);
+        body.setClientJwtConfig("not json");
+
+        updateClient(clientsWriteOnlyToken(), id, body).andExpect(status().isBadRequest());
+
+        assertThat(storedClientJwtConfig(id)).isNull();
+    }
+
+    // Guard: an admin caller can still set the jwt configuration
+    // through the general update.
+    @ParameterizedTest
+    @EnumSource(JwtConfigRoute.class)
+    void update_by_an_admin_still_adds_a_client_jwt_configuration(JwtConfigRoute route) throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+
+        updateClient(adminToken, id, clientBody(id, route)).andExpect(status().isOk());
+
+        assertThat(storedClientJwtConfig(id)).as("stored client_jwt_config").containsAnyOf("new-key", "added-subject");
+    }
+
+    // Guard: an update without any jwt configuration, from a caller
+    // with only clients.write, leaves the stored configuration in place.
+    @Test
+    void update_by_a_caller_with_only_clients_write_keeps_the_stored_client_jwt_configuration_when_none_is_sent() throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        updateClient(adminToken, id, clientBody(id, JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY)).andExpect(status().isOk());
+        String before = storedClientJwtConfig(id);
+
+        updateClient(clientsWriteOnlyToken(), id, clientBody(id, null)).andExpect(status().isOk());
+
+        assertThat(storedClientJwtConfig(id)).isEqualTo(before);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void update_by_a_caller_with_only_clients_write_preserves_raw_stored_jwt_configuration(boolean sendConfiguration) throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        UaaClientDetails body = clientBody(id, sendConfiguration ? JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY : null);
+        body.setAccessTokenValiditySeconds(73);
+        String stored = "{ \"unknown\": true, \"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_1_DIFFERENT_VALUE + "]}}";
+        webApplicationContext.getBean(JdbcTemplate.class).update(
+                "update oauth_client_details set client_jwt_config=? where client_id=? and identity_zone_id='uaa'", stored, id);
+
+        updateClient(clientsWriteOnlyToken(), id, body)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_jwt_config").value(stored))
+                .andExpect(jsonPath("$.access_token_validity").value(73))
+                .andExpect(jsonPath("$.client_secret").doesNotExist());
+
+        assertThat(storedClientJwtConfig(id)).isEqualTo(stored);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"CLIENT_JWT_CONFIG_PROPERTY,false", "CLIENT_JWT_CONFIG_PROPERTY,true",
+            "JWT_CREDS_ADDITIONAL_INFORMATION,false", "JWT_CREDS_ADDITIONAL_INFORMATION,true"})
+    void update_by_a_caller_with_only_clients_write_succeeds_with_unreadable_stored_jwt_configuration(JwtConfigRoute route, boolean malformedJson) throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        UaaClientDetails body = clientBody(id, route);
+        body.setAccessTokenValiditySeconds(73);
+        String stored = malformedJson ? "not json" : "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"kid\":\"unreadable\"}]}}";
+        webApplicationContext.getBean(JdbcTemplate.class).update(
+                "update oauth_client_details set client_jwt_config=? where client_id=? and identity_zone_id='uaa'", stored, id);
+
+        updateClient(clientsWriteOnlyToken(), id, body)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_jwt_config").value(stored))
+                .andExpect(jsonPath("$.access_token_validity").value(73))
+                .andExpect(jsonPath("$.client_secret").doesNotExist())
+                .andExpect(jsonPath("$.jwks").doesNotExist())
+                .andExpect(jsonPath("$.jwks_uri").doesNotExist())
+                .andExpect(jsonPath("$.jwt_creds").doesNotExist());
+
+        assertThat(storedClientJwtConfig(id)).isEqualTo(stored);
+    }
+
+    // On create, the documented jwks_uri and jwks fields are validated, which rejects for example a
+    // jwks_uri with http on a host other than localhost. The raw client_jwt_config property must be held to the same
+    // rules.
+    @Test
+    void create_with_a_raw_client_jwt_config_is_validated_like_the_jwks_uri_field() throws Exception {
+        String id = generator.generate();
+        UaaClientDetails body = new UaaClientDetails(id, null, null, "client_credentials", "uaa.none");
+        body.setClientSecret(SECRET);
+        body.setClientJwtConfig("{\"jwks_uri\":\"http://any.domain.net/openid/jwks-uri\"}");
+
+        mockMvc.perform(post("/oauth/clients")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    private static String rawConfigWithRepeatedKid(boolean differentKeys) {
+        return "{\"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + (differentKeys ? JWK_KEY_1_DIFFERENT_VALUE : JWK_KEY_1) + "]}}";
+    }
+
+    // The raw client_jwt_config property is held to the duplicate kid rule of the jwks field: a key set that repeats a
+    // kid is rejected on create, for different keys and for the same key repeated.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void create_with_a_raw_client_jwt_config_that_repeats_a_kid_is_rejected(boolean differentKeys) throws Exception {
+        UaaClientDetails body = new UaaClientDetails(generator.generate(), null, null, "client_credentials", "uaa.none");
+        body.setClientSecret(SECRET);
+        body.setClientJwtConfig(rawConfigWithRepeatedKid(differentKeys));
+
+        mockMvc.perform(post("/oauth/clients")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // The client_jwt_config can also be sent in the additionalInformation of the request, as a JSON string or as an
+    // object. The request body has to carry it under additionalInformation: a top-level client_jwt_config is the
+    // property above.
+    private org.springframework.test.web.servlet.ResultActions postClientWithNestedClientJwtConfig(String id, String clientJwtConfig, boolean asMap) throws Exception {
+        UaaClientDetails client = new UaaClientDetails(id, null, null, "client_credentials", "uaa.none");
+        client.setClientSecret(SECRET);
+        Map<String, Object> body = JsonUtils.readValue(JsonUtils.writeValueAsString(client), Map.class);
+        body.put("additionalInformation", Map.of("client_jwt_config", asMap ? JsonUtils.readValue(clientJwtConfig, Map.class) : clientJwtConfig));
+        return mockMvc.perform(post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(body)));
+    }
+
+    // That nested client_jwt_config is held to the same duplicate kid rule on create.
+    @ParameterizedTest
+    @CsvSource({"true,true", "true,false", "false,true", "false,false"})
+    void create_with_a_nested_client_jwt_config_that_repeats_a_kid_is_rejected(boolean asMap, boolean differentKeys) throws Exception {
+        postClientWithNestedClientJwtConfig(generator.generate(), rawConfigWithRepeatedKid(differentKeys), asMap)
+                .andExpect(status().isBadRequest());
+    }
+
+    // ... and validated like the jwks_uri field.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void create_with_a_nested_client_jwt_config_is_validated_like_the_jwks_uri_field(boolean asMap) throws Exception {
+        postClientWithNestedClientJwtConfig(generator.generate(), "{\"jwks_uri\":\"http://any.domain.net/openid/jwks-uri\"}", asMap)
+                .andExpect(status().isBadRequest());
+    }
+
+    // Guard: a nested key set with distinct kids is still stored, with both keys.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void create_with_a_nested_client_jwt_config_with_distinct_kids_stores_both_keys(boolean asMap) throws Exception {
+        String id = generator.generate();
+
+        postClientWithNestedClientJwtConfig(id, "{\"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_2 + "]}}", asMap)
+                .andExpect(status().isCreated());
+
+        assertThat(storedClientJwtConfig(id)).contains("key-1", "key-2");
+    }
+
+    // The same on an update by a caller who may change the jwt configuration: the request is rejected and the stored
+    // configuration stays as it was.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void update_by_an_admin_with_a_raw_client_jwt_config_that_repeats_a_kid_is_rejected(boolean differentKeys) throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        UaaClientDetails body = clientBody(id, null);
+        body.setClientJwtConfig(rawConfigWithRepeatedKid(differentKeys));
+
+        updateClient(adminToken, id, body).andExpect(status().isBadRequest());
+
+        assertThat(storedClientJwtConfig(id)).isNull();
+    }
+
+    // Guard: a client created before the rule can have a repeated kid in its stored client_jwt_config. A caller that
+    // reads the client and writes it back sends that value unchanged, and the update keeps working.
+    @Test
+    void update_with_the_stored_client_jwt_config_sent_back_unchanged_works_when_it_repeats_a_kid() throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        String stored = rawConfigWithRepeatedKid(true);
+        webApplicationContext.getBean(JdbcTemplate.class).update(
+                "update oauth_client_details set client_jwt_config=? where client_id=? and identity_zone_id='uaa'", stored, id);
+        UaaClientDetails body = clientBody(id, null);
+        body.setClientJwtConfig(stored);
+
+        updateClient(adminToken, id, body).andExpect(status().isOk());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions addClientJwtKeys(String id, String jwkSet) throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(testAccounts.getAdminClientId(), testAccounts.getAdminClientSecret(), "uaa.admin,clients.secret");
+        ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, jwkSet);
+        request.setClientId("admin");
+        request.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+        return mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", id)
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request)));
+    }
+
+    // A JWK set with two keys that have the same kid is rejected with a 400 (the duplicate kid rule), for
+    // different keys and for the same key repeated.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void add_client_jwt_keys_with_a_duplicate_kid_is_rejected(boolean differentKeys) throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        String second = differentKeys ? JWK_KEY_1_DIFFERENT_VALUE : JWK_KEY_1;
+
+        addClientJwtKeys(id, "{\"keys\":[" + JWK_KEY_1 + "," + second + "]}").andExpect(status().isBadRequest());
+    }
+
+    // Guard: a key set with distinct kids is accepted and both keys
+    // are stored.
+    @Test
+    void add_client_jwt_keys_with_distinct_kids_keeps_both_keys() throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+
+        addClientJwtKeys(id, "{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_2 + "]}").andExpect(status().isOk());
+
+        assertThat(storedClientJwtConfig(id)).contains("key-1", "key-2");
     }
 }

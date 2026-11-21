@@ -78,6 +78,18 @@ class OidcMetadataFetcherTest {
         assertThat(metadataDiscoverer.jwksRefreshExecutor().isShutdown()).isTrue();
     }
 
+    // Guard: a key set published at a client's jwks_uri that repeats a kid is used as before, with the last key
+    // of that kid. Only key sets that a caller submits to UAA are held to distinct kids.
+    @Test
+    void getConfigFromJwksUriThatRepeatsAKidKeepsTheLastKey() throws Exception {
+        remote.respond(HttpStatus.OK, ("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"first\"},"
+                + "{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"last\"}]}").getBytes(StandardCharsets.UTF_8));
+
+        JsonWebKeySet<JsonWebKey> keys = metadataDiscoverer.fetchWebKeySet(new ClientJwtConfiguration("http://token_keys", null));
+
+        assertThat(keys.getKeys()).singleElement().satisfies(key -> assertThat(key.getKeyProperties()).containsEntry("n", "last"));
+    }
+
     @Nested
     class WithDiscoveryUrl {
 
