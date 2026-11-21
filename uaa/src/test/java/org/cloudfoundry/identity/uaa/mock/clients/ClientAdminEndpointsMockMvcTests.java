@@ -2599,6 +2599,50 @@ class ClientAdminEndpointsMockMvcTests {
         assertThat(storedClientJwtConfig(id)).isEqualTo(before);
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void update_by_a_caller_with_only_clients_write_preserves_raw_stored_jwt_configuration(boolean sendConfiguration) throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        UaaClientDetails body = clientBody(id, sendConfiguration ? JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY : null);
+        body.setAccessTokenValiditySeconds(73);
+        String stored = "{ \"unknown\": true, \"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_1_DIFFERENT_VALUE + "]}}";
+        webApplicationContext.getBean(JdbcTemplate.class).update(
+                "update oauth_client_details set client_jwt_config=? where client_id=? and identity_zone_id='uaa'", stored, id);
+
+        updateClient(clientsWriteOnlyToken(), id, body)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_jwt_config").value(stored))
+                .andExpect(jsonPath("$.access_token_validity").value(73))
+                .andExpect(jsonPath("$.client_secret").doesNotExist());
+
+        assertThat(storedClientJwtConfig(id)).isEqualTo(stored);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"CLIENT_JWT_CONFIG_PROPERTY,false", "CLIENT_JWT_CONFIG_PROPERTY,true",
+            "JWT_CREDS_ADDITIONAL_INFORMATION,false", "JWT_CREDS_ADDITIONAL_INFORMATION,true"})
+    void update_by_a_caller_with_only_clients_write_succeeds_with_unreadable_stored_jwt_configuration(JwtConfigRoute route, boolean malformedJson) throws Exception {
+        String id = generator.generate();
+        createClientWithoutJwtConfig(id);
+        UaaClientDetails body = clientBody(id, route);
+        body.setAccessTokenValiditySeconds(73);
+        String stored = malformedJson ? "not json" : "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"kid\":\"unreadable\"}]}}";
+        webApplicationContext.getBean(JdbcTemplate.class).update(
+                "update oauth_client_details set client_jwt_config=? where client_id=? and identity_zone_id='uaa'", stored, id);
+
+        updateClient(clientsWriteOnlyToken(), id, body)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_jwt_config").value(stored))
+                .andExpect(jsonPath("$.access_token_validity").value(73))
+                .andExpect(jsonPath("$.client_secret").doesNotExist())
+                .andExpect(jsonPath("$.jwks").doesNotExist())
+                .andExpect(jsonPath("$.jwks_uri").doesNotExist())
+                .andExpect(jsonPath("$.jwt_creds").doesNotExist());
+
+        assertThat(storedClientJwtConfig(id)).isEqualTo(stored);
+    }
+
     // On create, the documented jwks_uri and jwks fields are validated, which rejects for example a
     // jwks_uri with http on a host other than localhost. The raw client_jwt_config property must be held to the same
     // rules.

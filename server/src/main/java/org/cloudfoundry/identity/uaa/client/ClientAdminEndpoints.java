@@ -287,7 +287,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 rejectRepeatedKidsInChangedClientJwtConfig(existing, client);
                 details[i] = syncWithExisting(existing, client);
             }
-            details[i] = clientDetailsValidator.validate(details[i], Mode.MODIFY);
+            details[i] = validateClientUpdate(details[i], existing);
         }
         return doProcessUpdates(details);
     }
@@ -341,7 +341,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             keepStoredClientJwtConfigurationForCallersWithoutPermission(details, existing);
         }
         rejectRepeatedKidsInChangedClientJwtConfig(existing, client);
-        details = clientDetailsValidator.validate(details, Mode.MODIFY);
+        details = validateClientUpdate(details, existing);
         clientRegistrationService.updateClientDetails(details, identityZoneManager.getCurrentIdentityZoneId());
         clientUpdates.incrementAndGet();
         return removeSecret(clientDetailsService.retrieve(clientId, identityZoneManager.getCurrentIdentityZoneId()));
@@ -728,6 +728,22 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return details;
     }
 
+    private ClientDetails validateClientUpdate(ClientDetails details, ClientDetails existing) {
+        if (details instanceof UaaClientDetails uaa && !mayChangeClientJwtConfiguration(uaa.getClientId())) {
+            // The supplied configuration was checked before merging. The retained stored value is not input:
+            // validate the other fields without reparsing it, then restore it verbatim, even if it is unreadable.
+            UaaClientDetails toValidate = new UaaClientDetails(uaa);
+            if (uaa.getAutoApproveScopes() != null) {
+                toValidate.setAutoApproveScopes(uaa.getAutoApproveScopes());
+            }
+            toValidate.setClientJwtConfig(null);
+            ClientDetails validated = clientDetailsValidator.validate(toValidate, Mode.MODIFY);
+            keepStoredClientJwtConfigurationForCallersWithoutPermission(validated, existing);
+            return validated;
+        }
+        return clientDetailsValidator.validate(details, Mode.MODIFY);
+    }
+
     private ClientDetails syncWithExisting(ClientDetails existing, ClientDetails input) {
         UaaClientDetails details = new UaaClientDetails(input);
         if (input instanceof UaaClientDetails baseInput) {
@@ -783,33 +799,32 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             if (StringUtils.hasText(inputUaa.getClientJwtConfig())) {
                 ClientJwtConfiguration.readSuppliedValue(inputUaa.getClientJwtConfig());
             }
-            UaaClient existingAsClient = new UaaClient(
-                    existingUaa.getClientId(),
-                    existingUaa.getClientSecret(),
-                    existingUaa.getAuthorities(),
-                    new HashMap<>(Optional.ofNullable(existingUaa.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
-                    existingUaa.getClientJwtConfig()
-            );
-            UaaClient inputAsClient = new UaaClient(
-                    inputUaa.getClientId(),
-                    inputUaa.getClientSecret(),
-                    inputUaa.getAuthorities(),
-                    new HashMap<>(Optional.ofNullable(inputUaa.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
-                    inputUaa.getClientJwtConfig()
-            );
-            ClientJwtConfiguration existingJwt = existingAsClient.getClientJwtConfiguration();
             // Changing the keys of a client has its own endpoint (PUT /oauth/clients/{id}/clientjwt, clients.trust).
-            // Callers that may not use it keep the stored configuration; a value sent back unchanged is no change.
-            ClientJwtConfiguration inputJwt = null;
+            // Callers that may not use it keep the raw stored configuration without parsing or normalizing it.
             if (mayChangeClientJwtConfiguration(existingUaa.getClientId())) {
-                inputJwt = inputAsClient.getClientJwtConfiguration();
+                UaaClient existingAsClient = new UaaClient(
+                        existingUaa.getClientId(),
+                        existingUaa.getClientSecret(),
+                        existingUaa.getAuthorities(),
+                        new HashMap<>(Optional.ofNullable(existingUaa.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
+                        existingUaa.getClientJwtConfig()
+                );
+                UaaClient inputAsClient = new UaaClient(
+                        inputUaa.getClientId(),
+                        inputUaa.getClientSecret(),
+                        inputUaa.getAuthorities(),
+                        new HashMap<>(Optional.ofNullable(inputUaa.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
+                        inputUaa.getClientJwtConfig()
+                );
+                ClientJwtConfiguration existingJwt = existingAsClient.getClientJwtConfiguration();
+                ClientJwtConfiguration inputJwt = inputAsClient.getClientJwtConfiguration();
                 inputJwt = ensureJwtCredsFromAdditionalInfoMap(additionalInformation, inputJwt);
+                ClientJwtConfiguration mergedJwtConfig = ClientJwtConfiguration.merge(existingJwt, inputJwt, false);
+                if (mergedJwtConfig != null && mergedJwtConfig.hasConfiguration()) {
+                    mergedJwtConfig.writeValue(detailsUaa);
+                }
             } else {
                 detailsUaa.setClientJwtConfig(existingUaa.getClientJwtConfig());
-            }
-            ClientJwtConfiguration mergedJwtConfig = ClientJwtConfiguration.merge(existingJwt, inputJwt, false);
-            if (mergedJwtConfig != null && mergedJwtConfig.hasConfiguration()) {
-                mergedJwtConfig.writeValue(detailsUaa);
             }
         }
 

@@ -107,6 +107,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // TODO: This class has a lot of helpers, why?
@@ -2517,6 +2518,52 @@ class ClientAdminEndpointsMockMvcZonePathTests {
         zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.write"), zone.body(id, null)).andExpect(status().isOk());
 
         assertThat(zone.stored(id)).isEqualTo(before);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,true", "SUBDOMAIN,false", "ZONE_PATH,true", "ZONE_PATH,false"})
+    void update_by_a_caller_with_only_clients_write_preserves_raw_stored_jwt_configuration(ZoneResolutionMode mode, boolean sendConfiguration) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+        UaaClientDetails body = zone.body(id, sendConfiguration ? JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY : null);
+        body.setAccessTokenValiditySeconds(73);
+        String stored = "{ \"unknown\": true, \"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_1_DIFFERENT_VALUE + "]}}";
+        webApplicationContext.getBean(JdbcTemplate.class).update(
+                "update oauth_client_details set client_jwt_config=? where client_id=? and identity_zone_id=?", stored, id, zone.zoneId);
+
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.write"), body)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_jwt_config").value(stored))
+                .andExpect(jsonPath("$.access_token_validity").value(73))
+                .andExpect(jsonPath("$.client_secret").doesNotExist());
+
+        assertThat(zone.stored(id)).isEqualTo(stored);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"SUBDOMAIN,CLIENT_JWT_CONFIG_PROPERTY,false", "SUBDOMAIN,CLIENT_JWT_CONFIG_PROPERTY,true",
+            "SUBDOMAIN,JWT_CREDS_ADDITIONAL_INFORMATION,false", "SUBDOMAIN,JWT_CREDS_ADDITIONAL_INFORMATION,true",
+            "ZONE_PATH,CLIENT_JWT_CONFIG_PROPERTY,false", "ZONE_PATH,CLIENT_JWT_CONFIG_PROPERTY,true",
+            "ZONE_PATH,JWT_CREDS_ADDITIONAL_INFORMATION,false", "ZONE_PATH,JWT_CREDS_ADDITIONAL_INFORMATION,true"})
+    void update_by_a_caller_with_only_clients_write_succeeds_with_unreadable_stored_jwt_configuration(ZoneResolutionMode mode, JwtConfigRoute route, boolean malformedJson) throws Exception {
+        JwtConfigZone zone = new JwtConfigZone(mode);
+        String id = zone.createClient();
+        UaaClientDetails body = zone.body(id, route);
+        body.setAccessTokenValiditySeconds(73);
+        String stored = malformedJson ? "not json" : "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"kid\":\"unreadable\"}]}}";
+        webApplicationContext.getBean(JdbcTemplate.class).update(
+                "update oauth_client_details set client_jwt_config=? where client_id=? and identity_zone_id=?", stored, id, zone.zoneId);
+
+        zone.send(HttpMethod.PUT, "/oauth/clients/" + id, zone.token("clients.write"), body)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_jwt_config").value(stored))
+                .andExpect(jsonPath("$.access_token_validity").value(73))
+                .andExpect(jsonPath("$.client_secret").doesNotExist())
+                .andExpect(jsonPath("$.jwks").doesNotExist())
+                .andExpect(jsonPath("$.jwks_uri").doesNotExist())
+                .andExpect(jsonPath("$.jwt_creds").doesNotExist());
+
+        assertThat(zone.stored(id)).isEqualTo(stored);
     }
 
     // On create in a zone, the raw client_jwt_config property is validated like the jwks_uri field (a

@@ -67,9 +67,11 @@ repeated `kid`, as before.
 The key set of a client is changed with `PUT /oauth/clients/{id}/clientjwt` (requiring `clients.trust`, `clients.admin`
 or the appropriate zone-admin authority). A general update of a client, `PUT /oauth/clients/{id}`, changes
 `client_jwt_config` and `jwt_creds` only for admin callers, callers with `clients.admin`, and callers with
-`clients.trust` for their own client. For other callers the stored values stay: a value they send is ignored, also one
-that repeats a `kid`, and the update is answered with 200. A `client_jwt_config` that is not valid JSON is rejected
-with 400 for every caller.
+`clients.trust` for their own client. For other callers the stored `client_jwt_config` string stays byte-for-byte
+unchanged, including repeated keys and unknown fields. A value they send is ignored, also one that repeats a `kid`,
+and the update is answered with 200. This also applies when the stored configuration cannot be read: other client
+fields can still be updated, and the response retains the raw string but omits the derived `jwks`, `jwks_uri` and
+`jwt_creds` fields. A supplied `client_jwt_config` that is not valid JSON is rejected with 400 for every caller.
 
 This should allow continuous trust between UAA to UAA communication, e.g., using own UAA instances or within a UAA using
 different zones.

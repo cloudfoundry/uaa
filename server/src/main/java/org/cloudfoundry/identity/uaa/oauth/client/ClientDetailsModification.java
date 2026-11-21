@@ -7,11 +7,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +25,8 @@ import java.util.Objects;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ClientDetailsModification extends UaaClientDetails {
+
+    private static final Logger logger = LoggerFactory.getLogger(ClientDetailsModification.class);
 
     public static final String ADD = "add";
     public static final String UPDATE = "update";
@@ -58,11 +64,16 @@ public class ClientDetailsModification extends UaaClientDetails {
                     new LinkedHashMap<>(this.getAdditionalInformation()),
                     baseClientDetails.getClientJwtConfig()
             );
-            ClientJwtConfiguration configuration = asUaaClient.getClientJwtConfiguration();
-            if (configuration != null && configuration.hasConfiguration()) {
-                this.setJwksUri(configuration.getJwksUri());
-                this.setJwkSet(configuration.getJwkSet());
-                this.setClientJwtCredentials(configuration.getClientJwtCredentials());
+            try {
+                ClientJwtConfiguration configuration = asUaaClient.getClientJwtConfiguration();
+                if (configuration != null && configuration.hasConfiguration()) {
+                    this.setJwksUri(configuration.getJwksUri());
+                    this.setJwkSet(configuration.getJwkSet());
+                    this.setClientJwtCredentials(configuration.getClientJwtCredentials());
+                }
+            } catch (JsonUtils.JsonUtilException | InvalidClientDetailsException e) {
+                // Keep the raw stored value, but omit derived JWT fields that cannot be constructed.
+                logger.debug("Cannot expose derived JWT configuration for client {}", baseClientDetails.getClientId(), e);
             }
             Map<String, Object> forResponse = new LinkedHashMap<>(getAdditionalInformation());
             forResponse.remove(ClientJwtConfiguration.JWT_CREDS);

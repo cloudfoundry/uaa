@@ -36,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
@@ -1364,23 +1365,47 @@ class ClientAdminEndpointsTests {
         assertThat(updatedClientJwtConfiguration()).isEqualTo(ClientJwtConfiguration.readValue(CLIENT_JWT_CONFIG_WITH_ONE_KEY));
     }
 
-    // When the stored configuration cannot be read, merging the request into it fails and the update continues with
-    // the request as sent. A caller with only clients.write must not get its jwt configuration stored that way.
     @ParameterizedTest
-    @EnumSource(JwtConfigRoute.class)
-    void updateClientDetailsByACallerWithOnlyClientsWriteDoesNotStoreAClientJwtConfigurationWhenTheStoredOneCannotBeRead(JwtConfigRoute route) {
+    @ValueSource(booleans = {true, false})
+    void updateClientDetailsByACallerWithOnlyClientsWritePreservesRawStoredJwtConfiguration(boolean sendConfiguration) {
+        String stored = "{ \"unknown\": true, \"jwks\":{\"keys\":[" + JWK_KEY_1 + "," + JWK_KEY_1_DIFFERENT_VALUE + "]}}";
         UaaClientDetails existing = new UaaClientDetails(input);
-        existing.setClientJwtConfig(UNREADABLE_CLIENT_JWT_CONFIG);
+        existing.setClientJwtConfig(stored);
+        arrangeUpdateByCaller(existing, false, List.of("clients.write"));
+        if (sendConfiguration) {
+            putJwtConfigOnInput(JwtConfigRoute.CLIENT_JWT_CONFIG_PROPERTY);
+        }
+
+        ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
+
+        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
+        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture(), eq(testZone.getId()));
+        assertThat(clientCaptor.getValue().getClientJwtConfig()).isEqualTo(stored);
+        assertThat(((UaaClientDetails) result).getClientJwtConfig()).isEqualTo(stored);
+    }
+
+    // An unreadable stored configuration must neither block an unrelated update nor be replaced by ignored input.
+    @ParameterizedTest
+    @CsvSource({"CLIENT_JWT_CONFIG_PROPERTY,false", "CLIENT_JWT_CONFIG_PROPERTY,true",
+            "JWT_CREDS_ADDITIONAL_INFORMATION,false", "JWT_CREDS_ADDITIONAL_INFORMATION,true"})
+    void updateClientDetailsByACallerWithOnlyClientsWriteDoesNotStoreAClientJwtConfigurationWhenTheStoredOneCannotBeRead(JwtConfigRoute route, boolean malformedJson) {
+        String stored = malformedJson ? "not json" : UNREADABLE_CLIENT_JWT_CONFIG;
+        UaaClientDetails existing = new UaaClientDetails(input);
+        existing.setClientJwtConfig(stored);
         arrangeUpdateByCaller(existing, false, List.of("clients.write"));
         putJwtConfigOnInput(route);
 
-        // The response reads the stored value back and fails on it; what was written is checked below.
-        catchThrowable(() -> endpoints.updateClientDetails(input, input.getClientId()));
+        ClientDetailsModification result = (ClientDetailsModification) endpoints.updateClientDetails(input, input.getClientId());
 
         ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
-        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture(), anyString());
-        assertThat(clientCaptor.getValue().getClientJwtConfig()).isEqualTo(UNREADABLE_CLIENT_JWT_CONFIG);
+        verify(clientRegistrationService).updateClientDetails(clientCaptor.capture(), eq(testZone.getId()));
+        assertThat(clientCaptor.getValue().getClientJwtConfig()).isEqualTo(stored);
         assertThat(String.valueOf(clientCaptor.getValue().getAdditionalInformation())).doesNotContain("added-subject");
+        assertThat(result.getClientJwtConfig()).isEqualTo(stored);
+        assertThat(result.getClientSecret()).isNull();
+        assertThat(result.getJwkSet()).isNull();
+        assertThat(result.getJwksUri()).isNull();
+        assertThat(result.getClientJwtCredentials()).isNull();
     }
 
     // A client_jwt_config that is not valid JSON is rejected, also for a caller whose value would be ignored.
