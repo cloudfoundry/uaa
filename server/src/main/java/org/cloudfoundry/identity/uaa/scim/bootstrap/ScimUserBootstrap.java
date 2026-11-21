@@ -30,7 +30,6 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
-import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
