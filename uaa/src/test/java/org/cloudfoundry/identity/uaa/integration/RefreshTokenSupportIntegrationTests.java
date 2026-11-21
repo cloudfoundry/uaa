@@ -42,6 +42,7 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 /**
@@ -189,6 +190,7 @@ class RefreshTokenSupportIntegrationTests {
     protected static ResponseEntity<String> makeRefreshGrantRequest(String refreshToken, String clientId, String clientSecret, String url) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(APPLICATION_JSON));
+        headers.setContentType(APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();

@@ -157,6 +157,7 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     private ResponseEntity<Map> loginClientTokenRequest(String userId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "app");

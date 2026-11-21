@@ -12,6 +12,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.http.MockHttpOutputMessage;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -76,7 +77,8 @@ class ExceptionReportHttpMessageConverterTest {
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(strings = {"application/json", "application/problem+json"})
+    @ValueSource(strings = {"application/json", "application/problem+json", "application/json;charset=UTF-8",
+            "application/json;charset=UTF-16BE"})
     void write_usesRequestedJsonContentType(String contentType) throws Exception {
         ExceptionReportHttpMessageConverter converter = new ExceptionReportHttpMessageConverter();
         MockHttpOutputMessage output = new MockHttpOutputMessage();
@@ -86,10 +88,29 @@ class ExceptionReportHttpMessageConverterTest {
 
         assertThat(output.getHeaders().getContentType())
                 .isEqualTo(mediaType == null ? APPLICATION_JSON : mediaType);
-        assertThat(JsonUtils.readValueAsMap(output.getBodyAsString()))
+        assertThat(JsonUtils.readValueAsMap(output.getBodyAsString(
+                mediaType != null && mediaType.getCharset() != null ? mediaType.getCharset() : StandardCharsets.UTF_8)))
                 .containsEntry("error", "exception")
                 .containsEntry("message", "oh noes!")
                 .containsEntry("error_description", "oh noes!");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"application/json", "application/problem+json"})
+    void write_withServletDefaultCharset_returnsUtf8Json(String contentType) throws Exception {
+        ExceptionReportHttpMessageConverter converter = new ExceptionReportHttpMessageConverter();
+        MockHttpOutputMessage output = new MockHttpOutputMessage();
+        MediaType mediaType = MediaType.parseMediaType(contentType);
+        output.getHeaders().setContentType(new MediaType(mediaType, StandardCharsets.ISO_8859_1));
+        String message = "Resource error: grüp";
+
+        converter.write(new ExceptionReport(new Exception(message)), mediaType, output);
+
+        assertThat(output.getHeaders().getContentType()).isEqualTo(new MediaType(mediaType, StandardCharsets.UTF_8));
+        assertThat(JsonUtils.readValueAsMap(output.getBodyAsString()))
+                .containsEntry("error", "exception")
+                .containsEntry("message", message)
+                .containsEntry("error_description", message);
     }
 
     @ParameterizedTest

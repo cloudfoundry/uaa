@@ -128,6 +128,7 @@ class OpenIdTokenGrantsIT {
     void implicitGrant() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "cf");
@@ -181,6 +182,7 @@ class OpenIdTokenGrantsIT {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.set("Authorization", basicDigestHeaderValue);
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -282,7 +284,9 @@ class OpenIdTokenGrantsIT {
         formData.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         // Should be redirected to the original URL, but now authenticated
-        result = restOperations.exchange(baseUrl + "/login.do", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
+        HttpHeaders loginHeaders = getHeaders(cookies);
+        loginHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        result = restOperations.exchange(baseUrl + "/login.do", HttpMethod.POST, new HttpEntity<>(formData, loginHeaders), Void.class);
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
         cookies.clear();
@@ -303,7 +307,9 @@ class OpenIdTokenGrantsIT {
             formData.clear();
             formData.add(USER_OAUTH_APPROVAL, "true");
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
-            result = restOperations.exchange(baseUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
+            HttpHeaders approvalHeaders = getHeaders(cookies);
+            approvalHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            result = restOperations.exchange(baseUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, approvalHeaders), Void.class);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = IntegrationTestUtils.resolveRedirect(baseUrl + "/oauth/authorize", result.getHeaders().getLocation());
         } else {
@@ -319,6 +325,7 @@ class OpenIdTokenGrantsIT {
         formData.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.getEncoder().encode((clientId + ":" + clientSecret).getBytes()));
         tokenHeaders.set("Authorization", basicDigestHeaderValue);

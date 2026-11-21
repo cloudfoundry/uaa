@@ -26,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -118,6 +119,12 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
         }
         MediaType contentType = Optional.ofNullable(outputMessage).map(HttpOutputMessage::getHeaders)
                 .map(h -> h.getContentType()).orElse(MediaType.APPLICATION_JSON);
+        // Servlet containers may append their default charset when the JSON header is set.
+        if (contentType != null && StandardCharsets.ISO_8859_1.equals(contentType.getCharset())
+                && ("json".equals(contentType.getSubtype()) || contentType.getSubtype().endsWith("+json"))) {
+            contentType = new MediaType(contentType, StandardCharsets.UTF_8);
+            outputMessage.getHeaders().setContentType(contentType);
+        }
         for (HttpMessageConverter<?> converter : messageConverters) {
             if (converter.canWrite(Map.class, contentType)) {
                 @SuppressWarnings({"rawtypes", "unchecked"})
