@@ -44,7 +44,8 @@ public final class FormOAuth2ExceptionHttpMessageConverter implements HttpMessag
 
     public OAuth2Exception read(Class<? extends OAuth2Exception> clazz, HttpInputMessage inputMessage)
             throws IOException, HttpMessageNotReadableException {
-        MultiValueMap<String, String> data = delegateMessageConverter.read(null, inputMessage);
+        @SuppressWarnings("unchecked")
+        MultiValueMap<String, String> data = (MultiValueMap<String, String>) delegateMessageConverter.read(MultiValueMap.class, inputMessage);
         Map<String, String> flattenedData = data.toSingleValueMap();
         return OAuth2Exception.valueOf(flattenedData);
     }

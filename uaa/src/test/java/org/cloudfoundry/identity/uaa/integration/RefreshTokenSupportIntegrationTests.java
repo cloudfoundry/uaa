@@ -42,6 +42,7 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 /**
@@ -68,7 +69,7 @@ class RefreshTokenSupportIntegrationTests {
                 .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
         ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), getHeaders(cookies));
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = result.getHeaders().getLocation().toString();
+        String location = IntegrationTestUtils.resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         IntegrationTestUtils.extractCookies(result, cookies);
 
 
@@ -91,7 +92,9 @@ class RefreshTokenSupportIntegrationTests {
         IntegrationTestUtils.extractCookies(result, cookies);
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
-        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), getHeaders(cookies));
+        response = serverRunning.getForString(
+                IntegrationTestUtils.resolveRedirect(serverRunning.getUrl("/login.do"), result.getHeaders().getLocation()),
+                getHeaders(cookies));
         IntegrationTestUtils.extractCookies(response, cookies);
 
         if (response.getStatusCode() == HttpStatus.OK) {
@@ -103,11 +106,11 @@ class RefreshTokenSupportIntegrationTests {
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = result.getHeaders().getLocation().toString();
+            location = IntegrationTestUtils.resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         } else {
             // Token cached so no need for second approval
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = response.getHeaders().getLocation().toString();
+            location = IntegrationTestUtils.resolveRedirect(uri.toString(), response.getHeaders().getLocation());
         }
         assertThat(location).as("Wrong location: " + location).matches(resource.getPreEstablishedRedirectUri() + ".*code=.+");
 
@@ -187,6 +190,7 @@ class RefreshTokenSupportIntegrationTests {
     protected static ResponseEntity<String> makeRefreshGrantRequest(String refreshToken, String clientId, String clientSecret, String url) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(APPLICATION_JSON));
+        headers.setContentType(APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();

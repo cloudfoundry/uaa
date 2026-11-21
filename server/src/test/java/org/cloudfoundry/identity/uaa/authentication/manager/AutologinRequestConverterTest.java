@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
+import org.springframework.mock.http.MockHttpInputMessage;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -59,6 +60,18 @@ class AutologinRequestConverterTest {
     void readInternalNoJson() throws Exception {
         AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
         assertThat(autologin).isNotNull();
+    }
+
+    @Test
+    void readFormEncodedCredentials() throws Exception {
+        MockHttpInputMessage input = new MockHttpInputMessage(
+                "username=user%40example.com&password=pwd%2Bsecret".getBytes(StandardCharsets.UTF_8));
+        input.getHeaders().setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        AutologinRequest autologin = autologinRequestConverter.read(AutologinRequest.class, input);
+
+        assertThat(autologin.getUsername()).isEqualTo("user@example.com");
+        assertThat(autologin.getPassword()).isEqualTo("pwd+secret");
     }
 
     @Test

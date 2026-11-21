@@ -1497,6 +1497,7 @@ class ExternalOAuthAuthenticationManagerIT {
         mockUaaServer.expect(requestTo("http://localhost/oauth/token"))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.getEncoder().encode("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
+                .andExpect(header("Content-Type", "application/x-www-form-urlencoded"))
                 .andExpect(bodyContains(
                         "grant_type=authorization_code",
                         "code=the_code",

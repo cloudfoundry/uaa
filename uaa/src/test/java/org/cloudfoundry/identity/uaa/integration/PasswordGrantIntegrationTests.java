@@ -31,6 +31,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -120,6 +121,7 @@ class PasswordGrantIntegrationTests {
     protected static ResponseEntity<String> makePasswordGrantRequest(String userName, String password, String clientId, String clientSecret, String url) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(APPLICATION_JSON));
+        headers.setContentType(APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();

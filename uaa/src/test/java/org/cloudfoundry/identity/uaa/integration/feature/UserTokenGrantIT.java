@@ -123,6 +123,7 @@ class UserTokenGrantIT {
     private String getPasswordGrantToken(String clientId, String clientSecret) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader(clientId, clientSecret));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();

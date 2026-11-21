@@ -231,11 +231,13 @@ class AutologinIT {
         String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
         requestBody.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
 
+        headers = getHeaders(cookieStore);
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         loginResponse = restOperations.exchange(baseUrl + "/login.do",
                 HttpMethod.POST,
-                new HttpEntity<>(requestBody, getHeaders(cookieStore)),
+                new HttpEntity<>(requestBody, headers),
                 String.class);
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         assertThat(cookies).anySatisfy(s -> assertThat(s).startsWith("JSESSIONID"))
                 .anySatisfy(s -> assertThat(s).startsWith("X-Uaa-Csrf"));
@@ -259,9 +261,11 @@ class AutologinIT {
         requestBody.add("clientId", "app");
         requestBody.add("delete", "");
         requestBody.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(profilePage.getBody()));
+        headers = getHeaders(cookieStore);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         ResponseEntity<Void> revokeResponse = template.exchange(revokeApprovalsUrl,
                 HttpMethod.POST,
-                new HttpEntity<>(requestBody, getHeaders(cookieStore)),
+                new HttpEntity<>(requestBody, headers),
                 Void.class);
         assertThat(revokeResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
     }
