@@ -30,6 +30,7 @@ public class TlsClientAuthConfiguration {
      * what the server is willing to believe it may ask for.
      */
     public static final String TLS_CLIENT_AUTH_ALLOWED_RESOURCES = "tls-client-auth-allowed-resources";
+    public static final String TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF = "tls-client-auth-allowed-resources-ref";
 
     /**
      * RFC 8705 section 3.4 client registration metadata, named verbatim like the subject parameters
@@ -82,7 +83,8 @@ public class TlsClientAuthConfiguration {
             TLS_CLIENT_AUTH_SUB_TEMPLATE,
             TLS_CLIENT_AUTH_AUD_TEMPLATES,
             TLS_CLIENT_AUTH_REQUIRED_CLAIMS,
-            TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+            TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+            TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF);
 
     /** Keys that configure the proxy allowed to forward a client certificate. Each requires workload trust. */
     public static final List<String> PROXY_TRUST_KEYS = List.of(
@@ -219,6 +221,9 @@ public class TlsClientAuthConfiguration {
     @JsonProperty(TLS_CLIENT_AUTH_ALLOWED_RESOURCES)
     private List<String> allowedResources;
 
+    @JsonProperty(TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF)
+    private String allowedResourcesRef;
+
     @JsonProperty(TLS_CLIENT_AUTH_SUBJECT_DN)
     private String subjectDn;
 
@@ -267,6 +272,8 @@ public class TlsClientAuthConfiguration {
 
     public List<String> getAllowedResources() { return allowedResources; }
     public void setAllowedResources(List<String> allowedResources) { this.allowedResources = allowedResources; }
+    public String getAllowedResourcesRef() { return allowedResourcesRef; }
+    public void setAllowedResourcesRef(String allowedResourcesRef) { this.allowedResourcesRef = allowedResourcesRef; }
 
     public String getSubjectDn() { return subjectDn; }
     public void setSubjectDn(String subjectDn) { this.subjectDn = subjectDn; }
@@ -322,13 +329,15 @@ public class TlsClientAuthConfiguration {
                Objects.equals(sanUri, that.sanUri) &&
                Objects.equals(sanIp, that.sanIp) &&
                Objects.equals(sanEmail, that.sanEmail) &&
-               Objects.equals(allowedResources, that.allowedResources);
+               Objects.equals(allowedResources, that.allowedResources) &&
+               Objects.equals(allowedResourcesRef, that.allowedResourcesRef);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(trustedCaPem, trustedCaRef, trustedProxyCaRef, claimMappings, subTemplate, audTemplates, trustedProxyCaPem,
-                trustedProxySubjectDn, requiredClaims, subjectDn, sanDns, sanUri, sanIp, sanEmail, allowedResources);
+                trustedProxySubjectDn, requiredClaims, subjectDn, sanDns, sanUri, sanIp, sanEmail, allowedResources,
+                allowedResourcesRef);
     }
 
     public static boolean isConfigured(TlsClientAuthConfiguration config) {

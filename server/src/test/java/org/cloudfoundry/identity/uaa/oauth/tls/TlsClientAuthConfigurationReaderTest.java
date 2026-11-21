@@ -29,6 +29,7 @@ class TlsClientAuthConfigurationReaderTest {
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_CA, "proxy-pem");
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_TRUSTED_PROXY_SUBJECT_DN, "CN=router");
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUB_TEMPLATE, "{app_id}");
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, "federation");
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI, "spiffe://cf/app");
         info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, " ");
 
@@ -40,6 +41,7 @@ class TlsClientAuthConfigurationReaderTest {
         assertThat(config.getTrustedProxyCaPem()).isEqualTo("proxy-pem");
         assertThat(config.getTrustedProxySubjectDn()).isEqualTo("CN=router");
         assertThat(config.getSubTemplate()).isEqualTo("{app_id}");
+        assertThat(config.getAllowedResourcesRef()).isEqualTo("federation");
         assertThat(config.getSanUri()).isEqualTo("spiffe://cf/app");
         assertThat(config.getSubjectDn()).as("blank values count as absent").isNull();
     }

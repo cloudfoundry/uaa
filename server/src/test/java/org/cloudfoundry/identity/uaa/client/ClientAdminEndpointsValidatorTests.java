@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -428,6 +429,68 @@ class ClientAdminEndpointsValidatorTests {
         assertThatCode(() -> mtlsEnabledValidator().validate(client, false, false)).doesNotThrowAnyException();
     }
 
+    @Test
+    void acceptsKnownAllowedResourcesPolicyReference() {
+        MtlsResourcePolicy policy = new MtlsResourcePolicy();
+        policy.setAllowedResources(List.of("https://sts.amazonaws.com"));
+        IdentityZoneHolder.get().getConfig().getMtls()
+                .setResourcePolicies(Map.of("federation", policy));
+        client.setAuthorizedGrantTypes(Set.of("client_credentials"));
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, "federation")));
+
+        UaaClientDetails validated =
+                (UaaClientDetails) mtlsEnabledValidator().validate(client, false, false);
+
+        assertThat(validated.getAdditionalInformation()).containsEntry(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, "federation");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "missing"})
+    void rejectsBlankOrUnknownAllowedResourcesPolicyReference(String reference) {
+        client.setAuthorizedGrantTypes(Set.of("client_credentials"));
+        client.setAdditionalInformation(new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, reference)));
+
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF);
+    }
+
+    @Test
+    void rejectsAllowedResourcesReferenceWithInlineListOrAudienceTemplates() {
+        MtlsResourcePolicy policy = new MtlsResourcePolicy();
+        policy.setAllowedResources(List.of("https://sts.amazonaws.com"));
+        IdentityZoneHolder.get().getConfig().getMtls()
+                .setResourcePolicies(Map.of("federation", policy));
+        Map<String, Object> info = new java.util.HashMap<>(Map.of(
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT,
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, "federation",
+                TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
+                List.of("https://sts.amazonaws.com")));
+        client.setAuthorizedGrantTypes(Set.of("client_credentials"));
+        client.setAdditionalInformation(info);
+
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("mutually exclusive");
+
+        info.remove(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES);
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CLAIM_MAPPINGS,
+                List.of(Map.of("field", "subject_cn", "claim", "app_id")));
+        info.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, List.of("{app_id}"));
+        client.setAdditionalInformation(info);
+        assertThatThrownBy(() -> mtlsEnabledValidator().validate(client, false, false))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("mutually exclusive");
+    }
+
     /** /oauth/mtls/token issues only client_credentials, and an mTLS client is refused on every other path. */
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"authorization_code", "password", "refresh_token"})
@@ -483,6 +546,12 @@ class ClientAdminEndpointsValidatorTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("mtlsOnlySettingsWithoutWorkloadTrust")
     void rejectsMtlsOnlySettingsWithoutWorkloadTrust(String key, Map<String, Object> settings) {
+        if (settings.containsKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF)) {
+            MtlsResourcePolicy policy = new MtlsResourcePolicy();
+            policy.setAllowedResources(List.of("https://sts.amazonaws.com"));
+            IdentityZoneHolder.get().getConfig().getMtls()
+                    .setResourcePolicies(Map.of("federation", policy));
+        }
         client.setAuthorizedGrantTypes(java.util.Set.of("client_credentials"));
         client.setAdditionalInformation(new java.util.HashMap<>(settings));
 
@@ -519,7 +588,10 @@ class ClientAdminEndpointsValidatorTests {
                                 TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES, List.of("aud:{app_id}"))),
                 org.junit.jupiter.params.provider.Arguments.of("allowed_resources",
                         Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES,
-                                List.of("https://billing.example.com"))));
+                                List.of("https://billing.example.com"))),
+                org.junit.jupiter.params.provider.Arguments.of("allowed_resources_ref",
+                        Map.of(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF,
+                                "federation")));
     }
 
     private ClientAdminEndpointsValidator mtlsEnabledValidator() {

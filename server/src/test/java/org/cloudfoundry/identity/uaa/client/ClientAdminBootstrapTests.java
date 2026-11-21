@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -749,6 +750,40 @@ class ClientAdminBootstrapTests {
         } finally {
             IdentityZoneHolder.setProvisioning(null);
             saved.getConfig().getMtls().setTrustBundles(Map.of());
+            zones.update(saved);
+        }
+    }
+
+    @Test
+    void bootstrapClientResourcePolicyReferenceIsValidatedAgainstTheSavedDefaultZone() {
+        org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning zones =
+                new org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning(jdbcTemplate);
+        IdentityZone saved = zones.retrieve(IdentityZone.getUaaZoneId());
+        MtlsResourcePolicy policy = new MtlsResourcePolicy();
+        policy.setAllowedResources(List.of("https://sts.amazonaws.com"));
+        saved.getConfig().getMtls().setResourcePolicies(Map.of("federation", policy));
+        zones.update(saved);
+        IdentityZone cached = IdentityZone.getUaa();
+        cached.getConfig().getMtls().setEnabled(true);
+        IdentityZoneHolder.set(cached);
+        IdentityZoneHolder.setProvisioning(zones);
+        try {
+            Map<String, Object> map = createClientMap("foo");
+            map.put("authorized-grant-types", GRANT_TYPE_CLIENT_CREDENTIALS);
+            map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA, VALID_CERT);
+            map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN, "CN=app");
+            map.put(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF, "federation");
+            clients.put((String) map.get("id"), map);
+
+            assertThatCode(() -> clientAdminBootstrap.afterPropertiesSet()).doesNotThrowAnyException();
+            assertThat(multitenantJdbcClientDetailsService.loadClientByClientId(
+                    (String) map.get("id"), IdentityZone.getUaaZoneId()).getAdditionalInformation())
+                    .containsEntry(
+                            TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF,
+                            "federation");
+        } finally {
+            IdentityZoneHolder.setProvisioning(null);
+            saved.getConfig().getMtls().setResourcePolicies(Map.of());
             zones.update(saved);
         }
     }

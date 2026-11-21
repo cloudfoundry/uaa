@@ -40,7 +40,7 @@ class UaaTokenEndpointTests {
 
     @BeforeEach
     void setup() {
-        endpoint = spy(new UaaTokenEndpoint(null, null, null, null, null));
+        endpoint = spy(new UaaTokenEndpoint(null, null, null, null, null, null));
     }
 
     @Test
@@ -52,7 +52,7 @@ class UaaTokenEndpointTests {
 
     @Test
     void getIsDisabled() {
-        endpoint = spy(new UaaTokenEndpoint(null, null, null, null, false));
+        endpoint = spy(new UaaTokenEndpoint(null, null, null, null, false, null));
         assertThatThrownBy(() -> endpoint.doDelegateGet(mock(Principal.class), emptyMap())).asInstanceOf(InstanceOfAssertFactories.throwable(HttpRequestMethodNotSupportedException.class));
     }
 
@@ -88,7 +88,7 @@ class UaaTokenEndpointTests {
 
     @Test
     void callToGetAlwaysThrowsSuperMethod() {
-        endpoint = new UaaTokenEndpoint(null, null, null, null, false);
+        endpoint = new UaaTokenEndpoint(null, null, null, null, false, null);
 
         assertThatThrownBy(() -> endpoint.getAccessToken(mock(Principal.class), emptyMap()))
                 .isInstanceOf(HttpRequestMethodNotSupportedException.class)
@@ -97,7 +97,7 @@ class UaaTokenEndpointTests {
 
     @Test
     void callToGetAlwaysThrowsOverrideMethod() {
-        endpoint = new UaaTokenEndpoint(null, null, null, null, false);
+        endpoint = new UaaTokenEndpoint(null, null, null, null, false, null);
 
         assertThatThrownBy(() -> endpoint.doDelegateGet(mock(Principal.class), emptyMap()))
                 .isInstanceOf(HttpRequestMethodNotSupportedException.class)

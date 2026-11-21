@@ -27,6 +27,13 @@ class MtlsTrustBundleConfigurationTests {
         Map<String, Object> mtls = (Map<String, Object>) config.get("mtls");
         assertThat(mtls).containsEntry("enabled", true);
         assertThat((Map<String, Object>) mtls.get("trustBundles")).containsKey("configured-ca");
+        assertThat((Map<String, Object>) ((Map<String, Object>) mtls.get("resourcePolicies"))
+                .get("cf-workload-federation"))
+                .containsEntry("allowedResources", java.util.List.of(
+                        "https://sts.amazonaws.com", "api://AzureADTokenExchange"));
+        assertThat((Map<String, Object>) ((Map<String, Object>) mtls.get("resourcePolicies"))
+                .get("prod.federation"))
+                .containsEntry("allowedResources", java.util.List.of("https://sts.amazonaws.com"));
         IdentityZone other = new IdentityZone();
         assertThat(JsonUtils.convertValue(other.getConfig(), Map.class))
                 .as("zones opt in to mTLS, and an unconfigured zone serializes as before the feature")

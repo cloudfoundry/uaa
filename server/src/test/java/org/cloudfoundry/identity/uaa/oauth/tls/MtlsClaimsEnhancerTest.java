@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -73,7 +74,10 @@ class MtlsClaimsEnhancerTest {
         // per-test exactly as before.
         tlsClientAuthentication = spy(new TlsClientAuthentication());
         clientDetailsService = mock(ClientDetailsService.class);
-        enhancer = new MtlsClaimsEnhancer(tlsClientAuthentication, clientDetailsService);
+        enhancer = new MtlsClaimsEnhancer(
+                tlsClientAuthentication,
+                clientDetailsService,
+                new org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl());
     }
 
     @Test
@@ -774,6 +778,57 @@ class MtlsClaimsEnhancerTest {
                         GRANT_TYPE_CLIENT_CREDENTIALS));
 
         assertThat(result).containsEntry("aud", List.of("https://billing.apps.internal"));
+    }
+
+    @Test
+    void namedResourcePolicyIsResolvedForEveryTokenRequest() throws Exception {
+        X509Certificate cert = mockCfCert();
+        when(tlsClientAuthentication.hasCertificateFromRequest()).thenReturn(true);
+        when(tlsClientAuthentication.getCertificateFromRequest(any())).thenReturn(cert);
+        TlsClientAuthConfiguration config = cfMappingsConfig();
+        config.setAllowedResourcesRef("federation");
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId("instance-identity");
+        clientDetails.setTlsClientAuthConfiguration(config);
+        when(clientDetailsService.loadClientByClientId("instance-identity")).thenReturn(clientDetails);
+
+        setResourcePolicy("federation", "https://billing.apps.internal");
+        assertThat(enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting(
+                        "instance-identity",
+                        "https://billing.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS)))
+                .containsEntry("aud", List.of("https://billing.apps.internal"));
+
+        setResourcePolicy("federation", "https://reporting.apps.internal");
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting(
+                        "instance-identity",
+                        "https://billing.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS)))
+                .isInstanceOf(InvalidTargetException.class);
+        assertThat(enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting(
+                        "instance-identity",
+                        "https://reporting.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS)))
+                .containsEntry("aud", List.of("https://reporting.apps.internal"));
+
+        org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get().getConfig().getMtls()
+                .setResourcePolicies(Map.of());
+        assertThatThrownBy(() -> enhancer.enhance(new HashMap<>(),
+                mockAuthenticationRequesting(
+                        "instance-identity",
+                        "https://reporting.apps.internal",
+                        GRANT_TYPE_CLIENT_CREDENTIALS)))
+                .isInstanceOf(InvalidTargetException.class);
+    }
+
+    private static void setResourcePolicy(String name, String... resources) {
+        MtlsResourcePolicy policy = new MtlsResourcePolicy();
+        policy.setAllowedResources(List.of(resources));
+        org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.get().getConfig().getMtls()
+                .setResourcePolicies(Map.of(name, policy));
     }
 
     @Test

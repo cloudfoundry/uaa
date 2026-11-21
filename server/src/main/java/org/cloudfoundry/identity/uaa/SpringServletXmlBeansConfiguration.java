@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
 import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
@@ -424,6 +425,9 @@ public class SpringServletXmlBeansConfiguration {
         bean.setMtlsEnabled(environment.getProperty("uaa.mtls.enabled", Boolean.class, false));
         bean.setMtlsTrustBundles(Binder.get(environment)
                 .bind("uaa.mtls.trust-bundles", Bindable.mapOf(String.class, String.class))
+                .orElse(Map.of()));
+        bean.setMtlsResourcePolicies(Binder.get(environment)
+                .bind("uaa.mtls.resource-policies", Bindable.mapOf(String.class, MtlsResourcePolicy.class))
                 .orElse(Map.of()));
         bean.setValidator(identityZoneValidator);
         bean.setClientSecretPolicy(defaultUaaClientSecretPolicy);

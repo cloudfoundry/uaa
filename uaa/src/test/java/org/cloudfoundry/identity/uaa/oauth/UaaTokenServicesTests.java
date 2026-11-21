@@ -476,7 +476,10 @@ class UaaTokenServicesTests {
         void inactiveMtlsEnhancerDoesNotCopyRefreshOnlyClaimsIntoAccessTokens() {
             assertThat(waitForClient("jku_test", 5)).as("refresh client fixture must exist").isTrue();
             TlsClientAuthentication noCertificate = mock(TlsClientAuthentication.class);
-            tokenServices.setUaaTokenEnhancers(List.of(new MtlsClaimsEnhancer(noCertificate, jdbcClientDetailsService)));
+            tokenServices.setUaaTokenEnhancers(List.of(new MtlsClaimsEnhancer(
+                    noCertificate,
+                    jdbcClientDetailsService,
+                    new org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl())));
             try {
                 RefreshTokenRequestData data = new RefreshTokenRequestData(
                         GRANT_TYPE_AUTHORIZATION_CODE, Sets.newHashSet("openid", "user_attributes"), null, "",
@@ -541,7 +544,10 @@ class UaaTokenServicesTests {
             assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
             TlsClientAuthentication mtlsOn = mock(TlsClientAuthentication.class);
             when(mtlsOn.isMtlsEnabled()).thenReturn(true);
-            MtlsClaimsEnhancer mtlsEnhancer = new MtlsClaimsEnhancer(mtlsOn, mock(ClientDetailsService.class));
+            MtlsClaimsEnhancer mtlsEnhancer = new MtlsClaimsEnhancer(
+                    mtlsOn,
+                    mock(ClientDetailsService.class),
+                    new org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl());
             assertThat(mtlsEnhancer.isEnabled()).isTrue();
             try {
                 Map<String, Object> withoutEnhancer = refreshedClaimsWith(List.of());
@@ -1329,7 +1335,10 @@ class UaaTokenServicesTests {
         void mtlsEnhancerIsInertForARequestThatIsNotTlsClientAuth() {
             TlsClientAuthentication noCertificate = mock(TlsClientAuthentication.class);
             when(noCertificate.hasCertificateFromRequest()).thenReturn(false);
-            UaaTokenEnhancer mtls = new MtlsClaimsEnhancer(noCertificate, jdbcClientDetailsService);
+            UaaTokenEnhancer mtls = new MtlsClaimsEnhancer(
+                    noCertificate,
+                    jdbcClientDetailsService,
+                    new org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl());
             UaaTokenEnhancer other = enhancerReturning(Map.of("tenant", "acme", "plan", Map.of("tier", "gold")));
 
             Map<String, Object> claims = clientCredentialsTokenClaims(other, mtls);
@@ -1421,7 +1430,10 @@ class UaaTokenServicesTests {
         @Test
         @DisplayName("the real MtlsClaimsEnhancer opts in to sub and aud and to nothing else")
         void mtlsEnhancerOptsInToSubAndAudOnly() {
-            UaaTokenEnhancer mtls = new MtlsClaimsEnhancer(mock(TlsClientAuthentication.class), jdbcClientDetailsService);
+            UaaTokenEnhancer mtls = new MtlsClaimsEnhancer(
+                    mock(TlsClientAuthentication.class),
+                    jdbcClientDetailsService,
+                    new org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl());
 
             assertThat(mtls.getLateOverrideClaims()).containsExactlyInAnyOrder("sub", "aud");
         }
