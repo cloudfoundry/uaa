@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.WebResponseExceptionTranslator;
-
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
@@ -54,7 +53,6 @@ import org.springframework.context.support.ReloadableResourceBundleMessageSource
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
-
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.firewall.RequestRejectedHandler;
@@ -62,7 +60,6 @@ import org.springframework.web.accept.ContentNegotiationManagerFactoryBean;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
