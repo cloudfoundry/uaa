@@ -80,6 +80,8 @@ javaBuildpackClientCertificateMapper = { module = "org.cloudfoundry:java-buildpa
 eclipseJgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "eclipseJgit" }
 
 # FasterXML Jackson
+jackson2Bom = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson2" }
+jacksonBom = { module = "tools.jackson:jackson-bom", version.ref = "jackson" }
 jacksonAnnotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
 jacksonDatabind = { module = "tools.jackson.core:jackson-databind" }
 

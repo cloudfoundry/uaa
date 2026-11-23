@@ -39,6 +39,8 @@ updates:
       - "org.bouncycastle:*"
     jackson:
       patterns:
+      - "com.fasterxml.jackson:jackson-bom"
+      - "tools.jackson:jackson-bom"
       - "com.fasterxml.jackson.*:*"
       - "tools.jackson.*:*"
 - package-ecosystem: "github-actions"
