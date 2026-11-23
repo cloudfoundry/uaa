@@ -123,7 +123,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             List<Pattern> compiled = new ArrayList<>();
             for (String uri : uris) {
                 try {
-                    compiled.add(BoundedRegex.compile(prepare.apply(UaaStringUtils.getCleanedUserControlString(uri))));
+                    compiled.add(BoundedRegex.compile(prepare.apply(uri)));
                 } catch (PatternSyntaxException patternSyntaxException) {
                     throw new InvalidIdentityZoneConfigurationException("Invalid value in %s: '%s'.".formatted(fieldName, abbreviate(uri)), patternSyntaxException);
                 }

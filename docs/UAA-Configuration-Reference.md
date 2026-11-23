@@ -2557,7 +2557,7 @@ Maximum time (in seconds) a preflight response can be cached for default CORS re
 **Source:** [`CorsProperties.DefaultAllowed`](../server/src/main/java/org/cloudfoundry/identity/uaa/CorsProperties.java)
 **Type:** `List<String>`
 
-Regex patterns for URIs that allow CORS requests (non-XHR). Default permits all. Patterns use RE2/J syntax and are matched in time linear in the input. Backreferences, lookahead/lookbehind, possessive quantifiers and atomic groups are not supported. A pattern is also ignored if it is longer than 512 characters, its counted repetitions (`{n,m}`) multiply to more than 1000, or it compiles to more than 2000 instructions. At most 32 patterns (8192 instructions in total) are used per list. An `Origin` longer than 2048 characters or a request URI longer than 8192 characters is never allowed. Patterns that are not usable are logged and ignored, so the requests they would have allowed are rejected.
+Regex patterns for URIs that allow CORS requests (non-XHR). Default permits all. Patterns use RE2/J syntax and are matched in time linear in the input. Backreferences, lookahead/lookbehind, possessive quantifiers and atomic groups are not supported. A pattern is also ignored if it is longer than 512 characters, its counted repetitions (`{n,m}`) multiply to more than 1000, its length multiplied by that product is more than 50,000 (for example, a 480-character group repeated 1000 times), or it compiles to more than 2000 instructions. At most 32 patterns (8192 instructions in total) are used per list. An `Origin` longer than 2048 characters or a request URI longer than 8192 characters is never allowed. Patterns that are not usable are logged and ignored, so the requests they would have allowed are rejected.
 
 [Back to table](#cors)
 
@@ -2569,7 +2569,7 @@ Regex patterns for URIs that allow CORS requests (non-XHR). Default permits all.
 **Source:** [`CorsProperties.DefaultAllowed`](../server/src/main/java/org/cloudfoundry/identity/uaa/CorsProperties.java)
 **Type:** `List<String>`
 
-Regex patterns for allowed CORS origins (non-XHR). Patterns use RE2/J syntax and are matched in time linear in the input. Backreferences, lookahead/lookbehind, possessive quantifiers and atomic groups are not supported. A pattern is also ignored if it is longer than 512 characters, its counted repetitions (`{n,m}`) multiply to more than 1000, or it compiles to more than 2000 instructions. At most 32 patterns (8192 instructions in total) are used per list. An `Origin` longer than 2048 characters or a request URI longer than 8192 characters is never allowed. Patterns that are not usable are logged and ignored, so the requests they would have allowed are rejected.
+Regex patterns for allowed CORS origins (non-XHR). Patterns use RE2/J syntax and are matched in time linear in the input. Backreferences, lookahead/lookbehind, possessive quantifiers and atomic groups are not supported. A pattern is also ignored if it is longer than 512 characters, its counted repetitions (`{n,m}`) multiply to more than 1000, its length multiplied by that product is more than 50,000 (for example, a 480-character group repeated 1000 times), or it compiles to more than 2000 instructions. At most 32 patterns (8192 instructions in total) are used per list. An `Origin` longer than 2048 characters or a request URI longer than 8192 characters is never allowed. Patterns that are not usable are logged and ignored, so the requests they would have allowed are rejected.
 
 [Back to table](#cors)
 
@@ -2629,7 +2629,7 @@ Maximum preflight cache time for XHR CORS requests.
 **Source:** [`CorsProperties.XhrAllowed`](../server/src/main/java/org/cloudfoundry/identity/uaa/CorsProperties.java)
 **Type:** `List<String>`
 
-Regex patterns for URIs that allow XHR CORS requests. Patterns use RE2/J syntax and are matched in time linear in the input. Backreferences, lookahead/lookbehind, possessive quantifiers and atomic groups are not supported. A pattern is also ignored if it is longer than 512 characters, its counted repetitions (`{n,m}`) multiply to more than 1000, or it compiles to more than 2000 instructions. At most 32 patterns (8192 instructions in total) are used per list. An `Origin` longer than 2048 characters or a request URI longer than 8192 characters is never allowed. Patterns that are not usable are logged and ignored, so the requests they would have allowed are rejected.
+Regex patterns for URIs that allow XHR CORS requests. Patterns use RE2/J syntax and are matched in time linear in the input. Backreferences, lookahead/lookbehind, possessive quantifiers and atomic groups are not supported. A pattern is also ignored if it is longer than 512 characters, its counted repetitions (`{n,m}`) multiply to more than 1000, its length multiplied by that product is more than 50,000 (for example, a 480-character group repeated 1000 times), or it compiles to more than 2000 instructions. At most 32 patterns (8192 instructions in total) are used per list. An `Origin` longer than 2048 characters or a request URI longer than 8192 characters is never allowed. Patterns that are not usable are logged and ignored, so the requests they would have allowed are rejected.
 
 [Back to table](#cors)
 
@@ -2641,7 +2641,7 @@ Regex patterns for URIs that allow XHR CORS requests. Patterns use RE2/J syntax 
 **Source:** [`CorsProperties.XhrAllowed`](../server/src/main/java/org/cloudfoundry/identity/uaa/CorsProperties.java)
 **Type:** `List<String>`
 
-Regex patterns for allowed XHR CORS origins. Patterns use RE2/J syntax and are matched in time linear in the input. Backreferences, lookahead/lookbehind, possessive quantifiers and atomic groups are not supported. A pattern is also ignored if it is longer than 512 characters, its counted repetitions (`{n,m}`) multiply to more than 1000, or it compiles to more than 2000 instructions. At most 32 patterns (8192 instructions in total) are used per list. An `Origin` longer than 2048 characters or a request URI longer than 8192 characters is never allowed. Patterns that are not usable are logged and ignored, so the requests they would have allowed are rejected.
+Regex patterns for allowed XHR CORS origins. Patterns use RE2/J syntax and are matched in time linear in the input. Backreferences, lookahead/lookbehind, possessive quantifiers and atomic groups are not supported. A pattern is also ignored if it is longer than 512 characters, its counted repetitions (`{n,m}`) multiply to more than 1000, its length multiplied by that product is more than 50,000 (for example, a 480-character group repeated 1000 times), or it compiles to more than 2000 instructions. At most 32 patterns (8192 instructions in total) are used per list. An `Origin` longer than 2048 characters or a request URI longer than 8192 characters is never allowed. Patterns that are not usable are logged and ignored, so the requests they would have allowed are rejected.
 
 [Back to table](#cors)
 

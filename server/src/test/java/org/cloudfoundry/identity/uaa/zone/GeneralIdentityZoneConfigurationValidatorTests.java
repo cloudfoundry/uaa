@@ -431,6 +431,17 @@ class GeneralIdentityZoneConfigurationValidatorTests {
 
     @MethodSource("parameters")
     @ParameterizedTest
+    void validate_judges_a_cors_pattern_with_control_characters_as_the_filter_will_compile_it(IdentityZoneValidator.Mode mode) {
+        // As written the range runs from "_" (95) back to a newline (10), which is invalid. Replacing the newline
+        // with "_" first would make it valid at save time while the filter, which compiles it as written, ignores it.
+        zone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedUris(List.of("^[_-\n]$"));
+        assertThatThrownBy(() -> validator.validate(zone, mode))
+                .isInstanceOf(InvalidIdentityZoneConfigurationException.class)
+                .hasMessageContaining("Invalid value in config.corsPolicy.defaultConfiguration.allowedUris");
+    }
+
+    @MethodSource("parameters")
+    @ParameterizedTest
     void validate_rejects_too_many_cors_patterns(IdentityZoneValidator.Mode mode) {
         zone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedOrigins(java.util.Collections.nCopies(33, "example\\.com"));
         assertThatThrownBy(() -> validator.validate(zone, mode))
