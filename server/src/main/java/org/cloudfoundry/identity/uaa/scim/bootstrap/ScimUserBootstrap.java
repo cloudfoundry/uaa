@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -285,7 +286,21 @@ public class ScimUserBootstrap implements
                     try {
                         membershipManager.removeMemberById(group.getId(), exEvent.getUser().getId(), group.getZoneId());
                     } catch (MemberNotFoundException _) {
-                        // do nothing
+                        continue;
+                    } catch (IncorrectResultSizeDataAccessException e) {
+                        if (e.getExpectedSize() == 1 && e.getActualSize() == 0) {
+                            continue;
+                        }
+                        throw e;
+                    }
+                    try {
+                        String[] members = membershipManager.getMembers(group.getId(), false, group.getZoneId())
+                                .stream().map(ScimGroupMember::getMemberId).toArray(String[]::new);
+                        publish(GroupModifiedEvent.groupModified(
+                                group.getId(), group.getDisplayName(), members, group.getZoneId()));
+                    } catch (RuntimeException e) {
+                        logger.warn("Failed to audit external membership removal for group {} in zone {}",
+                                group.getId(), group.getZoneId(), e);
                     }
                 }
             }
@@ -424,3 +439,4 @@ public class ScimUserBootstrap implements
         publisher = applicationEventPublisher;
     }
 }
+
