@@ -1852,8 +1852,8 @@ Fields            *Available Fields* ::
                       givenName             String           Optional First name
                       familyName            String           Optional Last name
                     emails                  List<String>     Optional List of email addresses, currently only one is supported
-                    active                  boolean          Optional Set to true to allow this user to login
-                    verified                boolean          Optional Set to true to indicate that this user has been verified.
+                    active                  boolean          Optional Set to true to allow this user to login. If omitted, the current value is unchanged
+                    verified                boolean          Optional Set to true to indicate that this user has been verified. If omitted, the current value is unchanged
                     origin                  String           Optional Set the origin of this user. If empty default of 'uaa' will be set
                     schemas                 List<String>     Optional Singleton list of 'urn:scim:schemas:core:1.0'
                     externalId              String           Optional If this user has an external ID in another system

@@ -748,6 +748,66 @@ class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     userWithDanglingRef.setUserName("some-new-username");
                     shouldRejectUpdate(method, zone1, userWithDanglingRef, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
+
+                @Test
+                void shouldKeepActiveAndVerifiedOfUserAndAlias_PatchOmitsThem_UaaToCustomZone() throws Throwable {
+                    shouldKeepActiveAndVerifiedOfUserAndAlias_PatchOmitsThem(uaaZone, customZone);
+                }
+
+                @Test
+                void shouldKeepActiveAndVerifiedOfUserAndAlias_PatchOmitsThem_CustomToUaaZone() throws Throwable {
+                    shouldKeepActiveAndVerifiedOfUserAndAlias_PatchOmitsThem(customZone, uaaZone);
+                }
+
+                private void shouldKeepActiveAndVerifiedOfUserAndAlias_PatchOmitsThem(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpAndUserWithAlias(zone1, zone2)
+                    );
+
+                    final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
+                            createdScimUser.getAliasId(),
+                            zone2.getId()
+                    );
+                    assertThat(aliasUserOpt).isPresent();
+                    final ScimUser aliasUser = aliasUserOpt.get();
+                    aliasUser.setActive(false);
+                    aliasUser.setVerified(false);
+                    updateUserViaDb(aliasUser, zone2.getId());
+
+                    createdScimUser.setActive(false);
+                    createdScimUser.setVerified(false);
+                    final ScimUser inactiveScimUser = updateUserViaDb(createdScimUser, zone1.getId());
+
+                    final MvcResult result = mockMvc.perform(patch("/Users/" + inactiveScimUser.getId())
+                                    .header("Authorization", "Bearer " + getAccessTokenForZone(zone1.getId()))
+                                    .header(IdentityZoneSwitchingFilter.HEADER, zone1.getSubdomain())
+                                    .header("If-Match", inactiveScimUser.getVersion())
+                                    .contentType(APPLICATION_JSON)
+                                    .content("{\"name\":{\"givenName\":\"Jane\"}}"))
+                            .andReturn();
+                    assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
+                    final ScimUser patchedScimUser = JsonUtils.readValue(
+                            result.getResponse().getContentAsString(),
+                            ScimUser.class
+                    );
+                    assertThat(patchedScimUser.getGivenName()).isEqualTo("Jane");
+                    assertThat(patchedScimUser.isActive()).isFalse();
+                    assertThat(patchedScimUser.isVerified()).isFalse();
+
+                    final Optional<ScimUser> patchedAliasUserOpt = readUserFromZoneIfExists(
+                            createdScimUser.getAliasId(),
+                            zone2.getId()
+                    );
+                    assertThat(patchedAliasUserOpt).isPresent();
+                    final ScimUser patchedAliasUser = patchedAliasUserOpt.get();
+                    assertThat(patchedAliasUser.getGivenName()).isEqualTo("Jane");
+                    assertThat(patchedAliasUser.isActive()).isFalse();
+                    assertThat(patchedAliasUser.isVerified()).isFalse();
+                }
             }
 
             @Nested

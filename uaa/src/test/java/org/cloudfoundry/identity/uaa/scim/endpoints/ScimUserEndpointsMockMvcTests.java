@@ -770,6 +770,69 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     @Test
+    void patchWithoutActiveOrVerifiedKeepsInactiveUnverifiedUser() throws Exception {
+        ScimUser user = setUpInactiveUnverifiedScimUser();
+
+        patchUserWithBody(user, "{\"name\":{\"givenName\":\"Alice\"}}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name.givenName").value("Alice"))
+                .andExpect(jsonPath("$.active").value(false))
+                .andExpect(jsonPath("$.verified").value(false));
+
+        ScimUser stored = usersRepository.retrieve(user.getId(), IdentityZoneHolder.get().getId());
+        assertThat(stored.isActive()).isFalse();
+        assertThat(stored.isVerified()).isFalse();
+        assertThat(stored.getName().getGivenName()).isEqualTo("Alice");
+    }
+
+    @Test
+    void patchWithActiveAndVerifiedTrueActivatesAndVerifiesUser() throws Exception {
+        ScimUser user = setUpInactiveUnverifiedScimUser();
+
+        patchUserWithBody(user, "{\"active\":true,\"verified\":true}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.verified").value(true));
+
+        ScimUser stored = usersRepository.retrieve(user.getId(), IdentityZoneHolder.get().getId());
+        assertThat(stored.isActive()).isTrue();
+        assertThat(stored.isVerified()).isTrue();
+    }
+
+    @Test
+    void patchWithActiveFalseDeactivatesUser() throws Exception {
+        ScimUser user = setUpScimUser();
+        user.setVerified(true);
+        user = usersRepository.update(user.getId(), user, IdentityZoneHolder.get().getId());
+
+        patchUserWithBody(user, "{\"active\":false}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false))
+                .andExpect(jsonPath("$.verified").value(true));
+
+        ScimUser stored = usersRepository.retrieve(user.getId(), IdentityZoneHolder.get().getId());
+        assertThat(stored.isActive()).isFalse();
+        assertThat(stored.isVerified()).isTrue();
+    }
+
+    private ScimUser setUpInactiveUnverifiedScimUser() {
+        ScimUser user = setUpScimUser();
+        user.setActive(false);
+        user.setVerified(false);
+        return usersRepository.update(user.getId(), user, IdentityZoneHolder.get().getId());
+    }
+
+    private ResultActions patchUserWithBody(final ScimUser user, final String body) throws Exception {
+        return mockMvc.perform(
+                patch("/Users/" + user.getId())
+                        .header("Authorization", "Bearer " + scimReadWriteToken)
+                        .header("If-Match", "\"" + user.getVersion() + "\"")
+                        .contentType(APPLICATION_JSON)
+                        .content(body)
+        );
+    }
+
+    @Test
     void verification_link_unverified_error() throws Exception {
         ScimUser user = setUpScimUser();
         user.setVerified(true);

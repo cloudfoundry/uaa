@@ -33,6 +33,7 @@ public class ScimUserJsonDeserializer extends ValueDeserializer<ScimUser> {
     @Override
     public ScimUser deserialize(JsonParser jp, DeserializationContext ctxt) {
         ScimUser user = new ScimUser();
+        user.markActiveAndVerifiedUnspecified();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             if (jp.currentToken() == JsonToken.PROPERTY_NAME) {
                 String fieldName = jp.currentName();
