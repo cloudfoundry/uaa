@@ -30,6 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -349,6 +350,50 @@ class ClientAdminEndpointsValidatorTests {
         UaaClientDetails result = (UaaClientDetails) validator.validate(client, true, true);
 
         assertThat(result.getClientJwtConfig()).isNotBlank();
+        assertThat(result.getAdditionalInformation()).doesNotContainKey("client_jwt_config");
+    }
+
+    private static final String NESTED_JWK_1 = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
+    private static final String NESTED_JWK_2 = NESTED_JWK_1.replace("key-1", "key-2");
+    private static final String NESTED_JWK_1_DIFFERENT_VALUE = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"new\"}";
+
+    private void addNestedClientJwtConfig(String clientJwtConfig, boolean asMap) {
+        client.setScope(Collections.singletonList(caller.getClientId() + ".read"));
+        client.addAdditionalInformation("client_jwt_config", asMap ? JsonUtils.readValue(clientJwtConfig, Map.class) : clientJwtConfig);
+    }
+
+    // A client_jwt_config in the additional information, as a JSON string or as an object, is held to the rules of the
+    // client_jwt_config property on create: a key set that repeats a kid is rejected, for different keys and for the
+    // same key repeated.
+    @ParameterizedTest
+    @CsvSource({"true,true", "true,false", "false,true", "false,false"})
+    void validate_create_nestedClientJwtConfigThatRepeatsAKid_throws(boolean asMap, boolean differentKeys) {
+        String second = differentKeys ? NESTED_JWK_1_DIFFERENT_VALUE : NESTED_JWK_1;
+        addNestedClientJwtConfig("{\"jwks\":{\"keys\":[" + NESTED_JWK_1 + "," + second + "]}}", asMap);
+
+        assertThatThrownBy(() -> validator.validate(client, true, true))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    // The jwks_uri rules apply to it as well: a jwks_uri with http on a host other than localhost is rejected.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void validate_create_nestedClientJwtConfigWithAnHttpJwksUri_throws(boolean asMap) {
+        addNestedClientJwtConfig("{\"jwks_uri\":\"http://any.domain.net/openid/jwks-uri\"}", asMap);
+
+        assertThatThrownBy(() -> validator.validate(client, true, true))
+                .isInstanceOf(InvalidClientDetailsException.class);
+    }
+
+    // Guard: a key set with distinct kids in that field is still stored, with both keys.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void validate_create_nestedClientJwtConfigWithDistinctKids_keepsBothKeys(boolean asMap) {
+        addNestedClientJwtConfig("{\"jwks\":{\"keys\":[" + NESTED_JWK_1 + "," + NESTED_JWK_2 + "]}}", asMap);
+
+        UaaClientDetails result = (UaaClientDetails) validator.validate(client, true, true);
+
+        assertThat(result.getClientJwtConfig()).contains("key-1", "key-2");
         assertThat(result.getAdditionalInformation()).doesNotContainKey("client_jwt_config");
     }
 

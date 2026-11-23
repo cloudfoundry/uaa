@@ -6,6 +6,8 @@ import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -70,6 +72,61 @@ class ClientJwtConfigurationTest {
         assertThatThrownBy(() -> ClientJwtConfiguration.parse(jsonJwkSetEmtpy)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse(jsonWebKeyNoId)).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
         assertThatThrownBy(() -> ClientJwtConfiguration.parse("{\"keys\": \"x\"}")).asInstanceOf(InstanceOfAssertFactories.throwable(InvalidClientDetailsException.class));
+    }
+
+    // A JWK set with two different keys that have the same kid is rejected by the existing duplicate kid
+    // rule ("duplicate kid in JWKSet not allowed").
+    @Test
+    void parseWithDuplicateKidIsRejected() {
+        String keySetWithDuplicateKid = "{\"keys\":[" + jsonWebKey + "," + jsonWebKeyDifferentValue + "]}";
+
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse(keySetWithDuplicateKid))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("duplicate kid");
+    }
+
+    // The same rule for the single-key form inside a set that repeats the same key (same kid and value).
+    @Test
+    void parseWithTheSameKeyTwiceIsRejected() {
+        String keySetWithRepeatedKey = "{\"keys\":[" + jsonWebKey + "," + jsonWebKey + "]}";
+
+        assertThatThrownBy(() -> ClientJwtConfiguration.parse(keySetWithRepeatedKey))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("duplicate kid");
+    }
+
+    // Guard: a key set whose keys have different kids is accepted and
+    // keeps both keys; and the rotation merge still lets a later key with the same kid replace the earlier one (the
+    // last-wins rule in JsonWebKeySet is deliberate and stays).
+    @Test
+    void parseWithDistinctKidsKeepsBothKeysAndMergeStillReplacesBySameKid() {
+        ClientJwtConfiguration twoKeys = ClientJwtConfiguration.parse("{\"keys\":[" + jsonWebKey + "," + jsonWebKey2 + "]}");
+        assertThat(twoKeys.getJwkSet().getKeys()).hasSize(2);
+
+        ClientJwtConfiguration replaced = ClientJwtConfiguration.merge(
+                ClientJwtConfiguration.parse(jsonWebKey),
+                ClientJwtConfiguration.parse(jsonWebKeyDifferentValue),
+                false);
+        assertThat(replaced.getJwkSet().getKeys()).hasSize(1);
+    }
+
+    // A raw client_jwt_config is checked before the JSON becomes a key set, which keeps one key per kid.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void rejectRepeatedKidsRejectsARawConfigWithTheSameKidTwice(boolean differentKeys) {
+        String raw = "{\"jwks\":{\"keys\":[" + jsonWebKey + "," + (differentKeys ? jsonWebKeyDifferentValue : jsonWebKey) + "]}}";
+
+        assertThatThrownBy(() -> ClientJwtConfiguration.rejectRepeatedKids(raw))
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("duplicate kid");
+    }
+
+    // Guard: distinct kids, a configuration without a key set, and one with only a jwks_uri are accepted.
+    @Test
+    void rejectRepeatedKidsAcceptsDistinctKidsAndConfigurationsWithoutAKeySet() {
+        ClientJwtConfiguration.rejectRepeatedKids("{\"jwks\":{\"keys\":[" + jsonWebKey + "," + jsonWebKey2 + "]}}");
+        ClientJwtConfiguration.rejectRepeatedKids("{\"jwks_uri\":\"https://example.com/token_keys\"}");
+        ClientJwtConfiguration.rejectRepeatedKids("{\"jwt_creds\":[{\"iss\":\"https://issuer.example.com\",\"sub\":\"subject\"}]}");
     }
 
     @Test
