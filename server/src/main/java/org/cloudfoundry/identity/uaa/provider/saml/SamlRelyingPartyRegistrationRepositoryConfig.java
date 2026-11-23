@@ -82,7 +82,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
             try {
                 RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
                         .samlEntityID(samlEntityID)
-                        .samlSpNameId(samlSpNameID)
+                        .samlSpNameId(Optional.ofNullable(samlIdentityProviderDefinition.getNameID()).orElse(samlSpNameID))
                         .keys(defaultKeysWithCerts)
                         .metadataLocation(samlIdentityProviderConfigurator.resolveMetadataXml(samlIdentityProviderDefinition))
                         .rpRegistrationId(samlIdentityProviderDefinition.getIdpEntityAlias())
