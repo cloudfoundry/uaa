@@ -79,8 +79,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.HtmlUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -646,9 +649,30 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
         List<String> kids = stored == null || stored.getJwkSet() == null ? List.of() :
                 stored.getJwkSet().getKeys().stream().map(JsonWebKey::getKid).toList();
+        String jwksUri = stored == null ? null : withoutUserInfo(stored.getJwksUri());
         List<ClientJwtCredential> credentials = stored == null || stored.getClientJwtCredentials() == null ?
                 List.of() : stored.getClientJwtCredentials();
-        return new ClientJwtActionResult(result.getStatus(), result.getMessage(), kids, credentials);
+        return new ClientJwtActionResult(result.getStatus(), result.getMessage(), kids, jwksUri, credentials);
+    }
+
+    /**
+     * A jwks_uri can carry user information (user:password@host), which can hold a password. The response of a jwt
+     * change leaves it out and returns the rest of the address as stored.
+     */
+    private static String withoutUserInfo(String jwksUri) {
+        if (jwksUri == null) {
+            return null;
+        }
+        try {
+            URI uri = new URI(jwksUri);
+            if (uri.getRawUserInfo() == null) {
+                return jwksUri;
+            }
+            return UriComponentsBuilder.fromUri(uri).userInfo(null).build(true).toUriString();
+        } catch (URISyntaxException | IllegalArgumentException _) {
+            // stored values are validated as a URI; a value that is not one is left out
+            return null;
+        }
     }
 
     private ClientJwtCredential getValidatedFederation(ClientJwtChangeRequest change) {

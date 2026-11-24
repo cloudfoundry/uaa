@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+import tools.jackson.core.type.TypeReference;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -41,6 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,6 +103,12 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     private static final String DEFAULT_UPDATE_CLIENT_JWT_CONFIG_STATEMENT =
             BASE_UPDATE_STATEMENT + "client_jwt_config = ? where client_id = ? and identity_zone_id = ?";
+
+    private static final String SELECT_ADDITIONAL_INFORMATION_STATEMENT =
+            "select additional_information from oauth_client_details where client_id = ? and identity_zone_id = ?";
+
+    private static final String UPDATE_UNCHANGED_ADDITIONAL_INFORMATION_STATEMENT =
+            BASE_UPDATE_STATEMENT + "additional_information = ? where client_id = ? and identity_zone_id = ? and additional_information = ?";
 
     static final String DEFAULT_DELETE_STATEMENT =
             "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
@@ -355,7 +363,82 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         ClientJwtConfiguration existingConfig = uaaUaaClientDetails != null ? ClientJwtConfiguration.readValue(uaaUaaClientDetails) : null;
         ClientJwtConfiguration clientJwtConfiguration = new ClientJwtConfiguration(List.of(keyConfig));
         ClientJwtConfiguration result = ClientJwtConfiguration.delete(existingConfig, clientJwtConfiguration);
+        List<String> rows = jdbcTemplate.queryForList(SELECT_ADDITIONAL_INFORMATION_STATEMENT, String.class, clientId, zoneId);
+        String storedAdditionalInformation = rows.isEmpty() ? null : rows.getFirst();
+        String additionalInformation = withoutOlderJwtCredential(storedAdditionalInformation, keyConfig);
         updateClientJwtConfig(clientId, result != null ? JsonUtils.writeValueAsString(result) : null, zoneId);
+        if (additionalInformation != null) {
+            // Written only if it is still the value that was read, so that a general update of the client in the
+            // meantime is not replaced. The response lists what is in effect then, and the delete can be sent again.
+            jdbcTemplate.update(UPDATE_UNCHANGED_ADDITIONAL_INFORMATION_STATEMENT, additionalInformation, clientId, zoneId, storedAdditionalInformation);
+        }
+    }
+
+    /**
+     * Older UAA versions kept federated credentials as jwt_creds in the additional information, at the top level or in
+     * a client_jwt_config map. They are still in effect (see UaaClient), so a delete removes the credential there too.
+     * Other entries and keys stay as they are.
+     *
+     * @return the additional information without the credential, or null if it does not contain the credential
+     */
+    private static String withoutOlderJwtCredential(String storedAdditionalInformation, ClientJwtCredential credential) {
+        if (!StringUtils.hasText(storedAdditionalInformation)) {
+            return null;
+        }
+        Map<String, Object> additionalInformation;
+        try {
+            additionalInformation = JsonUtils.readValue(storedAdditionalInformation, new TypeReference<LinkedHashMap<String, Object>>() {
+            });
+        } catch (JsonUtils.JsonUtilException _) {
+            // not read for client authentication either
+            return null;
+        }
+        boolean removed = removeJwtCredential(additionalInformation, credential);
+        if (additionalInformation.get("client_jwt_config") instanceof Map<?, ?> nested) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nestedCopy = new LinkedHashMap<>((Map<String, Object>) nested);
+            if (removeJwtCredential(nestedCopy, credential)) {
+                removed = true;
+                if (nestedCopy.isEmpty()) {
+                    additionalInformation.remove("client_jwt_config");
+                } else {
+                    additionalInformation.put("client_jwt_config", nestedCopy);
+                }
+            }
+        }
+        return removed ? JsonUtils.writeValueAsString(additionalInformation) : null;
+    }
+
+    /**
+     * Removes the credential from the jwt_creds value of the map, matched as for client_jwt_config. The remaining
+     * credentials keep the form of the value, a list or a JSON string.
+     *
+     * @return true if the value contained the credential
+     */
+    private static boolean removeJwtCredential(Map<String, Object> map, ClientJwtCredential credential) {
+        Object value = map.get(ClientJwtConfiguration.JWT_CREDS);
+        ClientJwtConfiguration stored;
+        try {
+            stored = ClientJwtConfiguration.fromJwtCredsValue(value);
+        } catch (InvalidClientDetailsException _) {
+            // not read for client authentication either
+            return false;
+        }
+        if (stored == null || stored.getClientJwtCredentials() == null) {
+            return false;
+        }
+        int before = stored.getClientJwtCredentials().size();
+        ClientJwtConfiguration remaining = ClientJwtConfiguration.delete(stored, new ClientJwtConfiguration(List.of(credential)));
+        if (remaining == null || remaining.getClientJwtCredentials() == null) {
+            map.remove(ClientJwtConfiguration.JWT_CREDS);
+            return true;
+        }
+        if (remaining.getClientJwtCredentials().size() == before) {
+            return false;
+        }
+        List<ClientJwtCredential> credentials = remaining.getClientJwtCredentials();
+        map.put(ClientJwtConfiguration.JWT_CREDS, value instanceof String ? JsonUtils.writeValueAsString(credentials) : JsonUtils.convertValue(credentials, List.class));
+        return true;
     }
 
     /**

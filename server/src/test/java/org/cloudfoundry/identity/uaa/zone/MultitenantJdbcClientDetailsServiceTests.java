@@ -5,6 +5,8 @@ import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
+import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
@@ -20,6 +22,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -42,6 +46,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWT_CREDS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService.DEFAULT_DELETE_STATEMENT;
@@ -567,6 +572,113 @@ class MultitenantJdbcClientDetailsServiceTests {
         map = jdbcTemplate.queryForMap(SELECT_SQL, clientId);
         assertThat(map).containsEntry("client_jwt_config", null)
                 .doesNotContainValue("client_jwt_config");
+    }
+
+    // Older UAA versions kept federated credentials as jwt_creds in the additional information: as a list or a JSON
+    // string at the top level, or nested in a client_jwt_config map. They are still in effect (see UaaClient).
+    private enum OlderJwtCreds {
+        TOP_LEVEL_LIST,
+        TOP_LEVEL_STRING,
+        NESTED_IN_CLIENT_JWT_CONFIG;
+
+        Map<String, Object> additionalInformation(String... issuers) {
+            List<Map<String, Object>> credentials = Arrays.stream(issuers).map(issuer -> Map.<String, Object>of("iss", issuer, "sub", "subject")).toList();
+            Map<String, Object> additionalInformation = new HashMap<>(Map.of("name", "kept"));
+            switch (this) {
+                case TOP_LEVEL_LIST -> additionalInformation.put(JWT_CREDS, credentials);
+                case TOP_LEVEL_STRING -> additionalInformation.put(JWT_CREDS, JsonUtils.writeValueAsString(credentials));
+                case NESTED_IN_CLIENT_JWT_CONFIG -> additionalInformation.put("client_jwt_config", Map.of(JWT_CREDS, credentials));
+            }
+            return additionalInformation;
+        }
+
+        Object storedCredentials(Map<String, Object> additionalInformation) {
+            return this == NESTED_IN_CLIENT_JWT_CONFIG ?
+                    ((Map<?, ?>) additionalInformation.get("client_jwt_config")).get(JWT_CREDS) : additionalInformation.get(JWT_CREDS);
+        }
+    }
+
+    // A delete removes the credential from the older form too; the other credentials keep their form, and the other
+    // fields stay.
+    @ParameterizedTest
+    @EnumSource(OlderJwtCreds.class)
+    void deleteFederatedClientJwtAlsoRemovesItFromTheAdditionalInformation(OlderJwtCreds form) {
+        String clientId = addClientWithAdditionalInformation(baseClientDetails.getClientId(), currentZoneId,
+                form.additionalInformation("https://one.example.com", "https://two.example.com"));
+
+        service.deleteClientJwtCredential(clientId, new ClientJwtCredential("subject", "https://one.example.com", null), currentZoneId);
+
+        assertThat(issuersInEffect(clientId, currentZoneId)).containsExactly("https://two.example.com");
+        Map<String, Object> stored = JsonUtils.readValueAsMap(storedAdditionalInformation(clientId, currentZoneId));
+        assertThat(stored).containsEntry("name", "kept");
+        assertThat(form.storedCredentials(stored)).isInstanceOf(form == OlderJwtCreds.TOP_LEVEL_STRING ? String.class : List.class);
+    }
+
+    @ParameterizedTest
+    @EnumSource(OlderJwtCreds.class)
+    void deleteFederatedClientJwtRemovesTheLastCredentialFromTheAdditionalInformation(OlderJwtCreds form) {
+        String clientId = addClientWithAdditionalInformation(baseClientDetails.getClientId(), currentZoneId,
+                form.additionalInformation("https://one.example.com"));
+
+        service.deleteClientJwtCredential(clientId, new ClientJwtCredential("subject", "https://one.example.com", null), currentZoneId);
+
+        assertThat(issuersInEffect(clientId, currentZoneId)).isEmpty();
+        assertThat(JsonUtils.readValueAsMap(storedAdditionalInformation(clientId, currentZoneId)))
+                .containsEntry("name", "kept")
+                .doesNotContainKeys(JWT_CREDS, "client_jwt_config");
+    }
+
+    // Guard: additional information that does not contain the credential is not written, it stays as stored.
+    @Test
+    void deleteFederatedClientJwtKeepsAdditionalInformationWithoutTheCredentialAsStored() {
+        String clientId = addClientWithAdditionalInformation(baseClientDetails.getClientId(), currentZoneId, Map.of());
+        String stored = "{ \"name\" : \"kept\", \"jwt_creds\" : [ {\"iss\":\"https://two.example.com\",\"sub\":\"subject\"} ] }";
+        assertThat(jdbcTemplate.update("update oauth_client_details set additional_information = ? where client_id = ? and identity_zone_id = ?",
+                stored, clientId, currentZoneId)).isOne();
+
+        service.deleteClientJwtCredential(clientId, new ClientJwtCredential("subject", "https://one.example.com", null), currentZoneId);
+
+        assertThat(storedAdditionalInformation(clientId, currentZoneId)).isEqualTo(stored);
+    }
+
+    // Guard: a client with the same id in another zone keeps its additional information.
+    @Test
+    void deleteFederatedClientJwtChangesTheAdditionalInformationInTheZoneOfTheClientOnly() {
+        String otherZoneId = "otherZoneId-" + randomValueStringGenerator.generate();
+        Map<String, Object> additionalInformation = OlderJwtCreds.TOP_LEVEL_LIST.additionalInformation("https://one.example.com");
+        String clientId = addClientWithAdditionalInformation(baseClientDetails.getClientId(), currentZoneId, additionalInformation);
+        addClientWithAdditionalInformation(clientId, otherZoneId, additionalInformation);
+        String otherZoneBefore = storedAdditionalInformation(clientId, otherZoneId);
+
+        service.deleteClientJwtCredential(clientId, new ClientJwtCredential("subject", "https://one.example.com", null), currentZoneId);
+
+        assertThat(issuersInEffect(clientId, currentZoneId)).isEmpty();
+        assertThat(storedAdditionalInformation(clientId, otherZoneId)).isEqualTo(otherZoneBefore);
+        assertThat(issuersInEffect(clientId, otherZoneId)).containsExactly("https://one.example.com");
+    }
+
+    // Written as older UAA versions stored it.
+    private String addClientWithAdditionalInformation(String clientId, String zoneId, Map<String, Object> additionalInformation) {
+        UaaClientDetails clientDetails = new UaaClientDetails();
+        clientDetails.setClientId(clientId);
+        service.addClientDetails(clientDetails, zoneId);
+        assertThat(jdbcTemplate.update("update oauth_client_details set additional_information = ? where client_id = ? and identity_zone_id = ?",
+                JsonUtils.writeValueAsString(additionalInformation), clientId, zoneId)).isOne();
+        return clientId;
+    }
+
+    private String storedAdditionalInformation(String clientId, String zoneId) {
+        return jdbcTemplate.queryForObject("select additional_information from oauth_client_details where client_id = ? and identity_zone_id = ?",
+                String.class, clientId, zoneId);
+    }
+
+    // The federated credentials that client authentication uses.
+    private List<String> issuersInEffect(String clientId, String zoneId) {
+        UaaClientDetails details = (UaaClientDetails) service.loadClientByClientId(clientId, zoneId);
+        ClientJwtConfiguration inEffect = new UaaClient(details.getClientId(), details.getClientSecret(), details.getAuthorities(),
+                new HashMap<>(details.getAdditionalInformation()), details.getClientJwtConfig()).getClientJwtConfiguration();
+        return inEffect.getClientJwtCredentials() == null ? List.of() :
+                inEffect.getClientJwtCredentials().stream().map(ClientJwtCredential::getIssuer).toList();
     }
 
     @Test

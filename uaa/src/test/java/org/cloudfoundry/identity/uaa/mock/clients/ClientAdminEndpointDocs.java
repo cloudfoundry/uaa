@@ -128,8 +128,9 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
     private static final FieldDescriptor[] clientJwtChangeResponseFields = new FieldDescriptor[]{
             fieldWithPath("status").description("`ok` when the change was applied."),
             fieldWithPath("message").description("A description of the applied change."),
-            fieldWithPath("kids").type(ARRAY).description("The key ids (`kid`) of the JWK set of the client after the change, as stored when the request finished. Changes of one client that arrive at the same time can replace each other; compare this list with the keys you want and send the change again if a key is missing."),
-            fieldWithPath("jwt_creds").type(ARRAY).description("The federated credentials (`iss`, `sub` or `sub_pattern`, `aud`) of the client after the change, as stored when the request finished, including credentials that are kept as `jwt_creds` in the additional information of the client. It is the same list that a read of the client returns. Use it like `kids`."),
+            fieldWithPath("kids").type(ARRAY).description("The key ids (`kid`) of the JWK set of the client after the change, as stored when the request finished. Changes of one client that arrive at the same time can replace each other; compare this list with the keys you want and send the change again if a key is missing. A `kid` confirms the key id, not the key: `ADD` keeps a key that is already stored under the same `kid`, and `UPDATE` replaces it."),
+            fieldWithPath("jwks_uri").optional().type(STRING).description("The `jwks_uri` of the client after the change, as stored when the request finished, without user information (`user:password@`). Omitted when the client has none. `ADD` keeps a `jwks_uri` that is already stored, and `UPDATE` replaces it."),
+            fieldWithPath("jwt_creds").type(ARRAY).description("The federated credentials (`iss`, `sub` or `sub_pattern`, `aud`) of the client after the change, as stored when the request finished, including credentials that are kept as `jwt_creds` in the additional information of the client. It is the same list that a read of the client returns. A delete removes a credential from both places. Use it like `kids`."),
     };
 
     private static final FieldDescriptor[] clientJwtChangeFields = new FieldDescriptor[]{

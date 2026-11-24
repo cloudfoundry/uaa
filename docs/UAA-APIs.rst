@@ -3296,7 +3296,7 @@ Change Client JWT Configuration: ``PUT /oauth/clients/{client_id}/clientjwt``
 Request         ``PUT /oauth/clients/{client_id}/clientjwt``
 Request body    *jwt trust configuration change request*
 Reponse code    ``200 OK`` if successful
-Response body   a status message (hash)
+Response body   a status message and the jwt configuration of the client after the change (hash)
 ==============  ===============================================
 
 Example::
@@ -3305,6 +3305,23 @@ Example::
     {
       "jwks_uri": "http://localhost:8080/uaa/token_keys"
     }
+
+    200 OK
+    {
+      "status": "ok",
+      "message": "Client jwt configuration is added",
+      "kids": [],
+      "jwks_uri": "http://localhost:8080/uaa/token_keys",
+      "jwt_creds": []
+    }
+
+The response lists the key ids (``kids``), the ``jwks_uri`` and the federated credentials
+(``jwt_creds``) of the client as stored when the request finished. The ``jwks_uri`` is listed
+without user information (``user:password@``) and is omitted when the client has none. No key
+material is returned. Changes of one client that arrive at the same time can replace each
+other; compare the lists with the state you want and send the change again if needed. A
+``kid`` confirms the key id, not the key: ``ADD`` keeps a key that is already stored under the
+same ``kid``, and ``UPDATE`` replaces it.
 
 A federated credential (RFC 7523) is registered with an issuer and either a subject or a
 subject pattern. In a pattern, ``*`` matches one component and crosses neither ``:`` nor

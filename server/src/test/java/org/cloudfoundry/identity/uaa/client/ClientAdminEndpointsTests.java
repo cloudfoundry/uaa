@@ -1230,7 +1230,23 @@ class ClientAdminEndpointsTests {
         ClientJwtActionResult result = changeClientJwtOfStoredClient(new UaaClientDetails(detail));
 
         assertThat(result.getKids()).isEmpty();
+        assertThat(result.getJwksUri()).isNull();
         assertThat(result.getCredentials()).isEmpty();
+    }
+
+    // The jwks_uri is listed without user information (user:password@), which can hold a password. The rest of the
+    // address stays as stored, including the port and an encoded query.
+    @ParameterizedTest
+    @CsvSource({
+            "https://keys.example.com/token_keys, https://keys.example.com/token_keys",
+            "https://keys-user:keys-password@keys.example.com:8443/token_keys?tenant=a%20b, https://keys.example.com:8443/token_keys?tenant=a%20b",
+            "https://keys-user@keys.example.com/token_keys, https://keys.example.com/token_keys"
+    })
+    void changeClientJwtResponseListsTheJwksUriWithoutUserInformation(String storedJwksUri, String listedJwksUri) {
+        UaaClientDetails stored = new UaaClientDetails(detail);
+        stored.setClientJwtConfig("{\"jwks_uri\":\"" + storedJwksUri + "\"}");
+
+        assertThat(changeClientJwtOfStoredClient(stored).getJwksUri()).isEqualTo(listedJwksUri);
     }
 
     @Test
