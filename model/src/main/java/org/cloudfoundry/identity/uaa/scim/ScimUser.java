@@ -360,9 +360,11 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
     private String timezone;
 
-    private boolean active = true;
+    // active and verified are null when a JSON request omits them,
+    // so that patch() keeps the current values
+    private Boolean active = true;
 
-    private boolean verified = true;
+    private Boolean verified = true;
 
     private String origin = "";
 
@@ -527,7 +529,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
     }
 
     public boolean isActive() {
-        return active;
+        return active == null || active;
     }
 
     public void setActive(boolean active) {
@@ -535,11 +537,20 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
     }
 
     public boolean isVerified() {
-        return verified;
+        return verified == null || verified;
     }
 
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    /**
+     * Marks {@code active} and {@code verified} as not supplied, so that {@link #patch(ScimUser)}
+     * keeps the current values. Both still read as {@code true} until set.
+     */
+    public void markActiveAndVerifiedUnspecified() {
+        this.active = null;
+        this.verified = null;
     }
 
     public String getOrigin() {
@@ -765,8 +776,8 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         //Merge simple Attributes, that are stored
         ofNullable(patch.getUserName()).ifPresent(this::setUserName);
 
-        setActive(patch.isActive());
-        setVerified(patch.isVerified());
+        ofNullable(patch.active).ifPresent(this::setActive);
+        ofNullable(patch.verified).ifPresent(this::setVerified);
 
         //Merge complex attributes
         ScimUser.Name patchName = patch.getName();

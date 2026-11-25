@@ -18,6 +18,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
@@ -805,5 +807,95 @@ class ScimUserTests {
         patch.setVerified(true);
         user.patch(patch);
         assertThat(user.isVerified()).isTrue();
+    }
+
+    @Test
+    void patchFromJsonWithoutActiveOrVerifiedKeepsStoredValues() {
+        user.setActive(false);
+        user.setVerified(false);
+        patch = JsonUtils.readValue("{\"name\":{\"givenName\":\"Alice\"}}", ScimUser.class);
+
+        user.patch(patch);
+
+        assertThat(user.isActive()).isFalse();
+        assertThat(user.isVerified()).isFalse();
+        assertThat(user.getName().getGivenName()).isEqualTo("Alice");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true, false", "false, true", "true, true", "false, false"})
+    void patchFromJsonAppliesActiveAndVerifiedWhenPresent(boolean active, boolean verified) {
+        user.setActive(!active);
+        user.setVerified(!verified);
+        patch = JsonUtils.readValue("{\"active\":%s,\"verified\":%s}".formatted(active, verified), ScimUser.class);
+
+        user.patch(patch);
+
+        assertThat(user.isActive()).isEqualTo(active);
+        assertThat(user.isVerified()).isEqualTo(verified);
+    }
+
+    @Test
+    void patchFromJsonWithOnlyActiveKeepsStoredVerified() {
+        user.setVerified(false);
+        user.setActive(false);
+        patch = JsonUtils.readValue("{\"active\":true}", ScimUser.class);
+
+        user.patch(patch);
+
+        assertThat(user.isActive()).isTrue();
+        assertThat(user.isVerified()).isFalse();
+    }
+
+    @Test
+    void patchFromJsonWithOnlyVerifiedKeepsStoredActive() {
+        user.setActive(false);
+        user.setVerified(false);
+        patch = JsonUtils.readValue("{\"verified\":true}", ScimUser.class);
+
+        user.patch(patch);
+
+        assertThat(user.isVerified()).isTrue();
+        assertThat(user.isActive()).isFalse();
+    }
+
+    @Test
+    void patchAppliesActiveAndVerifiedSetAfterDeserialization() {
+        patch = JsonUtils.readValue("{\"name\":{\"givenName\":\"Alice\"}}", ScimUser.class);
+        patch.setActive(false);
+        patch.setVerified(false);
+
+        user.patch(patch);
+
+        assertThat(user.isActive()).isFalse();
+        assertThat(user.isVerified()).isFalse();
+    }
+
+    @Test
+    void patchWithUserBuiltInCodeStillAppliesDefaultActiveAndVerified() {
+        user.setActive(false);
+        user.setVerified(false);
+
+        user.patch(new ScimUser());
+
+        assertThat(user.isActive()).isTrue();
+        assertThat(user.isVerified()).isTrue();
+    }
+
+    @Test
+    void deserializedUserWithoutActiveOrVerifiedDefaultsToTrue() {
+        ScimUser deserialized = JsonUtils.readValue("{\"userName\":\"uname\"}", ScimUser.class);
+
+        assertThat(deserialized.isActive()).isTrue();
+        assertThat(deserialized.isVerified()).isTrue();
+    }
+
+    @Test
+    void serializedUserStillIncludesActiveAndVerified() {
+        ScimUser deserialized = JsonUtils.readValue("{\"userName\":\"uname\"}", ScimUser.class);
+
+        assertThat(JsonUtils.writeValueAsString(deserialized))
+                .contains("\"active\":true", "\"verified\":true")
+                .doesNotContain("\"active\":null", "\"verified\":null");
     }
 }
