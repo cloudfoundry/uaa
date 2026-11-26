@@ -173,8 +173,6 @@ class ClientJwtChangeResponseMockMvcTests {
      *
      * Expected: after a 200 delete, the credential is no longer in effect and the response no longer lists it. Failed
      * before the fix. Fix: the delete also removes the credential from the additional information.
-     * (A general update of the client currently drops such credentials, see
-     * ClientJwtCredsInAdditionalInformationMockMvcTests; that is older than this PR.)
      */
     @Test
     void deleteOfAFederatedCredentialInTheOlderFormNoLongerListsIt() throws Exception {
