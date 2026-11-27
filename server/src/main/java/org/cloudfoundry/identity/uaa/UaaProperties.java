@@ -18,6 +18,14 @@ import java.util.Set;
  */
 public class UaaProperties {
 
+    @ConfigurationProperties(prefix = "uaa.admin-token-network-policy")
+    public record AdminTokenNetworkPolicy(
+            @DefaultValue("false") boolean enabled,
+            @DefaultValue List<String> allowed_cidrs,
+            @DefaultValue List<String> additional_protected_scopes
+    ) {
+    }
+
     @ConfigurationProperties
     public record RootLevel(
             @DefaultValue("false") boolean require_https,
@@ -174,4 +182,3 @@ public class UaaProperties {
     }
 
 }
-

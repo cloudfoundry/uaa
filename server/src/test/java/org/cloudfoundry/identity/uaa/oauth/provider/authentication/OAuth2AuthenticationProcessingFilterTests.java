@@ -1,6 +1,15 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.authentication;
 
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.UaaProperties;
+import org.cloudfoundry.identity.uaa.oauth.AdminTokenNetworkPolicy;
+import org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor;
+import org.springframework.security.web.DefaultSecurityFilterChain;
+import org.springframework.security.web.util.matcher.AnyRequestMatcher;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import java.util.List;
+import java.util.Set;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.RequestTokenFactory;
@@ -144,5 +153,33 @@ class OAuth2AuthenticationProcessingFilterTests {
         filter.doFilter(request, response, chain);
         Mockito.verify(eventPublisher).publishAuthenticationFailure(Mockito.any(AuthenticationException.class), Mockito.any(Authentication.class));
         Mockito.verify(eventPublisher, Mockito.never()).publishAuthenticationSuccess(Mockito.any(Authentication.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"uaa.admin", "cloud_controller.admin", "zones.tenant.admin"})
+    void policyIsAppliedToEveryChainBeforeAuthenticationSuccess(String scope) throws Exception {
+        OAuth2Authentication admin = new OAuth2Authentication(RequestTokenFactory.createOAuth2Request(
+                null, "foo", AuthorityUtils.createAuthorityList(scope), true, Set.of("openid"), null, null, null, null), null);
+        filter.setAuthenticationManager(ignored -> admin);
+        AuthenticationEventPublisher publisher = Mockito.mock(AuthenticationEventPublisher.class);
+        filter.setAuthenticationEventPublisher(publisher);
+        SecurityFilterChainPostProcessor processor = new SecurityFilterChainPostProcessor();
+        processor.setAdminTokenNetworkPolicy(new AdminTokenNetworkPolicy(new UaaProperties.AdminTokenNetworkPolicy(
+                true, List.of("192.0.2.0/24"), List.of())));
+        processor.setIgnore(List.of("customResourceChain"));
+        processor.postProcessAfterInitialization(new DefaultSecurityFilterChain(AnyRequestMatcher.INSTANCE, filter), "customResourceChain");
+        request.addHeader("Authorization", "Bearer VALID");
+        request.setRemoteAddr("198.51.100.1");
+        request.addHeader("X-Forwarded-For", "192.0.2.1");
+        filter.doFilter(request, response, chain);
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getContentAsString()).contains("access_denied").doesNotContain("VALID");
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        Mockito.verifyNoInteractions(chain, publisher);
+
+        request.setRemoteAddr("192.0.2.1");
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+        Mockito.verify(chain).doFilter(Mockito.any(), Mockito.any());
+        Mockito.verify(publisher).publishAuthenticationSuccess(admin);
     }
 }

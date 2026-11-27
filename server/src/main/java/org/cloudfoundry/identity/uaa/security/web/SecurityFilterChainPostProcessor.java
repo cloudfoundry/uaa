@@ -15,6 +15,8 @@
 package org.cloudfoundry.identity.uaa.security.web;
 
 import jakarta.servlet.RequestDispatcher;
+import org.cloudfoundry.identity.uaa.oauth.AdminTokenNetworkPolicy;
+import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.apache.tomcat.util.http.InvalidParameterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,6 +100,12 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
     private Map<Class<? extends Exception>, ReasonPhrase> errorMap = new HashMap<>();
     private Map<FilterPosition, Filter> additionalFilters;
+    private AdminTokenNetworkPolicy adminTokenNetworkPolicy = AdminTokenNetworkPolicy.disabled();
+
+    public void setAdminTokenNetworkPolicy(AdminTokenNetworkPolicy policy) {
+        Assert.notNull(policy, "Administrative token network policy is required");
+        this.adminTokenNetworkPolicy = policy;
+    }
 
     public void setErrorMap(Map<Class<? extends Exception>, ReasonPhrase> errorMap) {
         this.errorMap = errorMap;
@@ -109,7 +117,18 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        if (bean instanceof SecurityFilterChain fc && !ignore.contains(beanName)) {
+        if (bean instanceof SecurityFilterChain fc) {
+            // Resource filters are constructed in several configurations, including non-bean instances.
+            // Configure every chain, rather than just the default resource-server filter.
+            for (Filter filter : fc.getFilters()) {
+                if (filter instanceof OAuth2AuthenticationProcessingFilter resourceFilter) {
+                    resourceFilter.setAdminTokenNetworkPolicy(adminTokenNetworkPolicy);
+                }
+            }
+
+            if (ignore.contains(beanName)) {
+                return bean;
+            }
             logger.info("Processing security filter chain {}", beanName);
 
             if (additionalFilters != null) {

@@ -176,6 +176,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private final TokenValidationService tokenValidationService;
     private final KeyInfoService keyInfoService;
     private final IdTokenGranter idTokenGranter;
+    private AdminTokenNetworkPolicy adminTokenNetworkPolicy = AdminTokenNetworkPolicy.disabled();
+
+    @Autowired
+    public void setAdminTokenNetworkPolicy(AdminTokenNetworkPolicy adminTokenNetworkPolicy) {
+        java.util.Objects.requireNonNull(adminTokenNetworkPolicy, "Administrative token network policy is required");
+        this.adminTokenNetworkPolicy = adminTokenNetworkPolicy;
+    }
 
     public UaaTokenServices(IdTokenCreator idTokenCreator,
             TokenEndpointBuilder tokenEndpointBuilder,
@@ -252,6 +259,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Map<String, Object> refreshTokenClaims = jwtToken.getClaims();
 
         ArrayList<String> tokenScopes = getScopesFromRefreshToken(refreshTokenClaims);
+        // Downscoping the access token does not remove the retained administrative refresh capability.
+        adminTokenNetworkPolicy.checkIssuance(tokenScopes, emptySet());
+        adminTokenNetworkPolicy.checkClaims(refreshTokenClaims);
         refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
 
         Claims claims = getClaims(refreshTokenClaims);
@@ -524,6 +534,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     TlsClientAuthConfiguration.TLS_CLIENT_CERTIFICATE_BOUND_ACCESS_TOKENS
                             + " for client_id=" + clientId + " requires a valid certificate-bound access token");
         }
+        adminTokenNetworkPolicy.checkClaims(jwtAccessToken);
+        if (refreshToken != null) {
+            adminTokenNetworkPolicy.checkClaims(JsonUtils.readValueAsMap(JwtHelper.decode(refreshToken).getClaims()));
+        }
         String token = JwtHelper.encode(jwtAccessToken, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
 
@@ -700,6 +714,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
             validateRequiredUserGroups(user, client);
         }
+
+        adminTokenNetworkPolicy.checkIssuance(oAuth2Request.getScope(), authentication.isClientOnly()
+                ? AuthorityUtils.authorityListToSet(clientScopes) : emptySet());
 
 
         String clientSecretForHash = getClientSecretForHash(client.getClientSecret());

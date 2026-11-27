@@ -2,6 +2,9 @@ package org.cloudfoundry.identity.uaa.oauth.provider.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.AdminTokenNetworkPolicy;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.springframework.security.access.AccessDeniedException;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -51,6 +54,12 @@ public class OAuth2AuthenticationProcessingFilter implements Filter, Initializin
     private AuthenticationEventPublisher eventPublisher = new NullEventPublisher();
 
     private boolean stateless = true;
+    private AdminTokenNetworkPolicy adminTokenNetworkPolicy = AdminTokenNetworkPolicy.disabled();
+
+    public void setAdminTokenNetworkPolicy(AdminTokenNetworkPolicy policy) {
+        Assert.notNull(policy, "Administrative token network policy is required");
+        this.adminTokenNetworkPolicy = policy;
+    }
 
     /**
      * Flag to say that this filter guards stateless resources (default true). Set this to true if the only way the
@@ -134,6 +143,10 @@ public class OAuth2AuthenticationProcessingFilter implements Filter, Initializin
                 }
                 Authentication authResult = authenticationManager.authenticate(authentication);
 
+                if (authResult instanceof OAuth2Authentication oauth) {
+                    adminTokenNetworkPolicy.checkAuthentication(oauth, request);
+                }
+
                 if (debug) {
                     logger.debug("Authentication success: " + authResult);
                 }
@@ -142,6 +155,14 @@ public class OAuth2AuthenticationProcessingFilter implements Filter, Initializin
                 SecurityContextHolder.getContext().setAuthentication(authResult);
 
             }
+        }
+        catch (AccessDeniedException denied) {
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json;charset=UTF-8");
+            response.setHeader("Cache-Control", "no-store");
+            response.getWriter().write("{\"error\":\"access_denied\",\"error_description\":\"Administrative token source address is not allowed\"}");
+            return;
         }
         catch (OAuth2Exception failed) {
             SecurityContextHolder.clearContext();
