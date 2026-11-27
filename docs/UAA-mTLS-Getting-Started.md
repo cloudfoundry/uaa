@@ -406,6 +406,25 @@ An absent allow-list authorizes nothing — it does not silently fall back to an
 This is mutually exclusive with `tls-client-auth-aud-templates` (Step 9): pick one mechanism per
 client.
 
+When many clients share the same audiences, an operator can define a named policy in the default
+zone's `uaa.yml`:
+
+```yaml
+uaa:
+  mtls:
+    resource_policies:
+      workload-federation:
+        allowed_resources:
+          - https://billing.apps.internal
+          - https://reporting.apps.internal
+```
+
+The client then uses `"tls-client-auth-allowed-resources-ref": "workload-federation"` instead of
+the inline list. Other zones use `config.mtls.resourcePolicies` in the identity-zone API. UAA
+resolves the policy on each request, so adding or removing an audience affects new token requests
+without updating clients. References never fall back to another zone; a removed policy fails
+explicit resource requests as `invalid_target`.
+
 Requesting a value that isn't on the list fails closed, without saying which value was tried:
 
 ```bash
@@ -569,8 +588,9 @@ whatever value was rejected — a caller cannot use the error message to probe w
 | `tls-client-auth-required-claims` entry doesn't match | same message as above | Same deliberate non-disclosure | Re-derive the claim values via `tls-client-auth-claim-mappings` and compare by hand |
 | Sent a `client_secret` (even an empty one), an `Authorization` header, or a `client_assertion` for a client that has `tls-client-auth-ca` | `401 invalid_client`: `tls_client_auth: configured clients must authenticate at /oauth/mtls/token without client credentials` | A certificate-bound client cannot also obtain unbound tokens | Send only `client_id` and `grant_type`; authenticate with the certificate only |
 | Requested any grant other than `client_credentials` | `400 invalid_grant`: `the mTLS token endpoint only issues client_credentials tokens` | This endpoint exists for workload identity, not user grants | Use `client_credentials` |
-| `resource=` not on the client's `tls-client-auth-allowed-resources`, or the client has no list | `400 invalid_target`: `client_id=<id> is not authorized to request the given resource` | An absent allow-list authorizes nothing | Add the value to the list (Step 8), or omit `resource` entirely |
-| `tls-client-auth-allowed-resources` and `tls-client-auth-aud-templates` both set | `400 invalid_client`, registration refused: `...are mutually exclusive for client_id=...` | Two mechanisms for setting `aud` on one client | Pick one |
+| `resource=` is not in the client's inline list or referenced policy, or the referenced policy was removed | `400 invalid_target`: `client_id=<id> is not authorized to request the given resource` | An absent or removed allow-list authorizes nothing | Add the value to the inline list or referenced policy (Step 8), or omit `resource` entirely |
+| `tls-client-auth-allowed-resources-ref` is blank or names an unknown policy | `400 invalid_client`, registration refused | A reference must resolve in the client's identity zone | Configure the named policy first, then register the client with its exact case-sensitive name |
+| More than one of `tls-client-auth-allowed-resources`, `tls-client-auth-allowed-resources-ref`, and `tls-client-auth-aud-templates` is set | `400 invalid_client`, registration refused: `...are mutually exclusive for client_id=...` | Only one mechanism may set `aud` on a client | Pick one |
 | A `tls-client-auth-claim-mappings` `pattern` targets `subject_cn`/`subject_o` | `400 invalid_client`, registration refused | `pattern` only applies to `subject_ou` | Drop `pattern` for `subject_cn`/`subject_o`, or move the mapping to `subject_ou` |
 | `PATCH /oauth/clients/{id}` | `405` (or an unrelated-looking `403`/CSRF error, depending on what else is mapped at that path) | The client-admin API has no `PATCH` | Use `PUT` with at least `client_id`; omitted fields are preserved |
 | `curl: (60) SSL certificate problem` on *every* request, including plain `/oauth/token` | — | `--cacert` is pointing at the demo mTLS CA from Step 2 instead of whatever CA signed UAA's own HTTPS certificate | Set `$UAA_CACERT` correctly — see Prerequisites; the two files are unrelated |

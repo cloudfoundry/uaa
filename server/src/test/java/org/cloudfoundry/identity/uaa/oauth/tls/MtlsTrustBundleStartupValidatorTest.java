@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.tls;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,6 +40,18 @@ class MtlsTrustBundleStartupValidatorTest {
     }
 
     @Test
+    void invalidDefaultZoneResourcePolicyPreventsStartup() {
+        IdentityZone zone = givenDefaultZone(true, Map.of());
+        MtlsResourcePolicy policy = new MtlsResourcePolicy();
+        policy.setAllowedResources(java.util.List.of("not-a-uri"));
+        zone.getConfig().getMtls().setResourcePolicies(Map.of("broken-policy", policy));
+
+        assertThatThrownBy(() -> validator(true).afterSingletonsInstantiated())
+                .isInstanceOf(InvalidClientDetailsException.class)
+                .hasMessageContaining("broken-policy");
+    }
+
+    @Test
     void neverLooksUpOtherZones() {
         givenDefaultZone(true, Map.of());
 
@@ -63,11 +76,13 @@ class MtlsTrustBundleStartupValidatorTest {
         assertThatCode(() -> validator(true).afterSingletonsInstantiated()).doesNotThrowAnyException();
     }
 
-    private void givenDefaultZone(boolean mtlsEnabled, Map<String, String> bundles) {
+    private IdentityZone givenDefaultZone(boolean mtlsEnabled, Map<String, String> bundles) {
         IdentityZone zone = IdentityZone.getUaa();
         zone.getConfig().getMtls().setEnabled(mtlsEnabled);
         zone.getConfig().getMtls().setTrustBundles(bundles);
+        zone.getConfig().getMtls().setResourcePolicies(Map.of());
         when(zones.retrieve(IdentityZone.getUaaZoneId())).thenReturn(zone);
+        return zone;
     }
 
     private MtlsTrustBundleStartupValidator validator(boolean deploymentEnabled) {

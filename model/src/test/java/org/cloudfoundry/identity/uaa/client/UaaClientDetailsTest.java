@@ -455,19 +455,25 @@ class UaaClientDetailsTest {
         private static final String CA = "-----BEGIN CERTIFICATE-----\nMIIBxxx\n-----END CERTIFICATE-----\n";
 
         @Test
-        void namedTrustReferencesSurviveTypedConfigurationAndClearing() {
+        void namedMtlsReferencesSurviveTypedConfigurationAndClearing() {
             TlsClientAuthConfiguration config = org.cloudfoundry.identity.uaa.util.JsonUtils.convertValue(Map.of(
-                    "tls-client-auth-ca-ref", "workload", "tls-client-auth-trusted-proxy-ca-ref", "proxy"),
+                    "tls-client-auth-ca-ref", "workload",
+                    "tls-client-auth-trusted-proxy-ca-ref", "proxy",
+                    "tls-client-auth-allowed-resources-ref", "federation"),
                     TlsClientAuthConfiguration.class);
             UaaClientDetails client = new UaaClientDetails();
             client.setTlsClientAuthConfiguration(config);
             assertThat(client.getAdditionalInformation())
                     .containsEntry("tls-client-auth-ca-ref", "workload")
                     .containsEntry("tls-client-auth-trusted-proxy-ca-ref", "proxy")
+                    .containsEntry("tls-client-auth-allowed-resources-ref", "federation")
                     .doesNotContainKey(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_CA);
             client.setTlsClientAuthConfiguration(null);
             assertThat(client.getAdditionalInformation())
-                    .doesNotContainKeys("tls-client-auth-ca-ref", "tls-client-auth-trusted-proxy-ca-ref");
+                    .doesNotContainKeys(
+                            "tls-client-auth-ca-ref",
+                            "tls-client-auth-trusted-proxy-ca-ref",
+                            "tls-client-auth-allowed-resources-ref");
         }
 
         private TlsClientAuthConfiguration fullConfiguration() {

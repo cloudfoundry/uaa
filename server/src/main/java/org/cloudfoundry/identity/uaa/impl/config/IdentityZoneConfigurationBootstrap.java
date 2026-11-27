@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
 import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
+import org.cloudfoundry.identity.uaa.zone.MtlsResourcePolicy;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.springframework.beans.factory.InitializingBean;
@@ -41,6 +42,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private ClientSecretPolicy clientSecretPolicy;
     private Map<String, String> mtlsTrustBundles = Map.of();
+    private Map<String, MtlsResourcePolicy> mtlsResourcePolicies = Map.of();
     private boolean mtlsEnabled = false;
     private TokenPolicy tokenPolicy;
 
@@ -91,6 +93,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         definition.getMtls().setTrustBundles(mtlsTrustBundles);
+        definition.getMtls().setResourcePolicies(mtlsResourcePolicies);
         definition.getMtls().setEnabled(mtlsEnabled);
         definition.setClientSecretPolicy(clientSecretPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);

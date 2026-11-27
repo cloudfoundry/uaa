@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import lombok.Data;
@@ -17,4 +18,8 @@ public class MtlsConfig {
 
     @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Map<String, String> trustBundles = new LinkedHashMap<>();
+
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private Map<String, MtlsResourcePolicy> resourcePolicies = new LinkedHashMap<>();
 }

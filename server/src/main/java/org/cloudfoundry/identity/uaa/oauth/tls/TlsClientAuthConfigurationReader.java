@@ -49,6 +49,8 @@ public final class TlsClientAuthConfigurationReader {
         cfg.setAudTemplates(readJson(info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_AUD_TEMPLATES), STRING_LIST));
         cfg.setRequiredClaims(readJson(info.get(TlsClientAuthConfiguration.TLS_CLIENT_AUTH_REQUIRED_CLAIMS), STRING_MAP));
         cfg.setAllowedResources(readAllowedResources(info));
+        cfg.setAllowedResourcesRef(flatString(
+                info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_ALLOWED_RESOURCES_REF));
         cfg.setSubjectDn(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SUBJECT_DN));
         cfg.setSanDns(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_DNS));
         cfg.setSanUri(flatString(info, TlsClientAuthConfiguration.TLS_CLIENT_AUTH_SAN_URI));
