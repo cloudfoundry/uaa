@@ -14,12 +14,12 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.google.re2j.Pattern;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -55,6 +55,18 @@ public class CorsConfiguration {
     private boolean allowedCredentials;
 
     private int maxAge = 1728000;
+
+    /**
+     * The expression actually compiled for a configured origin: one that has neither {@code ^} nor {@code $}
+     * matches anywhere in the origin, optionally followed by a port. The zone validator and the filter must judge
+     * this same string so that a value accepted at save time is also accepted at request time.
+     */
+    public static String anchorOrigin(String allowedOrigin) {
+        if (allowedOrigin != null && !allowedOrigin.startsWith("^") && !allowedOrigin.endsWith("$")) {
+            return "^.*(?:" + allowedOrigin + ")(?::\\d+)?$";
+        }
+        return allowedOrigin;
+    }
 
     public boolean isAllowedCredentials() {
         return allowedCredentials;

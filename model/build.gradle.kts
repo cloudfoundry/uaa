@@ -1,5 +1,5 @@
 plugins {
-    java
+    `java-library`
     alias(libs.plugins.springDependencyManagement)
     alias(libs.plugins.jacocoLog)
     alias(libs.plugins.sonarqube)
@@ -23,6 +23,9 @@ dependencies {
     implementation(libs.springSecurityCore)
 
     implementation(libs.nimbusJwt)
+
+    // Part of the public API: CorsConfiguration's pattern getters return com.google.re2j.Pattern.
+    api(libs.re2j)
 
     implementation(libs.slf4jApi)
 
