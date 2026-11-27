@@ -30,6 +30,24 @@ function download_and_extract_tomcat() {
   tar -xzf "${cache}" -C "${build_dir}"
 }
 
+#######################################
+# local_database_catalina_opts
+# Local-dev-only DB credentials for the mysql/postgresql profiles, matching the database
+# booted by boot_db() in lib_db_helper.sh (root/changeme). application-mysql.properties /
+# application-postgresql.properties (packaged into the WAR) no longer ship these, so the
+# deployed WAR needs them supplied as -D system properties instead.
+# Arguments:
+#   $1 - comma-separated active Spring profiles (e.g. "postgresql,default")
+#######################################
+function local_database_catalina_opts() {
+  local profiles="$1"
+  if [[ ",${profiles}," == *,mysql,* ]]; then
+    echo "-Ddatabase.username=root -Ddatabase.password=changeme -Ddatabase.url=jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true"
+  elif [[ ",${profiles}," == *,postgresql,* ]]; then
+    echo "-Ddatabase.username=root -Ddatabase.password=changeme -Ddatabase.url=jdbc:postgresql:uaa"
+  fi
+}
+
 function wait_for_uaa_http() {
   local url="$1"
   local max_wait="${2:-300}"
@@ -152,13 +170,16 @@ function main() {
   export CATALINA_BASE="${tomcat_root}"
   export UAA_PORT="${uaa_port}"
 
+  local database_opts
+  database_opts="$(local_database_catalina_opts "${test_profile}")"
+
   # Do not use `set -u` in setenv.sh: Tomcat sources it, then setclasspath.sh tests unset
   # JRE_HOME with `[ -z "$JRE_HOME" ]`, which fails under nounset before Tomcat starts.
   # Match UaaBootApplication.main() and integration java -jar (uaa/build.gradle) for Spring context.
   cat > "${tomcat_root}/bin/setenv.sh" <<EOF
 #!/usr/bin/env sh
 export JAVA_OPTS="\${JAVA_OPTS:-}"
-export CATALINA_OPTS="\${CATALINA_OPTS:-} -DCLOUDFOUNDRY_CONFIG_PATH=${boot_dir} -DSECRETS_DIR=${boot_dir} -Dserver.servlet.context-path=/uaa -Dsmtp.host=localhost -Dsmtp.port=2525 -Dspring.profiles.active=${test_profile} -Djava.security.egd=file:/dev/./urandom -Dlogging.config=${log4j} -Dstatsd.enabled=true -Dzones.paths.enabled=true -Dspring.main.allow-bean-definition-overriding=true -Dspring.main.allow-circular-references=true"
+export CATALINA_OPTS="\${CATALINA_OPTS:-} -DCLOUDFOUNDRY_CONFIG_PATH=${boot_dir} -DSECRETS_DIR=${boot_dir} -Dserver.servlet.context-path=/uaa -Dsmtp.host=localhost -Dsmtp.port=2525 -Dspring.profiles.active=${test_profile} -Djava.security.egd=file:/dev/./urandom -Dlogging.config=${log4j} -Dstatsd.enabled=true -Dzones.paths.enabled=true -Dspring.main.allow-bean-definition-overriding=true -Dspring.main.allow-circular-references=true ${database_opts}"
 EOF
   chmod +x "${tomcat_root}/bin/setenv.sh"
 
