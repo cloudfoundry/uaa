@@ -157,6 +157,7 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     private ResponseEntity<Map> loginClientTokenRequest(String userId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "app");
@@ -294,11 +295,14 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
                 redirectUri);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
+        String location = IntegrationTestUtils.resolveRedirect(serverRunning.getUrl("/oauth/authorize"), result.getHeaders().getLocation());
         IntegrationTestUtils.extractCookies(result, cookies);
 
 
-        ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
+        ResponseEntity<String> response = restTemplate.exchange(URI.create(location),
+                HttpMethod.GET,
+                new HttpEntity<>(null, getHeaders(cookies)),
+                String.class);
         IntegrationTestUtils.extractCookies(response, cookies);
 
         // should be directed to the login screen...
@@ -318,8 +322,8 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         cookies.clear();
         IntegrationTestUtils.extractCookies(result, cookies);
 
-        location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
-        response = restTemplate.exchange(location,
+        location = IntegrationTestUtils.resolveRedirect(serverRunning.getUrl("/login.do"), result.getHeaders().getLocation());
+        response = restTemplate.exchange(URI.create(location),
                 HttpMethod.GET,
                 new HttpEntity<>(null, getHeaders(cookies)),
                 String.class);
@@ -334,11 +338,11 @@ class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             formData.add(DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
+            location = IntegrationTestUtils.resolveRedirect(serverRunning.getUrl("/oauth/authorize"), result.getHeaders().getLocation());
         } else {
             // Token cached so no need for second approval
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = UriUtils.decode(response.getHeaders().getLocation().toString(), "UTF-8");
+            location = IntegrationTestUtils.resolveRedirect(location, response.getHeaders().getLocation());
         }
         assertThat(location).as("Wrong location: " + location).matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher);
 

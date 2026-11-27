@@ -14,9 +14,14 @@
 
 package org.cloudfoundry.identity.uaa.error;
 
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +30,7 @@ import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,5 +63,27 @@ class ConvertingExceptionViewTests {
                 HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
         view.render(new HashMap<>(), request, response);
         assertThat(response.getContentAsString()).isNotNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {400, 404, 409, 422})
+    void render_withServletDefaultEncoding_returnsJsonErrorBody(int status) throws Exception {
+        request.addHeader("Accept", MediaType.APPLICATION_JSON_VALUE);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.ISO_8859_1.name());
+        String message = "Resource error: grüp";
+        ScimException exception = new ScimException(message, HttpStatus.valueOf(status));
+        view = new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(exception),
+                HttpStatus.valueOf(status)), new HttpMessageConverter<?>[]{new ExceptionReportHttpMessageConverter()});
+
+        view.render(new HashMap<>(), request, response);
+
+        assertThat(response.getStatus()).isEqualTo(status);
+        assertThat(MediaType.parseMediaType(response.getContentType()).getCharset())
+                .isEqualTo(StandardCharsets.UTF_8);
+        assertThat(JsonUtils.readValueAsMap(response.getContentAsString()))
+                .containsKey("error")
+                .containsEntry("message", message)
+                .containsEntry("error_description", message);
     }
 }

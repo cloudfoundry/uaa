@@ -90,7 +90,8 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
             }
             getValue = map::get;
         } else {
-            MultiValueMap<String, String> map = formConverter.read(null, inputMessage);
+            @SuppressWarnings("unchecked")
+            MultiValueMap<String, String> map = (MultiValueMap<String, String>) formConverter.read(MultiValueMap.class, inputMessage);
             getValue = map::getFirst;
         }
         result.setUsername(getValue.apply(USERNAME));

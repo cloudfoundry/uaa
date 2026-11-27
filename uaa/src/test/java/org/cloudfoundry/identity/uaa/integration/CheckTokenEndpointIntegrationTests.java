@@ -67,7 +67,7 @@ class CheckTokenEndpointIntegrationTests {
                 .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
         ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), getHeaders(cookies));
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = result.getHeaders().getLocation().toString();
+        String location = IntegrationTestUtils.resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         IntegrationTestUtils.extractCookies(result, cookies);
 
         ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
@@ -89,7 +89,9 @@ class CheckTokenEndpointIntegrationTests {
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         IntegrationTestUtils.extractCookies(result, cookies);
 
-        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), getHeaders(cookies));
+        response = serverRunning.getForString(
+                IntegrationTestUtils.resolveRedirect(serverRunning.getUrl("/login.do"), result.getHeaders().getLocation()),
+                getHeaders(cookies));
         IntegrationTestUtils.extractCookies(response, cookies);
 
         if (response.getStatusCode() == HttpStatus.OK) {
@@ -101,11 +103,11 @@ class CheckTokenEndpointIntegrationTests {
             formData.add(USER_OAUTH_APPROVAL, "true");
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = result.getHeaders().getLocation().toString();
+            location = IntegrationTestUtils.resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         } else {
             // Token cached so no need for second approval
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = response.getHeaders().getLocation().toString();
+            location = IntegrationTestUtils.resolveRedirect(uri.toString(), response.getHeaders().getLocation());
         }
         assertThat(location).as("Wrong location: " + location).matches(resource.getPreEstablishedRedirectUri() + ".*code=.+");
 

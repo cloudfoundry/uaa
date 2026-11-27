@@ -95,6 +95,7 @@ class PasswordGrantIT {
     void userLoginViaPasswordGrant() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -114,6 +115,7 @@ class PasswordGrantIT {
     void userLoginViaPasswordGrantLoginHintUaa() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -134,6 +136,7 @@ class PasswordGrantIT {
     void userLoginViaPasswordGrantLoginHintUaaDoubleEncoded() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -158,6 +161,7 @@ class PasswordGrantIT {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -185,6 +189,7 @@ class PasswordGrantIT {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -240,6 +245,7 @@ class PasswordGrantIT {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -267,6 +273,7 @@ class PasswordGrantIT {
     void userLoginViaPasswordGrantInvalidLoginHint() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -292,6 +299,7 @@ class PasswordGrantIT {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();

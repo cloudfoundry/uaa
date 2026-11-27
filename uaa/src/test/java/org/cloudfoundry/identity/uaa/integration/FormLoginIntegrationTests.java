@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.http.MediaType;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
@@ -85,7 +86,8 @@ class FormLoginIntegrationTests {
         );
         CloseableHttpResponse response = httpclient.execute(httpget);
         assertThat(response.getCode()).isEqualTo(FOUND.value());
-        location = response.getFirstHeader("Location").getValue();
+        location = IntegrationTestUtils.resolveRedirect(httpget.getUri().toString(),
+                URI.create(response.getFirstHeader("Location").getValue()));
         response.close();
         httpget.reset();
         assertThat(location).contains("/login");
@@ -120,7 +122,8 @@ class FormLoginIntegrationTests {
 
         response = httpclient.execute(loginPost);
         assertThat(response.getCode()).isEqualTo(FOUND.value());
-        location = response.getFirstHeader("Location").getValue();
+        location = IntegrationTestUtils.resolveRedirect(loginPost.getUri().toString(),
+                URI.create(response.getFirstHeader("Location").getValue()));
         response.close();
 
         // This implementation of httpclient would not send the `JSESSIONID` cookie that has `Secure` attribute

@@ -83,7 +83,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -1283,6 +1282,12 @@ public class IntegrationTestUtils {
         return headers;
     }
 
+    /** Resolve a Location header without decoding its query or duplicating the application's context path. */
+    public static String resolveRedirect(String requestUrl, URI location) {
+        assertThat(location).as("Location header from %s", requestUrl).isNotNull();
+        return URI.create(requestUrl).resolve(location).toString();
+    }
+
     public static String getAuthorizationResponse(ServerRunningExtension serverRunning,
                                                   String clientId,
                                                   String username,
@@ -1314,7 +1319,7 @@ public class IntegrationTestUtils {
                         Void.class
                 );
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = result.getHeaders().getLocation().toString();
+        String location = resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         extractCookies(result, cookies);
 
         ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
@@ -1334,7 +1339,8 @@ public class IntegrationTestUtils {
         extractCookies(result, cookies);
 
         response = serverRunning.createRestTemplate().exchange(
-                result.getHeaders().getLocation().toString(), HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
+                resolveRedirect(serverRunning.getUrl("/login.do"), result.getHeaders().getLocation()),
+                HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
                 String.class);
         extractCookies(response, cookies);
         if (response.getStatusCode() == HttpStatus.OK) {
@@ -1345,13 +1351,13 @@ public class IntegrationTestUtils {
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = result.getHeaders().getLocation().toString();
+            location = resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         } else if (response.getStatusCode() == HttpStatus.BAD_REQUEST) {
             return response.getBody();
         } else {
             // Token cached so no need for second approval
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = response.getHeaders().getLocation().toString();
+            location = resolveRedirect(uri.toString(), response.getHeaders().getLocation());
         }
         return location;
     }
@@ -1460,7 +1466,7 @@ public class IntegrationTestUtils {
                 );
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-        String location = result.getHeaders().getLocation().toString();
+        String location = resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         extractCookies(result, cookies);
 
         ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
@@ -1487,7 +1493,8 @@ public class IntegrationTestUtils {
         }
 
         response = serverRunning.createRestTemplate().exchange(
-                result.getHeaders().getLocation().toString(), HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
+                resolveRedirect(serverRunning.getUrl("/login.do"), result.getHeaders().getLocation()),
+                HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
                 String.class);
         extractCookies(response, cookies);
 
@@ -1500,11 +1507,11 @@ public class IntegrationTestUtils {
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = result.getHeaders().getLocation().toString();
+            location = resolveRedirect(uri.toString(), result.getHeaders().getLocation());
         } else {
             // Token cached so no need for second approval
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
-            location = response.getHeaders().getLocation().toString();
+            location = resolveRedirect(uri.toString(), response.getHeaders().getLocation());
         }
         if (hasText(redirectUri)) {
             assertThat(location).as("Wrong location: " + location).matches(redirectUri + ".*code=.+");

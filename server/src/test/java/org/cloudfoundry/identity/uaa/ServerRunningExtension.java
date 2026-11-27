@@ -284,7 +284,7 @@ public final class ServerRunningExtension implements BeforeAllCallback, RestTemp
             }
         }
 
-        String location = exchange.getHeaders().getLocation().toString();
+        URI location = URI.create(getUrl(path)).resolve(exchange.getHeaders().getLocation());
 
         return client.exchange(location, HttpMethod.GET, new HttpEntity<Void>(null, headers), Void.class);
     }

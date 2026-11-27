@@ -38,7 +38,8 @@ public class FormOAuth2AccessTokenMessageConverter extends AbstractHttpMessageCo
     @Override
     protected OAuth2AccessToken readInternal(Class<? extends OAuth2AccessToken> clazz, HttpInputMessage inputMessage)
             throws IOException, HttpMessageNotReadableException {
-        MultiValueMap<String, String> data = delegateMessageConverter.read(null, inputMessage);
+        @SuppressWarnings("unchecked")
+        MultiValueMap<String, String> data = (MultiValueMap<String, String>) delegateMessageConverter.read(MultiValueMap.class, inputMessage);
         return DefaultOAuth2AccessToken.valueOf(data.toSingleValueMap());
     }
 
