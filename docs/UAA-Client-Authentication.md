@@ -79,13 +79,21 @@ that changes the value (`PUT /oauth/clients/{id}`, `PUT /oauth/clients/tx` and t
 is accepted. A key set that is read from a `jwks_uri` or configured for a client in `uaa.yml` keeps the last key of a
 repeated `kid`, as before.
 The key set of a client is changed with `PUT /oauth/clients/{id}/clientjwt` (requiring `clients.trust`, `clients.admin`
-or the appropriate zone-admin authority). A general update of a client, `PUT /oauth/clients/{id}`, changes
-`client_jwt_config` and `jwt_creds` only for admin callers, callers with `clients.admin`, and callers with
-`clients.trust` for their own client. For other callers the stored `client_jwt_config` string stays byte-for-byte
-unchanged, including repeated keys and unknown fields. A value they send is ignored, also one that repeats a `kid`,
-and the update is answered with 200. This also applies when the stored configuration cannot be read: other client
-fields can still be updated, and the response retains the raw string but omits the derived `jwks`, `jwks_uri` and
-`jwt_creds` fields. A supplied `client_jwt_config` that is not valid JSON is rejected with 400 for every caller.
+or the appropriate zone-admin authority). The response lists the key ids (`kids`), the `jwks_uri` and the federated
+credentials (`jwt_creds`) of the client as stored when the request finished, the same as a read of the client returns,
+except that the `jwks_uri` is listed without user information (`user:password@`). The `jwks_uri` is omitted when the
+client has none. Changes of one client that arrive at the same time can replace each other; a caller compares the lists
+with the state it wants and sends the change again if needed. A `kid` confirms the key id, not the key: `ADD` keeps a
+key that is already stored under the same `kid`, and `UPDATE` replaces it. `ADD` also keeps a stored `jwks_uri`, and
+`UPDATE` replaces it. A delete of a federated credential also removes it from `jwt_creds` in the additional information
+of the client, where older UAA versions kept federated credentials.
+A general update of a client, `PUT /oauth/clients/{id}`, changes `client_jwt_config`
+and `jwt_creds` only for admin callers, callers with `clients.admin`, and callers with `clients.trust` for their own
+client. For other callers the stored `client_jwt_config` string stays byte-for-byte unchanged, including repeated keys
+and unknown fields. A value they send is ignored, also one that repeats a `kid`, and the update is answered with 200.
+This also applies when the stored configuration cannot be read: other client fields can still be updated, and the
+response retains the raw string but omits the derived `jwks`, `jwks_uri` and `jwt_creds` fields. A supplied
+`client_jwt_config` that is not valid JSON is rejected with 400 for every caller.
 
 This should allow continuous trust between UAA to UAA communication, e.g., using own UAA instances or within a UAA using
 different zones.

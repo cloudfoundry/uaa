@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtActionResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
@@ -59,6 +60,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.BadClientCredentialsException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,8 +79,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.HtmlUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -618,7 +623,56 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
         clientJwtChanges.incrementAndGet();
 
-        return result;
+        return withResultingClientJwtConfiguration(client_id, result);
+    }
+
+    /**
+     * Adds the jwt configuration of the client as it is in effect after the change to the result: the configuration
+     * that a read of the client returns and that client authentication uses, which includes federated credentials
+     * kept as jwt_creds in the additional information. Concurrent changes of one client can replace each other; the
+     * caller can see from this whether its change is part of the end state.
+     */
+    private ActionResult withResultingClientJwtConfiguration(String clientId, ActionResult result) {
+        ClientJwtConfiguration stored = null;
+        try {
+            if (clientDetailsService.retrieve(clientId, identityZoneManager.getCurrentIdentityZoneId()) instanceof UaaClientDetails details) {
+                stored = new UaaClient(
+                        details.getClientId(),
+                        details.getClientSecret(),
+                        details.getAuthorities(),
+                        new HashMap<>(Optional.ofNullable(details.getAdditionalInformation()).orElseGet(Collections::emptyMap)),
+                        details.getClientJwtConfig()
+                ).getClientJwtConfiguration();
+            }
+        } catch (InvalidClientException _) {
+            // removed in the meantime: nothing is stored any more
+        }
+        List<String> kids = stored == null || stored.getJwkSet() == null ? List.of() :
+                stored.getJwkSet().getKeys().stream().map(JsonWebKey::getKid).toList();
+        String jwksUri = stored == null ? null : withoutUserInfo(stored.getJwksUri());
+        List<ClientJwtCredential> credentials = stored == null || stored.getClientJwtCredentials() == null ?
+                List.of() : stored.getClientJwtCredentials();
+        return new ClientJwtActionResult(result.getStatus(), result.getMessage(), kids, jwksUri, credentials);
+    }
+
+    /**
+     * A jwks_uri can carry user information (user:password@host), which can hold a password. The response of a jwt
+     * change leaves it out and returns the rest of the address as stored.
+     */
+    private static String withoutUserInfo(String jwksUri) {
+        if (jwksUri == null) {
+            return null;
+        }
+        try {
+            URI uri = new URI(jwksUri);
+            if (uri.getRawUserInfo() == null) {
+                return jwksUri;
+            }
+            return UriComponentsBuilder.fromUri(uri).userInfo(null).build(true).toUriString();
+        } catch (URISyntaxException | IllegalArgumentException _) {
+            // stored values are validated as a URI; a value that is not one is left out
+            return null;
+        }
     }
 
     private ClientJwtCredential getValidatedFederation(ClientJwtChangeRequest change) {
