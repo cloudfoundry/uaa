@@ -203,6 +203,20 @@ class SamlAuthenticationMockMvcTests {
         xmlAssert.valueByXPath("/saml2p:AuthnRequest/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestValue").isNotEmpty();
     }
 
+    @Test
+    void authnRequestUsesBootstrappedIdpNameIdFormatInsteadOfGlobalDefault() throws Exception {
+        MvcResult result = mockMvc.perform(get("/uaa/saml2/authenticate/testsaml-post-specific")
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String requestXml = new String(samlDecode(extractSamlRequestFromPostForm(result.getResponse().getContentAsString())), StandardCharsets.UTF_8);
+        XmlAssert.assertThat(requestXml).withNamespaceContext(xmlNamespaces())
+                .valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"); // matches login.saml.providers.testsaml-post-specific.nameID
+    }
+
     @Nested
     @DefaultTestContext
     @TestPropertySource(properties = "login.entityBaseURL=")
